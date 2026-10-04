@@ -2,7 +2,7 @@
 
 ## Current deployment
 
-a local Windows workstation is the authoritative Watchtower processor during the development and validation phase.
+A local workstation is the authoritative Watchtower processor during the development and validation phase.
 
 The machine performs:
 
@@ -25,7 +25,7 @@ The collection/QA layer must not depend on:
 - Windows drive letters;
 - Windows Task Scheduler;
 - interactive desktop sessions;
-- a local Windows workstation host names;
+- specific workstation host names;
 - local-only secrets; or
 - dashboard HTTP state.
 
@@ -49,7 +49,7 @@ The dashboard is a consumer of Watchtower state. It should not be the scheduler 
 
 This separation permits:
 
-- a local Windows workstation processing + LAN dashboard today;
+- local processing + a private LAN dashboard today;
 - scheduled cloud processing + hosted dashboard later;
 - static/public dashboard exports without exposing operational state.
 
