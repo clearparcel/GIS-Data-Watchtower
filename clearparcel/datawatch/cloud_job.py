@@ -28,7 +28,8 @@ def run_cloud_job(config_path: str | Path) -> dict:
         storage.download(object_name, local)
         config[key] = str(local)
 
-    result = check_sources(config, save=True)
+    profile = os.environ.get("WATCHTOWER_EXECUTION_PROFILE", "cloud")
+    result = check_sources(config, save=True, execution_profile=profile)
 
     for key, object_name in ARTIFACTS.items():
         path = config.get(key)
