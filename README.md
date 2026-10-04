@@ -43,7 +43,7 @@ The dashboard is intended to remain private by default. Wildcard/public binds fa
 
 You are responsible for reviewing each provider's terms, licenses, rate limits, and redistribution restrictions before adding it. Watchtower respects HTTP 429 responses, bounds geometry sampling, prevents overlapping checks, and identifies itself with a project User-Agent.
 
-See `docs/data-watchtower-provider-compliance.md` for the project's provider-use methodology. The included Minnesota production registry is maintained as an example of a real deployment and is not a blanket statement that every endpoint permits every possible use.
+See `docs/data-watchtower-provider-compliance.md` for the project's provider-use methodology. The public repository ships only provider-neutral example configuration; deployment-specific source registries remain private and are not evidence that any provider permits every possible use.
 
 ## Data and privacy
 
