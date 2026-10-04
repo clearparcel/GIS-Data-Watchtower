@@ -1,0 +1,1125 @@
+{
+  "schema_version": 1,
+  "source": {
+    "name": "Minnesota Geospatial Information Office (MnGeo) — County GIS Contacts",
+    "url": "https://mn.gov/mngeo/community/gis-contacts/county-gis-contacts/",
+    "retrieved": "2026-10-04",
+    "note": "Starting-point directory maintained from jurisdiction updates; contact details may change."
+  },
+  "counties": [
+    {
+      "county": "Aitkin",
+      "contacts": [
+        {
+          "name": "Dan Haasken",
+          "title": "GIS Coordinator",
+          "department": "GIS",
+          "phone": "218-927-7391",
+          "email": "dhaasken@co.aitkin.mn.us"
+        }
+      ]
+    },
+    {
+      "county": "Anoka",
+      "contacts": [
+        {
+          "name": "John Slusarczyk",
+          "title": "GIS Coordinator",
+          "department": "Transportation/GIS",
+          "phone": "763-324-3109",
+          "email": "john.slusarczyk@anokacountymn.gov"
+        }
+      ]
+    },
+    {
+      "county": "Becker",
+      "contacts": [
+        {
+          "name": "Nicole Hultin",
+          "title": "E911 Coordinator",
+          "department": "Planning & Zoning",
+          "phone": "218-846-7314",
+          "email": "nicole.hultin@co.becker.mn.us"
+        },
+        {
+          "name": "Tony Brahmer",
+          "title": "Developer/GIS Coordinator",
+          "department": "IT",
+          "phone": "218-846-7230",
+          "email": "tony.brahmer@co.becker.mn.us"
+        },
+        {
+          "name": "Sue Seifert",
+          "title": "GIS/Research Specialist",
+          "department": "IT",
+          "phone": "218-846-7230",
+          "email": "susanne.seifert@co.becker.mn.us"
+        }
+      ]
+    },
+    {
+      "county": "Beltrami",
+      "contacts": [
+        {
+          "name": "Kevin Trappe",
+          "title": "GIS Director",
+          "department": "GIS",
+          "phone": "218-333-8457",
+          "email": "kevin.trappe@beltramicountymn.gov"
+        }
+      ]
+    },
+    {
+      "county": "Benton",
+      "contacts": [
+        {
+          "name": "Scott Zwick",
+          "title": "GIS Coordinator",
+          "department": "Development",
+          "phone": "320-968-5075",
+          "email": "szwick@co.benton.mn.us"
+        }
+      ]
+    },
+    {
+      "county": "Big Stone",
+      "contacts": [
+        {
+          "name": "Matt Anderson",
+          "title": "IT Director",
+          "department": "Information Technology",
+          "phone": "320-839-6371",
+          "email": "matt.anderson@co.big-stone.mn.us"
+        }
+      ]
+    },
+    {
+      "county": "Blue Earth",
+      "contacts": [
+        {
+          "name": "David Sieberg",
+          "title": "Mapping & Property Records",
+          "department": "Property & Environmental Resources",
+          "phone": "507-304-4140",
+          "email": "gis@blueearthcountymn.gov"
+        }
+      ]
+    },
+    {
+      "county": "Brown",
+      "contacts": [
+        {
+          "name": "Alex Danielson",
+          "title": "GIS Administrator",
+          "department": "IT",
+          "phone": "507-233-6633",
+          "email": "alex.danielson@browncountymn.gov"
+        },
+        {
+          "name": "Nate Beran",
+          "title": "IT Director",
+          "department": "IT",
+          "phone": "507-233-6631",
+          "email": "nate.beran@browncountymn.gov"
+        }
+      ]
+    },
+    {
+      "county": "Carlton",
+      "contacts": [
+        {
+          "name": "Jared Hovi",
+          "title": "GIS Coordinator",
+          "department": "Land",
+          "phone": "218-384-9502",
+          "email": "GIS@carltoncountymn.gov"
+        }
+      ]
+    },
+    {
+      "county": "Carver",
+      "contacts": [
+        {
+          "name": "Chad Riley",
+          "title": "Development & GIS Supervisor",
+          "department": "GIS",
+          "phone": "952-361-1937",
+          "email": "criley@carvercountymn.gov"
+        }
+      ]
+    },
+    {
+      "county": "Cass",
+      "contacts": [
+        {
+          "name": "Jessica Watts",
+          "title": "GIS Tech Support Specialist",
+          "department": "IT",
+          "phone": "218-547-7380",
+          "email": "jess.watts@casscountymn.gov"
+        }
+      ]
+    },
+    {
+      "county": "Chippewa",
+      "contacts": [
+        {
+          "name": "JoAnn Blomme",
+          "title": "Environmental Technician",
+          "department": "Land and Resource Management",
+          "phone": "320-269-6231",
+          "email": "joann.blomme@chippewa.mn"
+        }
+      ]
+    },
+    {
+      "county": "Chisago",
+      "contacts": [
+        {
+          "name": "Beth Wulf",
+          "title": "GIS Analyst",
+          "department": "Enterprise Services/GIS",
+          "phone": "651-213-8213",
+          "email": "Beth.Wulf@chisagocountymn.gov"
+        }
+      ]
+    },
+    {
+      "county": "Clay",
+      "contacts": [
+        {
+          "name": "Mark Sloan",
+          "title": "IS Director",
+          "department": "Information Services",
+          "phone": "218-299-5003",
+          "email": "gis@claycountymn.gov"
+        }
+      ]
+    },
+    {
+      "county": "Clearwater",
+      "contacts": [
+        {
+          "name": "Stuart Lien",
+          "title": "IT/GIS Director",
+          "department": "IT/GIS",
+          "phone": "218-694-3633",
+          "email": "stuart.lien@clearwatercountymn.gov"
+        }
+      ]
+    },
+    {
+      "county": "Cook",
+      "contacts": [
+        {
+          "name": "Kyle Oberg",
+          "title": "GIS Analyst",
+          "department": "GIS/MIS",
+          "phone": "218-387-3663",
+          "email": "kyle.oberg@cookcountymn.gov"
+        }
+      ]
+    },
+    {
+      "county": "Cottonwood",
+      "contacts": [
+        {
+          "name": "Kelly Smith",
+          "title": "Director of Information Systems",
+          "department": "Information Systems",
+          "phone": "507-832-8847",
+          "email": "kelly.smith@co.cottonwood.mn.us"
+        }
+      ]
+    },
+    {
+      "county": "Crow Wing",
+      "contacts": [
+        {
+          "name": "Nate Rose",
+          "title": "GIS Coordinator",
+          "department": "IT-GIS",
+          "phone": "218-824-1106",
+          "email": "nate.rose@crowwing.us"
+        }
+      ]
+    },
+    {
+      "county": "Dakota",
+      "contacts": [
+        {
+          "name": "Joe Sapletal",
+          "title": "GIS Manager",
+          "department": "GIS",
+          "phone": "952-891-7096",
+          "email": "joe.sapletal@co.dakota.mn.us"
+        }
+      ]
+    },
+    {
+      "county": "Dodge",
+      "contacts": [
+        {
+          "name": "Bryan Byholm",
+          "title": "Goodhue/Dodge County GIS Systems Specialist",
+          "department": "Land Records",
+          "phone": "651-385-3193",
+          "email": "bryan.byholm@goodhuecountymn.gov"
+        }
+      ]
+    },
+    {
+      "county": "Douglas",
+      "contacts": [
+        {
+          "name": "Patrick Veraguth",
+          "title": "County Surveyor",
+          "department": "Public Works",
+          "phone": "320-762-2933",
+          "email": "gishelp@co.douglas.mn.us"
+        },
+        {
+          "name": "Katie Reitter",
+          "title": "GIS Coordinator",
+          "department": "Public Works",
+          "phone": "320-762-2933",
+          "email": "gishelp@co.douglas.mn.us"
+        },
+        {
+          "name": "Doug Thom",
+          "title": "E911 Coordinator",
+          "department": "Public Works",
+          "phone": "320-762-2933",
+          "email": "gishelp@co.douglas.mn.us"
+        }
+      ]
+    },
+    {
+      "county": "Faribault",
+      "contacts": [
+        {
+          "name": "Brandee Douglas",
+          "title": "GIS Coordinator",
+          "department": "GIS",
+          "phone": "507-526-2388",
+          "email": "brandee.douglas@co.faribault.mn.us"
+        }
+      ]
+    },
+    {
+      "county": "Fillmore",
+      "contacts": [
+        {
+          "name": "TBD",
+          "title": "GIS Coordinator",
+          "department": "GIS",
+          "phone": "",
+          "email": ""
+        }
+      ]
+    },
+    {
+      "county": "Freeborn",
+      "contacts": [
+        {
+          "name": "Tim Fulton",
+          "title": "GIS Coordinator",
+          "department": "IT",
+          "phone": "507-377-5145",
+          "email": "tim.fulton@co.freeborn.mn.us"
+        }
+      ]
+    },
+    {
+      "county": "Goodhue",
+      "contacts": [
+        {
+          "name": "Alan Laumeyer",
+          "title": "GIS Specialist",
+          "department": "GIS",
+          "phone": "651-385-3094",
+          "email": "alan.laumeyer@goodhuecountymn.gov"
+        }
+      ]
+    },
+    {
+      "county": "Grant",
+      "contacts": [
+        {
+          "name": "Reed Peterson",
+          "title": "Director",
+          "department": "Environmental Services",
+          "phone": "218-685-8322",
+          "email": "reed.peterson@grantcountymn.gov"
+        }
+      ]
+    },
+    {
+      "county": "Hennepin",
+      "contacts": [
+        {
+          "name": "Jesse Reinhardt",
+          "title": "GIS and Community Connectivity Manager",
+          "department": "IT/GIS",
+          "phone": "612-596-9058",
+          "email": "jesse.reinhardt@hennepincounty.gov"
+        }
+      ]
+    },
+    {
+      "county": "Houston",
+      "contacts": [
+        {
+          "name": "Eric Schmitt",
+          "title": "County Surveyor",
+          "department": "Surveyor's Office",
+          "phone": "507-725-5814",
+          "email": "eric.schmitt@co.houston.mn.us"
+        },
+        {
+          "name": "Mark Olson",
+          "title": "Emergency Management Director",
+          "department": "Sheriff's Office",
+          "phone": "507-725-5834",
+          "email": "mark.olson@co.houston.mn.us"
+        }
+      ]
+    },
+    {
+      "county": "Hubbard",
+      "contacts": [
+        {
+          "name": "Jack Bovee",
+          "title": "GIS Supervisor",
+          "department": "Environmental Services",
+          "phone": "218-732-3890",
+          "email": "gis@co.hubbard.mn.us"
+        },
+        {
+          "name": "Edward Schoon",
+          "title": "GIS Specialist",
+          "department": "Environmental Services",
+          "phone": "218-732-3890",
+          "email": "gis@co.hubbard.mn.us"
+        }
+      ]
+    },
+    {
+      "county": "Isanti",
+      "contacts": [
+        {
+          "name": "Nate Kirkwold",
+          "title": "GIS Manager",
+          "department": "Administrative Services Division",
+          "phone": "763-689-8243",
+          "email": "nate.kirkwold@co.isanti.mn.us"
+        }
+      ]
+    },
+    {
+      "county": "Itasca",
+      "contacts": [
+        {
+          "name": "Jeff Braaten",
+          "title": "GIS Analyst",
+          "department": "Surveying and Mapping",
+          "phone": "218-327-7388",
+          "email": "jeff.braaten@co.itasca.mn.us"
+        }
+      ]
+    },
+    {
+      "county": "Jackson",
+      "contacts": [
+        {
+          "name": "Wes Liepold",
+          "title": "Assistant Engineer",
+          "department": "Highway/Engineering",
+          "phone": "507-849-7261",
+          "email": "wes.liepold@co.jackson.mn.us"
+        }
+      ]
+    },
+    {
+      "county": "Kanabec",
+      "contacts": [
+        {
+          "name": "Ryan Carda",
+          "title": "GIS Technician",
+          "department": "Public Works",
+          "phone": "320-679-6456",
+          "email": "ryan.carda@kanabeccountymn.gov"
+        }
+      ]
+    },
+    {
+      "county": "Kandiyohi",
+      "contacts": [
+        {
+          "name": "Matt Runke",
+          "title": "County Surveyor",
+          "department": "Surveyor's Office",
+          "phone": "320-441-2495",
+          "email": "matt.runke@kcmn.us"
+        }
+      ]
+    },
+    {
+      "county": "Kittson",
+      "contacts": [
+        {
+          "name": "Jennifer Koskela",
+          "title": "Chief Deputy Assessor",
+          "department": "County Assessor",
+          "phone": "218-843-3615",
+          "email": "jkoskela@co.kittson.mn.us"
+        }
+      ]
+    },
+    {
+      "county": "Koochiching",
+      "contacts": [
+        {
+          "name": "Mary-Jean Becker",
+          "title": "GIS Technician",
+          "department": "Information Systems",
+          "phone": "218-283-1172",
+          "email": "maryjean.becker@co.koochiching.mn.us"
+        }
+      ]
+    },
+    {
+      "county": "Lac qui Parle",
+      "contacts": [
+        {
+          "name": "Jake Sieg",
+          "title": "Coordinator",
+          "department": "Lac qui Parle – Yellow Bank Watershed District",
+          "phone": "320-598-3319",
+          "email": "gis@lqpco.com"
+        }
+      ]
+    },
+    {
+      "county": "Lake",
+      "contacts": [
+        {
+          "name": "Amy Lewis",
+          "title": "GIS Analyst",
+          "department": "Information Technology",
+          "phone": "218-834-8433",
+          "email": "gis@co.lake.mn.us"
+        }
+      ]
+    },
+    {
+      "county": "Lake of the Woods",
+      "contacts": [
+        {
+          "name": "Eric Solo",
+          "title": "GIS/IT Specialist",
+          "department": "MIS/GIS",
+          "phone": "218-634-4517",
+          "email": "eric_s@co.lake-of-the-woods.mn.us"
+        }
+      ]
+    },
+    {
+      "county": "Le Sueur",
+      "contacts": [
+        {
+          "name": "George Phillips",
+          "title": "GIS Technician",
+          "department": "GIS",
+          "phone": "507-357-8578",
+          "email": "gphillips@co.le-sueur.mn.us"
+        }
+      ]
+    },
+    {
+      "county": "Lincoln",
+      "contacts": [
+        {
+          "name": "Brad Leibfried",
+          "title": "GIS Technician",
+          "department": "Assessor",
+          "phone": "507-694-1441",
+          "email": "bleibfried@lincolncountymn.gov"
+        }
+      ]
+    },
+    {
+      "county": "Lyon",
+      "contacts": [
+        {
+          "name": "Mark Volz",
+          "title": "GIS Coordinator",
+          "department": "GIS",
+          "phone": "507-532-8218",
+          "email": "markvolz@co.lyon.mn.us"
+        }
+      ]
+    },
+    {
+      "county": "Mahnomen",
+      "contacts": [
+        {
+          "name": "Cindy Large",
+          "title": "Certified Appraiser",
+          "department": "Assessor's Office",
+          "phone": "218-935-2417",
+          "email": "cindy.large@co.mahnomen.mn.us"
+        }
+      ]
+    },
+    {
+      "county": "Marshall",
+      "contacts": [
+        {
+          "name": "Liz Dustin",
+          "title": "GIS Coordinator",
+          "department": "GIS",
+          "phone": "218-745-4851",
+          "email": "liz.dustin@co.marshall.mn.us"
+        }
+      ]
+    },
+    {
+      "county": "Martin",
+      "contacts": [
+        {
+          "name": "Mike Forstner",
+          "title": "Drainage System Manager",
+          "department": "Drainage Administration",
+          "phone": "507-238-3130",
+          "email": "michael.forstner@co.martin.mn.us"
+        }
+      ]
+    },
+    {
+      "county": "McLeod",
+      "contacts": [
+        {
+          "name": "Christy Christensen",
+          "title": "GIS Director",
+          "department": "GIS",
+          "phone": "320-484-4375",
+          "email": "christy.christensen@mcleodcountymn.gov"
+        }
+      ]
+    },
+    {
+      "county": "Meeker",
+      "contacts": [
+        {
+          "name": "Teresa Lieser",
+          "title": "GIS Coordinator",
+          "department": "Planning & Zoning",
+          "phone": "320-693-1718",
+          "email": "teresa.lieser@co.meeker.mn.us"
+        }
+      ]
+    },
+    {
+      "county": "Mille Lacs",
+      "contacts": [
+        {
+          "name": "Brandon Reinking",
+          "title": "GIS Specialist",
+          "department": "Zoning Office",
+          "phone": "320-983-8338",
+          "email": "brandon.reinking@millelacs.mn.gov"
+        }
+      ]
+    },
+    {
+      "county": "Morrison",
+      "contacts": [
+        {
+          "name": "Brad Bolton",
+          "title": "GIS Coordinator",
+          "department": "Land Services",
+          "phone": "320-631-0834",
+          "email": "brad.bolton@morrisoncountymn.gov"
+        }
+      ]
+    },
+    {
+      "county": "Mower",
+      "contacts": [
+        {
+          "name": "Eric Miller",
+          "title": "GIS Administrator",
+          "department": "Information Technology",
+          "phone": "507-437-9584",
+          "email": "ericm@co.mower.mn.us"
+        }
+      ]
+    },
+    {
+      "county": "Murray",
+      "contacts": [
+        {
+          "name": "Jason Lohrenz",
+          "title": "IT Supervisor",
+          "department": "IT/GIS Services",
+          "phone": "507-836-6023",
+          "email": "jlohrenz@co.murray.mn.us"
+        },
+        {
+          "name": "Grant Fischer",
+          "title": "GIS Technician",
+          "department": "IT/GIS Services",
+          "phone": "507-836-1168",
+          "email": "gfischer@co.murray.mn.us"
+        }
+      ]
+    },
+    {
+      "county": "Nicollet",
+      "contacts": [
+        {
+          "name": "David Runck",
+          "title": "",
+          "department": "GIS Services",
+          "phone": "507-934-7192",
+          "email": "david.runck@co.nicollet.mn.us"
+        }
+      ]
+    },
+    {
+      "county": "Nobles",
+      "contacts": [
+        {
+          "name": "Angelo Torres",
+          "title": "IT Director",
+          "department": "Information Systems",
+          "phone": "507-295-5349",
+          "email": "atorres@co.nobles.mn.us"
+        }
+      ]
+    },
+    {
+      "county": "Norman",
+      "contacts": [
+        {
+          "name": "Marti Sip",
+          "title": "County Assessor",
+          "department": "Assessor",
+          "phone": "218-784-5487",
+          "email": "marti.sip@co.norman.mn.us"
+        }
+      ]
+    },
+    {
+      "county": "Olmsted",
+      "contacts": [
+        {
+          "name": "Jan Chezick",
+          "title": "GIS Manager",
+          "department": "Public Works",
+          "phone": "507-328-7141",
+          "email": "janice.chezick@olmstedcounty.gov"
+        }
+      ]
+    },
+    {
+      "county": "Otter Tail",
+      "contacts": [
+        {
+          "name": "George Meyer",
+          "title": "GIS Lead Developer",
+          "department": "GIS",
+          "phone": "218-998-8313",
+          "email": "gmeyer@co.ottertail.mn.us"
+        }
+      ]
+    },
+    {
+      "county": "Pennington",
+      "contacts": [
+        {
+          "name": "Mike Flaagan",
+          "title": "County Engineer",
+          "department": "Highway",
+          "phone": "218-683-7017",
+          "email": "mlflaagan@penningtonmn.gov"
+        }
+      ]
+    },
+    {
+      "county": "Pine",
+      "contacts": [
+        {
+          "name": "Kelly Schroeder",
+          "title": "Land Service Director",
+          "department": "",
+          "phone": "320-591-1668",
+          "email": "kelly.schroeder@co.pine.mn.us"
+        }
+      ]
+    },
+    {
+      "county": "Pipestone",
+      "contacts": [
+        {
+          "name": "Kyle Krier",
+          "title": "Enviromental Administrator",
+          "department": "Conservation and Zoning",
+          "phone": "507-825-1185",
+          "email": "kyle.krier@pcmn.us"
+        }
+      ]
+    },
+    {
+      "county": "Polk",
+      "contacts": [
+        {
+          "name": "Steve Moe",
+          "title": "GIS Coordinator",
+          "department": "Public Works",
+          "phone": "218-521-7759",
+          "email": "gis@co.polk.mn.us"
+        }
+      ]
+    },
+    {
+      "county": "Pope",
+      "contacts": [
+        {
+          "name": "Bryan Gates",
+          "title": "IT Director",
+          "department": "IT",
+          "phone": "320-634-7896",
+          "email": "bryan.gates@popecountymn.gov"
+        }
+      ]
+    },
+    {
+      "county": "Ramsey",
+      "contacts": [
+        {
+          "name": "Matt Koukol",
+          "title": "Business Solutions Manager",
+          "department": "Information Services",
+          "phone": "651-266-3463",
+          "email": "matt.koukol@co.ramsey.mn.us"
+        }
+      ]
+    },
+    {
+      "county": "Red Lake",
+      "contacts": [
+        {
+          "name": "Shelly Nelson",
+          "title": "County Assessor",
+          "department": "Assessor",
+          "phone": "218-253-2596",
+          "email": "manelson@co.red-lake.mn.us"
+        }
+      ]
+    },
+    {
+      "county": "Redwood",
+      "contacts": [
+        {
+          "name": "Christopher Burchfield",
+          "title": "GIS Specialist",
+          "department": "Environmental",
+          "phone": "507-637-1160",
+          "email": "chris_b@co.redwood.mn.us"
+        }
+      ]
+    },
+    {
+      "county": "Renville",
+      "contacts": [
+        {
+          "name": "Kyle Schlomann",
+          "title": "IT Coordinator",
+          "department": "IT",
+          "phone": "320-523-3803",
+          "email": "IT@renvillecountymn.gov"
+        }
+      ]
+    },
+    {
+      "county": "Rice",
+      "contacts": [
+        {
+          "name": "Michelle Trager",
+          "title": "GIS Coordinator",
+          "department": "Assessor",
+          "phone": "507-332-5950",
+          "email": "michelle.trager@ricecountymn.gov"
+        }
+      ]
+    },
+    {
+      "county": "Rock",
+      "contacts": [
+        {
+          "name": "Arlyn Gehrke",
+          "title": "Engineering Technician / GIS",
+          "department": "Land Management",
+          "phone": "507-283-8862",
+          "email": "arlyn.gehrke@rockmn.gov"
+        }
+      ]
+    },
+    {
+      "county": "Roseau",
+      "contacts": [
+        {
+          "name": "Chris Stauffer",
+          "title": "Technology Administrator",
+          "department": "Information Technology",
+          "phone": "218-463-4247",
+          "email": "chris.stauffer@co.roseau.mn.us"
+        }
+      ]
+    },
+    {
+      "county": "St. Louis",
+      "contacts": [
+        {
+          "name": "David Yapel",
+          "title": "GIS Manager",
+          "department": "Planning/Enterprise GIS",
+          "phone": "218-725-5017",
+          "email": "yapeld@stlouiscountymn.gov"
+        }
+      ]
+    },
+    {
+      "county": "Scott",
+      "contacts": [
+        {
+          "name": "Matt McLees",
+          "title": "GIS & Asset Manager",
+          "department": "Planning & Resource Management | GIS",
+          "phone": "952-496-8061",
+          "email": "mmclees@co.scott.mn.us"
+        }
+      ]
+    },
+    {
+      "county": "Sherburne",
+      "contacts": [
+        {
+          "name": "Brett Forbes",
+          "title": "GIS Coordinator",
+          "department": "Public Works",
+          "phone": "763-765-3311",
+          "email": "brett.forbes@co.sherburne.mn.us"
+        }
+      ]
+    },
+    {
+      "county": "Sibley",
+      "contacts": [
+        {
+          "name": "Jesse Lutterman",
+          "title": "GIS Coordinator",
+          "department": "Technology",
+          "phone": "507-237-4046",
+          "email": "JesseLutterman@sibleycounty.gov"
+        }
+      ]
+    },
+    {
+      "county": "Stearns",
+      "contacts": [
+        {
+          "name": "Daniel Schmitz",
+          "title": "GIS Manager",
+          "department": "Property Services",
+          "phone": "320-654-4689",
+          "email": "daniel.schmitz@stearnscountymn.gov"
+        }
+      ]
+    },
+    {
+      "county": "Steele",
+      "contacts": [
+        {
+          "name": "Nick Flatgard",
+          "title": "GIS Coordinator",
+          "department": "GIS",
+          "phone": "507-444-7489",
+          "email": "gisdept@co.steele.mn.us"
+        },
+        {
+          "name": "Ali Ellingson",
+          "title": "GIS Technician",
+          "department": "GIS",
+          "phone": "507-444-7486",
+          "email": "gisdept@co.steele.mn.us"
+        }
+      ]
+    },
+    {
+      "county": "Stevens",
+      "contacts": [
+        {
+          "name": "Caitlin Christenson",
+          "title": "GIS Specialist",
+          "department": "GIS",
+          "phone": "320-208-6578",
+          "email": "caitlinchristenson@co.stevens.mn.us"
+        }
+      ]
+    },
+    {
+      "county": "Swift",
+      "contacts": [
+        {
+          "name": "Chelsey Bagent",
+          "title": "GIS Coordinator",
+          "department": "Land Records",
+          "phone": "320-314-8366",
+          "email": "chelsey.bagent@co.swift.mn.us"
+        }
+      ]
+    },
+    {
+      "county": "Todd",
+      "contacts": [
+        {
+          "name": "Thomas Krivanek",
+          "title": "GIS Specialist",
+          "department": "GIS",
+          "phone": "320-732-4248",
+          "email": "toddgis@co.todd.mn.us"
+        }
+      ]
+    },
+    {
+      "county": "Traverse",
+      "contacts": [
+        {
+          "name": "Kit Johnson",
+          "title": "Auditor-Treasurer",
+          "department": "Auditor/Treasurer",
+          "phone": "320-422-7740",
+          "email": "kit.johnson@co.traverse.mn.us"
+        }
+      ]
+    },
+    {
+      "county": "Wabasha",
+      "contacts": [
+        {
+          "name": "Shawn Gertken",
+          "title": "GIS Coordinator",
+          "department": "GIS",
+          "phone": "651-565-5164",
+          "email": "sgertken@co.wabasha.mn.us"
+        }
+      ]
+    },
+    {
+      "county": "Wadena",
+      "contacts": [
+        {
+          "name": "Gina Dahms",
+          "title": "GIS Coordinator",
+          "department": "GIS",
+          "phone": "218-631-7643",
+          "email": "gina.dahms@wcmn.us"
+        }
+      ]
+    },
+    {
+      "county": "Waseca",
+      "contacts": [
+        {
+          "name": "Chris Howard",
+          "title": "Land & Water Resources Director",
+          "department": "Land & Water Resources/GIS",
+          "phone": "507-835-0534",
+          "email": "chris.howard@wasecacounty.gov"
+        }
+      ]
+    },
+    {
+      "county": "Washington",
+      "contacts": [
+        {
+          "name": "David Brandt",
+          "title": "Geospatial Systems Architect",
+          "department": "GIS Support Division",
+          "phone": "651-430-6451",
+          "email": "david.brandt@washingtoncountymn.gov"
+        }
+      ]
+    },
+    {
+      "county": "Watonwan",
+      "contacts": [
+        {
+          "name": "Mike True",
+          "title": "GIS Specialist",
+          "department": "Information Technology",
+          "phone": "507-375-2539",
+          "email": "mike.true@co.watonwan.mn.us"
+        }
+      ]
+    },
+    {
+      "county": "Wilkin",
+      "contacts": [
+        {
+          "name": "Michelle Snobl",
+          "title": "County Assessor",
+          "department": "Assessor",
+          "phone": "218-643-7162",
+          "email": "msnobl@co.wilkin.mn.us"
+        }
+      ]
+    },
+    {
+      "county": "Winona",
+      "contacts": [
+        {
+          "name": "Zachary Kosel",
+          "title": "GIS Analyst",
+          "department": "GIS",
+          "phone": "507-457-6518",
+          "email": "gishelp@co.winona.mn.us"
+        },
+        {
+          "name": "Zachary Kosel",
+          "title": "",
+          "department": "",
+          "phone": "",
+          "email": "zkosel@co.winona.mn.us"
+        }
+      ]
+    },
+    {
+      "county": "Wright",
+      "contacts": [
+        {
+          "name": "Larkin Walter",
+          "title": "GIS Analyst",
+          "department": "Surveyor/GIS Mapping",
+          "phone": "763-684-2390",
+          "email": "larkin.walter@co.wright.mn.us"
+        }
+      ]
+    },
+    {
+      "county": "Yellow Medicine",
+      "contacts": [
+        {
+          "name": "Dennis Pederson",
+          "title": "IT Director",
+          "department": "IT Department",
+          "phone": "320-313-3024",
+          "email": "dennis.pederson@co.ym.mn.gov"
+        }
+      ]
+    }
+  ]
+}
