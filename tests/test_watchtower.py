@@ -592,11 +592,11 @@ class DataWatchTests(unittest.TestCase):
         self.assertIn('exit /b %RC%', wrapper)
         self.assertNotIn('if %RC% GEQ 2', wrapper)
 
-    def test_watchtower_ci_covers_deployment_files_without_live_provider_check(self):
-        workflow = (TOOLS_ROOT / '.github' / 'workflows' / 'watchtower-ci.yml').read_text(encoding='utf-8')
-        for path in ('requirements-watchtower.txt', 'setup_watchtower_env.ps1', 'run-datawatch.cmd', 'install_operations_tasks.ps1'):
-            self.assertGreaterEqual(workflow.count(path), 2)
-        self.assertNotIn('./run-datawatch.cmd', workflow)
+    def test_watchtower_ci_covers_standalone_package_without_live_provider_check(self):
+        workflow = (TOOLS_ROOT / ".github" / "workflows" / "watchtower-ci.yml").read_text(encoding="utf-8")
+        self.assertIn("pip install --disable-pip-version-check -e .", workflow)
+        self.assertIn("unittest discover -s tests", workflow)
+        self.assertNotIn(" check --no-save", workflow)
 
     def test_refresh_requires_matching_csrf_token_and_same_origin(self):
         self.assertTrue(datawatch_dashboard._valid_refresh_request('abc', 'abc', 'same-origin'))
