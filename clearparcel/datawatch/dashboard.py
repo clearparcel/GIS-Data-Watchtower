@@ -18,6 +18,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 from clearparcel.datawatch.watch import check_sources, load_history, load_state
+from clearparcel.datawatch.aggregate import with_freshness
 
 COUNTIES_FILE = Path(__file__).with_name("minnesota_counties.json")
 COUNTY_CONTACTS_FILE = Path(__file__).with_name("minnesota_county_contacts.json")
@@ -114,6 +115,15 @@ def _svg_sparkline(values: list[float | int | None], *, width: int = 300, height
 def _source_config_map(config: dict) -> dict:
     return {str(x.get("id")): x for x in config.get("sources", []) if x.get("id")}
 
+def _dashboard_state(config: dict) -> dict:
+    """Load unified aggregate state when configured, then annotate freshness."""
+    path = config.get("aggregate_state_file") or config["state_file"]
+    return with_freshness(
+        load_state(path),
+        worker_stale_minutes=int(config.get("worker_stale_minutes", 180)),
+        source_stale_minutes=int(config.get("source_stale_minutes", 180)),
+    )
+
 def _layout(title: str, body: str, *, refresh_seconds: int = 30, static: bool = False, csrf_token: str = "") -> str:
     refresh_form = "" if static else (
         '<form method="post" action="/refresh">'
@@ -134,7 +144,9 @@ main{{max-width:1280px;margin:24px auto;padding:0 20px}} .grid{{display:grid;gri
 .metric{{font-size:28px;font-weight:700}} .muted{{color:var(--muted)}} .ok{{color:var(--green)}} .warn{{color:var(--warn)}} .error{{color:var(--err)}}
 table{{width:100%;border-collapse:collapse;background:white}} .mobile-cards{{display:none}} th,td{{padding:11px 12px;border-bottom:1px solid #e6eaee;text-align:left;vertical-align:top}} th{{background:#f8fafb;font-size:12px;text-transform:uppercase;color:var(--muted)}}
 a{{color:var(--accent);text-decoration:none}} a:hover{{text-decoration:underline}} .pill{{font-weight:700;text-transform:uppercase;font-size:11px}}
-button{{background:var(--accent);color:white;border:0;border-radius:6px;padding:9px 13px;cursor:pointer}} code{{font-size:12px;overflow-wrap:anywhere}} .actions{{display:flex;gap:10px;align-items:center}}\n.app-shell{{display:flex;min-height:calc(100vh - 72px)}} .sidebar{{width:220px;flex:0 0 220px;background:#10263b;color:#b9d1e2;padding:18px 12px;position:relative}} .side-brand{{padding:4px 10px 18px;border-bottom:1px solid #ffffff18}} .side-brand strong{{display:block;color:white;font-size:17px}} .side-brand small{{color:#7f9bb0}} .sidebar nav{{margin-top:16px}} .sidebar nav a{{display:flex;gap:10px;color:#a9c0d1;padding:10px 11px;border-radius:6px;margin:3px 0}} .sidebar nav a:hover{{background:#ffffff0d;color:white;text-decoration:none}} .side-note{{position:absolute;bottom:18px;left:22px;color:#6f8da4;font-size:11px}} .content-shell{{flex:1;min-width:0}} .quicknav{{background:#17324d;padding:9px 28px;display:flex;gap:20px;box-shadow:0 3px 12px #10263b22}} .quicknav a{{color:#b9d1e2;font-weight:600}} .quicknav a:hover{{color:white;text-decoration:none}} .filters{{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 14px}} .filters input,.filters select{{padding:9px;border:1px solid #ccd4db;border-radius:6px;background:white}} .spark{{width:100%;max-width:360px;height:72px;color:var(--accent)}} .bar-row{{display:grid;grid-template-columns:minmax(110px,1.4fr) minmax(100px,3fr) 70px;gap:8px;align-items:center;margin:9px 0;font-size:12px}} .bar-track{{height:10px;background:#e5ebf0;border-radius:999px;overflow:hidden}} .bar-track i{{display:block;height:100%;background:var(--accent);border-radius:999px}} .not-configured,.needs-source{{color:var(--muted)}} .catalog{{color:var(--accent)}} .chart-range{{font-size:11px;color:var(--muted)}} .delta-up{{color:var(--green)}} .delta-down{{color:var(--warn)}} .technical summary{{cursor:pointer;font-weight:700;color:var(--accent);padding:4px 0}} .technical-body{{padding-top:10px}}\n@media(max-width:700px){{html,body{{max-width:100%;overflow-x:hidden}} .app-shell{{display:block}} .sidebar{{width:100%;padding:8px 10px}} .side-brand{{display:none}} .sidebar nav{{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:0;gap:3px}} .sidebar nav a{{white-space:normal;padding:7px 5px;justify-content:center;text-align:center;flex-direction:column;gap:2px}} .sidebar nav a span{{display:inline;font-size:11px}} .side-note{{display:none}} .quicknav{{display:none}} header{{padding:14px 16px;align-items:flex-start;gap:10px;flex-direction:column}} main{{margin:14px auto;padding:0 10px}} .grid{{grid-template-columns:1fr;gap:8px}} .kpi-grid{{grid-template-columns:repeat(2,minmax(0,1fr))}} .card{{padding:12px;border-radius:8px;overflow-x:auto}} .metric{{font-size:22px}} table{{min-width:0}} .card table{{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}} th,td{{padding:9px 8px;white-space:nowrap}} .metric{{overflow-wrap:anywhere}} .bar-row{{grid-template-columns:minmax(95px,1.3fr) minmax(70px,2fr) 58px}} .spark{{max-width:100%;height:70px}} .actions{{width:100%;justify-content:space-between}}}}
+button{{background:var(--accent);color:white;border:0;border-radius:6px;padding:9px 13px;cursor:pointer}} code{{font-size:12px;overflow-wrap:anywhere}} .actions{{display:flex;gap:10px;align-items:center}}
+.app-shell{{display:flex;min-height:calc(100vh - 72px)}} .sidebar{{width:220px;flex:0 0 220px;background:#10263b;color:#b9d1e2;padding:18px 12px;position:relative}} .side-brand{{padding:4px 10px 18px;border-bottom:1px solid #ffffff18}} .side-brand strong{{display:block;color:white;font-size:17px}} .side-brand small{{color:#7f9bb0}} .sidebar nav{{margin-top:16px}} .sidebar nav a{{display:flex;gap:10px;color:#a9c0d1;padding:10px 11px;border-radius:6px;margin:3px 0}} .sidebar nav a:hover{{background:#ffffff0d;color:white;text-decoration:none}} .side-note{{position:absolute;bottom:18px;left:22px;color:#6f8da4;font-size:11px}} .content-shell{{flex:1;min-width:0}} .quicknav{{background:#17324d;padding:9px 28px;display:flex;gap:20px;box-shadow:0 3px 12px #10263b22}} .quicknav a{{color:#b9d1e2;font-weight:600}} .quicknav a:hover{{color:white;text-decoration:none}} .filters{{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 14px}} .filters input,.filters select{{padding:9px;border:1px solid #ccd4db;border-radius:6px;background:white}} .spark{{width:100%;max-width:360px;height:72px;color:var(--accent)}} .bar-row{{display:grid;grid-template-columns:minmax(110px,1.4fr) minmax(100px,3fr) 70px;gap:8px;align-items:center;margin:9px 0;font-size:12px}} .bar-track{{height:10px;background:#e5ebf0;border-radius:999px;overflow:hidden}} .bar-track i{{display:block;height:100%;background:var(--accent);border-radius:999px}} .not-configured,.needs-source{{color:var(--muted)}} .catalog{{color:var(--accent)}} .chart-range{{font-size:11px;color:var(--muted)}} .delta-up{{color:var(--green)}} .delta-down{{color:var(--warn)}} .technical summary{{cursor:pointer;font-weight:700;color:var(--accent);padding:4px 0}} .technical-body{{padding-top:10px}}
+@media(max-width:700px){{html,body{{max-width:100%;overflow-x:hidden}} .app-shell{{display:block}} .sidebar{{width:100%;padding:8px 10px}} .side-brand{{display:none}} .sidebar nav{{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:0;gap:3px}} .sidebar nav a{{white-space:normal;padding:7px 5px;justify-content:center;text-align:center;flex-direction:column;gap:2px}} .sidebar nav a span{{display:inline;font-size:11px}} .side-note{{display:none}} .quicknav{{display:none}} header{{padding:14px 16px;align-items:flex-start;gap:10px;flex-direction:column}} main{{margin:14px auto;padding:0 10px}} .grid{{grid-template-columns:1fr;gap:8px}} .kpi-grid{{grid-template-columns:repeat(2,minmax(0,1fr))}} .card{{padding:12px;border-radius:8px;overflow-x:auto}} .metric{{font-size:22px}} table{{min-width:0}} .card table{{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}} th,td{{padding:9px 8px;white-space:nowrap}} .metric{{overflow-wrap:anywhere}} .bar-row{{grid-template-columns:minmax(95px,1.3fr) minmax(70px,2fr) 58px}} .spark{{max-width:100%;height:70px}} .actions{{width:100%;justify-content:space-between}}}}
 </style></head><body><header><h1>GIS Data Watchtower</h1><div class="actions"><span>Updates automatically every {refresh_seconds}s</span>{refresh_form}</div></header>
 <div class="app-shell"><aside class="sidebar"><div class="side-brand"><strong>ClearParcel</strong><small>GIS Data Watchtower</small></div><nav><a href="/">▣ <span>Overview</span></a><a href="/counties">▦ <span>Minnesota Counties</span></a><a href="/#datasets">◫ <span>Data Sources</span></a><a href="/#changes">↗ <span>Recent Changes</span></a><a href="/#alerts">! <span>Alerts</span></a><a href="/snapshot.csv">⇩ <span>Snapshots</span></a></nav><div class="side-note">Private dashboard<br><small>Central Time primary</small></div></aside><section class="content-shell"><div class="quicknav"><a href="/">Overview</a><a href="/counties">Minnesota Counties</a><a href="/snapshot.csv">Snapshots</a><a href="/#datasets">Data Sources</a></div><main>{body}</main></section></div></body></html>"""
 
@@ -202,7 +214,7 @@ def _bar_chart(items: list[tuple[str, float]], *, title: str, suffix: str = "") 
 
 
 def render_counties(config: dict) -> str:
-    state = load_state(config["state_file"])
+    state = _dashboard_state(config)
     counties = [_county_status(config, x, state) for x in _load_counties()]
     monitored = sum(1 for x in counties if x["sources"])
     status_counts = {}
@@ -234,7 +246,7 @@ def render_counties(config: dict) -> str:
 
 
 def render_county(config: dict, slug: str) -> str:
-    state = load_state(config["state_file"])
+    state = _dashboard_state(config)
     county = next((x for x in _load_counties() if x.get("slug") == slug), None)
     if not county:
         return _layout("County not found", '<p><a href="/counties">← Minnesota counties</a></p><div class="card">County not found.</div>', csrf_token=str(config.get("_csrf_token") or ""))
@@ -269,7 +281,7 @@ def render_county(config: dict, slug: str) -> str:
     return _layout(f'{county["name"]} County — Watchtower', body, csrf_token=str(config.get("_csrf_token") or ""))
 
 def _county_snapshot(config: dict, slug: str) -> dict | None:
-    state = load_state(config["state_file"])
+    state = _dashboard_state(config)
     county = next((x for x in _load_counties() if x.get("slug") == slug), None)
     if not county:
         return None
@@ -287,6 +299,8 @@ def _county_snapshot(config: dict, slug: str) -> dict | None:
             {
                 "name": x.get("name"), "status": x.get("status"),
                 "feature_count": x.get("feature_count"), "checked_at": x.get("checked_at"),
+                "worker": x.get("worker"), "last_success_at": x.get("last_success_at"),
+                "reporting": x.get("reporting"), "stale": x.get("stale"), "worker_stale": x.get("worker_stale"),
             } for x in info.get("sources", [])
         ],
         "contacts": _load_county_contacts().get(county["name"], []),
@@ -295,7 +309,7 @@ def _county_snapshot(config: dict, slug: str) -> dict | None:
 
 
 def _statewide_snapshot(config: dict) -> dict:
-    state = load_state(config["state_file"])
+    state = _dashboard_state(config)
     counties = []
     for county in _load_counties():
         item = _county_snapshot(config, county["slug"])
@@ -320,7 +334,7 @@ def _csv_safe(value) -> str:
 
 def _snapshot_csv(snapshot: dict) -> str:
     out = io.StringIO()
-    fields = ["county","status","last_county_update","catalog_refresh_date","public_data_approved","parcel_data_url","parcel_viewer_url","contact_names"]
+    fields = ["county","status","last_county_update","catalog_refresh_date","public_data_approved","parcel_data_url","parcel_viewer_url","worker_provenance","stale_source_count","contact_names"]
     writer = csv.DictWriter(out, fieldnames=fields)
     writer.writeheader()
     rows = snapshot.get("counties") if "counties" in snapshot else [snapshot]
@@ -332,6 +346,8 @@ def _snapshot_csv(snapshot: dict) -> str:
             "public_data_approved": row.get("public_data_approved"),
             "parcel_data_url": row.get("parcel_data_url"),
             "parcel_viewer_url": row.get("parcel_viewer_url"),
+            "worker_provenance": "; ".join(sorted({str(x.get("worker")) for x in row.get("direct_sources",[]) if x.get("worker")})),
+            "stale_source_count": sum(1 for x in row.get("direct_sources",[]) if x.get("stale") or x.get("worker_stale")),
             "contact_names": "; ".join(x.get("name","") for x in row.get("contacts",[]) if x.get("name")),
         }.items()})
     return out.getvalue()
@@ -362,14 +378,14 @@ def _xlsx_sheet_xml(rows: list[list]) -> str:
 
 def _snapshot_xlsx(snapshot: dict) -> bytes:
     county_rows = [["County","Status","Last county update","Catalog refresh date","Public data approved","Parcel data URL","Parcel viewer URL","Contact names"]]
-    source_rows = [["County","Source","Status","Record count","Last checked"]]
+    source_rows = [["County","Source","Status","Record count","Worker","Reporting","Last successful check","Last checked"]]
     contact_rows = [["County","Name","Title","Department","Phone","Email"]]
     rows = snapshot.get("counties") if "counties" in snapshot else [snapshot]
     for row in rows:
         county = row.get("county") or ""
         county_rows.append([county,row.get("status"),row.get("last_county_update"),row.get("catalog_refresh_date"),bool(row.get("public_data_approved")),row.get("parcel_data_url"),row.get("parcel_viewer_url"),"; ".join(x.get("name","") for x in row.get("contacts",[]) if x.get("name"))])
         for source in row.get("direct_sources", []):
-            source_rows.append([county,source.get("name"),source.get("status"),source.get("feature_count"),source.get("checked_at")])
+            source_rows.append([county,source.get("name"),source.get("status"),source.get("feature_count"),source.get("worker"),source.get("reporting"),source.get("last_success_at"),source.get("checked_at")])
         for contact in row.get("contacts", []):
             contact_rows.append([county,contact.get("name"),contact.get("title"),contact.get("department"),contact.get("phone"),contact.get("email")])
     sheets=[("Counties",county_rows),("Sources",source_rows),("Contacts",contact_rows)]
@@ -395,7 +411,7 @@ def _friendly_status(value: str) -> str:
 
 
 def render_dashboard(config: dict) -> str:
-    state = load_state(config["state_file"])
+    state = _dashboard_state(config)
     sources = state.get("sources", {})
     counts = state.get("counts", {})
     alerts = state.get("active_alerts", [])
@@ -414,7 +430,8 @@ def render_dashboard(config: dict) -> str:
 <div class="card"><div class="muted">Overall status</div><div class="metric {state.get('overall','')}">{_esc(state.get('overall','unknown').upper())}</div></div>
 <div class="card"><div class="muted">Data sources</div><div class="metric">{len(sources)}</div></div>
 <div class="card"><div class="muted">Working normally</div><div class="metric ok">{counts.get('ok',0)}</div></div>
-<div class="card"><div class="muted">Needs attention</div><div class="metric">{len(alerts)}</div></div>
+<div class="card"><div class="muted">Source problems</div><div class="metric">{counts.get('warn',0) + counts.get('error',0)}</div></div>
+<div class="card"><div class="muted">Reports overdue</div><div class="metric">{state.get('stale_sources',0)}</div><span class="muted">{state.get('stale_workers',0)} worker(s) overdue</span></div>
 <div class="card"><div class="muted">Recently changed</div><div class="metric">{changed_30}</div></div>
 <div class="card"><div class="muted">Last check duration</div><div class="metric">{_esc(round((telemetry.get('wall_ms') or 0)/1000,1))}s</div><span class="muted">CPU {_esc(telemetry.get('cpu_ms','—'))} ms</span></div>
 <div class="card"><div class="muted">Memory used during check</div><div class="metric">{_esc(round((telemetry.get('peak_python_memory_kb') or 0)/1024,1))} MB</div></div>
@@ -439,11 +456,11 @@ def render_dashboard(config: dict) -> str:
         rows.append(f"""<tr data-name="{_esc((src.get('name') or sid).lower())}" data-category="{_esc(category)}" data-status="{_esc(src.get('status','unknown'))}">
 <td><a href="/source?{urllib.parse.urlencode({'id':sid})}"><strong>{_esc(src.get('name') or sid)}</strong></a><br><span class="muted">{_esc(sid)}</span></td>
 <td>{_esc(provider)}<br><span class="muted">{_esc(category)}</span></td>
-<td><span class="pill {_esc(src.get('status',''))}">{_esc(src.get('status','unknown'))}</span></td>
+<td><span class="pill {_esc(src.get('status',''))}">{_esc(_friendly_status(src.get('status','unknown')))}</span><br><span class="muted">{_esc(src.get('reporting','current'))} reporting · {_esc(src.get('worker') or 'default')} worker</span></td>
 <td>{_esc(f"{current_count:,}" if isinstance(current_count,int) else current_count or '—')}<br><span class="{delta_class}">{_esc(delta_text)}</span></td>
 <td>{_esc(stats.get('change_age_days') if stats.get('change_age_days') is not None else '—')}</td>
 <td>{_esc(stats.get('success_rate') if stats.get('success_rate') is not None else '—')}%<br><span class="muted">{_esc(stats.get('consecutive_ok'))} consecutive</span></td>
-<td>{_esc(src.get('elapsed_ms','—'))} ms</td><td>{_format_time_pair(src.get('checked_at'))}</td></tr>""")
+<td>{_esc(src.get('elapsed_ms','—'))} ms</td><td>{_format_time_pair(src.get('last_success_at') or src.get('checked_at'))}</td></tr>""")
     options = "".join(f'<option value="{_esc(x)}">{_esc(x)}</option>' for x in categories)
     run_history = load_history(config, limit=60).get("entries", [])
     run_wall = [((x.get("telemetry") or {}).get("wall_ms") or 0) / 1000.0 for x in run_history if (x.get("telemetry") or {}).get("wall_ms") is not None]
@@ -501,12 +518,12 @@ def render_dashboard(config: dict) -> str:
     body += f'<div class="grid"><div class="card">{county_counts_chart}</div><div class="card">{county_fields_chart}</div></div><div class="grid"><div class="card">{quality_chart}</div><div class="card">{duplicate_chart}</div><div class="card">{geometry_chart}</div></div><div class="grid"><div class="card">{owner_chart}</div><div class="card">{site_address_chart}</div><div class="card">{mailing_address_chart}</div></div><div class="grid"><div class="card">{multipart_chart}</div><div class="card">{complexity_chart}</div></div>'
     body += f"""<div class="card"><h2>Data being watched</h2>
 <div class="filters"><input id="q" placeholder="Filter datasets…" oninput="filterRows()"><select id="cat" onchange="filterRows()"><option value="">All categories</option>{options}</select><select id="health" onchange="filterRows()"><option value="">All statuses</option><option>ok</option><option>warn</option><option>error</option></select></div>
-<table id="datasets"><thead><tr><th>Data source</th><th>Provided by / type</th><th>Status</th><th>Records / change</th><th>Days since data changed</th><th>Recent reliability</th><th>Response time</th><th>Last checked</th></tr></thead><tbody>{"".join(rows)}</tbody></table></div>
+<table id="datasets"><thead><tr><th>Data source</th><th>Provided by / type</th><th>Status</th><th>Records / change</th><th>Days since data changed</th><th>Recent reliability</th><th>Response time</th><th>Last successful check</th></tr></thead><tbody>{"".join(rows)}</tbody></table></div>
 <script>function filterRows(){{const q=document.getElementById('q').value.toLowerCase(),c=document.getElementById('cat').value,h=document.getElementById('health').value;document.querySelectorAll('#datasets tbody tr').forEach(r=>{{r.style.display=(!q||r.dataset.name.includes(q))&&(!c||r.dataset.category===c)&&(!h||r.dataset.status===h)?'':'none'}})}};</script>"""
     return _layout("GIS Data Watchtower", body, csrf_token=str(config.get("_csrf_token") or ""))
 
 def render_source(config: dict, source_id: str) -> str:
-    state = load_state(config["state_file"])
+    state = _dashboard_state(config)
     src = (state.get("sources") or {}).get(source_id)
     if not src:
         return _layout("Source not found", '<div class="card"><h2>Source not found</h2><p><a href="/">Return to dashboard</a></p></div>', csrf_token=str(config.get("_csrf_token") or ""))
@@ -531,7 +548,7 @@ def render_source(config: dict, source_id: str) -> str:
 <div class="card"><div class="muted">Days since data changed</div><div class="metric">{_esc(stats.get('change_age_days') if stats.get('change_age_days') is not None else '—')}</div></div></div>
 <div class="grid"><div class="card"><h3>Record-count history</h3>{_svg_sparkline(feature_values)}</div><div class="card"><h3>Response-time history</h3>{_svg_sparkline(latency_values)}</div></div>
 <div class="card"><h2>About this data</h2><p><strong>Provided by:</strong> {_esc(provider)}<br><strong>Data type:</strong> {_esc(category)}<br>
-<strong>Source connection:</strong> {_esc(provenance.get('adapter') or src.get('adapter') or src.get('kind'))}<br><strong>Map shape type:</strong> {_esc(src.get('geometry_type','—'))}<br>
+<strong>Checked by:</strong> {_esc(src.get('worker') or 'local/default')} worker<br><strong>Reporting:</strong> {_esc(src.get('reporting') or 'current')}<br><strong>Last successful check:</strong> {_format_time_pair(src.get('last_success_at') or src.get('checked_at'))}<br><strong>Source connection:</strong> {_esc(provenance.get('adapter') or src.get('adapter') or src.get('kind'))}<br><strong>Map shape type:</strong> {_esc(src.get('geometry_type','—'))}<br>
 <strong>Coordinate system code:</strong> {_esc(src.get('wkid','—'))}<br><strong>Information fields:</strong> {_esc(src.get('field_count','—'))}<br><strong>Parcel map layer:</strong> {_esc(src.get('parcel_layer_name','Direct layer'))}<br><strong>Parcel ID field used for checks:</strong> {_esc(src.get('parcel_id_field','Not identified'))} ({_esc(src.get('parcel_id_confidence','none'))} confidence)<br><strong>Parcel records missing an ID:</strong> {_esc(src.get('parcel_id_null_count','Not checked'))}<br><strong>Additional records using the same parcel ID:</strong> {_esc(src.get('duplicate_id_extra_rows','Not checked'))}<br><strong>Parcel records with no mapped shape:</strong> {_esc(src.get('null_geometry_count','Not checked'))}<br><strong>Mapped coverage area (technical coordinates):</strong> {_esc(src.get('spatial_extent','Not reported'))}<br><strong>Parcel shapes sampled:</strong> {_esc(src.get('geometry_sample_size','Not checked'))} records<br><strong>Shapes with multiple parts or holes:</strong> {_esc(src.get('geometry_sample_multipart_percent','Not checked'))}%<br><strong>Average shape complexity:</strong> {_esc(src.get('geometry_sample_avg_vertices','Not checked'))}<br><strong>Most complex sampled shape:</strong> {_esc(src.get('geometry_sample_max_vertices','Not checked'))}<br>
 <strong>Changes found this check:</strong> {len(changes)}<br><strong>Last change found:</strong> {_format_time_pair(stats.get('last_change')) if stats.get('last_change') else 'Not yet recorded'}</p></div><br>
 <div class="card"><details class="technical"><summary>Technical details</summary><div class="technical-body"><p><strong>Last checked:</strong> {_format_time_pair(provenance.get('observed_at') or src.get('checked_at'))}<br>
@@ -554,7 +571,8 @@ def _sanitize_public_state(state: dict) -> dict:
             key: src.get(key)
             for key in (
                 "id", "name", "provider", "category", "status", "feature_count",
-                "checked_at", "changes",
+                "checked_at", "changes", "worker", "last_success_at", "last_report_at",
+                "stale", "worker_stale", "health", "reporting",
             )
             if src.get(key) is not None
         }
@@ -565,7 +583,7 @@ def build_static_site(config: dict, output_dir: str | Path) -> dict:
     """Generate a sanitized, dependency-free static dashboard for Pages-style hosting."""
     output = Path(output_dir)
     output.mkdir(parents=True, exist_ok=True)
-    state = load_state(config["state_file"])
+    state = _dashboard_state(config)
     public = _sanitize_public_state(state)
     sources = public.get("sources", {})
     counts = public.get("counts", {})
@@ -726,7 +744,7 @@ def serve(config: dict, host: str = "127.0.0.1", port: int = 8765) -> None:
                 sid = urllib.parse.parse_qs(parsed.query).get("id", [""])[0]
                 return self._send(200, render_source(config, sid))
             if parsed.path == "/api/state":
-                public_state = _sanitize_public_state(load_state(config["state_file"]))
+                public_state = _sanitize_public_state(_dashboard_state(config))
                 return self._send(200, json.dumps(public_state, indent=2), "application/json; charset=utf-8")
             self._send(404, "Not found", "text/plain; charset=utf-8")
 

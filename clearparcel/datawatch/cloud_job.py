@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from .aggregate import load_json, merge_states, save_json
+from .aggregate import publish_partial
 from .storage import backend_from_env
 from .watch import check_sources, load_config
 
@@ -14,6 +14,17 @@ ARTIFACTS = {
     "alerts_file": "alerts.json",
     "alerts_text_file": "alerts.txt",
 }
+
+
+def publish_worker_result(config: dict, result: dict, profile: str, *, workdir: Path | None = None) -> dict | None:
+    """Publish a worker report when a shared aggregate object is configured."""
+    aggregate_name = os.environ.get("WATCHTOWER_AGGREGATE_OBJECT") or config.get("aggregate_object")
+    if not aggregate_name:
+        return None
+    root = config.get("_root_dir") or Path(config.get("state_file", ".")).parent
+    storage = backend_from_env(root)
+    workdir = workdir or Path(os.environ.get("WATCHTOWER_WORKDIR") or root)
+    return publish_partial(storage, str(aggregate_name), result, profile, Path(workdir))
 
 
 def run_cloud_job(config_path: str | Path) -> dict:
@@ -31,14 +42,7 @@ def run_cloud_job(config_path: str | Path) -> dict:
 
     profile = os.environ.get("WATCHTOWER_EXECUTION_PROFILE", "cloud")
     result = check_sources(config, save=True, execution_profile=profile)
-
-    aggregate_name = os.environ.get("WATCHTOWER_AGGREGATE_OBJECT")
-    if aggregate_name:
-        aggregate_local = workdir / "aggregate-state.json"
-        storage.download(aggregate_name, aggregate_local)
-        aggregate = merge_states(load_json(aggregate_local), result, profile)
-        save_json(aggregate_local, aggregate)
-        storage.upload(aggregate_name, aggregate_local)
+    publish_worker_result(config, result, profile, workdir=workdir)
 
     for key, object_name in ARTIFACTS.items():
         path = config.get(key)

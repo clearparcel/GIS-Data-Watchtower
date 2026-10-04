@@ -2,15 +2,24 @@
 
 Hybrid deployments may run different source sets from cloud and local workers. Each worker produces a partial result. The aggregation layer merges only the observations present in that partial result and preserves observations produced by other workers.
 
-Each merged source records its worker provenance, and the aggregate state records per-worker check time, counts, and telemetry.
+Each merged source records its worker provenance, last report time, and last successful observation time. Aggregate state also records per-worker check time, last-success time, counts, and telemetry.
 
-Cloud jobs can set `WATCHTOWER_AGGREGATE_OBJECT=aggregate-state.json` to maintain an aggregate object in the configured storage backend.
+## Safe concurrent publishing
 
-For local workers, use the `aggregate` CLI after a local profile run, or integrate the same `merge_states` function with the deployment scheduler.
+Shared aggregate writes use compare-and-swap semantics. Google Cloud Storage deployments use object-generation preconditions. Local/shared-filesystem deployments use a short-lived lock plus an atomic replacement and verify that the object has not changed since it was read. A conflicting writer reloads the latest aggregate, merges again, and retries. This prevents a cloud and local worker finishing at nearly the same time from silently deleting one another's observations.
 
-Aggregation does not bypass provider restrictions: sources rejected from cloud should remain local-only.
+Set `WATCHTOWER_AGGREGATE_OBJECT` (or deployment-specific `aggregate_object`) to opt into publishing. Storage remains cloud-neutral: local filesystem is the default backend and GCS is optional.
 
+A normal profiled check can publish directly. For example, a deployment configured with shared aggregate storage can run the local execution profile through the standard `check` command; no copy/merge/upload wrapper is required. Provider-specific source assignment remains private deployment configuration.
+
+## Freshness
+
+Freshness is deliberately separate from source health. A source can be healthy but stale because it has not been checked recently; a source can also be freshly checked and unhealthy. Deployments may set `worker_stale_minutes` and `source_stale_minutes` in configuration. The dashboard uses 180 minutes for either threshold when no override is supplied.
+
+The private dashboard prefers `aggregate_state_file` when configured, otherwise it reads the ordinary local state file. Timestamps are shown in America/Chicago time first with UTC second. Unified JSON and Excel exports include worker and freshness metadata; CSV includes worker provenance and stale-source counts where those fields are meaningful.
+
+Aggregation never bypasses provider restrictions. Sources that are unsuitable for cloud execution must remain assigned to an appropriate local profile. Do not disable TLS verification or work around provider access controls.
 
 ## Deployment validation
 
-The aggregation path has been validated with a real hybrid staging run containing 26 sources: 22 refreshed by the cloud worker and 4 preserved/refreshed by the local worker. The resulting aggregate reported 26 healthy sources and retained per-source worker provenance plus per-worker telemetry.
+The aggregation path was previously validated with a real hybrid staging run containing 26 sources: 22 refreshed by the cloud worker and 4 refreshed by the local worker. The resulting aggregate reported 26 healthy sources and retained per-source worker provenance plus per-worker telemetry. Concurrency hardening must pass CI and private staging validation before production scheduling changes are considered.
