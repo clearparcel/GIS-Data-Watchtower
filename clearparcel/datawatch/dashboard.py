@@ -12,6 +12,7 @@ import os
 import secrets
 import threading
 import urllib.parse
+import zipfile
 from zoneinfo import ZoneInfo
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -263,7 +264,7 @@ def render_county(config: dict, slug: str) -> str:
     if not contact_rows:
         contact_rows = '<tr><td colspan="5">No contact is currently listed in the MnGeo county GIS directory.</td></tr>'
     contacts_html = f'<div class="card"><h2>County GIS contacts</h2><p class="muted">Source address: <a href="https://mn.gov/mngeo/community/gis-contacts/county-gis-contacts/" target="_blank" rel="noopener">Minnesota Geospatial Information Office (MnGeo)</a>. MnGeo describes this as a starting-point directory and notes that it depends on updates from associated jurisdictions.</p><table><thead><tr><th>Name</th><th>Title</th><th>Department</th><th>Phone</th><th>Email</th></tr></thead><tbody>{contact_rows}</tbody></table></div>'
-    export_links = f'<p><a href="/county-snapshot.csv?slug={urllib.parse.quote(slug)}">Download county snapshot (CSV)</a> · <a href="/county-snapshot.json?slug={urllib.parse.quote(slug)}">Download county snapshot (JSON)</a></p>'
+    export_links = f'<p><a href="/county-snapshot.csv?slug={urllib.parse.quote(slug)}">Download county snapshot (CSV)</a> · <a href="/county-snapshot.xlsx?slug={urllib.parse.quote(slug)}">Download county snapshot (Excel)</a> · <a href="/county-snapshot.json?slug={urllib.parse.quote(slug)}">Download county snapshot (JSON)</a></p>'
     body = f'<p><a href="/counties">← Minnesota counties</a></p>{export_links}<div class="grid"><div class="card"><div class="muted">County</div><h2>{_esc(county["name"])} County</h2></div><div class="card"><div class="muted">Data availability</div><div class="metric {_esc(info["status"])}">{_esc(_friendly_status(info["status"]).upper())}</div></div><div class="card"><div class="muted">Direct data sources</div><div class="metric">{len(info["sources"])}</div></div></div><div class="grid">{source_cards}</div><br>{contacts_html}'
     return _layout(f'{county["name"]} County — Watchtower', body, csrf_token=str(config.get("_csrf_token") or ""))
 
@@ -333,6 +334,52 @@ def _snapshot_csv(snapshot: dict) -> str:
             "parcel_viewer_url": row.get("parcel_viewer_url"),
             "contact_names": "; ".join(x.get("name","") for x in row.get("contacts",[]) if x.get("name")),
         }.items()})
+    return out.getvalue()
+
+
+def _xlsx_col_name(index: int) -> str:
+    out = ""
+    while index:
+        index, rem = divmod(index - 1, 26)
+        out = chr(65 + rem) + out
+    return out
+
+def _xlsx_sheet_xml(rows: list[list]) -> str:
+    xml_rows = []
+    for r_idx, row in enumerate(rows, 1):
+        cells = []
+        for c_idx, value in enumerate(row, 1):
+            ref = f"{_xlsx_col_name(c_idx)}{r_idx}"
+            if isinstance(value, bool):
+                cells.append(f'<c r="{ref}" t="b"><v>{1 if value else 0}</v></c>')
+            elif isinstance(value, (int, float)) and not isinstance(value, bool):
+                cells.append(f'<c r="{ref}"><v>{value}</v></c>')
+            else:
+                text = html.escape("" if value is None else str(value), quote=False)
+                cells.append(f'<c r="{ref}" t="inlineStr"><is><t xml:space="preserve">{text}</t></is></c>')
+        xml_rows.append(f'<row r="{r_idx}">{"".join(cells)}</row>')
+    return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>' + "".join(xml_rows) + '</sheetData></worksheet>'
+
+def _snapshot_xlsx(snapshot: dict) -> bytes:
+    county_rows = [["County","Status","Last county update","Catalog refresh date","Public data approved","Parcel data URL","Parcel viewer URL","Contact names"]]
+    source_rows = [["County","Source","Status","Record count","Last checked"]]
+    contact_rows = [["County","Name","Title","Department","Phone","Email"]]
+    rows = snapshot.get("counties") if "counties" in snapshot else [snapshot]
+    for row in rows:
+        county = row.get("county") or ""
+        county_rows.append([county,row.get("status"),row.get("last_county_update"),row.get("catalog_refresh_date"),bool(row.get("public_data_approved")),row.get("parcel_data_url"),row.get("parcel_viewer_url"),"; ".join(x.get("name","") for x in row.get("contacts",[]) if x.get("name"))])
+        for source in row.get("direct_sources", []):
+            source_rows.append([county,source.get("name"),source.get("status"),source.get("feature_count"),source.get("checked_at")])
+        for contact in row.get("contacts", []):
+            contact_rows.append([county,contact.get("name"),contact.get("title"),contact.get("department"),contact.get("phone"),contact.get("email")])
+    sheets=[("Counties",county_rows),("Sources",source_rows),("Contacts",contact_rows)]
+    out=io.BytesIO()
+    with zipfile.ZipFile(out,"w",zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr("[Content_Types].xml",'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'+''.join(f'<Override PartName="/xl/worksheets/sheet{i}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' for i in range(1,len(sheets)+1))+'</Types>')
+        zf.writestr("_rels/.rels",'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>')
+        zf.writestr("xl/workbook.xml",'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>'+''.join(f'<sheet name="{html.escape(name,quote=True)}" sheetId="{i}" r:id="rId{i}"/>' for i,(name,_) in enumerate(sheets,1))+'</sheets></workbook>')
+        zf.writestr("xl/_rels/workbook.xml.rels",'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+''.join(f'<Relationship Id="rId{i}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet{i}.xml"/>' for i in range(1,len(sheets)+1))+'</Relationships>')
+        for i,(_,data) in enumerate(sheets,1): zf.writestr(f"xl/worksheets/sheet{i}.xml",_xlsx_sheet_xml(data))
     return out.getvalue()
 
 
@@ -634,6 +681,16 @@ def serve(config: dict, host: str = "127.0.0.1", port: int = 8765) -> None:
             self.send_header("Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'")
             self.end_headers(); self.wfile.write(raw)
 
+        def _send_bytes(self, status: int, raw: bytes, content_type: str, filename: str):
+            self.send_response(status)
+            self.send_header("Content-Type", content_type)
+            self.send_header("Content-Disposition", f'attachment; filename="{filename}"')
+            self.send_header("Content-Length", str(len(raw)))
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("X-Content-Type-Options", "nosniff")
+            self.end_headers()
+            self.wfile.write(raw)
+
         def do_GET(self):
             if self._require_auth():
                 return
@@ -644,6 +701,8 @@ def serve(config: dict, host: str = "127.0.0.1", port: int = 8765) -> None:
                 return self._send(200, json.dumps(_statewide_snapshot(config), indent=2), "application/json; charset=utf-8")
             if parsed.path == "/snapshot.csv":
                 return self._send(200, _snapshot_csv(_statewide_snapshot(config)), "text/csv; charset=utf-8")
+            if parsed.path == "/snapshot.xlsx":
+                return self._send_bytes(200, _snapshot_xlsx(_statewide_snapshot(config)), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "watchtower-snapshot.xlsx")
             if parsed.path == "/county-snapshot.json":
                 slug = urllib.parse.parse_qs(parsed.query).get("slug", [""])[0]
                 snap = _county_snapshot(config, slug)
@@ -652,6 +711,12 @@ def serve(config: dict, host: str = "127.0.0.1", port: int = 8765) -> None:
                 slug = urllib.parse.parse_qs(parsed.query).get("slug", [""])[0]
                 snap = _county_snapshot(config, slug)
                 return self._send(200 if snap else 404, _snapshot_csv(snap) if snap else "county not found", "text/csv; charset=utf-8")
+            if parsed.path == "/county-snapshot.xlsx":
+                slug = urllib.parse.parse_qs(parsed.query).get("slug", [""])[0]
+                snap = _county_snapshot(config, slug)
+                if not snap:
+                    return self._send(404, "county not found", "text/plain; charset=utf-8")
+                return self._send_bytes(200, _snapshot_xlsx(snap), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", f"{slug}-watchtower.xlsx")
             if parsed.path == "/counties":
                 return self._send(200, render_counties(config))
             if parsed.path == "/county":
