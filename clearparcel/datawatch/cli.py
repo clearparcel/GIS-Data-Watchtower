@@ -56,6 +56,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--host", default="127.0.0.1")
     p.add_argument("--port", type=int, default=8765)
 
+    p = sub.add_parser("cloud-job", help="Run one check using configured cloud storage")
+    p.add_argument("--json", action="store_true")
+
     p = sub.add_parser("dashboard-build", help="Build a sanitized static dashboard")
     p.add_argument("--output", type=Path, required=True)
     p.add_argument("--json", action="store_true")
@@ -88,6 +91,11 @@ def main() -> int:
         if args.command == "dashboard":
             serve(config, host=args.host, port=args.port)
             return 0
+        if args.command == "cloud-job":
+            from clearparcel.datawatch.cloud_job import run_cloud_job
+            result = run_cloud_job(args.config)
+            print(json.dumps(result, indent=2) if args.json else _render(result), end="" if not args.json else "\n")
+            return 2 if result.get("overall") == "error" else 1 if result.get("overall") == "warn" else 0
         if args.command == "dashboard-build":
             result = build_static_site(config, args.output)
             print(json.dumps(result, indent=2) if args.json else f'Watchtower static dashboard: {result["output_dir"]}')
