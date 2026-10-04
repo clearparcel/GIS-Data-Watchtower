@@ -37,7 +37,7 @@ Do not make the extracted repository public until:
 3. CI passes on Windows and Linux;
 4. public static output contains only sanitized, plain-language fields;
 5. Internet dashboard exposure is either disabled or protected by authentication;
-6. a LICENSE, SECURITY.md, CONTRIBUTING.md, CODE_OF_CONDUCT.md and public README are selected/reviewed;
+6. the MIT LICENSE, SECURITY.md, CONTRIBUTING.md, CODE_OF_CONDUCT.md and public README are present/reviewed;
 7. public examples contain no local machine names, private paths, secrets, or operational state;
 8. the extracted repository receives its own versioning/release policy.
 
