@@ -175,6 +175,11 @@ class DataWatchTests(unittest.TestCase):
             self.assertEqual(len(datawatch_dashboard._load_counties()), 87)
             self.assertIn('Wabasha County', counties)
             self.assertIn('Yellow Medicine County', counties)
+            self.assertIn('Direct sources', counties)
+            self.assertIn('Directly monitored', counties)
+            self.assertIn('Coverage:', counties)
+            self.assertNotIn('Live data checks', counties)
+            self.assertNotIn('County update info available', counties)
             self.assertIn('Wabasha County Parcels', wabasha)
             self.assertIn('A usable parcel-data source has not been found yet', aitkin)
 
