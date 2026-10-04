@@ -10,6 +10,9 @@ license = "MIT"
 requires-python = ">=3.12"
 dependencies = ["tzdata>=2025.2; platform_system == 'Windows'"]
 
+[project.optional-dependencies]
+gcs = ["google-cloud-storage>=3.0,<4"]
+
 [project.scripts]
 watchtower = "clearparcel.datawatch.cli:main"
 

@@ -62,6 +62,10 @@ python -m compileall -q clearparcel tests
 
 CI tests Windows and Ubuntu on supported Python versions.
 
+## Cloud deployment
+
+The base package remains cloud-neutral. Optional Google Cloud Storage support and a Cloud Run Job deployment path are documented in `docs/google-cloud-deployment.md`. Local filesystem storage remains the default.
+
 ## License
 
 GIS Data Watchtower is licensed under the **MIT License**. See `LICENSE`.
