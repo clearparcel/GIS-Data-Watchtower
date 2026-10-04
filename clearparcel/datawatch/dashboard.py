@@ -17,7 +17,7 @@ from zoneinfo import ZoneInfo
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from clearparcel.datawatch.watch import check_sources, load_history, load_state
+from clearparcel.datawatch.watch import check_sources, load_history, load_state\nfrom clearparcel.datawatch.aggregate import with_freshness
 
 COUNTIES_FILE = Path(__file__).with_name("minnesota_counties.json")
 COUNTY_CONTACTS_FILE = Path(__file__).with_name("minnesota_county_contacts.json")
@@ -114,6 +114,15 @@ def _svg_sparkline(values: list[float | int | None], *, width: int = 300, height
 def _source_config_map(config: dict) -> dict:
     return {str(x.get("id")): x for x in config.get("sources", []) if x.get("id")}
 
+def _dashboard_state(config: dict) -> dict:
+    """Load unified aggregate state when configured, then annotate freshness."""
+    path = config.get("aggregate_state_file") or config["state_file"]
+    return with_freshness(
+        load_state(path),
+        worker_stale_minutes=int(config.get("worker_stale_minutes", 180)),
+        source_stale_minutes=int(config.get("source_stale_minutes", 180)),
+    )
+
 def _layout(title: str, body: str, *, refresh_seconds: int = 30, static: bool = False, csrf_token: str = "") -> str:
     refresh_form = "" if static else (
         '<form method="post" action="/refresh">'
@@ -202,7 +211,7 @@ def _bar_chart(items: list[tuple[str, float]], *, title: str, suffix: str = "") 
 
 
 def render_counties(config: dict) -> str:
-    state = load_state(config["state_file"])
+    state = _dashboard_state(config)
     counties = [_county_status(config, x, state) for x in _load_counties()]
     monitored = sum(1 for x in counties if x["sources"])
     status_counts = {}
@@ -234,7 +243,7 @@ def render_counties(config: dict) -> str:
 
 
 def render_county(config: dict, slug: str) -> str:
-    state = load_state(config["state_file"])
+    state = _dashboard_state(config)
     county = next((x for x in _load_counties() if x.get("slug") == slug), None)
     if not county:
         return _layout("County not found", '<p><a href="/counties">← Minnesota counties</a></p><div class="card">County not found.</div>', csrf_token=str(config.get("_csrf_token") or ""))
@@ -269,7 +278,7 @@ def render_county(config: dict, slug: str) -> str:
     return _layout(f'{county["name"]} County — Watchtower', body, csrf_token=str(config.get("_csrf_token") or ""))
 
 def _county_snapshot(config: dict, slug: str) -> dict | None:
-    state = load_state(config["state_file"])
+    state = _dashboard_state(config)
     county = next((x for x in _load_counties() if x.get("slug") == slug), None)
     if not county:
         return None
@@ -295,7 +304,7 @@ def _county_snapshot(config: dict, slug: str) -> dict | None:
 
 
 def _statewide_snapshot(config: dict) -> dict:
-    state = load_state(config["state_file"])
+    state = _dashboard_state(config)
     counties = []
     for county in _load_counties():
         item = _county_snapshot(config, county["slug"])
@@ -395,7 +404,7 @@ def _friendly_status(value: str) -> str:
 
 
 def render_dashboard(config: dict) -> str:
-    state = load_state(config["state_file"])
+    state = _dashboard_state(config)
     sources = state.get("sources", {})
     counts = state.get("counts", {})
     alerts = state.get("active_alerts", [])
@@ -506,7 +515,7 @@ def render_dashboard(config: dict) -> str:
     return _layout("GIS Data Watchtower", body, csrf_token=str(config.get("_csrf_token") or ""))
 
 def render_source(config: dict, source_id: str) -> str:
-    state = load_state(config["state_file"])
+    state = _dashboard_state(config)
     src = (state.get("sources") or {}).get(source_id)
     if not src:
         return _layout("Source not found", '<div class="card"><h2>Source not found</h2><p><a href="/">Return to dashboard</a></p></div>', csrf_token=str(config.get("_csrf_token") or ""))
@@ -554,7 +563,7 @@ def _sanitize_public_state(state: dict) -> dict:
             key: src.get(key)
             for key in (
                 "id", "name", "provider", "category", "status", "feature_count",
-                "checked_at", "changes",
+                "checked_at", "changes", "worker", "last_success_at", "last_report_at",\n                "stale", "worker_stale", "health", "reporting",
             )
             if src.get(key) is not None
         }
@@ -565,7 +574,7 @@ def build_static_site(config: dict, output_dir: str | Path) -> dict:
     """Generate a sanitized, dependency-free static dashboard for Pages-style hosting."""
     output = Path(output_dir)
     output.mkdir(parents=True, exist_ok=True)
-    state = load_state(config["state_file"])
+    state = _dashboard_state(config)
     public = _sanitize_public_state(state)
     sources = public.get("sources", {})
     counts = public.get("counts", {})
@@ -726,7 +735,7 @@ def serve(config: dict, host: str = "127.0.0.1", port: int = 8765) -> None:
                 sid = urllib.parse.parse_qs(parsed.query).get("id", [""])[0]
                 return self._send(200, render_source(config, sid))
             if parsed.path == "/api/state":
-                public_state = _sanitize_public_state(load_state(config["state_file"]))
+                public_state = _sanitize_public_state(_dashboard_state(config))
                 return self._send(200, json.dumps(public_state, indent=2), "application/json; charset=utf-8")
             self._send(404, "Not found", "text/plain; charset=utf-8")
 
