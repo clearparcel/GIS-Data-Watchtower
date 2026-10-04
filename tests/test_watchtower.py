@@ -582,6 +582,23 @@ class DataWatchTests(unittest.TestCase):
         self.assertTrue(all('example.com' in x['url'] for x in cfg['sources']))
         self.assertTrue(all(not x.get('county_slug') for x in cfg['sources']))
 
+    def test_excel_snapshot_export_is_valid_xlsx_package(self):
+        import io, zipfile
+        snapshot={"county":"Example","status":"ok","last_county_update":"2026-10-04","catalog_refresh_date":"2026-10-04","public_data_approved":True,"parcel_data_url":"https://example.com/data","parcel_viewer_url":"https://example.com/view","direct_sources":[{"name":"Parcels","status":"ok","feature_count":123,"checked_at":"2026-10-04T12:00:00+00:00"}],"contacts":[{"name":"GIS Contact","title":"GIS Manager","department":"GIS","phone":"555-0100","email":"gis@example.com"}]}
+        raw=datawatch_dashboard._snapshot_xlsx(snapshot)
+        self.assertTrue(raw.startswith(b"PK"))
+        with zipfile.ZipFile(io.BytesIO(raw)) as zf:
+            names=set(zf.namelist())
+            self.assertIn("xl/workbook.xml",names)
+            self.assertIn("xl/worksheets/sheet1.xml",names)
+            workbook=zf.read("xl/workbook.xml").decode()
+            self.assertIn('name="Counties"',workbook)
+            self.assertIn('name="Sources"',workbook)
+            self.assertIn('name="Contacts"',workbook)
+            sheet=zf.read("xl/worksheets/sheet1.xml").decode()
+            self.assertIn("Example",sheet)
+            self.assertIn("https://example.com/data",sheet)
+
     def test_run_wrapper_preserves_warning_exit_code(self):
         wrapper = (TOOLS_ROOT / 'run-datawatch.cmd').read_text(encoding='utf-8')
         self.assertIn('exit /b %RC%', wrapper)
