@@ -353,8 +353,8 @@ class DataWatchTests(unittest.TestCase):
             self.assertNotIn('>Provenance<', detail)
 
     def test_watchtower_user_agent_identifies_project_and_429_does_not_fallback(self):
-        self.assertIn('ClearParcel-GIS-Data-Watchtower', datawatch.USER_AGENT)
-        self.assertIn('clear-parcel.com', datawatch.USER_AGENT)
+        self.assertIn('GIS-Data-Watchtower', datawatch.USER_AGENT)
+        self.assertIn('github.com/clearparcel/GIS-Data-Watchtower', datawatch.USER_AGENT)
         import urllib.error
         from unittest.mock import patch
         err = urllib.error.HTTPError('https://example.invalid', 429, 'Too Many Requests', {'Retry-After': '60'}, None)
