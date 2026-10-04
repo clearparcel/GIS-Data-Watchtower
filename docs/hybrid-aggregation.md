@@ -14,9 +14,9 @@ A normal profiled check can publish directly. For example, a deployment configur
 
 ## Freshness
 
-Freshness is deliberately separate from source health. A source can be healthy but stale because it has not been checked recently; a source can also be freshly checked and unhealthy. Deployments may set `worker_stale_minutes` and `source_stale_minutes` in configuration. The dashboard uses 180 minutes for either threshold when no override is supplied.
+Freshness is deliberately separate from source health. A source can be healthy but stale because it has not been checked recently; a source can also be freshly checked and unhealthy. Deployments may set `worker_stale_minutes` and `source_stale_minutes` in configuration. The dashboard uses 1560 minutes (26 hours) for either threshold when no override is supplied, which allows for the project's documented daily check cadence plus a margin before flagging a source or worker as overdue. Deployments that check more frequently (for example, a tighter hybrid schedule) should set lower thresholds to get an earlier staleness signal.
 
-The private dashboard prefers `aggregate_state_file` when configured, otherwise it reads the ordinary local state file. Timestamps are shown in America/Chicago time first with UTC second. Unified JSON and Excel exports include worker and freshness metadata; CSV includes worker provenance and stale-source counts where those fields are meaningful.
+The private dashboard prefers `aggregate_state_file` when configured, otherwise it reads the ordinary local state file. Timestamps are shown in America/Chicago time first with UTC second. Unified statewide JSON, CSV, and Excel exports are generated from the aggregate source set and include worker and freshness metadata. The statewide CSV is source-oriented so non-county sources are not lost; county-specific exports retain their county-oriented shape.
 
 Aggregation never bypasses provider restrictions. Sources that are unsuitable for cloud execution must remain assigned to an appropriate local profile. Do not disable TLS verification or work around provider access controls.
 
