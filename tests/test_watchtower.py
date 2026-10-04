@@ -639,7 +639,7 @@ class DataWatchTests(unittest.TestCase):
         details={"http_status":200,"transport":"test","layer_name":"X","geometry_type":"esriGeometryPolygon","wkid":26915,"object_id_field":"OBJECTID","field_count":1,"field_names":["OBJECTID"],"schema_hash":"x","spatial_extent":None,"problems":[]}
         with patch.object(datawatch,"load_state",return_value={"sources":{}}), patch.object(datawatch,"_source_check",return_value=details):
             result=datawatch.check_sources(config,save=False,execution_profile="cloud")
-        self.assertEqual(set(result["sources"]),{"cloud","any","default"})
+        self.assertEqual(set(result["sources"]),{"cloud","any"})
 
     def test_hybrid_aggregation_preserves_other_workers(self):
         from clearparcel.datawatch.aggregate import merge_states

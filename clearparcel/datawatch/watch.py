@@ -945,8 +945,9 @@ def _check_sources_unlocked(
         if filtered and filtered not in source["id"].lower() and filtered not in source["name"].lower():
             continue
         profiles = source.get("execution_profiles")
-        if execution_profile and profiles and execution_profile not in profiles and "any" not in profiles:
-            continue
+        if execution_profile:
+            if not profiles or (execution_profile not in profiles and "any" not in profiles):
+                continue
         started = dt.datetime.now(dt.timezone.utc)
         source_timeout = int(source.get("timeout_seconds", timeout))
         retries = int(source.get("retries", config.get("retries", 1)))
