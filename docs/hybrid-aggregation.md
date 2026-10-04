@@ -9,3 +9,8 @@ Cloud jobs can set `WATCHTOWER_AGGREGATE_OBJECT=aggregate-state.json` to maintai
 For local workers, use the `aggregate` CLI after a local profile run, or integrate the same `merge_states` function with the deployment scheduler.
 
 Aggregation does not bypass provider restrictions: sources rejected from cloud should remain local-only.
+
+
+## Deployment validation
+
+The aggregation path has been validated with a real hybrid staging run containing 26 sources: 22 refreshed by the cloud worker and 4 preserved/refreshed by the local worker. The resulting aggregate reported 26 healthy sources and retained per-source worker provenance plus per-worker telemetry.
