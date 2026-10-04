@@ -23,7 +23,7 @@ class ProviderRateLimitError(RuntimeError):
         super().__init__(f"provider rate limit (HTTP 429); retry-after={retry_after or 'unspecified'}")
 
 
-USER_AGENT = "ClearParcel-GIS-Data-Watchtower/0.13 (+https://clear-parcel.com)"
+USER_AGENT = "GIS-Data-Watchtower/0.1 (+https://github.com/clearparcel/GIS-Data-Watchtower)"
 
 def load_config(path: str | Path) -> dict:
     config_path = Path(path).expanduser().resolve()
