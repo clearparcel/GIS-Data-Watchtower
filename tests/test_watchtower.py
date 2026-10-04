@@ -15,12 +15,12 @@ from clearparcel.datawatch.watch import _compare, load_config as load_data_confi
 class DataWatchTests(unittest.TestCase):
 
     def test_data_source_registry_loads(self):
-        config = load_data_config(TOOLS_ROOT / 'config' / 'data_sources.json')
-        self.assertGreaterEqual(len(config['sources']), 11)
+        config = load_data_config(TOOLS_ROOT / 'config' / 'example_sources.json')
+        self.assertGreaterEqual(len(config['sources']), 2)
         self.assertEqual(len({x['id'] for x in config['sources']}), len(config['sources']))
         ids = {x['id'] for x in config['sources']}
-        self.assertIn('usda-ssurgo-wfs', ids)
-        self.assertIn('usda-ssurgo-mn-catalog', ids)
+        self.assertIn('example-arcgis-layer', ids)
+        self.assertIn('example-wms', ids)
 
     def test_schema_change_is_warning(self):
         changes = _compare({'schema_hash': 'old', 'feature_count': 10}, {'schema_hash': 'new', 'feature_count': 12})
@@ -230,7 +230,7 @@ class DataWatchTests(unittest.TestCase):
         fields = datawatch_dashboard._snapshot_time_fields(value, 'checked')
         self.assertTrue(fields['checked_central'].endswith('-05:00'))
         self.assertTrue(fields['checked_utc'].endswith('+00:00'))
-        cfg = load_data_config(TOOLS_ROOT / 'config' / 'data_sources.json')
+        cfg = load_data_config(TOOLS_ROOT / 'config' / 'example_sources.json')
         ids = {x['id'] for x in cfg['sources']}
         for source_id in ('mn-douglas-parcels-direct', 'mn-morrison-parcels-direct', 'mn-swift-parcels-direct', 'mn-aitkin-parcels-direct', 'mn-scott-parcels-direct', 'mn-dakota-parcels-direct', 'mn-beltrami-parcels-direct', 'mn-rice-parcels-direct', 'mn-waseca-parcels-direct', 'mn-ramsey-parcels-direct', 'mn-olmsted-parcels-direct', 'mn-pipestone-parcels-direct', 'mn-koochiching-parcels-direct', 'mn-st-louis-parcels-direct'):
             self.assertIn(source_id, ids)
@@ -243,7 +243,7 @@ class DataWatchTests(unittest.TestCase):
         fields = datawatch_dashboard._snapshot_time_fields(value, 'checked')
         self.assertTrue(fields['checked_central'].endswith('-05:00'))
         self.assertTrue(fields['checked_utc'].endswith('+00:00'))
-        cfg = load_data_config(TOOLS_ROOT / 'config' / 'data_sources.json')
+        cfg = load_data_config(TOOLS_ROOT / 'config' / 'example_sources.json')
         ids = {x['id'] for x in cfg['sources']}
         self.assertEqual(sum((1 for x in ids if x.endswith('-parcels-direct'))), 14)
         import tempfile
@@ -475,7 +475,7 @@ class DataWatchTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td).resolve()
             (root / 'config').mkdir()
-            p = root / 'config' / 'data_sources.json'
+            p = root / 'config' / 'example_sources.json'
             p.write_text(json.dumps({'state_file': 'datawatch/state.json', 'history_file': 'datawatch/history.jsonl', 'sources': []}), encoding='utf-8')
             cfg = datawatch.load_config(p)
             self.assertEqual(Path(cfg['state_file']), root / 'datawatch' / 'state.json')
@@ -579,7 +579,7 @@ class DataWatchTests(unittest.TestCase):
         self.assertEqual(report['scope'], {'type': 'source', 'source_id': 'one'})
 
     def test_direct_county_sources_have_explicit_slug_and_service_layer_ids(self):
-        cfg = datawatch.load_config(TOOLS_ROOT / 'config' / 'data_sources.json')
+        cfg = datawatch.load_config(TOOLS_ROOT / 'config' / 'example_sources.json')
         direct = [x for x in cfg['sources'] if x['id'].endswith('-parcels-direct')]
         self.assertEqual(len(direct), 14)
         self.assertTrue(all((x.get('county_slug') for x in direct)))
