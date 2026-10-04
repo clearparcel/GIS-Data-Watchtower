@@ -270,7 +270,7 @@ code{{font-size:12px;overflow-wrap:anywhere}}
   .bar-row{{grid-template-columns:100px minmax(60px,1fr) 40px}}
 }}
 </style></head><body>
-<header><h1>GIS Data Watchtower</h1><div class="actions"><span>Refreshes every {refresh_seconds}s</span>{refresh_form}</div></header>
+<header><h1>GIS Data Watchtower</h1><div class="actions"><span>Dashboard view refreshes every {refresh_seconds}s</span>{refresh_form}</div></header>
 <div class="app-shell">
 <aside class="sidebar"><div class="side-brand"><strong>ClearParcel</strong><small>GIS Data Watchtower</small></div><nav>
 <a href="/">{icon("overview")}<span>Overview</span></a>
@@ -376,8 +376,8 @@ def render_counties(config: dict) -> str:
         f'<tr data-name="{_esc(x["name"].lower())}" data-status="{_esc(x["status"])}"><td><a href="/county?slug={urllib.parse.quote(x["slug"])}"><strong>{_esc(x["name"])} County</strong></a></td><td><span class="pill {_esc(x["status"])}">{_esc(_friendly_status(x["status"]))}</span></td><td>{len(x["sources"])}</td></tr>'
         for x in counties
     )
-    body = f'<div class="grid"><div class="card"><div class="muted">Minnesota counties</div><div class="metric">{len(counties)}</div><span class="subtext">Counties represented in the statewide county dashboard index.</span></div><div class="card"><div class="muted">Counties checked directly</div><div class="metric">{monitored}</div><span class="subtext">Counties with at least one county-specific source that Watchtower actively checks.</span></div><div class="card"><div class="muted">Counties with public parcel data</div><div class="metric">{public_count}</div><span class="subtext">Counties whose MnGeo catalog record indicates public parcel-data approval.</span></div></div>' \
-        f'<div class="grid"><div class="card">{_bar_chart([( _friendly_status(k), v) for k,v in sorted(status_counts.items())], title="County parcel-data availability")}<span class="subtext">How Watchtower currently knows about each county.</span></div><div class="card">{_bar_chart(list(age_buckets.items()), title="MnGeo parcel update age")}<span class="subtext">Age of the county acquisition/update date reported in the MnGeo parcel catalog; this is not Watchtower check time.</span></div></div><div class="card"><h2>Minnesota county dashboards</h2><p class="muted">Coverage describes how Watchtower knows about each county: Directly monitored means a county-specific source is checked; MnGeo update data only means catalog information is available without a direct county check; Direct source not yet identified means more source research is needed.</p><p class="subtext">Use Export in the page toolbar for statewide Excel, CSV, or JSON.</p>' \
+    body = f'<div class="grid"><div class="card"><div class="muted">Minnesota counties</div><div class="metric">{len(counties)}</div><span class="subtext">Counties represented in the statewide county dashboard index.</span></div><div class="card"><div class="muted">Counties checked directly</div><div class="metric">{monitored}</div><span class="subtext">Counties with at least one county-specific source that Watchtower actively checks.</span></div><div class="card"><div class="muted">Counties marked public by MnGeo</div><div class="metric">{public_count}</div><span class="subtext">Counties whose MnGeo catalog record indicates public parcel-data approval.</span></div></div>' \
+        f'<div class="grid"><div class="card">{_bar_chart([( _friendly_status(k), v) for k,v in sorted(status_counts.items())], title="County monitoring coverage")}<span class="subtext">How Watchtower currently knows about each county.</span></div><div class="card">{_bar_chart(list(age_buckets.items()), title="MnGeo parcel update age")}<span class="subtext">Age of the county acquisition/update date reported in the MnGeo parcel catalog; this is not Watchtower check time.</span></div></div><div class="card"><h2>Minnesota county dashboards</h2><p class="muted">Coverage describes how Watchtower knows about each county: Directly monitored means a county-specific source is checked; MnGeo update data only means catalog information is available without a direct county check; Direct source not yet identified means more source research is needed.</p><p class="subtext">Use Export in the page toolbar for statewide Excel, CSV, or JSON.</p>' \
         '<div class="filters"><input id="cq" placeholder="Filter counties…" oninput="filterCounties()"><select id="cs" onchange="filterCounties()"><option value="">All coverage types</option><option value="ok">Directly monitored</option><option value="catalog">MnGeo update data only</option><option value="needs-source">Direct source not yet identified</option><option value="not-configured">No source information yet</option><option value="warn">Needs attention</option><option value="error">Check failed</option></select></div>' \
         f'<table id="counties"><thead><tr><th>County</th><th>Coverage<br><span class="subtext">How Watchtower currently knows about this county</span></th><th>Direct sources<br><span class="subtext">County-specific sources actively checked</span></th></tr></thead><tbody>{rows}</tbody></table></div>' \
         "<script>function filterCounties(){const q=document.getElementById('cq').value.toLowerCase(),s=document.getElementById('cs').value;document.querySelectorAll('#counties tbody tr').forEach(r=>r.style.display=(!q||r.dataset.name.includes(q))&&(!s||r.dataset.status===s)?'':'none')}</script>"
@@ -401,7 +401,7 @@ def render_county(config: dict, slug: str) -> str:
         source_links = (f'<a href="{_esc(data_url)}" target="_blank" rel="noopener">Open parcel data</a>' if data_url else "No open data URL supplied")
         if viewer_url:
             source_links += f' · <a href="{_esc(viewer_url)}" target="_blank" rel="noopener">Viewer</a>'
-        source_cards = f'<div class="card"><h3>County parcel update information</h3><p><strong>Counties with public parcel data:</strong> {_esc(approval)}<br><strong>Last county update:</strong> {_esc(_format_arcgis_date(catalog.get("acqdate")))}<br><strong>MnGeo listing refreshed:</strong> {_esc(_format_arcgis_date(catalog.get("rundate")))}<br><strong>Parcel links:</strong> {source_links}</p></div>'
+        source_cards = f'<div class="card"><h3>County parcel update information</h3><p><strong>MnGeo public-data approval:</strong> {_esc(approval)}<br><strong>Last county update:</strong> {_esc(_format_arcgis_date(catalog.get("acqdate")))}<br><strong>MnGeo listing refreshed:</strong> {_esc(_format_arcgis_date(catalog.get("rundate")))}<br><strong>Parcel links:</strong> {source_links}</p></div>'
     elif not source_cards:
         source_cards = '<div class="card"><h3>A usable parcel-data source has not been found yet</h3><p>No direct county source or MnGeo parcel catalog record is currently available.</p></div>'
     contacts = _load_county_contacts().get(county["name"], [])
@@ -579,7 +579,7 @@ def _snapshot_xlsx(snapshot: dict) -> bytes:
     return out.getvalue()
 
 
-def _friendly_status(value: str) -> str:
+def _coverage_status(value: str) -> str:
     return {
         "ok": "Directly monitored",
         "catalog": "MnGeo update data only",
@@ -588,6 +588,19 @@ def _friendly_status(value: str) -> str:
         "warn": "Needs attention",
         "error": "Check failed",
     }.get(value, value.replace("-", " ").title())
+
+
+def _health_status(value: str) -> str:
+    return {
+        "ok": "Healthy",
+        "warn": "Warning",
+        "error": "Error",
+        "unknown": "Unknown",
+    }.get(value, value.replace("-", " ").title())
+
+
+def _friendly_status(value: str) -> str:
+    return _coverage_status(value)
 
 
 def render_dashboard(config: dict) -> str:
@@ -613,37 +626,39 @@ def render_dashboard(config: dict) -> str:
         if not worker:
             continue
         worker_status = str(worker.get("overall") or "unknown")
+        worker_health = _health_status(worker_status)
         stale = bool(worker.get("stale"))
         worker_telemetry = worker.get("telemetry") or {}
         duration = worker_telemetry.get("wall_ms")
         duration_text = f"{duration / 1000.0:.1f}s" if isinstance(duration, (int, float)) else "—"
         source_count = worker.get("source_count")
-        freshness_text = "Reporting overdue" if stale else "Reporting current"
+        freshness_text = "Reporting overdue" if stale else "Reporting on time"
         worker_cards.append(f"""<div class="card worker-card">
-<div><h3><span class="status-dot {worker_status}"></span>{_esc(worker_name.title())} worker</h3><span class="subtext">{_esc(freshness_text)} · {_esc(worker_status.upper())}</span></div>
-<div class="pill {_esc(worker_status)}">{_esc(worker_status)}</div>
+<div><h3><span class="status-dot {worker_status}"></span>{_esc(worker_name.title())} worker</h3><span class="subtext">{_esc(worker_health)} · {_esc(freshness_text)}</span></div>
 <div class="worker-meta">
 <div><span class="muted">Sources</span><strong>{_esc(source_count if source_count is not None else "—")}</strong></div>
 <div><span class="muted">Run time</span><strong>{_esc(duration_text)}</strong></div>
 <div><span class="muted">Last success</span><strong style="font-size:13px">{_format_time_pair(worker.get("last_success_at") or worker.get("checked_at"))}</strong></div>
 </div></div>""")
     body = f"""<div class="grid primary-grid">
-<div class="card"><div class="muted">Overall health</div><div class="metric {state.get('overall','')}">{_esc(state.get('overall','unknown').upper())}</div><span class="subtext">Combined health of all monitored sources in the latest saved aggregate.</span></div>
-<div class="card"><div class="muted">Data sources</div><div class="metric">{len(sources)}</div><span class="subtext">Source observations represented in the unified Watchtower state.</span></div>
-<div class="card"><div class="muted">Problems</div><div class="metric">{counts.get('warn',0) + counts.get('error',0)}</div><span class="subtext">Sources reporting a warning or failed check. Stale reporting is counted separately.</span></div>
-<div class="card"><div class="muted">Overdue</div><div class="metric">{state.get('stale_sources',0)}</div><span class="subtext">{state.get('stale_workers',0)} worker(s) overdue · freshness threshold, not source failure.</span></div>
+<div class="card"><div class="muted">Overall health</div><div class="metric {state.get('overall','')}">{_esc(_health_status(state.get('overall','unknown')))}</div><span class="subtext">Combined health of all cloud and local source checks.</span></div>
+<div class="card"><div class="muted">Monitored sources</div><div class="metric">{len(sources)}</div><span class="subtext">Sources currently included across the cloud and local workers.</span></div>
+<div class="card"><div class="muted">Source issues</div><div class="metric">{counts.get('warn',0) + counts.get('error',0)}</div><span class="subtext">Sources whose latest check reported a warning or error.</span></div>
+<div class="card"><div class="muted">Reporting overdue</div><div class="metric">{state.get('stale_sources',0)}</div><span class="subtext">Sources that have not reported within the configured freshness window · {state.get('stale_workers',0)} worker(s) overdue.</span></div>
 </div>
-<div class="section-head"><div><h2>Workers</h2><p>Hybrid execution health and the most recent successful run from each worker.</p></div></div>
+<div class="section-head"><div><h2>Workers</h2><p>Cloud and local worker health and their most recent successful runs.</p></div></div>
 <div class="grid worker-grid">{''.join(worker_cards) or '<div class="card muted">Worker metadata has not been reported yet.</div>'}</div>
 <div class="activity-strip">
-<div class="card"><div class="muted">Recently changed</div><div class="metric">{changed_30}</div><span class="subtext">Sources where Watchtower detected a recorded data change within the last 30 days.</span></div>
-<div class="card"><div class="muted">Aggregate updated</div><strong>{_format_time_pair(state.get('generated_at'))}</strong><span class="subtext">Time the unified aggregate was last generated from worker observations.</span><br><a href="/counties">View all 87 Minnesota county dashboards →</a></div>
+<div class="card" id="changes"><div class="muted">Sources changed — 30 days</div><div class="metric">{changed_30}</div><span class="subtext">Sources where Watchtower detected a data change during the last 30 days.</span></div>
+<div class="card"><div class="muted">Dashboard data updated</div><strong>{_format_time_pair(state.get('generated_at'))}</strong><span class="subtext">When Watchtower last combined the cloud and local worker results.</span><br><a href="/counties">View all 87 Minnesota county dashboards →</a></div>
 </div>"""
     if alerts:
-        body += '<div class="card"><h2>Needs attention</h2>' + "".join(
+        body += '<div class="card" id="alerts"><h2>Active alerts</h2>' + "".join(
             f'<p class="{_esc(a.get("severity","warn"))}"><strong>{_esc(a.get("name") or a.get("source"))}</strong> — {_esc(a.get("message"))}</p>'
             for a in alerts
         ) + "</div><br>"
+    else:
+        body += '<div class="card" id="alerts"><h2>Active alerts</h2><p class="ok"><strong>No active alerts.</strong></p><span class="subtext">No current Watchtower alert requires attention.</span></div><br>'
     rows = []
     categories = sorted({str(meta.get("category") or src.get("category") or "Other") for _,src,meta,_,_ in enriched})
     for sid, src, meta, stats, hist in sorted(enriched, key=lambda x: str(x[1].get("name", x[0])).lower()):
@@ -658,7 +673,7 @@ def render_dashboard(config: dict) -> str:
         rows.append(f"""<tr data-name="{_esc((src.get('name') or sid).lower())}" data-category="{_esc(category)}" data-status="{_esc(src.get('status','unknown'))}">
 <td><a href="/source?{urllib.parse.urlencode({'id':sid})}"><strong>{_esc(src.get('name') or sid)}</strong></a><br><span class="muted">{_esc(sid)}</span></td>
 <td>{_esc(provider)}<br><span class="muted">{_esc(category)}</span></td>
-<td><span class="pill {_esc(src.get('status',''))}">{_esc(_friendly_status(src.get('status','unknown')))}</span><br><span class="muted">{_esc(src.get('reporting','current'))} reporting · {_esc(src.get('worker') or 'default')} worker</span></td>
+<td><span class="pill {_esc(src.get('status',''))}">{_esc(_health_status(src.get('status','unknown')))}</span><br><span class="muted">{_esc(src.get('reporting','current'))} reporting · {_esc(src.get('worker') or 'default')} worker</span></td>
 <td>{_esc(f"{current_count:,}" if isinstance(current_count,int) else current_count or '—')}<br><span class="{delta_class}">{_esc(delta_text)}</span></td>
 <td>{_esc(stats.get('change_age_days') if stats.get('change_age_days') is not None else '—')}</td>
 <td>{_esc(stats.get('success_rate') if stats.get('success_rate') is not None else '—')}%<br><span class="muted">{_esc(stats.get('consecutive_ok'))} consecutive</span></td>
@@ -692,7 +707,7 @@ def render_dashboard(config: dict) -> str:
         cat = meta.get("category") or src.get("category") or "Other"
         category_counts[cat] = category_counts.get(cat,0)+1
     category_chart = _bar_chart(sorted(category_counts.items(), key=lambda x:x[1], reverse=True), title="Data sources by category")
-    body += '<div class="section-head"><div><h2>Source overview</h2><p>Response behavior and source mix in the current aggregate.</p></div></div>'
+    body += '<div class="section-head"><div><h2>Source overview</h2><p>Response behavior and source mix across the current cloud and local results.</p></div></div>'
     body += f'<div class="grid"><div class="card">{latency_chart}<span class="subtext">Latest source-check response time; longer does not necessarily mean unhealthy.</span></div><div class="card">{category_chart}<span class="subtext">Number of monitored source observations grouped by data category.</span></div></div>'
     county_direct = [(src.get("name") or sid, src.get("feature_count")) for sid,src in sources.items() if sid.endswith("-parcels-direct") and isinstance(src.get("feature_count"), (int,float))]
     county_fields = [(src.get("name") or sid, src.get("field_count")) for sid,src in sources.items() if sid.endswith("-parcels-direct") and isinstance(src.get("field_count"), (int,float))]
@@ -747,7 +762,7 @@ def render_source(config: dict, source_id: str) -> str:
     source_count_text = _esc(f"{src.get('feature_count'):,}" if isinstance(src.get('feature_count'),int) else src.get('feature_count','—'))
     body = f"""<p><a href="/">← All data sources</a></p><div class="grid">
 <div class="card"><div class="muted">Data source</div><h2>{_esc(src.get('name') or source_id)}</h2><code>{_esc(source_id)}</code></div>
-<div class="card"><div class="muted">Status</div><div class="metric {_esc(src.get('status',''))}">{_esc(src.get('status','unknown').upper())}</div><span class="subtext">{_esc(src.get('reporting') or 'current')} reporting · {_esc(src.get('worker') or 'local/default')} worker</span></div>
+<div class="card"><div class="muted">Health</div><div class="metric {_esc(src.get('status',''))}">{_esc(_health_status(src.get('status','unknown')))}</div><span class="subtext">{_esc('Reporting overdue' if src.get('reporting') == 'stale' else 'Reporting on time')} · {_esc(src.get('worker') or 'local/default')} worker</span></div>
 <div class="card"><div class="muted">Record count</div><div class="metric">{source_count_text}</div><span class="subtext">Features or rows reported during the latest successful check.</span></div>
 <div class="card"><div class="muted">Recent reliability</div><div class="metric">{_esc(stats.get('success_rate') if stats.get('success_rate') is not None else '—')}%</div><span class="subtext">{_esc(stats.get('consecutive_ok'))} successful checks in a row.</span></div>
 <div class="card"><div class="muted">Days since data changed</div><div class="metric">{_esc(stats.get('change_age_days') if stats.get('change_age_days') is not None else '—')}</div><span class="subtext">Elapsed days since Watchtower last detected a meaningful observation change.</span></div></div>
@@ -778,7 +793,7 @@ def render_source(config: dict, source_id: str) -> str:
 <dt>Observation comparison ID</dt><dd><code>{_esc(src.get('observation_fingerprint'))}</code></dd>
 </dl></div></details></div><br>
 <div class="card"><h2>Check history</h2><span class="subtext">Recent retained observations for this source.</span><table class="history-table"><thead><tr><th>Last checked</th><th>Status</th><th>Records</th><th>Changes found</th><th>Response time</th></tr></thead><tbody>{history_rows}</tbody></table></div>"""
-    return _layout(f"Watchtower — {src.get('name') or source_id}", body, csrf_token=str(config.get("_csrf_token") or ""))
+    return _layout(f"{src.get('name') or source_id}", body, csrf_token=str(config.get("_csrf_token") or ""))
 
 def _sanitize_public_state(state: dict) -> dict:
     """Return only user-facing monitoring facts safe for public/API use."""
@@ -816,7 +831,7 @@ def build_static_site(config: dict, output_dir: str | Path) -> dict:
         rows.append(
             f'<tr><td><a href="{_esc(filename)}"><strong>{_esc(src.get("name") or sid)}</strong></a>'
             f'<br><span class="muted">{_esc(sid)}</span></td>'
-            f'<td><span class="pill {_esc(src.get("status",""))}">{_esc(_friendly_status(src.get("status","unknown")))}</span></td>'
+            f'<td><span class="pill {_esc(src.get("status",""))}">{_esc(_health_status(src.get("status","unknown")))}</span></td>'
             f'<td>{_esc(src.get("provider") or "—")}</td>'
             f'<td>{_esc(src.get("category") or "—")}</td>'
             f'<td>{_esc(src.get("feature_count","—"))}</td>'
@@ -824,7 +839,7 @@ def build_static_site(config: dict, output_dir: str | Path) -> dict:
         )
         detail = f'<p><a href="index.html">← All data sources</a></p><div class="grid">' \
             f'<div class="card"><div class="muted">Data source</div><h2>{_esc(src.get("name") or sid)}</h2></div>' \
-            f'<div class="card"><div class="muted">Status</div><div class="metric {_esc(src.get("status",""))}">{_esc(_friendly_status(src.get("status","unknown")))}</div></div>' \
+            f'<div class="card"><div class="muted">Status</div><div class="metric {_esc(src.get("status",""))}">{_esc(_health_status(src.get("status","unknown")))}</div></div>' \
             f'<div class="card"><div class="muted">Record count</div><div class="metric">{_esc(src.get("feature_count","—"))}</div></div></div>' \
             f'<div class="card"><h2>About this data</h2><p><strong>Provided by:</strong> {_esc(src.get("provider") or "—")}<br>' \
             f'<strong>Data type:</strong> {_esc(src.get("category") or "—")}<br><strong>Last checked:</strong> {_esc(src.get("checked_at") or "—")}<br>' \
