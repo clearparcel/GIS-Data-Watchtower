@@ -14,7 +14,7 @@ or:
 "execution_profiles": ["local"]
 ```
 
-Sources without this field run in every profile. `"any"` also runs in every profile.
+Sources without this field run only in ordinary unprofiled checks. When a worker requests a profile, only sources explicitly tagged for that profile (or `"any"`) run. This prevents one hybrid worker from overwriting another worker's observations.
 
 Use `watchtower check --execution-profile local` for a local worker. Cloud jobs default to the `cloud` profile and can override it with `WATCHTOWER_EXECUTION_PROFILE`.
 
