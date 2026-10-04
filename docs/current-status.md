@@ -15,7 +15,8 @@ Base functionality includes:
 - local filesystem and optional Google Cloud Storage backends;
 - Cloud Run Job-compatible container deployment;
 - hybrid source execution profiles;
-- hybrid worker result aggregation.
+- hybrid worker result aggregation;
+- concurrency-safe aggregate publishing (GCS generation preconditions, atomic local locking) with dashboard/export consumption of the unified aggregate state.
 
 ## CI
 
@@ -53,8 +54,14 @@ The aggregate state was validated with:
 
 Worker provenance, check timestamps, counts, and telemetry are retained in the aggregate state.
 
+## Concurrency-safe aggregate publishing
+
+The shared aggregate object is now written with compare-and-swap semantics: Google Cloud Storage generation preconditions for cloud deployments, and an atomic lock-and-replace with retry for local/shared-filesystem deployments. A competing writer reloads the latest aggregate, re-merges, and retries instead of overwriting another worker's observations. A normal profiled `watchtower check` run (for example, the `local` execution profile) can publish directly to the configured shared aggregate store when opted in via `aggregate_object` or `WATCHTOWER_AGGREGATE_OBJECT`; this does not require a separate one-off script.
+
+The private dashboard and the CSV/JSON/Excel snapshot exports now read the unified aggregate state. They show worker provenance, each worker's and source's last-success time (America/Chicago primary, UTC secondary), and reporting freshness against configurable thresholds, while keeping unhealthy sources (bad data) distinct from stale reporting (a worker or source overdue for a check). See `docs/hybrid-aggregation.md` for details and regression-test coverage.
+
 ## Not yet enabled
 
 The staging Cloud Run Job is manually invoked. **No Cloud Scheduler automation is enabled yet.** A local production worker remains active while parallel validation continues.
 
-The next release phase is automated local-worker publication to the shared aggregate, multi-day parallel validation, dashboard consumption of aggregate state, and only then scheduled cloud orchestration.
+Automated local-worker publication to the shared aggregate and dashboard consumption of the aggregate state are implemented, as described above, but have not yet completed a multi-day parallel validation run. The next release phase is that validation, followed by scheduled cloud orchestration only once it passes.

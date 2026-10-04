@@ -69,7 +69,7 @@ def _parse_time(value):
         return None
 
 
-def with_freshness(state: dict, *, worker_stale_minutes: int = 180, source_stale_minutes: int = 180, now=None) -> dict:
+def with_freshness(state: dict, *, worker_stale_minutes: int = 1560, source_stale_minutes: int = 1560, now=None) -> dict:
     """Annotate reporting freshness without conflating it with source health."""
     result = deepcopy(state or {})
     now = now or dt.datetime.now(dt.timezone.utc)
@@ -93,19 +93,26 @@ def publish_partial(storage, name: str, partial: dict, worker: str, workdir: Pat
     workdir.mkdir(parents=True, exist_ok=True)
     base_path = workdir / f".{worker}-aggregate-base.json"
     output_path = workdir / f".{worker}-aggregate-next.json"
-    for attempt in range(retries):
-        exists, version = storage.download_versioned(name, base_path)
-        base = load_json(base_path) if exists else {}
-        merged = merge_states(base, partial, worker)
-        save_json(output_path, merged)
-        try:
-            storage.upload_if_version(name, output_path, version)
-            return merged
-        except StorageConflictError:
-            if attempt + 1 >= retries:
-                raise
-            time.sleep(min(0.5, 0.02 * (2 ** attempt)) + random.random() * 0.02)
-    raise StorageConflictError(f"unable to publish aggregate after {retries} attempts")
+    try:
+        for attempt in range(retries):
+            exists, version = storage.download_versioned(name, base_path)
+            base = load_json(base_path) if exists else {}
+            merged = merge_states(base, partial, worker)
+            save_json(output_path, merged)
+            try:
+                storage.upload_if_version(name, output_path, version)
+                return merged
+            except StorageConflictError:
+                if attempt + 1 >= retries:
+                    raise
+                time.sleep(min(0.5, 0.02 * (2 ** attempt)) + random.random() * 0.02)
+        raise StorageConflictError(f"unable to publish aggregate after {retries} attempts")
+    finally:
+        for scratch in (base_path, output_path):
+            try:
+                scratch.unlink()
+            except FileNotFoundError:
+                pass
 
 
 def load_json(path: Path) -> dict:

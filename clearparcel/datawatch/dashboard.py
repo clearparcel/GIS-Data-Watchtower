@@ -120,8 +120,8 @@ def _dashboard_state(config: dict) -> dict:
     path = config.get("aggregate_state_file") or config["state_file"]
     return with_freshness(
         load_state(path),
-        worker_stale_minutes=int(config.get("worker_stale_minutes", 180)),
-        source_stale_minutes=int(config.get("source_stale_minutes", 180)),
+        worker_stale_minutes=int(config.get("worker_stale_minutes", 1560)),
+        source_stale_minutes=int(config.get("source_stale_minutes", 1560)),
     )
 
 def _layout(title: str, body: str, *, refresh_seconds: int = 30, static: bool = False, csrf_token: str = "") -> str:
@@ -315,12 +315,31 @@ def _statewide_snapshot(config: dict) -> dict:
         item = _county_snapshot(config, county["slug"])
         if item:
             counties.append(item)
+    aggregate_sources = []
+    for source_id, source in (state.get("sources") or {}).items():
+        aggregate_sources.append({
+            "id": source_id,
+            "name": source.get("name") or source_id,
+            "county": source.get("county_slug") or "",
+            "status": source.get("status"),
+            "feature_count": source.get("feature_count"),
+            "worker": source.get("worker"),
+            "reporting": source.get("reporting"),
+            "stale": bool(source.get("stale")),
+            "worker_stale": bool(source.get("worker_stale")),
+            "last_success_at": source.get("last_success_at"),
+            "checked_at": source.get("checked_at") or source.get("last_report_at"),
+        })
+    aggregate_sources.sort(key=lambda row: (str(row.get("county") or ""), str(row.get("name") or "")))
     return {
         "title": "Minnesota GIS Data Watchtower snapshot",
         **_snapshot_time_fields(dt.datetime.now(dt.timezone.utc).isoformat(), "snapshot_created"),
         **_snapshot_time_fields(state.get("generated_at"), "watchtower_last_checked"),
         "overall": state.get("overall"),
         "county_count": len(counties),
+        "source_count": len(aggregate_sources),
+        "sources": aggregate_sources,
+        "workers": state.get("workers") or {},
         "counties": counties,
     }
 
@@ -334,11 +353,29 @@ def _csv_safe(value) -> str:
 
 def _snapshot_csv(snapshot: dict) -> str:
     out = io.StringIO()
+    if "sources" in snapshot:
+        fields = ["source_id","source_name","county","status","feature_count","worker","reporting","stale_source","stale_worker","last_success_at","checked_at"]
+        writer = csv.DictWriter(out, fieldnames=fields)
+        writer.writeheader()
+        for source in snapshot.get("sources", []):
+            writer.writerow({key: _csv_safe(value) for key, value in {
+                "source_id": source.get("id"),
+                "source_name": source.get("name"),
+                "county": source.get("county"),
+                "status": source.get("status"),
+                "feature_count": source.get("feature_count"),
+                "worker": source.get("worker"),
+                "reporting": source.get("reporting"),
+                "stale_source": source.get("stale"),
+                "stale_worker": source.get("worker_stale"),
+                "last_success_at": source.get("last_success_at"),
+                "checked_at": source.get("checked_at"),
+            }.items()})
+        return out.getvalue()
     fields = ["county","status","last_county_update","catalog_refresh_date","public_data_approved","parcel_data_url","parcel_viewer_url","worker_provenance","stale_source_count","contact_names"]
     writer = csv.DictWriter(out, fieldnames=fields)
     writer.writeheader()
-    rows = snapshot.get("counties") if "counties" in snapshot else [snapshot]
-    for row in rows:
+    for row in [snapshot]:
         writer.writerow({key: _csv_safe(value) for key, value in {
             "county": row.get("county"), "status": row.get("status"),
             "last_county_update": row.get("last_county_update"),
@@ -378,16 +415,20 @@ def _xlsx_sheet_xml(rows: list[list]) -> str:
 
 def _snapshot_xlsx(snapshot: dict) -> bytes:
     county_rows = [["County","Status","Last county update","Catalog refresh date","Public data approved","Parcel data URL","Parcel viewer URL","Contact names"]]
-    source_rows = [["County","Source","Status","Record count","Worker","Reporting","Last successful check","Last checked"]]
+    source_rows = [["County","Source","Status","Record count","Worker","Reporting","Stale source","Stale worker","Last successful check","Last checked"]]
     contact_rows = [["County","Name","Title","Department","Phone","Email"]]
     rows = snapshot.get("counties") if "counties" in snapshot else [snapshot]
     for row in rows:
         county = row.get("county") or ""
         county_rows.append([county,row.get("status"),row.get("last_county_update"),row.get("catalog_refresh_date"),bool(row.get("public_data_approved")),row.get("parcel_data_url"),row.get("parcel_viewer_url"),"; ".join(x.get("name","") for x in row.get("contacts",[]) if x.get("name"))])
         for source in row.get("direct_sources", []):
-            source_rows.append([county,source.get("name"),source.get("status"),source.get("feature_count"),source.get("worker"),source.get("reporting"),source.get("last_success_at"),source.get("checked_at")])
+            if "sources" not in snapshot:
+                source_rows.append([county,source.get("name"),source.get("status"),source.get("feature_count"),source.get("worker"),source.get("reporting"),bool(source.get("stale")),bool(source.get("worker_stale")),source.get("last_success_at"),source.get("checked_at")])
         for contact in row.get("contacts", []):
             contact_rows.append([county,contact.get("name"),contact.get("title"),contact.get("department"),contact.get("phone"),contact.get("email")])
+    if "sources" in snapshot:
+        for source in snapshot.get("sources", []):
+            source_rows.append([source.get("county"),source.get("name"),source.get("status"),source.get("feature_count"),source.get("worker"),source.get("reporting"),bool(source.get("stale")),bool(source.get("worker_stale")),source.get("last_success_at"),source.get("checked_at")])
     sheets=[("Counties",county_rows),("Sources",source_rows),("Contacts",contact_rows)]
     out=io.BytesIO()
     with zipfile.ZipFile(out,"w",zipfile.ZIP_DEFLATED) as zf:

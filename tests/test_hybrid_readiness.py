@@ -1,12 +1,76 @@
 import datetime as dt
 import json
+import os
+import sys
 import tempfile
 import threading
+import types
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from clearparcel.datawatch.aggregate import merge_states, publish_partial, with_freshness
-from clearparcel.datawatch.storage import LocalStorage
+from clearparcel.datawatch.storage import GCSStorage, LocalStorage, StorageConflictError
+
+
+def _fake_gcs_backend():
+    """Build a GCSStorage instance backed by an in-memory fake bucket.
+
+    Bypasses GCSStorage.__init__ (which requires the optional google-cloud-storage
+    dependency) so the real download_versioned/upload_if_version generation-precondition
+    logic can be exercised in CI without that dependency installed. A lock makes the
+    conditional write atomic, mirroring GCS server-side precondition enforcement -
+    without it, two threads could both read generation 0 and both "succeed", which
+    would hide the exact race this test is meant to catch.
+    """
+    exceptions_mod = types.ModuleType("google.api_core.exceptions")
+
+    class NotFound(Exception):
+        pass
+
+    class PreconditionFailed(Exception):
+        pass
+
+    exceptions_mod.NotFound = NotFound
+    exceptions_mod.PreconditionFailed = PreconditionFailed
+
+    class FakeBlob:
+        def __init__(self, bucket, name):
+            self._bucket = bucket
+            self._name = name
+
+        def reload(self, client=None):
+            if self._name not in self._bucket.objects:
+                raise NotFound(self._name)
+
+        @property
+        def generation(self):
+            return self._bucket.objects[self._name]["generation"]
+
+        def download_to_filename(self, path):
+            Path(path).write_bytes(self._bucket.objects[self._name]["data"])
+
+        def upload_from_filename(self, path, if_generation_match=None):
+            with self._bucket.lock:
+                current = self._bucket.objects.get(self._name)
+                current_generation = current["generation"] if current else 0
+                if if_generation_match is not None and if_generation_match != current_generation:
+                    raise PreconditionFailed(self._name)
+                self._bucket.objects[self._name] = {"data": Path(path).read_bytes(), "generation": current_generation + 1}
+
+    class FakeBucket:
+        def __init__(self):
+            self.objects = {}
+            self.lock = threading.Lock()
+
+        def blob(self, name):
+            return FakeBlob(self, name)
+
+    backend = GCSStorage.__new__(GCSStorage)
+    backend.client = object()
+    backend.bucket = FakeBucket()
+    backend.prefix = ""
+    return backend, exceptions_mod
 
 
 class HybridReadinessTests(unittest.TestCase):
@@ -47,6 +111,92 @@ class HybridReadinessTests(unittest.TestCase):
         self.assertEqual(state["sources"]["a"]["last_success_at"], "2026-10-04T10:00:00+00:00")
         self.assertEqual(state["workers"]["cloud"]["last_success_at"], "2026-10-04T11:00:00+00:00")
 
+    def test_gcs_generation_precondition_rejects_stale_writes(self):
+        backend, exceptions_mod = _fake_gcs_backend()
+        with patch.dict(sys.modules, {"google.api_core.exceptions": exceptions_mod}):
+            with tempfile.TemporaryDirectory() as td:
+                root = Path(td)
+                dest = root / "first.json"
+                exists, version = backend.download_versioned("aggregate.json", dest)
+                self.assertFalse(exists)
+                self.assertIsNone(version)
+                src = root / "upload.json"
+                src.write_text('{"a": 1}', encoding="utf-8")
+                backend.upload_if_version("aggregate.json", src, version)
+                with self.assertRaises(StorageConflictError):
+                    backend.upload_if_version("aggregate.json", src, version)
+
+    def test_competing_gcs_publishers_preserve_both_workers(self):
+        backend, exceptions_mod = _fake_gcs_backend()
+        with patch.dict(sys.modules, {"google.api_core.exceptions": exceptions_mod}):
+            with tempfile.TemporaryDirectory() as td:
+                root = Path(td)
+                errors = []
+                barrier = threading.Barrier(2)
+
+                def run(worker, source):
+                    try:
+                        barrier.wait()
+                        publish_partial(
+                            backend, "aggregate.json",
+                            {"generated_at": "2026-10-04T20:00:00+00:00", "overall": "ok",
+                             "counts": {"ok": 1, "warn": 0, "error": 0},
+                             "sources": {source: {"id": source, "status": "ok"}}},
+                            worker, root / worker,
+                        )
+                    except Exception as exc:
+                        errors.append(exc)
+
+                a = threading.Thread(target=run, args=("cloud", "cloud-source"))
+                b = threading.Thread(target=run, args=("local", "local-source"))
+                a.start(); b.start(); a.join(); b.join()
+                self.assertEqual(errors, [])
+                final = json.loads(backend.bucket.objects["aggregate.json"]["data"].decode("utf-8"))
+                self.assertEqual(set(final["sources"]), {"cloud-source", "local-source"})
+                self.assertEqual(set(final["workers"]), {"cloud", "local"})
+
+    def test_publish_worker_result_is_opt_in_and_cloud_neutral(self):
+        """A normal profiled check should be able to publish without a one-off script,
+        but only when a shared aggregate object is actually configured."""
+        from clearparcel.datawatch.cloud_job import publish_worker_result
+        result = {
+            "generated_at": "2026-10-04T20:00:00+00:00", "overall": "ok",
+            "counts": {"ok": 1, "warn": 0, "error": 0},
+            "sources": {"local-source": {"id": "local-source", "status": "ok"}},
+        }
+        env_keys = ("WATCHTOWER_AGGREGATE_OBJECT", "WATCHTOWER_STORAGE", "WATCHTOWER_STORAGE_ROOT", "WATCHTOWER_WORKDIR")
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            config = {"state_file": str(root / "state.json"), "_root_dir": str(root)}
+            with patch.dict(os.environ, {}, clear=False):
+                for key in env_keys:
+                    os.environ.pop(key, None)
+                self.assertIsNone(publish_worker_result(config, result, "local"))
+            self.assertFalse((root / "aggregate-state.json").exists())
+
+            config["aggregate_object"] = "aggregate-state.json"
+            with patch.dict(os.environ, {}, clear=False):
+                for key in env_keys:
+                    os.environ.pop(key, None)
+                merged = publish_worker_result(config, result, "local")
+            self.assertEqual(set(merged["sources"]), {"local-source"})
+            self.assertEqual(merged["sources"]["local-source"]["worker"], "local")
+            published = json.loads((root / "aggregate-state.json").read_text(encoding="utf-8"))
+            self.assertEqual(set(published["workers"]), {"local"})
+
+    def test_default_staleness_threshold_tolerates_documented_daily_cadence(self):
+        """The default threshold must not flag a normal once-daily check as overdue;
+        the project's own provider-compliance guidance recommends daily/multi-hour cadences."""
+        now = dt.datetime(2026, 10, 4, 20, 0, tzinfo=dt.timezone.utc)
+        checked_23_hours_ago = (now - dt.timedelta(hours=23)).isoformat()
+        state = {
+            "workers": {"local": {"last_success_at": checked_23_hours_ago}},
+            "sources": {"a": {"status": "ok", "worker": "local", "last_success_at": checked_23_hours_ago}},
+        }
+        result = with_freshness(state, now=now)
+        self.assertFalse(result["workers"]["local"]["stale"])
+        self.assertFalse(result["sources"]["a"]["stale"])
+
     def test_freshness_is_separate_from_source_health(self):
         now = dt.datetime(2026, 10, 4, 20, 0, tzinfo=dt.timezone.utc)
         state = {"workers": {"local": {"last_success_at": "2026-10-04T10:00:00+00:00"}},
@@ -57,6 +207,38 @@ class HybridReadinessTests(unittest.TestCase):
         self.assertEqual(result["sources"]["a"]["reporting"], "stale")
         self.assertEqual(result["sources"]["b"]["health"], "unhealthy")
         self.assertTrue(result["workers"]["local"]["stale"])
+
+
+    def test_statewide_exports_include_all_aggregate_sources(self):
+        from clearparcel.datawatch import dashboard
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            aggregate = root / "aggregate.json"
+            aggregate.write_text(json.dumps({
+                "generated_at": "2026-10-04T20:00:00+00:00",
+                "overall": "ok",
+                "workers": {"cloud": {"last_success_at": "2026-10-04T20:00:00+00:00"}},
+                "sources": {
+                    "county-source": {"id": "county-source", "name": "County Source", "county_slug": "aitkin", "status": "ok", "worker": "cloud", "last_success_at": "2026-10-04T20:00:00+00:00"},
+                    "statewide-source": {"id": "statewide-source", "name": "Statewide Source", "status": "ok", "worker": "cloud", "last_success_at": "2026-10-04T20:00:00+00:00"},
+                },
+            }), encoding="utf-8")
+            config = {"state_file": str(root / "unused.json"), "aggregate_state_file": str(aggregate), "sources": []}
+            snapshot = dashboard._statewide_snapshot(config)
+            self.assertEqual(snapshot["source_count"], 2)
+            self.assertEqual({x["id"] for x in snapshot["sources"]}, {"county-source", "statewide-source"})
+            csv_text = dashboard._snapshot_csv(snapshot)
+            self.assertIn("source_id,source_name,county,status,feature_count,worker,reporting", csv_text)
+            self.assertIn("county-source", csv_text)
+            self.assertIn("statewide-source", csv_text)
+            raw = dashboard._snapshot_xlsx(snapshot)
+            import io, zipfile
+            with zipfile.ZipFile(io.BytesIO(raw)) as zf:
+                source_xml = zf.read("xl/worksheets/sheet2.xml").decode("utf-8")
+            self.assertIn("County Source", source_xml)
+            self.assertIn("Statewide Source", source_xml)
+            self.assertIn("Worker", source_xml)
+            self.assertIn("Stale source", source_xml)
 
 
 if __name__ == "__main__":
