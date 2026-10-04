@@ -628,6 +628,19 @@ class DataWatchTests(unittest.TestCase):
         from clearparcel.datawatch import cli
         self.assertIn("example_sources.json",str(cli._default_config()))
 
+    def test_execution_profiles_filter_sources(self):
+        from unittest.mock import patch
+        config={"state_file":str(TOOLS_ROOT/"datawatch"/"profile-state.json"),"history_file":str(TOOLS_ROOT/"datawatch"/"profile-history.jsonl"),"sources":[
+            {"id":"cloud","name":"Cloud","kind":"arcgis_layer","url":"https://example.invalid/0","execution_profiles":["cloud"]},
+            {"id":"local","name":"Local","kind":"arcgis_layer","url":"https://example.invalid/1","execution_profiles":["local"]},
+            {"id":"any","name":"Any","kind":"arcgis_layer","url":"https://example.invalid/2","execution_profiles":["any"]},
+            {"id":"default","name":"Default","kind":"arcgis_layer","url":"https://example.invalid/3"},
+        ]}
+        details={"http_status":200,"transport":"test","layer_name":"X","geometry_type":"esriGeometryPolygon","wkid":26915,"object_id_field":"OBJECTID","field_count":1,"field_names":["OBJECTID"],"schema_hash":"x","spatial_extent":None,"problems":[]}
+        with patch.object(datawatch,"load_state",return_value={"sources":{}}), patch.object(datawatch,"_source_check",return_value=details):
+            result=datawatch.check_sources(config,save=False,execution_profile="cloud")
+        self.assertEqual(set(result["sources"]),{"cloud","any","default"})
+
     def test_run_wrapper_preserves_warning_exit_code(self):
         wrapper = (TOOLS_ROOT / 'run-datawatch.cmd').read_text(encoding='utf-8')
         self.assertIn('exit /b %RC%', wrapper)
