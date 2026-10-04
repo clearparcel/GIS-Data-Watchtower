@@ -1,0 +1,15 @@
+.venv/
+.venv-watchtower/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+datawatch/state.json
+datawatch/state.json.bak
+datawatch/state.json.lock
+datawatch/history.jsonl*
+datawatch/alerts.json
+datawatch/alerts.txt
+datawatch/latest.txt
+.env

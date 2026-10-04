@@ -1,0 +1,355 @@
+{
+  "schema_version": 1,
+  "state": "Minnesota",
+  "county_count": 87,
+  "counties": [
+    {
+      "name": "Aitkin",
+      "slug": "aitkin"
+    },
+    {
+      "name": "Anoka",
+      "slug": "anoka"
+    },
+    {
+      "name": "Becker",
+      "slug": "becker"
+    },
+    {
+      "name": "Beltrami",
+      "slug": "beltrami"
+    },
+    {
+      "name": "Benton",
+      "slug": "benton"
+    },
+    {
+      "name": "Big Stone",
+      "slug": "big-stone"
+    },
+    {
+      "name": "Blue Earth",
+      "slug": "blue-earth"
+    },
+    {
+      "name": "Brown",
+      "slug": "brown"
+    },
+    {
+      "name": "Carlton",
+      "slug": "carlton"
+    },
+    {
+      "name": "Carver",
+      "slug": "carver"
+    },
+    {
+      "name": "Cass",
+      "slug": "cass"
+    },
+    {
+      "name": "Chippewa",
+      "slug": "chippewa"
+    },
+    {
+      "name": "Chisago",
+      "slug": "chisago"
+    },
+    {
+      "name": "Clay",
+      "slug": "clay"
+    },
+    {
+      "name": "Clearwater",
+      "slug": "clearwater"
+    },
+    {
+      "name": "Cook",
+      "slug": "cook"
+    },
+    {
+      "name": "Cottonwood",
+      "slug": "cottonwood"
+    },
+    {
+      "name": "Crow Wing",
+      "slug": "crow-wing"
+    },
+    {
+      "name": "Dakota",
+      "slug": "dakota"
+    },
+    {
+      "name": "Dodge",
+      "slug": "dodge"
+    },
+    {
+      "name": "Douglas",
+      "slug": "douglas"
+    },
+    {
+      "name": "Faribault",
+      "slug": "faribault"
+    },
+    {
+      "name": "Fillmore",
+      "slug": "fillmore"
+    },
+    {
+      "name": "Freeborn",
+      "slug": "freeborn"
+    },
+    {
+      "name": "Goodhue",
+      "slug": "goodhue"
+    },
+    {
+      "name": "Grant",
+      "slug": "grant"
+    },
+    {
+      "name": "Hennepin",
+      "slug": "hennepin"
+    },
+    {
+      "name": "Houston",
+      "slug": "houston"
+    },
+    {
+      "name": "Hubbard",
+      "slug": "hubbard"
+    },
+    {
+      "name": "Isanti",
+      "slug": "isanti"
+    },
+    {
+      "name": "Itasca",
+      "slug": "itasca"
+    },
+    {
+      "name": "Jackson",
+      "slug": "jackson"
+    },
+    {
+      "name": "Kanabec",
+      "slug": "kanabec"
+    },
+    {
+      "name": "Kandiyohi",
+      "slug": "kandiyohi"
+    },
+    {
+      "name": "Kittson",
+      "slug": "kittson"
+    },
+    {
+      "name": "Koochiching",
+      "slug": "koochiching"
+    },
+    {
+      "name": "Lac qui Parle",
+      "slug": "lac-qui-parle"
+    },
+    {
+      "name": "Lake",
+      "slug": "lake"
+    },
+    {
+      "name": "Lake of the Woods",
+      "slug": "lake-of-the-woods"
+    },
+    {
+      "name": "Le Sueur",
+      "slug": "le-sueur"
+    },
+    {
+      "name": "Lincoln",
+      "slug": "lincoln"
+    },
+    {
+      "name": "Lyon",
+      "slug": "lyon"
+    },
+    {
+      "name": "Mahnomen",
+      "slug": "mahnomen"
+    },
+    {
+      "name": "Marshall",
+      "slug": "marshall"
+    },
+    {
+      "name": "Martin",
+      "slug": "martin"
+    },
+    {
+      "name": "McLeod",
+      "slug": "mcleod"
+    },
+    {
+      "name": "Meeker",
+      "slug": "meeker"
+    },
+    {
+      "name": "Mille Lacs",
+      "slug": "mille-lacs"
+    },
+    {
+      "name": "Morrison",
+      "slug": "morrison"
+    },
+    {
+      "name": "Mower",
+      "slug": "mower"
+    },
+    {
+      "name": "Murray",
+      "slug": "murray"
+    },
+    {
+      "name": "Nicollet",
+      "slug": "nicollet"
+    },
+    {
+      "name": "Nobles",
+      "slug": "nobles"
+    },
+    {
+      "name": "Norman",
+      "slug": "norman"
+    },
+    {
+      "name": "Olmsted",
+      "slug": "olmsted"
+    },
+    {
+      "name": "Otter Tail",
+      "slug": "otter-tail"
+    },
+    {
+      "name": "Pennington",
+      "slug": "pennington"
+    },
+    {
+      "name": "Pine",
+      "slug": "pine"
+    },
+    {
+      "name": "Pipestone",
+      "slug": "pipestone"
+    },
+    {
+      "name": "Polk",
+      "slug": "polk"
+    },
+    {
+      "name": "Pope",
+      "slug": "pope"
+    },
+    {
+      "name": "Ramsey",
+      "slug": "ramsey"
+    },
+    {
+      "name": "Red Lake",
+      "slug": "red-lake"
+    },
+    {
+      "name": "Redwood",
+      "slug": "redwood"
+    },
+    {
+      "name": "Renville",
+      "slug": "renville"
+    },
+    {
+      "name": "Rice",
+      "slug": "rice"
+    },
+    {
+      "name": "Rock",
+      "slug": "rock"
+    },
+    {
+      "name": "Roseau",
+      "slug": "roseau"
+    },
+    {
+      "name": "Scott",
+      "slug": "scott"
+    },
+    {
+      "name": "Sherburne",
+      "slug": "sherburne"
+    },
+    {
+      "name": "Sibley",
+      "slug": "sibley"
+    },
+    {
+      "name": "St. Louis",
+      "slug": "st-louis"
+    },
+    {
+      "name": "Stearns",
+      "slug": "stearns"
+    },
+    {
+      "name": "Steele",
+      "slug": "steele"
+    },
+    {
+      "name": "Stevens",
+      "slug": "stevens"
+    },
+    {
+      "name": "Swift",
+      "slug": "swift"
+    },
+    {
+      "name": "Todd",
+      "slug": "todd"
+    },
+    {
+      "name": "Traverse",
+      "slug": "traverse"
+    },
+    {
+      "name": "Wabasha",
+      "slug": "wabasha"
+    },
+    {
+      "name": "Wadena",
+      "slug": "wadena"
+    },
+    {
+      "name": "Waseca",
+      "slug": "waseca"
+    },
+    {
+      "name": "Washington",
+      "slug": "washington"
+    },
+    {
+      "name": "Watonwan",
+      "slug": "watonwan"
+    },
+    {
+      "name": "Wilkin",
+      "slug": "wilkin"
+    },
+    {
+      "name": "Winona",
+      "slug": "winona"
+    },
+    {
+      "name": "Wright",
+      "slug": "wright"
+    },
+    {
+      "name": "Yellow Medicine",
+      "slug": "yellow-medicine"
+    }
+  ]
+}
