@@ -7,14 +7,14 @@ Watchtower has been extracted into a standalone repository and remains in privat
 Required Watchtower files:
 
 - `clearparcel/datawatch/`
-- `config/data_sources.json`
+- `config/example_sources.json`
 - `requirements-watchtower.txt`
 - `setup_watchtower_env.ps1` for the current Windows deployment
 
 Standalone command:
 
 ```text
-python -m clearparcel.datawatch --config config/data_sources.json check
+python -m clearparcel.datawatch --config config/example_sources.json check
 ```
 
 The runtime uses environment-driven path overrides:
