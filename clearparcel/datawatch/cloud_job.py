@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
+from .aggregate import load_json, merge_states, save_json
 from .storage import backend_from_env
 from .watch import check_sources, load_config
 
@@ -30,6 +31,14 @@ def run_cloud_job(config_path: str | Path) -> dict:
 
     profile = os.environ.get("WATCHTOWER_EXECUTION_PROFILE", "cloud")
     result = check_sources(config, save=True, execution_profile=profile)
+
+    aggregate_name = os.environ.get("WATCHTOWER_AGGREGATE_OBJECT")
+    if aggregate_name:
+        aggregate_local = workdir / "aggregate-state.json"
+        storage.download(aggregate_name, aggregate_local)
+        aggregate = merge_states(load_json(aggregate_local), result, profile)
+        save_json(aggregate_local, aggregate)
+        storage.upload(aggregate_name, aggregate_local)
 
     for key, object_name in ARTIFACTS.items():
         path = config.get(key)
