@@ -13,7 +13,7 @@ def _default_config() -> Path:
     env = __import__("os").environ.get("CLEARPARCEL_WATCHTOWER_CONFIG")
     if env:
         return Path(env).expanduser()
-    return Path(__file__).resolve().parents[2] / "config" / "data_sources.json"
+    return Path(__file__).resolve().parents[2] / "config" / "example_sources.json"
 
 
 def _render(report: dict) -> str:
@@ -35,7 +35,7 @@ def _render(report: dict) -> str:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="watchtower", description="ClearParcel GIS Data Watchtower")
+    parser = argparse.ArgumentParser(prog="watchtower", description="GIS Data Watchtower")
     parser.add_argument("--config", type=Path, default=_default_config())
     sub = parser.add_subparsers(dest="command", required=True)
 
