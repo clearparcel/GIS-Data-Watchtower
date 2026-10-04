@@ -99,14 +99,16 @@ def _svg_sparkline(values: list[float | int | None], *, width: int = 300, height
         return '<div class="muted">Not enough history yet</div>'
     vals = [v for _, v in clean]
     lo, hi = min(vals), max(vals)
-    span = hi - lo or 1.0
+    if hi == lo:
+        return f'<div class="flat-note">No change across {len(clean)} retained observations <strong>({_esc(round(lo,2))})</strong>.</div>'
+    span = hi - lo
     denom = max(1, len(values) - 1)
     points = " ".join(
         f"{8 + (i / denom) * (width - 16):.1f},{height - 8 - ((v - lo) / span) * (height - 16):.1f}"
         for i, v in clean
     )
     return (
-        f'<svg class="spark" viewBox="0 0 {width} {height}" role="img">'
+        f'<svg class="spark" viewBox="0 0 {width} {height}" role="img" aria-label="Trend across retained observations">'
         f'<polyline points="{points}" fill="none" stroke="currentColor" stroke-width="2"/>'
         f'</svg><div class="chart-range">{_esc(round(lo,2))} – {_esc(round(hi,2))}</div>'
     )
@@ -126,29 +128,166 @@ def _dashboard_state(config: dict) -> dict:
 
 def _layout(title: str, body: str, *, refresh_seconds: int = 30, static: bool = False, csrf_token: str = "") -> str:
     refresh_form = "" if static else (
-        '<form method="post" action="/refresh">'
+        '<form method="post" action="/refresh" class="refresh-form">'
         f'<input type="hidden" name="csrf_token" value="{_esc(csrf_token)}">'
-        '<button>Check data now</button></form>'
+        '<button>Check now</button></form>'
     )
+    def icon(kind: str) -> str:
+        paths = {
+            "overview": '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
+            "counties": '<path d="M4 5h16v14H4z"/><path d="M8 5v14M16 5v14M4 10h16M4 15h16"/>',
+            "sources": '<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/>',
+            "changes": '<path d="M4 16l5-5 4 4 7-8"/><path d="M15 7h5v5"/>',
+            "alerts": '<path d="M12 3l9 17H3L12 3z"/><path d="M12 9v5M12 17h.01"/>',
+            "export": '<path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 21h16"/>',
+            "menu": '<path d="M4 7h16M4 12h16M4 17h16"/>',
+        }
+        return f'<svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">{paths.get(kind, paths["overview"])}</svg>'
+    page_title = title.replace(" — GIS Data Watchtower", "").replace("GIS Data Watchtower", "Overview")
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="refresh" content="{refresh_seconds}">
 <title>{_esc(title)}</title>
 <style>
-/* Admin-dashboard shell inspired by the supplied visual reference; ClearParcel palette retained. */
-:root{{--navy:#17324d;--navy-2:#244b6f;--green:#2d6a4f;--bg:#eef2f5;--card:#fff;--text:#17212b;--muted:#64727e;--accent:#0b6fa4;--soft:#f5f7f9;--line:#d7dfe6;--warn:#8a4600;--err:#a3342f;--shadow:0 4px 18px rgb(23 50 77 / 12%)}}
-*{{box-sizing:border-box}} body{{margin:0;font:14px/1.45 system-ui,-apple-system,Segoe UI,sans-serif;background:#e9eff4;color:var(--text)}}
-header{{background:#10263b;color:white;padding:18px 28px;display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid var(--accent)}} header h1{{margin:0;font-size:21px}}
-main{{max-width:1280px;margin:24px auto;padding:0 20px}} .grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:18px}}
-.card{{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;box-shadow:var(--shadow)}}
-.metric{{font-size:28px;font-weight:700}} .muted{{color:var(--muted)}} .subtext{{display:block;color:var(--muted);font-size:12px;line-height:1.35;margin-top:5px}} .ok{{color:var(--green)}} .warn{{color:var(--warn)}} .error{{color:var(--err)}}
-table{{width:100%;border-collapse:collapse;background:white}} .mobile-cards{{display:none}} th,td{{padding:11px 12px;border-bottom:1px solid #e6eaee;text-align:left;vertical-align:top}} th{{background:#f8fafb;font-size:12px;text-transform:uppercase;color:var(--muted)}}
-a{{color:var(--accent);text-decoration:none}} a:hover{{text-decoration:underline}} .pill{{font-weight:700;text-transform:uppercase;font-size:11px}}
-button{{background:var(--accent);color:white;border:0;border-radius:6px;padding:9px 13px;cursor:pointer}} code{{font-size:12px;overflow-wrap:anywhere}} .actions{{display:flex;gap:10px;align-items:center}}
-.app-shell{{display:flex;min-height:calc(100vh - 72px)}} .sidebar{{width:220px;flex:0 0 220px;background:#10263b;color:#b9d1e2;padding:18px 12px;position:relative}} .side-brand{{padding:4px 10px 18px;border-bottom:1px solid #ffffff18}} .side-brand strong{{display:block;color:white;font-size:17px}} .side-brand small{{color:#7f9bb0}} .sidebar nav{{margin-top:16px}} .sidebar nav a{{display:flex;gap:10px;color:#a9c0d1;padding:10px 11px;border-radius:6px;margin:3px 0}} .sidebar nav a:hover{{background:#ffffff0d;color:white;text-decoration:none}} .side-note{{position:absolute;bottom:18px;left:22px;color:#6f8da4;font-size:11px}} .content-shell{{flex:1;min-width:0}} .quicknav{{background:#17324d;padding:9px 28px;display:flex;gap:20px;box-shadow:0 3px 12px #10263b22}} .quicknav a{{color:#b9d1e2;font-weight:600}} .quicknav a:hover{{color:white;text-decoration:none}} .filters{{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 14px}} .filters input,.filters select{{padding:9px;border:1px solid #ccd4db;border-radius:6px;background:white}} .spark{{width:100%;max-width:360px;height:72px;color:var(--accent)}} .bar-row{{display:grid;grid-template-columns:minmax(110px,1.4fr) minmax(100px,3fr) 70px;gap:8px;align-items:center;margin:9px 0;font-size:12px}} .bar-track{{height:10px;background:#e5ebf0;border-radius:999px;overflow:hidden}} .bar-track i{{display:block;height:100%;background:var(--accent);border-radius:999px}} .not-configured,.needs-source{{color:var(--muted)}} .catalog{{color:var(--accent)}} .chart-range{{font-size:11px;color:var(--muted)}} .delta-up{{color:var(--green)}} .delta-down{{color:var(--warn)}} .technical summary{{cursor:pointer;font-weight:700;color:var(--accent);padding:4px 0}} .technical-body{{padding-top:10px}}
-@media(max-width:700px){{html,body{{max-width:100%;overflow-x:hidden}} .app-shell{{display:block}} .sidebar{{width:100%;padding:8px 10px}} .side-brand{{display:none}} .sidebar nav{{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:0;gap:3px}} .sidebar nav a{{white-space:normal;padding:7px 5px;justify-content:center;text-align:center;flex-direction:column;gap:2px}} .sidebar nav a span{{display:inline;font-size:11px}} .side-note{{display:none}} .quicknav{{display:none}} header{{padding:14px 16px;align-items:flex-start;gap:10px;flex-direction:column}} main{{margin:14px auto;padding:0 10px}} .grid{{grid-template-columns:1fr;gap:8px}} .kpi-grid{{grid-template-columns:repeat(2,minmax(0,1fr))}} .card{{padding:12px;border-radius:8px;overflow-x:auto}} .metric{{font-size:22px}} table{{min-width:0}} .card table{{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}} th,td{{padding:9px 8px;white-space:normal}} #counties thead{{display:none}} #counties,#counties tbody,#counties tr,#counties td{{display:block;width:100%}} #counties tr{{padding:10px 0;border-bottom:1px solid #e6eaee}} #counties td{{border:0;padding:4px 2px;white-space:normal;overflow-wrap:anywhere}} #counties td:nth-child(2)::before{{content:"Coverage: ";font-weight:700;color:var(--muted)}} #counties td:nth-child(3)::before{{content:"Direct sources: ";font-weight:700;color:var(--muted)}} .metric{{overflow-wrap:anywhere}} .bar-row{{grid-template-columns:minmax(95px,1.3fr) minmax(70px,2fr) 58px}} .spark{{max-width:100%;height:70px}} .actions{{width:100%;justify-content:space-between}}}}
-</style></head><body><header><h1>GIS Data Watchtower</h1><div class="actions"><span>Updates automatically every {refresh_seconds}s</span>{refresh_form}</div></header>
-<div class="app-shell"><aside class="sidebar"><div class="side-brand"><strong>ClearParcel</strong><small>GIS Data Watchtower</small></div><nav><a href="/">▣ <span>Overview</span></a><a href="/counties">▦ <span>Minnesota Counties</span></a><a href="/#datasets">◫ <span>Data Sources</span></a><a href="/#changes">↗ <span>Recent Changes</span></a><a href="/#alerts">! <span>Alerts</span></a><a href="/snapshot.csv">⇩ <span>Snapshots</span></a></nav><div class="side-note">Private dashboard<br><small>Central Time primary</small></div></aside><section class="content-shell"><div class="quicknav"><a href="/">Overview</a><a href="/counties">Minnesota Counties</a><a href="/snapshot.csv">Snapshots</a><a href="/#datasets">Data Sources</a></div><main>{body}</main></section></div></body></html>"""
+:root{{--navy:#10263b;--navy-2:#17324d;--green:#2d6a4f;--bg:#edf2f6;--card:#fff;--text:#17212b;--muted:#64727e;--accent:#0b6fa4;--soft:#f6f8fa;--line:#d9e1e7;--warn:#8a4600;--err:#a3342f;--shadow:0 3px 14px rgb(23 50 77 / 9%);--radius:13px}}
+*{{box-sizing:border-box}}
+html{{scroll-behavior:smooth}}
+body{{margin:0;font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--text);max-width:100%}}
+a{{color:var(--accent);text-decoration:none}} a:hover{{text-decoration:underline}} a:focus-visible,button:focus-visible,summary:focus-visible,input:focus-visible,select:focus-visible{{outline:3px solid #5bb6e8;outline-offset:2px}}
+button{{background:var(--accent);color:#fff;border:0;border-radius:8px;padding:9px 13px;font-weight:650;cursor:pointer}}
+header{{height:64px;background:var(--navy);color:#fff;padding:0 24px;display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid var(--accent);position:sticky;top:0;z-index:30}}
+header h1{{margin:0;font-size:20px;letter-spacing:-.2px}}
+.actions{{display:flex;gap:12px;align-items:center;font-size:12px}}
+.app-shell{{display:flex;min-height:calc(100vh - 64px)}}
+.sidebar{{width:216px;flex:0 0 216px;background:var(--navy);color:#b9d1e2;padding:18px 12px;position:sticky;top:64px;height:calc(100vh - 64px)}}
+.side-brand{{padding:3px 10px 18px;border-bottom:1px solid #ffffff18}}
+.side-brand strong{{display:block;color:#fff;font-size:16px}} .side-brand small{{color:#7f9bb0}}
+.sidebar nav{{margin-top:15px}}
+.sidebar nav a{{display:flex;align-items:center;gap:10px;color:#b8cbd9;padding:10px 11px;border-radius:8px;margin:3px 0;font-weight:550}}
+.sidebar nav a:hover{{background:#ffffff0d;color:#fff;text-decoration:none}}
+.nav-icon{{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}}
+.side-note{{position:absolute;bottom:18px;left:22px;color:#6f8da4;font-size:11px}}
+.content-shell{{flex:1;min-width:0;max-width:100%}}
+.pagebar{{width:100%;min-width:0;min-height:52px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:8px 24px;position:sticky;top:64px;z-index:20}}
+.pagebar-title{{font-size:15px;font-weight:700;color:var(--navy-2)}}
+.page-actions{{display:flex;align-items:center;gap:10px;min-width:0;flex:none}}
+.export-menu{{position:relative}} .export-menu summary{{list-style:none;cursor:pointer;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--soft);font-weight:650;color:var(--navy-2)}}
+.export-menu summary::-webkit-details-marker{{display:none}}
+.export-menu[open] .export-pop{{display:grid}}
+.export-pop{{display:none;position:absolute;right:0;top:38px;min-width:150px;padding:6px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);z-index:40}}
+.export-pop a{{padding:8px 9px;border-radius:6px}} .export-pop a:hover{{background:var(--soft);text-decoration:none}}
+main{{max-width:1280px;margin:22px auto;padding:0 20px 40px}}
+.grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin-bottom:18px}}
+.primary-grid{{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.worker-grid{{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.card{{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);min-width:0}}
+.card h2,.card h3{{margin-top:0}}
+.metric{{font-size:28px;font-weight:750;line-height:1.05;letter-spacing:-.4px}}
+.muted{{color:var(--muted)}} .subtext{{display:block;color:var(--muted);font-size:12.5px;line-height:1.4;margin-top:6px}}
+.ok{{color:var(--green)}} .warn{{color:var(--warn)}} .error{{color:var(--err)}}
+.status-dot{{display:inline-block;width:9px;height:9px;border-radius:50%;background:currentColor;margin-right:6px}}
+.section-head{{display:flex;align-items:end;justify-content:space-between;gap:16px;margin:26px 0 10px}}
+.section-head h2{{margin:0;font-size:19px}} .section-head p{{margin:3px 0 0;color:var(--muted);font-size:12.5px}}
+.worker-card{{display:grid;grid-template-columns:1fr auto;gap:10px 20px;align-items:start}}
+.worker-card h3{{margin:0;font-size:16px}} .worker-meta{{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px}}
+.worker-meta div{{min-width:0;flex:1 1 110px}} .worker-meta strong{{display:block;font-size:17px}}
+.activity-strip{{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}}
+table{{width:100%;border-collapse:collapse;background:#fff}}
+th,td{{padding:11px 12px;border-bottom:1px solid #e6eaee;text-align:left;vertical-align:top}}
+th{{background:#f8fafb;font-size:11px;text-transform:uppercase;color:var(--muted);letter-spacing:.2px}}
+.pill{{font-weight:750;text-transform:uppercase;font-size:11px}}
+code{{font-size:12px;overflow-wrap:anywhere}}
+.filters{{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 14px}}
+.filters input,.filters select{{padding:9px 10px;border:1px solid #ccd4db;border-radius:8px;background:#fff;min-height:38px}}
+.spark{{width:100%;height:78px;color:var(--accent);display:block}}
+.bar-row{{min-width:0;display:grid;grid-template-columns:minmax(120px,1.35fr) minmax(100px,3fr) 64px;gap:9px;align-items:center;margin:9px 0;font-size:12px}}
+.bar-row > span{{min-width:0;overflow-wrap:anywhere}} .bar-track{{height:9px;background:#e5ebf0;border-radius:999px;overflow:hidden}} .bar-track i{{display:block;height:100%;background:var(--accent);border-radius:999px}}
+.not-configured,.needs-source{{color:var(--muted)}} .catalog{{color:var(--accent)}}
+.chart-range{{font-size:11px;color:var(--muted);margin-top:2px}}
+.delta-up{{color:var(--green)}} .delta-down{{color:var(--warn)}}
+.technical summary,.diagnostics summary{{cursor:pointer;font-weight:700;color:var(--accent);padding:4px 0}}
+.technical-body{{padding-top:10px}}
+.diagnostics{{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);margin:18px 0}}
+.diagnostics > summary{{font-size:15px;color:var(--navy-2)}}
+.definition-grid{{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}}
+.definition-group{{background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:14px}}
+.definition-group h3{{font-size:14px;margin:0 0 10px}}
+.definition-list{{display:grid;grid-template-columns:minmax(120px,.8fr) 1.4fr;gap:6px 12px;margin:0}}
+.definition-list dt{{font-weight:700;color:var(--muted)}} .definition-list dd{{margin:0;overflow-wrap:anywhere}}
+.mobile-nav{{display:none}}
+.history-table{{width:100%}}
+.flat-note{{padding:20px 4px;color:var(--muted);font-size:13px}}
+@media(max-width:960px){{
+  .primary-grid{{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  .definition-grid{{grid-template-columns:1fr}}
+}}
+@media(max-width:700px){{
+  body{{padding-bottom:68px}}
+  header{{height:58px;padding:0 14px;position:sticky;top:0;flex-direction:row}}
+  header h1{{font-size:18px}}
+  .actions{{font-size:11px;gap:7px}} .actions > span{{display:none}} .refresh-form button{{padding:7px 9px;font-size:11px}}
+  .app-shell{{display:block;min-height:auto}}
+  .sidebar{{display:none}}
+  .pagebar{{top:58px;min-height:46px;padding:7px 12px}}
+  .pagebar-title{{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;max-width:calc(100vw - 104px)}}
+  .export-menu summary{{padding:6px 8px;font-size:12px}}
+  main{{margin:12px auto;padding:0 10px 24px;max-width:100%}}
+  .grid,.primary-grid,.worker-grid,.activity-strip{{grid-template-columns:1fr;gap:9px}}
+  .card{{padding:13px;border-radius:11px;overflow:visible}}
+  .metric{{font-size:24px}}
+  .subtext{{font-size:13px}}
+  .section-head{{margin:20px 2px 9px;align-items:start}}
+  .section-head h2{{font-size:18px}}
+  .worker-card{{grid-template-columns:minmax(0,1fr)}} .worker-meta{{gap:10px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}} .worker-meta div:last-child{{grid-column:1/-1}}
+  .bar-row{{grid-template-columns:minmax(105px,1.3fr) minmax(80px,2fr) 46px;gap:6px;font-size:11.5px}}
+  .spark{{height:82px}}
+  .filters{{display:grid;grid-template-columns:1fr;gap:8px}} .filters input,.filters select{{width:100%;min-width:0}}
+  #counties thead,#datasets thead,.history-table thead{{display:none}}
+  #counties,#counties tbody,#counties tr,#counties td,#datasets,#datasets tbody,#datasets tr,#datasets td,.history-table,.history-table tbody,.history-table tr,.history-table td{{display:block;width:100%}}
+  #counties tr,#datasets tr,.history-table tr{{padding:11px 0;border-bottom:1px solid #e6eaee}}
+  #counties td,#datasets td,.history-table td{{border:0;padding:4px 2px;white-space:normal;overflow-wrap:anywhere}}
+  #counties td:nth-child(2)::before{{content:"Coverage: ";font-weight:700;color:var(--muted)}}
+  #counties td:nth-child(3)::before{{content:"Direct sources: ";font-weight:700;color:var(--muted)}}
+  #datasets td:nth-child(2)::before{{content:"Provider / type: ";font-weight:700;color:var(--muted)}}
+  #datasets td:nth-child(3)::before{{content:"Status: ";font-weight:700;color:var(--muted)}}
+  #datasets td:nth-child(4)::before{{content:"Records / change: ";font-weight:700;color:var(--muted)}}
+  #datasets td:nth-child(5)::before{{content:"Days since change: ";font-weight:700;color:var(--muted)}}
+  #datasets td:nth-child(6)::before{{content:"Reliability: ";font-weight:700;color:var(--muted)}}
+  #datasets td:nth-child(7)::before{{content:"Response: ";font-weight:700;color:var(--muted)}}
+  #datasets td:nth-child(8)::before{{content:"Last success: ";font-weight:700;color:var(--muted)}}
+  .history-table td:nth-child(1)::before{{content:"Checked: ";font-weight:700;color:var(--muted)}}
+  .history-table td:nth-child(2)::before{{content:"Status: ";font-weight:700;color:var(--muted)}}
+  .history-table td:nth-child(3)::before{{content:"Records: ";font-weight:700;color:var(--muted)}}
+  .history-table td:nth-child(4)::before{{content:"Changes: ";font-weight:700;color:var(--muted)}}
+  .history-table td:nth-child(5)::before{{content:"Response: ";font-weight:700;color:var(--muted)}}
+  .definition-list{{grid-template-columns:1fr;gap:2px}} .definition-list dd{{margin-bottom:8px}}
+  .mobile-nav{{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));width:100%;position:fixed;bottom:0;left:0;right:0;height:62px;background:var(--navy);border-top:1px solid #ffffff18;z-index:50;padding-bottom:env(safe-area-inset-bottom)}}
+  .mobile-nav a{{color:#b9d1e2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:10px;font-weight:600}}
+  .mobile-nav a:hover{{text-decoration:none;color:#fff}} .mobile-nav .nav-icon{{width:18px;height:18px}}
+}}
+@media(max-width:480px){{
+  .primary-grid{{grid-template-columns:1fr}}
+  .bar-row{{grid-template-columns:100px minmax(60px,1fr) 40px}}
+}}
+</style></head><body>
+<header><h1>GIS Data Watchtower</h1><div class="actions"><span>Refreshes every {refresh_seconds}s</span>{refresh_form}</div></header>
+<div class="app-shell">
+<aside class="sidebar"><div class="side-brand"><strong>ClearParcel</strong><small>GIS Data Watchtower</small></div><nav>
+<a href="/">{icon("overview")}<span>Overview</span></a>
+<a href="/counties">{icon("counties")}<span>Minnesota Counties</span></a>
+<a href="/#datasets">{icon("sources")}<span>Data Sources</span></a>
+<a href="/#changes">{icon("changes")}<span>Recent Changes</span></a>
+<a href="/#alerts">{icon("alerts")}<span>Alerts</span></a>
+<a href="/snapshot.xlsx">{icon("export")}<span>Export</span></a>
+</nav><div class="side-note">Private dashboard<br><small>Central Time primary</small></div></aside>
+<section class="content-shell">
+<div class="pagebar"><div class="pagebar-title">{_esc(page_title)}</div><div class="page-actions"><details class="export-menu"><summary>Export</summary><div class="export-pop"><a href="/snapshot.xlsx">Excel (.xlsx)</a><a href="/snapshot.csv">CSV</a><a href="/snapshot.json">JSON</a></div></details></div></div>
+<main>{body}</main>
+</section></div>
+<nav class="mobile-nav" aria-label="Mobile navigation">
+<a href="/">{icon("overview")}<span>Overview</span></a><a href="/counties">{icon("counties")}<span>Counties</span></a><a href="/#datasets">{icon("sources")}<span>Sources</span></a><a href="/snapshot.xlsx">{icon("export")}<span>Export</span></a>
+</nav>
+</body></html>"""
 
 
 def _load_counties() -> list[dict]:
@@ -238,8 +377,8 @@ def render_counties(config: dict) -> str:
         for x in counties
     )
     body = f'<div class="grid"><div class="card"><div class="muted">Minnesota counties</div><div class="metric">{len(counties)}</div><span class="subtext">Counties represented in the statewide county dashboard index.</span></div><div class="card"><div class="muted">Counties checked directly</div><div class="metric">{monitored}</div><span class="subtext">Counties with at least one county-specific source that Watchtower actively checks.</span></div><div class="card"><div class="muted">Counties with public parcel data</div><div class="metric">{public_count}</div><span class="subtext">Counties whose MnGeo catalog record indicates public parcel-data approval.</span></div></div>' \
-        f'<div class="grid"><div class="card">{_bar_chart([( _friendly_status(k), v) for k,v in sorted(status_counts.items())], title="County parcel-data availability")}</div><div class="card">{_bar_chart(list(age_buckets.items()), title="How recently county parcel data was updated")}</div></div><div class="card"><h2>Minnesota county dashboards</h2><p class="muted">Coverage describes how Watchtower knows about each county: Directly monitored means a county-specific source is checked; MnGeo update data only means catalog information is available without a direct county check; Direct source not yet identified means more source research is needed.</p><p><a href="/snapshot.csv">Download statewide snapshot (CSV)</a> · <a href="/snapshot.json">Download statewide snapshot (JSON)</a></p>' \
-        '<div class="filters"><input id="cq" placeholder="Filter counties…" oninput="filterCounties()"><select id="cs" onchange="filterCounties()"><option value="">All status</option><option value="ok">Directly monitored</option><option value="catalog">MnGeo update data only</option><option value="needs-source">Direct source not yet identified</option><option value="not-configured">No source information yet</option><option value="warn">Needs attention</option><option value="error">Check failed</option></select></div>' \
+        f'<div class="grid"><div class="card">{_bar_chart([( _friendly_status(k), v) for k,v in sorted(status_counts.items())], title="County parcel-data availability")}<span class="subtext">How Watchtower currently knows about each county.</span></div><div class="card">{_bar_chart(list(age_buckets.items()), title="MnGeo parcel update age")}<span class="subtext">Age of the county acquisition/update date reported in the MnGeo parcel catalog; this is not Watchtower check time.</span></div></div><div class="card"><h2>Minnesota county dashboards</h2><p class="muted">Coverage describes how Watchtower knows about each county: Directly monitored means a county-specific source is checked; MnGeo update data only means catalog information is available without a direct county check; Direct source not yet identified means more source research is needed.</p><p class="subtext">Use Export in the page toolbar for statewide Excel, CSV, or JSON.</p>' \
+        '<div class="filters"><input id="cq" placeholder="Filter counties…" oninput="filterCounties()"><select id="cs" onchange="filterCounties()"><option value="">All coverage types</option><option value="ok">Directly monitored</option><option value="catalog">MnGeo update data only</option><option value="needs-source">Direct source not yet identified</option><option value="not-configured">No source information yet</option><option value="warn">Needs attention</option><option value="error">Check failed</option></select></div>' \
         f'<table id="counties"><thead><tr><th>County</th><th>Coverage<br><span class="subtext">How Watchtower currently knows about this county</span></th><th>Direct sources<br><span class="subtext">County-specific sources actively checked</span></th></tr></thead><tbody>{rows}</tbody></table></div>' \
         "<script>function filterCounties(){const q=document.getElementById('cq').value.toLowerCase(),s=document.getElementById('cs').value;document.querySelectorAll('#counties tbody tr').forEach(r=>r.style.display=(!q||r.dataset.name.includes(q))&&(!s||r.dataset.status===s)?'':'none')}</script>"
     return _layout("Minnesota Counties — GIS Data Watchtower", '<p><a href="/">← Watchtower overview</a></p>'+body, csrf_token=str(config.get("_csrf_token") or ""))
@@ -467,17 +606,39 @@ def render_dashboard(config: dict) -> str:
         meta = config_map.get(sid, {})
         enriched.append((sid, src, meta, stats, hist))
     telemetry = state.get("telemetry") or {}
-    body = f"""<div class="grid kpi-grid">
-<div class="card"><div class="muted">Overall status</div><div class="metric {state.get('overall','')}">{_esc(state.get('overall','unknown').upper())}</div><span class="subtext">Combined health of all monitored sources in the latest saved aggregate.</span></div>
-<div class="card"><div class="muted">Data sources</div><div class="metric">{len(sources)}</div><span class="subtext">Total source observations currently represented in the unified Watchtower state.</span></div>
-<div class="card"><div class="muted">Working normally</div><div class="metric ok">{counts.get('ok',0)}</div><span class="subtext">Sources whose most recent check completed without a warning or error.</span></div>
-<div class="card"><div class="muted">Source problems</div><div class="metric">{counts.get('warn',0) + counts.get('error',0)}</div><span class="subtext">Sources currently reporting a warning or failed check; this does not include stale reporting by itself.</span></div>
-<div class="card"><div class="muted">Reports overdue</div><div class="metric">{state.get('stale_sources',0)}</div><span class="muted">{state.get('stale_workers',0)} worker(s) overdue</span><span class="subtext">Healthy or unhealthy sources that have not reported within the configured freshness threshold.</span></div>
-<div class="card"><div class="muted">Recently changed</div><div class="metric">{changed_30}</div><span class="subtext">Sources where Watchtower detected a recorded data change within the last 30 days.</span></div>
-<div class="card"><div class="muted">Last check duration</div><div class="metric">{_esc(round((telemetry.get('wall_ms') or 0)/1000,1))}s</div><span class="muted">CPU {_esc(telemetry.get('cpu_ms','—'))} ms</span><span class="subtext">Elapsed wall-clock time for the most recent worker run; CPU time is processor time actually consumed.</span></div>
-<div class="card"><div class="muted">Memory used during check</div><div class="metric">{_esc(round((telemetry.get('peak_python_memory_kb') or 0)/1024,1))} MB</div><span class="subtext">Peak Python-process memory observed during the latest worker run.</span></div>
+    workers = state.get("workers") or {}
+    worker_cards = []
+    for worker_name in ("cloud", "local"):
+        worker = workers.get(worker_name)
+        if not worker:
+            continue
+        worker_status = str(worker.get("overall") or "unknown")
+        stale = bool(worker.get("stale"))
+        worker_telemetry = worker.get("telemetry") or {}
+        duration = worker_telemetry.get("wall_ms")
+        duration_text = f"{duration / 1000.0:.1f}s" if isinstance(duration, (int, float)) else "—"
+        source_count = worker.get("source_count")
+        freshness_text = "Reporting overdue" if stale else "Reporting current"
+        worker_cards.append(f"""<div class="card worker-card">
+<div><h3><span class="status-dot {worker_status}"></span>{_esc(worker_name.title())} worker</h3><span class="subtext">{_esc(freshness_text)} · {_esc(worker_status.upper())}</span></div>
+<div class="pill {_esc(worker_status)}">{_esc(worker_status)}</div>
+<div class="worker-meta">
+<div><span class="muted">Sources</span><strong>{_esc(source_count if source_count is not None else "—")}</strong></div>
+<div><span class="muted">Run time</span><strong>{_esc(duration_text)}</strong></div>
+<div><span class="muted">Last success</span><strong style="font-size:13px">{_format_time_pair(worker.get("last_success_at") or worker.get("checked_at"))}</strong></div>
+</div></div>""")
+    body = f"""<div class="grid primary-grid">
+<div class="card"><div class="muted">Overall health</div><div class="metric {state.get('overall','')}">{_esc(state.get('overall','unknown').upper())}</div><span class="subtext">Combined health of all monitored sources in the latest saved aggregate.</span></div>
+<div class="card"><div class="muted">Data sources</div><div class="metric">{len(sources)}</div><span class="subtext">Source observations represented in the unified Watchtower state.</span></div>
+<div class="card"><div class="muted">Problems</div><div class="metric">{counts.get('warn',0) + counts.get('error',0)}</div><span class="subtext">Sources reporting a warning or failed check. Stale reporting is counted separately.</span></div>
+<div class="card"><div class="muted">Overdue</div><div class="metric">{state.get('stale_sources',0)}</div><span class="subtext">{state.get('stale_workers',0)} worker(s) overdue · freshness threshold, not source failure.</span></div>
 </div>
-<div class="card"><div class="muted">Last checked</div><strong>{_format_time_pair(state.get('generated_at'))}</strong><span class="subtext">Time the unified aggregate was last generated from worker observations.</span><br><a href="/counties">View all 87 Minnesota county dashboards →</a></div><br>"""
+<div class="section-head"><div><h2>Workers</h2><p>Hybrid execution health and the most recent successful run from each worker.</p></div></div>
+<div class="grid worker-grid">{''.join(worker_cards) or '<div class="card muted">Worker metadata has not been reported yet.</div>'}</div>
+<div class="activity-strip">
+<div class="card"><div class="muted">Recently changed</div><div class="metric">{changed_30}</div><span class="subtext">Sources where Watchtower detected a recorded data change within the last 30 days.</span></div>
+<div class="card"><div class="muted">Aggregate updated</div><strong>{_format_time_pair(state.get('generated_at'))}</strong><span class="subtext">Time the unified aggregate was last generated from worker observations.</span><br><a href="/counties">View all 87 Minnesota county dashboards →</a></div>
+</div>"""
     if alerts:
         body += '<div class="card"><h2>Needs attention</h2>' + "".join(
             f'<p class="{_esc(a.get("severity","warn"))}"><strong>{_esc(a.get("name") or a.get("source"))}</strong> — {_esc(a.get("message"))}</p>'
@@ -524,14 +685,15 @@ def render_dashboard(config: dict) -> str:
         f'<div class="card"><h3>Checks that could not be completed</h3>{_svg_sparkline(failure_rates)}</div>'
         '</div>'
     )
-    body += telemetry_charts
+    body += '<details class="diagnostics"><summary>System diagnostics</summary><span class="subtext">Runtime telemetry from retained checks. These are operational diagnostics, not source-health scores.</span>' + telemetry_charts + '</details>'
     latency_chart = _bar_chart(sorted([(src.get("name") or sid, src.get("elapsed_ms")) for sid,src in sources.items() if isinstance(src.get("elapsed_ms"),(int,float))], key=lambda x:x[1], reverse=True)[:8], title="Sources taking longest to respond", suffix=" ms")
     category_counts = {}
     for _,src,meta,_,_ in enriched:
         cat = meta.get("category") or src.get("category") or "Other"
         category_counts[cat] = category_counts.get(cat,0)+1
     category_chart = _bar_chart(sorted(category_counts.items(), key=lambda x:x[1], reverse=True), title="Data sources by category")
-    body += f'<div class="grid"><div class="card">{latency_chart}</div><div class="card">{category_chart}</div></div>'
+    body += '<div class="section-head"><div><h2>Source overview</h2><p>Response behavior and source mix in the current aggregate.</p></div></div>'
+    body += f'<div class="grid"><div class="card">{latency_chart}<span class="subtext">Latest source-check response time; longer does not necessarily mean unhealthy.</span></div><div class="card">{category_chart}<span class="subtext">Number of monitored source observations grouped by data category.</span></div></div>'
     county_direct = [(src.get("name") or sid, src.get("feature_count")) for sid,src in sources.items() if sid.endswith("-parcels-direct") and isinstance(src.get("feature_count"), (int,float))]
     county_fields = [(src.get("name") or sid, src.get("field_count")) for sid,src in sources.items() if sid.endswith("-parcels-direct") and isinstance(src.get("field_count"), (int,float))]
     county_counts_chart = _bar_chart(sorted(county_direct, key=lambda x:x[1], reverse=True)[:10], title="Counties with the most parcel records")
@@ -556,6 +718,7 @@ def render_dashboard(config: dict) -> str:
     complexity = [(src.get("name") or sid, src.get("geometry_sample_avg_vertices")) for sid,src in sources.items() if sid.endswith("-parcels-direct") and isinstance(src.get("geometry_sample_avg_vertices"),(int,float))]
     multipart_chart=_bar_chart(sorted(multipart,key=lambda x:x[1],reverse=True),title="Sampled parcel shapes with multiple parts or holes",suffix="%")
     complexity_chart=_bar_chart(sorted(complexity,key=lambda x:x[1],reverse=True),title="Average parcel-shape complexity")
+    body += '<div class="section-head"><div><h2>Parcel-source quality</h2><p>Comparative quality indicators for directly monitored county parcel layers.</p></div></div>'
     body += f'<div class="grid"><div class="card">{county_counts_chart}</div><div class="card">{county_fields_chart}</div></div><div class="grid"><div class="card">{quality_chart}</div><div class="card">{duplicate_chart}</div><div class="card">{geometry_chart}</div></div><div class="grid"><div class="card">{owner_chart}</div><div class="card">{site_address_chart}</div><div class="card">{mailing_address_chart}</div></div><div class="grid"><div class="card">{multipart_chart}</div><div class="card">{complexity_chart}</div></div>'
     body += f"""<div class="card"><h2>Data being watched</h2>
 <div class="filters"><input id="q" placeholder="Filter datasets…" oninput="filterRows()"><select id="cat" onchange="filterRows()"><option value="">All categories</option>{options}</select><select id="health" onchange="filterRows()"><option value="">All statuses</option><option>ok</option><option>warn</option><option>error</option></select></div>
@@ -581,21 +744,40 @@ def render_source(config: dict, source_id: str) -> str:
     )
     provider = meta.get("provider") or src.get("provider") or "—"
     category = meta.get("category") or src.get("category") or "—"
+    source_count_text = _esc(f"{src.get('feature_count'):,}" if isinstance(src.get('feature_count'),int) else src.get('feature_count','—'))
     body = f"""<p><a href="/">← All data sources</a></p><div class="grid">
 <div class="card"><div class="muted">Data source</div><h2>{_esc(src.get('name') or source_id)}</h2><code>{_esc(source_id)}</code></div>
-<div class="card"><div class="muted">Status</div><div class="metric {_esc(src.get('status',''))}">{_esc(src.get('status','unknown').upper())}</div></div>
-<div class="card"><div class="muted">Record count</div><div class="metric">{_esc(f"{src.get('feature_count'):,}" if isinstance(src.get('feature_count'),int) else src.get('feature_count','—'))}</div><span class="subtext">Features or rows reported by the source during the latest successful check.</span></div>
-<div class="card"><div class="muted">Recent reliability</div><div class="metric">{_esc(stats.get('success_rate') if stats.get('success_rate') is not None else '—')}%</div><span class="muted">{_esc(stats.get('consecutive_ok'))} successful checks in a row</span></div>
-<div class="card"><div class="muted">Days since data changed</div><div class="metric">{_esc(stats.get('change_age_days') if stats.get('change_age_days') is not None else '—')}</div><span class="subtext">Elapsed days since Watchtower last detected a meaningful observation change for this source.</span></div></div>
+<div class="card"><div class="muted">Status</div><div class="metric {_esc(src.get('status',''))}">{_esc(src.get('status','unknown').upper())}</div><span class="subtext">{_esc(src.get('reporting') or 'current')} reporting · {_esc(src.get('worker') or 'local/default')} worker</span></div>
+<div class="card"><div class="muted">Record count</div><div class="metric">{source_count_text}</div><span class="subtext">Features or rows reported during the latest successful check.</span></div>
+<div class="card"><div class="muted">Recent reliability</div><div class="metric">{_esc(stats.get('success_rate') if stats.get('success_rate') is not None else '—')}%</div><span class="subtext">{_esc(stats.get('consecutive_ok'))} successful checks in a row.</span></div>
+<div class="card"><div class="muted">Days since data changed</div><div class="metric">{_esc(stats.get('change_age_days') if stats.get('change_age_days') is not None else '—')}</div><span class="subtext">Elapsed days since Watchtower last detected a meaningful observation change.</span></div></div>
 <div class="grid"><div class="card"><h3>Record-count history</h3>{_svg_sparkline(feature_values)}</div><div class="card"><h3>Response-time history</h3>{_svg_sparkline(latency_values)}</div></div>
-<div class="card"><h2>About this data</h2><p><strong>Provided by:</strong> {_esc(provider)}<br><strong>Data type:</strong> {_esc(category)}<br>
-<strong>Checked by:</strong> {_esc(src.get('worker') or 'local/default')} worker<br><strong>Reporting:</strong> {_esc(src.get('reporting') or 'current')}<br><strong>Last successful check:</strong> {_format_time_pair(src.get('last_success_at') or src.get('checked_at'))}<br><strong>Source connection:</strong> {_esc(provenance.get('adapter') or src.get('adapter') or src.get('kind'))}<br><strong>Map shape type:</strong> {_esc(src.get('geometry_type','—'))}<br>
-<strong>Coordinate system code:</strong> {_esc(src.get('wkid','—'))}<br><strong>Information fields:</strong> {_esc(src.get('field_count','—'))}<br><strong>Parcel map layer:</strong> {_esc(src.get('parcel_layer_name','Direct layer'))}<br><strong>Parcel ID field used for checks:</strong> {_esc(src.get('parcel_id_field','Not identified'))} ({_esc(src.get('parcel_id_confidence','none'))} confidence)<br><strong>Parcel records missing an ID:</strong> {_esc(src.get('parcel_id_null_count','Not checked'))}<br><strong>Additional records using the same parcel ID:</strong> {_esc(src.get('duplicate_id_extra_rows','Not checked'))}<br><strong>Parcel records with no mapped shape:</strong> {_esc(src.get('null_geometry_count','Not checked'))}<br><strong>Mapped coverage area (technical coordinates):</strong> {_esc(src.get('spatial_extent','Not reported'))}<br><strong>Parcel shapes sampled:</strong> {_esc(src.get('geometry_sample_size','Not checked'))} records<br><strong>Shapes with multiple parts or holes:</strong> {_esc(src.get('geometry_sample_multipart_percent','Not checked'))}%<br><strong>Average shape complexity:</strong> {_esc(src.get('geometry_sample_avg_vertices','Not checked'))}<br><strong>Most complex sampled shape:</strong> {_esc(src.get('geometry_sample_max_vertices','Not checked'))}<br>
-<strong>Changes found this check:</strong> {len(changes)}<br><strong>Last change found:</strong> {_format_time_pair(stats.get('last_change')) if stats.get('last_change') else 'Not yet recorded'}</p></div><br>
-<div class="card"><details class="technical"><summary>Technical details</summary><div class="technical-body"><p><strong>Last checked:</strong> {_format_time_pair(provenance.get('observed_at') or src.get('checked_at'))}<br>
-<strong>Source reports last modified:</strong> {_esc(provenance.get('publisher_modified') or 'Not reported')}<br><strong>Source address:</strong> <code>{_esc(provenance.get('source_url') or src.get('url'))}</code><br>
-<strong>Structure comparison ID:</strong> <code>{_esc(src.get('schema_hash'))}</code><br><strong>Observation comparison ID:</strong> <code>{_esc(src.get('observation_fingerprint'))}</code></p></div></details></div><br>
-<div class="card"><h2>Check history</h2><table><thead><tr><th>Last checked</th><th>Status</th><th>Records</th><th>Changes found</th><th>Response time</th></tr></thead><tbody>{history_rows}</tbody></table></div>"""
+
+<div class="section-head"><div><h2>About this data</h2><p>Operational source facts first; low-level adapter and coordinate details remain expandable below.</p></div></div>
+<div class="definition-grid">
+<div class="definition-group"><h3>Source</h3><dl class="definition-list">
+<dt>Provided by</dt><dd>{_esc(provider)}</dd><dt>Data type</dt><dd>{_esc(category)}</dd><dt>Checked by</dt><dd>{_esc(src.get('worker') or 'local/default')} worker</dd><dt>Reporting</dt><dd>{_esc(src.get('reporting') or 'current')}</dd><dt>Last successful check</dt><dd>{_format_time_pair(src.get('last_success_at') or src.get('checked_at'))}</dd><dt>Changes this check</dt><dd>{len(changes)}</dd><dt>Last change found</dt><dd>{_format_time_pair(stats.get('last_change')) if stats.get('last_change') else 'Not yet recorded'}</dd>
+</dl></div>
+<div class="definition-group"><h3>Parcel quality</h3><dl class="definition-list">
+<dt>Records</dt><dd>{source_count_text}</dd><dt>Information fields</dt><dd>{_esc(src.get('field_count','—'))}</dd><dt>Parcel ID field</dt><dd>{_esc(src.get('parcel_id_field','Not identified'))} ({_esc(src.get('parcel_id_confidence','none'))} confidence)</dd><dt>Missing parcel IDs</dt><dd>{_esc(src.get('parcel_id_null_count','Not checked'))}</dd><dt>Duplicate-ID extra rows</dt><dd>{_esc(src.get('duplicate_id_extra_rows','Not checked'))}</dd><dt>Missing mapped shape</dt><dd>{_esc(src.get('null_geometry_count','Not checked'))}</dd>
+</dl></div>
+<div class="definition-group"><h3>Shape sample</h3><dl class="definition-list">
+<dt>Shapes sampled</dt><dd>{_esc(src.get('geometry_sample_size','Not checked'))}</dd><dt>Multipart / holes</dt><dd>{_esc(src.get('geometry_sample_multipart_percent','Not checked'))}%</dd><dt>Average complexity</dt><dd>{_esc(src.get('geometry_sample_avg_vertices','Not checked'))}</dd><dt>Most complex shape</dt><dd>{_esc(src.get('geometry_sample_max_vertices','Not checked'))}</dd>
+</dl></div>
+</div><br>
+<div class="card"><details class="technical"><summary>Technical details</summary><div class="technical-body"><dl class="definition-list">
+<dt>Source connection</dt><dd>{_esc(provenance.get('adapter') or src.get('adapter') or src.get('kind'))}</dd>
+<dt>Map shape type</dt><dd>{_esc(src.get('geometry_type','—'))}</dd>
+<dt>Coordinate system code</dt><dd>{_esc(src.get('wkid','—'))}</dd>
+<dt>Parcel map layer</dt><dd>{_esc(src.get('parcel_layer_name','Direct layer'))}</dd>
+<dt>Mapped extent</dt><dd><code>{_esc(src.get('spatial_extent','Not reported'))}</code></dd>
+<dt>Last checked</dt><dd>{_format_time_pair(provenance.get('observed_at') or src.get('checked_at'))}</dd>
+<dt>Publisher modified</dt><dd>{_esc(provenance.get('publisher_modified') or 'Not reported')}</dd>
+<dt>Source address</dt><dd><code>{_esc(provenance.get('source_url') or src.get('url'))}</code></dd>
+<dt>Structure comparison ID</dt><dd><code>{_esc(src.get('schema_hash'))}</code></dd>
+<dt>Observation comparison ID</dt><dd><code>{_esc(src.get('observation_fingerprint'))}</code></dd>
+</dl></div></details></div><br>
+<div class="card"><h2>Check history</h2><span class="subtext">Recent retained observations for this source.</span><table class="history-table"><thead><tr><th>Last checked</th><th>Status</th><th>Records</th><th>Changes found</th><th>Response time</th></tr></thead><tbody>{history_rows}</tbody></table></div>"""
     return _layout(f"Watchtower — {src.get('name') or source_id}", body, csrf_token=str(config.get("_csrf_token") or ""))
 
 def _sanitize_public_state(state: dict) -> dict:

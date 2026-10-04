@@ -168,12 +168,12 @@ class DataWatchTests(unittest.TestCase):
             counties = datawatch_dashboard.render_counties(config)
             wabasha = datawatch_dashboard.render_county(config, 'wabasha')
             aitkin = datawatch_dashboard.render_county(config, 'aitkin')
-            self.assertIn('--navy:#17324d', overview)
+            self.assertIn('--navy:#10263b', overview)
             self.assertIn('--accent:#0b6fa4', overview)
             self.assertIn('Sources taking longest to respond', overview)
             self.assertIn('Data sources by category', overview)
             self.assertIn('Combined health of all monitored sources', overview)
-            self.assertIn('Total source observations currently represented', overview)
+            self.assertIn('Source observations represented in the unified Watchtower state', overview)
             self.assertIn('Most recent successful observation, not merely last attempt', overview)
             self.assertEqual(len(datawatch_dashboard._load_counties()), 87)
             self.assertIn('Wabasha County', counties)
@@ -223,8 +223,8 @@ class DataWatchTests(unittest.TestCase):
             snap = datawatch_dashboard._county_snapshot(config, 'aitkin')
             csv_text = datawatch_dashboard._snapshot_csv(snap)
             self.assertIn('County parcel-data availability', page)
-            self.assertIn('How recently county parcel data was updated', page)
-            self.assertIn('Download statewide snapshot', page)
+            self.assertIn('MnGeo parcel update age', page)
+            self.assertIn('Use Export in the page toolbar for statewide Excel, CSV, or JSON.', page)
             self.assertIn('County parcel update information', county)
             self.assertIn('Last county update', county)
             self.assertIn('Download county snapshot', county)
@@ -264,7 +264,7 @@ class DataWatchTests(unittest.TestCase):
             page = datawatch_dashboard.render_dashboard({'state_file': str(state), 'history_file': str(hist), 'sources': []})
             self.assertIn('class="sidebar"', page)
             self.assertIn('Minnesota Counties', page)
-            self.assertIn('Snapshots', page)
+            self.assertIn('Export', page)
             self.assertIn('#10263b', page)
 
     def test_arcgis_service_discovers_parcel_layer_for_qa(self):
@@ -319,11 +319,11 @@ class DataWatchTests(unittest.TestCase):
             state.write_text(json.dumps({'generated_at': '2026-10-04T13:30:00+00:00', 'overall': 'ok', 'counts': {'ok': 0, 'warn': 0, 'error': 0}, 'active_alerts': [], 'sources': {}, 'telemetry': {'wall_ms': 1234, 'cpu_ms': 321, 'peak_python_memory_kb': 4096, 'sources_checked': 0}}), encoding='utf-8')
             hist.write_text('', encoding='utf-8')
             page = datawatch_dashboard.render_dashboard({'state_file': str(state), 'history_file': str(hist), 'sources': []})
-            self.assertIn('Last check duration', page)
-            self.assertIn('Memory used during check', page)
+            self.assertIn('System diagnostics', page)
+            self.assertIn('Memory used by Watchtower', page)
             self.assertIn('grid-template-columns:1fr', page)
-            self.assertIn('grid-template-columns:repeat(3,minmax(0,1fr))', page)
-            self.assertIn('overflow-x:hidden', page)
+            self.assertIn('mobile-nav', page)
+            self.assertNotIn('overflow-x:hidden', page)
 
     def test_telemetry_history_is_persisted_and_rendered(self):
         import tempfile
@@ -341,6 +341,33 @@ class DataWatchTests(unittest.TestCase):
             self.assertIn('Checks that could not be completed', page)
             self.assertIn('<svg', page)
 
+    def test_dashboard_hybrid_worker_cards_and_contemporary_mobile_shell(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            state = root / 'state.json'
+            hist = root / 'history.jsonl'
+            state.write_text(json.dumps({
+                'generated_at': '2026-10-04T21:43:23+00:00',
+                'overall': 'ok',
+                'counts': {'ok': 2, 'warn': 0, 'error': 0},
+                'active_alerts': [],
+                'workers': {
+                    'cloud': {'overall': 'ok', 'source_count': 22, 'last_success_at': '2026-10-04T21:43:23+00:00', 'telemetry': {'wall_ms': 28001}},
+                    'local': {'overall': 'ok', 'source_count': 4, 'last_success_at': '2026-10-04T20:18:29+00:00', 'telemetry': {'wall_ms': 1796}},
+                },
+                'sources': {},
+            }), encoding='utf-8')
+            hist.write_text('', encoding='utf-8')
+            page = datawatch_dashboard.render_dashboard({'state_file': str(state), 'history_file': str(hist), 'sources': []})
+            self.assertIn('Cloud worker', page)
+            self.assertIn('Local worker', page)
+            self.assertIn('28.0s', page)
+            self.assertIn('1.8s', page)
+            self.assertIn('aria-label="Mobile navigation"', page)
+            self.assertIn('Excel (.xlsx)', page)
+            self.assertNotIn('0.0 MB', page)
+
     def test_dashboard_v13_uses_plain_language_and_collapses_technical_details(self):
         import tempfile
         with tempfile.TemporaryDirectory() as td:
@@ -352,8 +379,9 @@ class DataWatchTests(unittest.TestCase):
             config = {'state_file': str(state), 'history_file': str(hist), 'sources': []}
             overview = datawatch_dashboard.render_dashboard(config)
             detail = datawatch_dashboard.render_source(config, 'sample')
-            self.assertIn('Overall status', overview)
-            self.assertIn('Working normally', overview)
+            self.assertIn('Overall health', overview)
+            self.assertIn('Problems', overview)
+            self.assertIn('Workers', overview)
             self.assertIn('Data being watched', overview)
             self.assertIn('Records / change', overview)
             self.assertIn('Recent reliability', overview)
