@@ -43,7 +43,7 @@ Do not make the extracted repository public until:
 
 ## Current deployment
 
-the current private Windows host remains the authoritative processor. A Windows scheduled deployment may invoke `run-datawatch.cmd`, which uses the isolated `.venv-watchtower` environment. The LAN dashboard may remain unauthenticated while bound only to the trusted private LAN; any future Internet exposure requires `CLEARPARCEL_WATCHTOWER_DASHBOARD_PASSWORD`.
+The current private Windows host remains the authoritative processor. A Windows scheduled deployment may invoke `run-datawatch.cmd`, which uses the isolated `.venv-watchtower` environment. The LAN dashboard may remain unauthenticated while bound only to the trusted private LAN; any future Internet exposure requires `CLEARPARCEL_WATCHTOWER_DASHBOARD_PASSWORD`.
 
 ## Cloud migration
 
