@@ -63,4 +63,4 @@ CI tests Windows and Ubuntu on supported Python versions.
 
 ## License
 
-A public software license has **not yet been selected**. The repository must remain private until a license is deliberately chosen and the remaining public-release gates are closed.
+GIS Data Watchtower is licensed under the **MIT License**. See `LICENSE`.
