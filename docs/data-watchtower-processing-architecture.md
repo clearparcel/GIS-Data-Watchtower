@@ -2,7 +2,7 @@
 
 ## Current deployment
 
-GERTKEN-PC is the authoritative Watchtower processor during the development and validation phase.
+a local Windows workstation is the authoritative Watchtower processor during the development and validation phase.
 
 The machine performs:
 
@@ -25,7 +25,7 @@ The collection/QA layer must not depend on:
 - Windows drive letters;
 - Windows Task Scheduler;
 - interactive desktop sessions;
-- GERTKEN-PC host names;
+- a local Windows workstation host names;
 - local-only secrets; or
 - dashboard HTTP state.
 
@@ -49,7 +49,7 @@ The dashboard is a consumer of Watchtower state. It should not be the scheduler 
 
 This separation permits:
 
-- GERTKEN-PC processing + LAN dashboard today;
+- a local Windows workstation processing + LAN dashboard today;
 - scheduled cloud processing + hosted dashboard later;
 - static/public dashboard exports without exposing operational state.
 
@@ -62,7 +62,7 @@ Strong fit when Watchtower becomes scheduled production infrastructure:
 - containerized Python runtime;
 - scheduled execution through Cloud Scheduler / job orchestration;
 - no requirement to keep a workstation online;
-- natural fit with existing ClearParcel Google Cloud infrastructure;
+- well suited to scheduled container execution;
 - processing and dashboard can be deployed separately.
 
 Before migration, measure real Watchtower runtime, memory, outbound request volume, history growth, and geometry-QA cost.
@@ -90,4 +90,4 @@ Do not migrate merely because the code can run in the cloud. Migrate when:
 
 ## Current decision
 
-Continue processing on GERTKEN-PC while building to the portability boundary above. Treat Google Cloud Run as the leading long-term option, not a hard dependency.
+Continue local processing during validation while building to the portability boundary above. Treat Google Cloud Run as the leading long-term option, not a hard dependency.
