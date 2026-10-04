@@ -53,6 +53,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--limit", type=int, default=50)
     p.add_argument("--json", action="store_true")
 
+    p = sub.add_parser("aggregate", help="Merge a partial worker result into an authoritative state")
+    p.add_argument("--base", type=Path, required=True)
+    p.add_argument("--partial", type=Path, required=True)
+    p.add_argument("--worker", required=True)
+    p.add_argument("--output", type=Path, required=True)
+
     p = sub.add_parser("dashboard", help="Serve the private dashboard")
     p.add_argument("--host", default="127.0.0.1")
     p.add_argument("--port", type=int, default=8765)
@@ -88,6 +94,12 @@ def main() -> int:
                 print(f'Watchtower history: {result.get("entry_count", 0)} entries')
                 for row in result.get("entries", []):
                     print(f'{row.get("generated_at") or "-"} - {row.get("overall") or row.get("status") or "unknown"}')
+            return 0
+        if args.command == "aggregate":
+            from clearparcel.datawatch.aggregate import load_json, merge_states, save_json
+            merged = merge_states(load_json(args.base), load_json(args.partial), args.worker)
+            save_json(args.output, merged)
+            print(json.dumps(merged, indent=2))
             return 0
         if args.command == "dashboard":
             serve(config, host=args.host, port=args.port)

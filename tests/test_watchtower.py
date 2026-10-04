@@ -641,6 +641,25 @@ class DataWatchTests(unittest.TestCase):
             result=datawatch.check_sources(config,save=False,execution_profile="cloud")
         self.assertEqual(set(result["sources"]),{"cloud","any","default"})
 
+    def test_hybrid_aggregation_preserves_other_workers(self):
+        from clearparcel.datawatch.aggregate import merge_states
+        base={"schema_version":2,"generated_at":"old","sources":{"local":{"id":"local","status":"ok","feature_count":4,"worker":"local"}},"workers":{"local":{"checked_at":"old","source_count":1}}}
+        partial={"schema_version":2,"generated_at":"new","overall":"ok","counts":{"ok":1,"warn":0,"error":0},"telemetry":{"wall_ms":10},"sources":{"cloud":{"id":"cloud","status":"ok","feature_count":8}}}
+        merged=merge_states(base,partial,"cloud")
+        self.assertEqual(set(merged["sources"]),{"local","cloud"})
+        self.assertEqual(merged["sources"]["local"]["worker"],"local")
+        self.assertEqual(merged["sources"]["cloud"]["worker"],"cloud")
+        self.assertEqual(merged["counts"],{"ok":2,"warn":0,"error":0})
+        self.assertEqual(merged["workers"]["cloud"]["source_count"],1)
+
+    def test_hybrid_aggregation_replaces_only_worker_observations(self):
+        from clearparcel.datawatch.aggregate import merge_states
+        base={"sources":{"a":{"id":"a","status":"error","worker":"cloud"},"b":{"id":"b","status":"ok","worker":"local"}}}
+        partial={"generated_at":"new","overall":"ok","counts":{"ok":1},"sources":{"a":{"id":"a","status":"ok"}}}
+        merged=merge_states(base,partial,"cloud")
+        self.assertEqual(merged["sources"]["a"]["status"],"ok")
+        self.assertEqual(merged["sources"]["b"]["status"],"ok")
+
     def test_run_wrapper_preserves_warning_exit_code(self):
         wrapper = (TOOLS_ROOT / 'run-datawatch.cmd').read_text(encoding='utf-8')
         self.assertIn('exit /b %RC%', wrapper)
