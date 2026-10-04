@@ -299,6 +299,8 @@ def _county_snapshot(config: dict, slug: str) -> dict | None:
             {
                 "name": x.get("name"), "status": x.get("status"),
                 "feature_count": x.get("feature_count"), "checked_at": x.get("checked_at"),
+                "worker": x.get("worker"), "last_success_at": x.get("last_success_at"),
+                "reporting": x.get("reporting"), "stale": x.get("stale"), "worker_stale": x.get("worker_stale"),
             } for x in info.get("sources", [])
         ],
         "contacts": _load_county_contacts().get(county["name"], []),
@@ -332,7 +334,7 @@ def _csv_safe(value) -> str:
 
 def _snapshot_csv(snapshot: dict) -> str:
     out = io.StringIO()
-    fields = ["county","status","last_county_update","catalog_refresh_date","public_data_approved","parcel_data_url","parcel_viewer_url","contact_names"]
+    fields = ["county","status","last_county_update","catalog_refresh_date","public_data_approved","parcel_data_url","parcel_viewer_url","worker_provenance","stale_source_count","contact_names"]
     writer = csv.DictWriter(out, fieldnames=fields)
     writer.writeheader()
     rows = snapshot.get("counties") if "counties" in snapshot else [snapshot]
@@ -344,6 +346,8 @@ def _snapshot_csv(snapshot: dict) -> str:
             "public_data_approved": row.get("public_data_approved"),
             "parcel_data_url": row.get("parcel_data_url"),
             "parcel_viewer_url": row.get("parcel_viewer_url"),
+            "worker_provenance": "; ".join(sorted({str(x.get("worker")) for x in row.get("direct_sources",[]) if x.get("worker")})),
+            "stale_source_count": sum(1 for x in row.get("direct_sources",[]) if x.get("stale") or x.get("worker_stale")),
             "contact_names": "; ".join(x.get("name","") for x in row.get("contacts",[]) if x.get("name")),
         }.items()})
     return out.getvalue()
@@ -374,14 +378,14 @@ def _xlsx_sheet_xml(rows: list[list]) -> str:
 
 def _snapshot_xlsx(snapshot: dict) -> bytes:
     county_rows = [["County","Status","Last county update","Catalog refresh date","Public data approved","Parcel data URL","Parcel viewer URL","Contact names"]]
-    source_rows = [["County","Source","Status","Record count","Last checked"]]
+    source_rows = [["County","Source","Status","Record count","Worker","Reporting","Last successful check","Last checked"]]
     contact_rows = [["County","Name","Title","Department","Phone","Email"]]
     rows = snapshot.get("counties") if "counties" in snapshot else [snapshot]
     for row in rows:
         county = row.get("county") or ""
         county_rows.append([county,row.get("status"),row.get("last_county_update"),row.get("catalog_refresh_date"),bool(row.get("public_data_approved")),row.get("parcel_data_url"),row.get("parcel_viewer_url"),"; ".join(x.get("name","") for x in row.get("contacts",[]) if x.get("name"))])
         for source in row.get("direct_sources", []):
-            source_rows.append([county,source.get("name"),source.get("status"),source.get("feature_count"),source.get("checked_at")])
+            source_rows.append([county,source.get("name"),source.get("status"),source.get("feature_count"),source.get("worker"),source.get("reporting"),source.get("last_success_at"),source.get("checked_at")])
         for contact in row.get("contacts", []):
             contact_rows.append([county,contact.get("name"),contact.get("title"),contact.get("department"),contact.get("phone"),contact.get("email")])
     sheets=[("Counties",county_rows),("Sources",source_rows),("Contacts",contact_rows)]
