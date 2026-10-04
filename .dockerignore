@@ -1,0 +1,8 @@
+.git
+.github
+.venv
+.venv-watchtower
+__pycache__
+datawatch
+docs
+tests
