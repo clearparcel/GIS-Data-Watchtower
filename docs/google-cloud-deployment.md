@@ -53,3 +53,14 @@ Start with **daily** execution. County parcel and similar GIS datasets generally
 ## Migration
 
 Run cloud and local processing in parallel before changing production. Compare source status, counts, change events, execution time, and generated snapshots for multiple scheduled runs.
+
+
+## Validated staging behavior
+
+As of 2026-10-04, a private Cloud Run Job deployment in `us-central1` has been validated with Google Cloud Storage persistence and Secret Manager-provided deployment configuration.
+
+The validated cloud profile processes 22 deployment sources with exact status/count/schema parity against the same local observations. Four provider-specific sources remain local-only because they reject or cannot validate requests from the Google Cloud environment. The project intentionally does not bypass those provider controls.
+
+Hybrid aggregation has also been validated: 22 cloud observations plus 4 local observations merge into one 26-source authoritative state while preserving worker provenance.
+
+Cloud Scheduler is intentionally not enabled yet. See `current-status.md`.
