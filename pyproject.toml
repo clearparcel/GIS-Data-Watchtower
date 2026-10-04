@@ -14,3 +14,7 @@ watchtower = "clearparcel.datawatch.cli:main"
 
 [tool.setuptools.package-data]
 "clearparcel.datawatch" = ["*.json"]
+
+[tool.setuptools.packages.find]
+include = ["clearparcel*"]
+exclude = ["config*", "tests*"]
