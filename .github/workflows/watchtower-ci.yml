@@ -28,3 +28,9 @@ jobs:
         run: python -W error::ResourceWarning -m unittest discover -s tests -q
       - name: CLI smoke test
         run: watchtower --config config/example_sources.json status --json
+
+      - name: Container smoke test
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.13'
+        run: |
+          docker build -t watchtower-ci .
+          docker run --rm watchtower-ci --help
