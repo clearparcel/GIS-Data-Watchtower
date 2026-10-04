@@ -11,6 +11,7 @@ GIS Data Watchtower is a lightweight Python monitor for public GIS services. It 
 - parcel-ID and attribute completeness signals
 - bounded geometry samples
 - source response and processing history
+- CSV, JSON, and Excel (`.xlsx`) snapshot exports
 
 Watchtower is designed for **low-frequency, respectful monitoring**. It is not a bulk downloader or a scraper for human-facing property-search websites.
 
