@@ -928,6 +928,7 @@ def _check_sources_unlocked(
     *,
     source_filter: str | None = None,
     save: bool = True,
+    execution_profile: str | None = None,
 ) -> dict:
     timeout = int(config.get("timeout_seconds", 20))
     run_started_perf = time.perf_counter()
@@ -942,6 +943,9 @@ def _check_sources_unlocked(
 
     for source in config.get("sources", []):
         if filtered and filtered not in source["id"].lower() and filtered not in source["name"].lower():
+            continue
+        profiles = source.get("execution_profiles")
+        if execution_profile and profiles and execution_profile not in profiles and "any" not in profiles:
             continue
         started = dt.datetime.now(dt.timezone.utc)
         source_timeout = int(source.get("timeout_seconds", timeout))
@@ -1131,11 +1135,12 @@ def check_sources(
     *,
     source_filter: str | None = None,
     save: bool = True,
+    execution_profile: str | None = None,
 ) -> dict:
     state_path = Path(config["state_file"])
     run_lock = _acquire_run_lock(state_path, int(config.get("run_lock_stale_seconds", 7200)))
     try:
-        return _check_sources_unlocked(config, source_filter=source_filter, save=save)
+        return _check_sources_unlocked(config, source_filter=source_filter, save=save, execution_profile=execution_profile)
     finally:
         if tracemalloc.is_tracing():
             tracemalloc.stop()
