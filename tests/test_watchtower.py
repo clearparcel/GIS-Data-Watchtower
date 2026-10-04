@@ -599,6 +599,35 @@ class DataWatchTests(unittest.TestCase):
             self.assertIn("Example",sheet)
             self.assertIn("https://example.com/data",sheet)
 
+    def test_local_storage_round_trip(self):
+        import tempfile
+        from clearparcel.datawatch.storage import LocalStorage
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td)
+            source=root/"source.json"; source.write_text('{"ok":true}',encoding="utf-8")
+            backend=LocalStorage(root/"objects")
+            backend.upload("state.json",source)
+            destination=root/"downloaded.json"
+            self.assertTrue(backend.download("state.json",destination))
+            self.assertEqual(destination.read_text(encoding="utf-8"),'{"ok":true}')
+            self.assertFalse(backend.download("missing.json",root/"missing.json"))
+
+    def test_storage_backend_env_validation(self):
+        import os, tempfile
+        from clearparcel.datawatch.storage import LocalStorage, backend_from_env
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as td:
+            with patch.dict(os.environ,{"WATCHTOWER_STORAGE":"local","WATCHTOWER_STORAGE_ROOT":td},clear=False):
+                self.assertIsInstance(backend_from_env(td),LocalStorage)
+            with patch.dict(os.environ,{"WATCHTOWER_STORAGE":"gcs"},clear=True):
+                with self.assertRaisesRegex(RuntimeError,"WATCHTOWER_GCS_BUCKET"):
+                    backend_from_env(td)
+
+    def test_public_cli_defaults_to_example_config(self):
+        import inspect
+        from clearparcel.datawatch import cli
+        self.assertIn("example_sources.json",str(cli._default_config()))
+
     def test_run_wrapper_preserves_warning_exit_code(self):
         wrapper = (TOOLS_ROOT / 'run-datawatch.cmd').read_text(encoding='utf-8')
         self.assertIn('exit /b %RC%', wrapper)
