@@ -660,6 +660,14 @@ class DataWatchTests(unittest.TestCase):
         self.assertEqual(merged["sources"]["a"]["status"],"ok")
         self.assertEqual(merged["sources"]["b"]["status"],"ok")
 
+    def test_aggregate_loader_accepts_utf16(self):
+        import tempfile
+        from clearparcel.datawatch.aggregate import load_json
+        with tempfile.TemporaryDirectory() as td:
+            path=Path(td)/"state.json"
+            path.write_text('{"overall":"ok"}',encoding="utf-16")
+            self.assertEqual(load_json(path)["overall"],"ok")
+
     def test_run_wrapper_preserves_warning_exit_code(self):
         wrapper = (TOOLS_ROOT / 'run-datawatch.cmd').read_text(encoding='utf-8')
         self.assertIn('exit /b %RC%', wrapper)

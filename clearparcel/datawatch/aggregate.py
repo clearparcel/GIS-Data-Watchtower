@@ -49,7 +49,13 @@ def merge_states(base: dict | None, partial: dict, worker: str) -> dict:
 def load_json(path: Path) -> dict:
     if not path.is_file():
         return {}
-    return json.loads(path.read_text(encoding="utf-8-sig"))
+    raw = path.read_bytes()
+    for encoding in ("utf-8-sig", "utf-16"):
+        try:
+            return json.loads(raw.decode(encoding))
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            continue
+    raise ValueError(f"unable to decode JSON state file: {path}")
 
 
 def save_json(path: Path, document: dict) -> None:
