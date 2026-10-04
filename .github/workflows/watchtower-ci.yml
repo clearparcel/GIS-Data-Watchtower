@@ -27,4 +27,4 @@ jobs:
       - name: Test
         run: python -W error::ResourceWarning -m unittest discover -s tests -q
       - name: CLI smoke test
-        run: watchtower --config config/data_sources.json status --json
+        run: watchtower --config config/example_sources.json status --json

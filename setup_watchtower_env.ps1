@@ -16,7 +16,7 @@ if (-not $sitePackages) { throw "Unable to resolve Watchtower virtual-environmen
 Set-Content -Path (Join-Path $sitePackages 'clearparcel_tools_watchtower.pth') -Value $Root -Encoding ASCII
 Push-Location $Root
 try {
-    & $venvPython -m clearparcel.datawatch --config (Join-Path $Root 'config\data_sources.json') status --json | Out-Null
+    & $venvPython -m clearparcel.datawatch --config (Join-Path $Root 'config\example_sources.json') status --json | Out-Null
     if ($LASTEXITCODE -ge 2) { throw "Watchtower isolated environment validation failed with exit code $LASTEXITCODE" }
     & $venvPython -m pip check
     if ($LASTEXITCODE -ne 0) { throw "Watchtower dependency check failed" }
