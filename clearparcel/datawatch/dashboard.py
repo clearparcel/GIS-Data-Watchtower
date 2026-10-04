@@ -426,7 +426,8 @@ def render_dashboard(config: dict) -> str:
 <div class="card"><div class="muted">Overall status</div><div class="metric {state.get('overall','')}">{_esc(state.get('overall','unknown').upper())}</div></div>
 <div class="card"><div class="muted">Data sources</div><div class="metric">{len(sources)}</div></div>
 <div class="card"><div class="muted">Working normally</div><div class="metric ok">{counts.get('ok',0)}</div></div>
-<div class="card"><div class="muted">Needs attention</div><div class="metric">{len(alerts)}</div></div>
+<div class="card"><div class="muted">Source problems</div><div class="metric">{counts.get('warn',0) + counts.get('error',0)}</div></div>
+<div class="card"><div class="muted">Reports overdue</div><div class="metric">{state.get('stale_sources',0)}</div><span class="muted">{state.get('stale_workers',0)} worker(s) overdue</span></div>
 <div class="card"><div class="muted">Recently changed</div><div class="metric">{changed_30}</div></div>
 <div class="card"><div class="muted">Last check duration</div><div class="metric">{_esc(round((telemetry.get('wall_ms') or 0)/1000,1))}s</div><span class="muted">CPU {_esc(telemetry.get('cpu_ms','—'))} ms</span></div>
 <div class="card"><div class="muted">Memory used during check</div><div class="metric">{_esc(round((telemetry.get('peak_python_memory_kb') or 0)/1024,1))} MB</div></div>
@@ -451,11 +452,11 @@ def render_dashboard(config: dict) -> str:
         rows.append(f"""<tr data-name="{_esc((src.get('name') or sid).lower())}" data-category="{_esc(category)}" data-status="{_esc(src.get('status','unknown'))}">
 <td><a href="/source?{urllib.parse.urlencode({'id':sid})}"><strong>{_esc(src.get('name') or sid)}</strong></a><br><span class="muted">{_esc(sid)}</span></td>
 <td>{_esc(provider)}<br><span class="muted">{_esc(category)}</span></td>
-<td><span class="pill {_esc(src.get('status',''))}">{_esc(src.get('status','unknown'))}</span></td>
+<td><span class="pill {_esc(src.get('status',''))}">{_esc(_friendly_status(src.get('status','unknown')))}</span><br><span class="muted">{_esc(src.get('reporting','current'))} reporting · {_esc(src.get('worker') or 'default')} worker</span></td>
 <td>{_esc(f"{current_count:,}" if isinstance(current_count,int) else current_count or '—')}<br><span class="{delta_class}">{_esc(delta_text)}</span></td>
 <td>{_esc(stats.get('change_age_days') if stats.get('change_age_days') is not None else '—')}</td>
 <td>{_esc(stats.get('success_rate') if stats.get('success_rate') is not None else '—')}%<br><span class="muted">{_esc(stats.get('consecutive_ok'))} consecutive</span></td>
-<td>{_esc(src.get('elapsed_ms','—'))} ms</td><td>{_format_time_pair(src.get('checked_at'))}</td></tr>""")
+<td>{_esc(src.get('elapsed_ms','—'))} ms</td><td>{_format_time_pair(src.get('last_success_at') or src.get('checked_at'))}</td></tr>""")
     options = "".join(f'<option value="{_esc(x)}">{_esc(x)}</option>' for x in categories)
     run_history = load_history(config, limit=60).get("entries", [])
     run_wall = [((x.get("telemetry") or {}).get("wall_ms") or 0) / 1000.0 for x in run_history if (x.get("telemetry") or {}).get("wall_ms") is not None]
@@ -513,7 +514,7 @@ def render_dashboard(config: dict) -> str:
     body += f'<div class="grid"><div class="card">{county_counts_chart}</div><div class="card">{county_fields_chart}</div></div><div class="grid"><div class="card">{quality_chart}</div><div class="card">{duplicate_chart}</div><div class="card">{geometry_chart}</div></div><div class="grid"><div class="card">{owner_chart}</div><div class="card">{site_address_chart}</div><div class="card">{mailing_address_chart}</div></div><div class="grid"><div class="card">{multipart_chart}</div><div class="card">{complexity_chart}</div></div>'
     body += f"""<div class="card"><h2>Data being watched</h2>
 <div class="filters"><input id="q" placeholder="Filter datasets…" oninput="filterRows()"><select id="cat" onchange="filterRows()"><option value="">All categories</option>{options}</select><select id="health" onchange="filterRows()"><option value="">All statuses</option><option>ok</option><option>warn</option><option>error</option></select></div>
-<table id="datasets"><thead><tr><th>Data source</th><th>Provided by / type</th><th>Status</th><th>Records / change</th><th>Days since data changed</th><th>Recent reliability</th><th>Response time</th><th>Last checked</th></tr></thead><tbody>{"".join(rows)}</tbody></table></div>
+<table id="datasets"><thead><tr><th>Data source</th><th>Provided by / type</th><th>Status</th><th>Records / change</th><th>Days since data changed</th><th>Recent reliability</th><th>Response time</th><th>Last successful check</th></tr></thead><tbody>{"".join(rows)}</tbody></table></div>
 <script>function filterRows(){{const q=document.getElementById('q').value.toLowerCase(),c=document.getElementById('cat').value,h=document.getElementById('health').value;document.querySelectorAll('#datasets tbody tr').forEach(r=>{{r.style.display=(!q||r.dataset.name.includes(q))&&(!c||r.dataset.category===c)&&(!h||r.dataset.status===h)?'':'none'}})}};</script>"""
     return _layout("GIS Data Watchtower", body, csrf_token=str(config.get("_csrf_token") or ""))
 
