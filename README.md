@@ -62,6 +62,10 @@ python -m compileall -q clearparcel tests
 
 CI tests Windows and Ubuntu on supported Python versions.
 
+## Current status
+
+See [`docs/current-status.md`](docs/current-status.md) for the latest validated local/cloud/hybrid deployment status.
+
 ## Cloud deployment
 
 The base package remains cloud-neutral. Optional Google Cloud Storage support and a Cloud Run Job deployment path are documented in `docs/google-cloud-deployment.md`. Local filesystem storage remains the default.
