@@ -232,8 +232,7 @@ class DataWatchTests(unittest.TestCase):
         self.assertTrue(fields['checked_utc'].endswith('+00:00'))
         cfg = load_data_config(TOOLS_ROOT / 'config' / 'example_sources.json')
         ids = {x['id'] for x in cfg['sources']}
-        for source_id in ('mn-douglas-parcels-direct', 'mn-morrison-parcels-direct', 'mn-swift-parcels-direct', 'mn-aitkin-parcels-direct', 'mn-scott-parcels-direct', 'mn-dakota-parcels-direct', 'mn-beltrami-parcels-direct', 'mn-rice-parcels-direct', 'mn-waseca-parcels-direct', 'mn-ramsey-parcels-direct', 'mn-olmsted-parcels-direct', 'mn-pipestone-parcels-direct', 'mn-koochiching-parcels-direct', 'mn-st-louis-parcels-direct'):
-            self.assertIn(source_id, ids)
+        self.assertEqual(ids, {'example-arcgis-layer', 'example-wms'})
 
     def test_dashboard_v06_admin_shell_central_time_and_direct_counties(self):
         value = '2026-10-04T12:00:00+00:00'
@@ -244,8 +243,7 @@ class DataWatchTests(unittest.TestCase):
         self.assertTrue(fields['checked_central'].endswith('-05:00'))
         self.assertTrue(fields['checked_utc'].endswith('+00:00'))
         cfg = load_data_config(TOOLS_ROOT / 'config' / 'example_sources.json')
-        ids = {x['id'] for x in cfg['sources']}
-        self.assertEqual(sum((1 for x in ids if x.endswith('-parcels-direct'))), 14)
+        self.assertEqual(len(cfg['sources']), 2)
         import tempfile
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
@@ -578,14 +576,11 @@ class DataWatchTests(unittest.TestCase):
             report = datawatch.check_sources(config, source_filter='one', save=False)
         self.assertEqual(report['scope'], {'type': 'source', 'source_id': 'one'})
 
-    def test_direct_county_sources_have_explicit_slug_and_service_layer_ids(self):
+    def test_example_registry_is_safe_and_provider_neutral(self):
         cfg = datawatch.load_config(TOOLS_ROOT / 'config' / 'example_sources.json')
-        direct = [x for x in cfg['sources'] if x['id'].endswith('-parcels-direct')]
-        self.assertEqual(len(direct), 14)
-        self.assertTrue(all((x.get('county_slug') for x in direct)))
-        for x in direct:
-            if x.get('kind') == 'arcgis_service':
-                self.assertIsNotNone(x.get('parcel_layer_id'))
+        self.assertEqual(len(cfg['sources']), 2)
+        self.assertTrue(all('example.com' in x['url'] for x in cfg['sources']))
+        self.assertTrue(all(not x.get('county_slug') for x in cfg['sources']))
 
     def test_run_wrapper_preserves_warning_exit_code(self):
         wrapper = (TOOLS_ROOT / 'run-datawatch.cmd').read_text(encoding='utf-8')
