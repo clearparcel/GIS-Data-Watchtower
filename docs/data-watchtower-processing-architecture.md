@@ -46,6 +46,14 @@ The built-in private dashboard can display local or aggregate state and produce 
 
 Static-site generation uses a reduced public schema and omits detailed change payloads, fingerprints, tracked values, provider URLs, and other private diagnostics.
 
+### Minnesota GAC completeness
+
+For a standardized Minnesota parcel layer, the monitoring engine can calculate MN GAC parcel-field population summaries with bounded ArcGIS grouped-statistics requests. The stored observation contains record-weighted statewide field summaries plus per-county counts and percentages; it does not download or republish parcel rows. The private dashboard consumes that stored observation for the `/mngac` interactive county map, county-page field tables, and JSON/CSV/Excel exports.
+
+The computation keeps **field population** separate from **standards compliance**. Conditional, If Available, and Optional fields may legitimately be blank, and counties absent from MnGeo Plan Parcels Open are represented as **No data**, not 0%.
+
+See [mngac-completeness.md](mngac-completeness.md).
+
 ## Supported deployment patterns
 
 ### Local

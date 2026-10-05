@@ -32,6 +32,27 @@ class DataWatchTests(unittest.TestCase):
         self.assertIn('required_fields', arcgis)
         self.assertNotIn('expected_fields', arcgis)
 
+    def test_mngac_reference_schema_has_all_official_fields_and_boundaries(self):
+        schema = json.loads((TOOLS_ROOT / 'clearparcel' / 'datawatch' / 'mngac_parcel_fields.json').read_text(encoding='utf-8'))
+        fields = schema['fields']
+        self.assertEqual(schema['standard']['version'], '1.1.3')
+        self.assertEqual(len(fields), 91)
+        self.assertEqual(len({x['field'] for x in fields}), 91)
+        self.assertEqual({x['inclusion'] for x in fields}, {'Mandatory', 'Conditional', 'If Available', 'Optional'})
+        self.assertIn('COUNTY_PIN', {x['field'] for x in fields})
+        self.assertIn('OWNER_NAME', {x['field'] for x in fields})
+        self.assertIn('EXP_DATE', {x['field'] for x in fields})
+        self.assertIn('PRIN_MER', {x['field'] for x in fields})
+
+        boundaries = json.loads((TOOLS_ROOT / 'clearparcel' / 'datawatch' / 'minnesota_county_boundaries.json').read_text(encoding='utf-8'))
+        counties = json.loads((TOOLS_ROOT / 'clearparcel' / 'datawatch' / 'minnesota_counties.json').read_text(encoding='utf-8'))['counties']
+        self.assertEqual(len(boundaries['counties']), 87)
+        self.assertEqual(
+            {x['name'] for x in boundaries['counties']},
+            {x['name'] for x in counties},
+        )
+        self.assertTrue(all(x.get('rings') for x in boundaries['counties']))
+
     def test_load_config_resolves_and_overrides_aggregate_state_path(self):
         import tempfile
         with tempfile.TemporaryDirectory() as td:
@@ -51,6 +72,119 @@ class DataWatchTests(unittest.TestCase):
             with patch.dict(os.environ, {'CLEARPARCEL_WATCHTOWER_AGGREGATE_STATE_FILE': str(override)}):
                 loaded = load_data_config(config_path)
             self.assertEqual(Path(loaded['aggregate_state_file']), override)
+
+    def test_mngac_population_expressions_respect_standard_no_data_rules(self):
+        self.assertEqual(
+            datawatch._mngac_population_expression({'field': 'OWNER_NAME', 'data_type': 'Text'}, 'OWNER_NAME'),
+            "CASE WHEN OWNER_NAME IS NULL OR OWNER_NAME = '' THEN 0 ELSE 1 END",
+        )
+        self.assertEqual(
+            datawatch._mngac_population_expression({'field': 'EMV_TOTAL', 'data_type': 'Integer'}, 'EMV_TOTAL'),
+            "CASE WHEN EMV_TOTAL IS NULL OR EMV_TOTAL = 0 OR EMV_TOTAL = -9999 THEN 0 ELSE 1 END",
+        )
+        self.assertEqual(
+            datawatch._mngac_population_expression({'field': 'ACRES_POLY', 'data_type': 'Double'}, 'ACRES_POLY'),
+            "CASE WHEN ACRES_POLY IS NULL THEN 0 ELSE 1 END",
+        )
+        with self.assertRaises(ValueError):
+            datawatch._mngac_population_expression({'field': 'OWNER_NAME', 'data_type': 'Text'}, 'OWNER_NAME); INVALID_FIELD')
+
+    def test_mngac_completeness_uses_bounded_grouped_statistics_query(self):
+        field_names = ['OBJECTID', 'CO_NAME', 'CO_CODE', 'CTU_NAME', 'OWNER_NAME']
+        response = {'features': [
+            {'attributes': {'CO_NAME': 'Aitkin', 'CO_CODE': '27001', 'record_count': 10, 'p0': 10, 'p1': 10, 'p2': 10, 'p3': 8}},
+            {'attributes': {'CO_NAME': 'Anoka', 'CO_CODE': '27003', 'record_count': 20, 'p0': 20, 'p1': 20, 'p2': 20, 'p3': 10}},
+        ]}
+        with patch.object(datawatch, '_arcgis_query_params_json', return_value=(response, {'status': 200})) as query:
+            result = datawatch._arcgis_mngac_completeness(
+                'https://example.invalid/FeatureServer/0',
+                field_names,
+                'OBJECTID',
+                30,
+            )
+        self.assertEqual(query.call_count, 1)
+        self.assertEqual(result['statistics_queries'], 1)
+        self.assertEqual(result['covered_counties'], 2)
+        self.assertEqual(result['record_count'], 30)
+        self.assertEqual(result['field_count'], 91)
+        self.assertEqual(result['counties']['Aitkin']['fields']['OWNER_NAME']['percent'], 80.0)
+        self.assertEqual(result['fields']['OWNER_NAME']['populated'], 18)
+        self.assertEqual(result['fields']['OWNER_NAME']['percent'], 60.0)
+        self.assertEqual(result['fields']['OWNER_NAME']['counties_with_values'], 2)
+        self.assertIn('COUNTY_PIN', result['source_schema_missing_fields'])
+
+    def test_mngac_dashboard_map_county_page_and_exports(self):
+        import tempfile
+        import zipfile
+        import io
+        schema = datawatch_dashboard._load_mngac_schema()
+        specs = schema['fields']
+        def county(name, code, rows, owner_pct):
+            fields = {}
+            for spec in specs:
+                pct = 100.0 if spec['inclusion'] == 'Mandatory' else 0.0
+                if spec['field'] == 'OWNER_NAME':
+                    pct = owner_pct
+                populated = round(rows * pct / 100.0)
+                fields[spec['field']] = {'populated': populated, 'record_count': rows, 'percent': pct}
+            return {
+                'county_name': name, 'county_code': code, 'record_count': rows, 'fields': fields,
+                'fields_with_values': sum(1 for x in fields.values() if x['populated'] > 0),
+                'field_count': 91, 'field_population_percent': 25.0,
+                'mandatory_population_percent': 100.0, 'mandatory_fields_full': 7, 'mandatory_field_count': 7,
+            }
+        counties = {'Aitkin': county('Aitkin', '27001', 10, 80.0), 'Anoka': county('Anoka', '27003', 20, 50.0)}
+        fields = {}
+        for spec in specs:
+            values = [counties[x]['fields'][spec['field']] for x in counties]
+            populated = sum(x['populated'] for x in values)
+            total = sum(x['record_count'] for x in values)
+            fields[spec['field']] = {
+                'label': spec['label'], 'section': spec['section'], 'section_name': spec['section_name'],
+                'inclusion': spec['inclusion'], 'data_type': spec['data_type'],
+                'present_in_source_schema': True, 'populated': populated, 'record_count': total,
+                'percent': round(populated / total * 100.0, 2), 'counties_with_values': sum(x['populated'] > 0 for x in values),
+                'counties_covered': 2, 'county_median_percent': 100.0,
+            }
+        mngac = {
+            'standard': schema['standard'], 'method': 'test', 'covered_counties': 2, 'record_count': 30,
+            'field_count': 91, 'mandatory_field_count': 7, 'statistics_queries': 1,
+            'counties': counties, 'fields': fields,
+        }
+        state = {
+            'generated_at': '2026-10-05T12:00:00+00:00', 'overall': 'ok',
+            'counts': {'ok': 1, 'warn': 0, 'error': 0}, 'active_alerts': [],
+            'sources': {'mn-state-parcels': {
+                'id': 'mn-state-parcels', 'name': 'Minnesota Plan Parcels Open', 'status': 'ok',
+                'checked_at': '2026-10-05T12:00:00+00:00', 'mngac_completeness': mngac,
+            }},
+        }
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            state_file = root / 'state.json'
+            hist = root / 'history.jsonl'
+            state_file.write_text(json.dumps(state), encoding='utf-8')
+            hist.write_text('', encoding='utf-8')
+            config = {'state_file': str(state_file), 'history_file': str(hist), 'sources': []}
+            page = datawatch_dashboard.render_mngac(config)
+            self.assertIn('Interactive Minnesota MNGAC map', page)
+            self.assertEqual(page.count('class="mngac-county"'), 87)
+            self.assertIn('All 91 fields', page)
+            self.assertIn('No data', page)
+            self.assertIn('OWNER_NAME', page)
+            county_page = datawatch_dashboard.render_county(config, 'aitkin')
+            self.assertIn('MNGAC field completeness', county_page)
+            self.assertIn('80.00%', county_page)
+            self.assertIn('Conditional', county_page)
+            statewide = datawatch_dashboard._statewide_snapshot(config)
+            self.assertEqual(statewide['mngac']['covered_counties'], 2)
+            self.assertIn('OWNER_NAME', datawatch_dashboard._mngac_csv(statewide['mngac']))
+            xlsx = datawatch_dashboard._snapshot_xlsx(statewide)
+            with zipfile.ZipFile(io.BytesIO(xlsx)) as zf:
+                workbook = zf.read('xl/workbook.xml').decode('utf-8')
+            self.assertIn('MNGAC Counties', workbook)
+            self.assertIn('MNGAC Fields', workbook)
+            self.assertIn('MNGAC Detail', workbook)
 
     def test_schema_change_is_warning(self):
         changes = _compare({'schema_hash': 'old', 'feature_count': 10}, {'schema_hash': 'new', 'feature_count': 12})
@@ -863,7 +997,6 @@ class DataWatchTests(unittest.TestCase):
             os.environ.pop('CLEARPARCEL_WATCHTOWER_DASHBOARD_PASSWORD', None)
             with self.assertRaisesRegex(RuntimeError, 'CLEARPARCEL_WATCHTOWER_DASHBOARD_PASSWORD'):
                 datawatch_dashboard._dashboard_auth({'public_dashboard': {'internet_exposure': False}}, '0.0.0.0')
-
     def test_county_status_uses_explicit_slug_not_substring(self):
         state = {'sources': {'lake-source': {'name': 'Lake of the Woods County Parcels', 'provider': 'County', 'status': 'ok', 'county_slug': 'lake-of-the-woods'}}}
         lake = datawatch_dashboard._county_status({}, {'name': 'Lake', 'slug': 'lake'}, state)

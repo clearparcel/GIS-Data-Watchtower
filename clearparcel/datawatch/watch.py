@@ -32,6 +32,8 @@ USER_AGENT = "GIS-Data-Watchtower/0.1 (+https://github.com/clearparcel/GIS-Data-
 _REDIRECT_CODES = {301, 302, 303, 307, 308}
 _ANSI_ESCAPE_RE = re.compile(r"\x1b(?:\[[0-?]*[ -/]*[@-~]|\][^\x07]*(?:\x07|\x1b\\))")
 _MAX_DIAGNOSTIC_CHARS = 1024
+MNGAC_FIELDS_FILE = Path(__file__).with_name("mngac_parcel_fields.json")
+_MNGAC_NUMERIC_NO_VALUE_FIELDS = {"EMV_LAND","EMV_BLDG","EMV_TOTAL","TAX_YEAR","MKT_YEAR","TAX_CAPAC","TOTAL_TAX","SPEC_ASSES"}
 
 
 class ProviderResponseTooLargeError(RuntimeError):
@@ -460,6 +462,69 @@ def _post_json(url: str, payload: dict, timeout: int) -> tuple[dict, dict]:
         return data_obj, meta
     raise RuntimeError(f"provider redirect limit exceeded ({max_redirects})")
 
+def _arcgis_query_params_json(url: str, payload: dict, timeout: int, *, prefer_curl: bool = False) -> tuple[dict, dict]:
+    """POST bounded ArcGIS form parameters with the same redirect/response safeguards."""
+    _url_host(url)
+    body = urllib.parse.urlencode(payload).encode("utf-8")
+    if prefer_curl:
+        raw, meta = _curl_request(
+            url,
+            timeout,
+            transport="curl-form-preferred",
+            initial_url=url,
+            data=body,
+            content_type="application/x-www-form-urlencoded",
+        )
+        data_obj = json.loads(raw.decode("utf-8-sig"))
+        if isinstance(data_obj, dict) and "error" in data_obj:
+            raise RuntimeError(f"ArcGIS error: {_safe_diagnostic(data_obj['error'])}")
+        return data_obj, meta
+    current = url
+    max_redirects = _max_redirects()
+    for hop in range(max_redirects + 1):
+        try:
+            raw, meta = _urllib_request_once(
+                current,
+                timeout,
+                data=body,
+                content_type="application/x-www-form-urlencoded",
+            )
+        except (urllib.error.URLError, TimeoutError, OSError) as primary:
+            try:
+                raw, meta = _curl_request(
+                    current,
+                    timeout,
+                    transport="curl-form-fallback",
+                    initial_url=url,
+                    data=body,
+                    content_type="application/x-www-form-urlencoded",
+                )
+                meta["primary_error"] = _safe_diagnostic(f"{type(primary).__name__}: {primary}")
+            except Exception as fallback:
+                raise RuntimeError(
+                    f"ArcGIS form transport failed ({_safe_diagnostic(type(primary).__name__ + ': ' + str(primary))}); "
+                    f"curl fallback failed ({_safe_diagnostic(type(fallback).__name__ + ': ' + str(fallback))})"
+                ) from primary
+        status = int(meta.get("status") or 0)
+        if status in _REDIRECT_CODES:
+            location = meta.get("location")
+            if not location:
+                raise RuntimeError(f"provider returned redirect HTTP {status} without Location")
+            if status not in (307, 308):
+                raise RuntimeError(f"form POST redirect HTTP {status} rejected to avoid payload forwarding")
+            if hop >= max_redirects:
+                raise RuntimeError(f"provider redirect limit exceeded ({max_redirects})")
+            current = _validated_redirect(current, str(location), url)
+            continue
+        if status < 200 or status >= 300:
+            raise RuntimeError(f"provider returned HTTP {status}")
+        data_obj = json.loads(raw.decode("utf-8-sig"))
+        if isinstance(data_obj, dict) and "error" in data_obj:
+            raise RuntimeError(f"ArcGIS error: {_safe_diagnostic(data_obj['error'])}")
+        return data_obj, meta
+    raise RuntimeError(f"provider redirect limit exceeded ({max_redirects})")
+
+
 def _arcgis_url(url: str) -> str:
     parsed = urllib.parse.urlparse(url)
     query = urllib.parse.parse_qs(parsed.query)
@@ -581,6 +646,189 @@ def _field_completeness(url: str, field: str, total: int | None, timeout: int, *
     return {"field": field, "missing": missing, "populated": populated, "complete_percent": pct}
 
 
+def _load_mngac_schema() -> dict:
+    return json.loads(MNGAC_FIELDS_FILE.read_text(encoding="utf-8"))
+
+
+def _mngac_population_expression(field_spec: dict, actual_field: str) -> str:
+    if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", actual_field):
+        raise ValueError(f"unsafe MNGAC field name: {actual_field}")
+    data_type = str(field_spec.get("data_type") or "").lower()
+    canonical = str(field_spec.get("field") or "").upper()
+    if "text" in data_type:
+        return f"CASE WHEN {actual_field} IS NULL OR {actual_field} = '' THEN 0 ELSE 1 END"
+    if canonical in _MNGAC_NUMERIC_NO_VALUE_FIELDS:
+        return f"CASE WHEN {actual_field} IS NULL OR {actual_field} = 0 OR {actual_field} = -9999 THEN 0 ELSE 1 END"
+    return f"CASE WHEN {actual_field} IS NULL THEN 0 ELSE 1 END"
+
+
+def _median(values: list[float]) -> float | None:
+    clean = sorted(float(x) for x in values if isinstance(x, (int, float)))
+    if not clean:
+        return None
+    mid = len(clean) // 2
+    if len(clean) % 2:
+        return round(clean[mid], 2)
+    return round((clean[mid - 1] + clean[mid]) / 2.0, 2)
+
+
+def _arcgis_mngac_completeness(
+    url: str,
+    field_names: list[str],
+    object_id_field: str | None,
+    timeout: int,
+    *,
+    prefer_curl: bool = False,
+    batch_size: int = 12,
+) -> dict:
+    """Calculate bounded county/field population statistics for the MN GAC parcel schema.
+
+    This intentionally measures *population*, not full standards compliance. Conditional,
+    If Available, and Optional fields may be correctly blank for many records.
+    """
+    schema = _load_mngac_schema()
+    specs = list(schema.get("fields") or [])
+    by_lower = {str(name).lower(): str(name) for name in field_names}
+    county_field = by_lower.get("co_name")
+    code_field = by_lower.get("co_code")
+    oid_field = object_id_field or by_lower.get("objectid")
+    if not county_field or not code_field or not oid_field:
+        raise RuntimeError("MNGAC completeness requires CO_NAME, CO_CODE, and an object-id field")
+
+    present_specs = []
+    missing_fields = []
+    for spec in specs:
+        actual = by_lower.get(str(spec.get("field") or "").lower())
+        if actual:
+            present_specs.append((spec, actual))
+        else:
+            missing_fields.append(str(spec.get("field") or ""))
+
+    batch_size = max(1, min(int(batch_size or 12), 20))
+    counties: dict[str, dict] = {}
+    query_count = 0
+    for offset in range(0, len(present_specs), batch_size):
+        batch = present_specs[offset:offset + batch_size]
+        stats = [{
+            "statisticType": "count",
+            "onStatisticField": oid_field,
+            "outStatisticFieldName": "record_count",
+        }]
+        aliases = {}
+        for idx, (spec, actual) in enumerate(batch):
+            alias = f"p{idx}"
+            aliases[alias] = spec
+            stats.append({
+                "statisticType": "sum",
+                "onStatisticField": _mngac_population_expression(spec, actual),
+                "outStatisticFieldName": alias,
+            })
+        params = {
+            "where": "1=1",
+            "groupByFieldsForStatistics": f"{county_field},{code_field}",
+            "outFields": f"{county_field},{code_field}",
+            "outStatistics": json.dumps(stats, separators=(",", ":")),
+            "returnGeometry": "false",
+            "orderByFields": county_field,
+            "f": "json",
+        }
+        # Form POST keeps each grouped statistics request bounded and avoids long query URLs.
+        data, _ = _arcgis_query_params_json(url.rstrip("/") + "/query", params, timeout, prefer_curl=prefer_curl)
+        query_count += 1
+        for feature in data.get("features") or []:
+            attrs = feature.get("attributes") or {}
+            county_name = str(attrs.get(county_field) or "").strip()
+            if not county_name:
+                continue
+            record_count = _validated_provider_count(int(attrs.get("record_count") or 0), label=f"{county_name} MNGAC row count")
+            entry = counties.setdefault(county_name, {
+                "county_name": county_name,
+                "county_code": str(attrs.get(code_field) or "").strip() or None,
+                "record_count": record_count,
+                "fields": {},
+            })
+            entry["record_count"] = record_count
+            for alias, spec in aliases.items():
+                raw = attrs.get(alias)
+                populated = 0 if raw is None else int(raw)
+                populated = max(0, min(populated, record_count))
+                pct = None if record_count == 0 else round(populated / record_count * 100.0, 2)
+                entry["fields"][spec["field"]] = {
+                    "populated": populated,
+                    "record_count": record_count,
+                    "percent": pct,
+                }
+
+    all_field_count = len(specs)
+    mandatory_fields = [x["field"] for x in specs if x.get("inclusion") == "Mandatory"]
+    for entry in counties.values():
+        record_count = int(entry.get("record_count") or 0)
+        fields = entry["fields"]
+        populated_cells = sum(int((fields.get(x["field"]) or {}).get("populated") or 0) for x in specs)
+        possible_cells = record_count * all_field_count
+        mandatory_populated = sum(int((fields.get(field) or {}).get("populated") or 0) for field in mandatory_fields)
+        mandatory_possible = record_count * len(mandatory_fields)
+        entry["fields_with_values"] = sum(1 for x in specs if int((fields.get(x["field"]) or {}).get("populated") or 0) > 0)
+        entry["field_count"] = all_field_count
+        entry["field_population_percent"] = None if not possible_cells else round(populated_cells / possible_cells * 100.0, 2)
+        entry["mandatory_population_percent"] = None if not mandatory_possible else round(mandatory_populated / mandatory_possible * 100.0, 2)
+        entry["mandatory_fields_full"] = sum(
+            1 for field in mandatory_fields if (fields.get(field) or {}).get("percent") == 100.0
+        )
+        entry["mandatory_field_count"] = len(mandatory_fields)
+
+    field_summaries = {}
+    total_records = sum(int(x.get("record_count") or 0) for x in counties.values())
+    for spec in specs:
+        field = spec["field"]
+        populated = sum(int((x["fields"].get(field) or {}).get("populated") or 0) for x in counties.values())
+        percentages = [
+            (x["fields"].get(field) or {}).get("percent")
+            for x in counties.values()
+            if isinstance((x["fields"].get(field) or {}).get("percent"), (int, float))
+        ]
+        field_summaries[field] = {
+            "label": spec.get("label"),
+            "section": spec.get("section"),
+            "section_name": spec.get("section_name"),
+            "inclusion": spec.get("inclusion"),
+            "data_type": spec.get("data_type"),
+            "present_in_source_schema": field not in missing_fields,
+            "populated": populated if field not in missing_fields else None,
+            "record_count": total_records if field not in missing_fields else None,
+            "percent": None if field in missing_fields or total_records == 0 else round(populated / total_records * 100.0, 2),
+            "counties_with_values": sum(1 for x in counties.values() if int((x["fields"].get(field) or {}).get("populated") or 0) > 0),
+            "counties_covered": len(counties),
+            "county_median_percent": _median(percentages),
+        }
+
+    mandatory_populated_cells = sum(
+        int((entry["fields"].get(field) or {}).get("populated") or 0)
+        for entry in counties.values() for field in mandatory_fields
+    )
+    return {
+        "standard": schema.get("standard") or {},
+        "method": "ArcGIS grouped statistics; text blanks and nulls are unpopulated; standard tax/value fields that define 0 as No value and -9999 as No data treat both as unpopulated.",
+        "covered_counties": len(counties),
+        "record_count": total_records,
+        "field_count": all_field_count,
+        "mandatory_field_count": len(mandatory_fields),
+        "source_schema_missing_fields": missing_fields,
+        "statistics_queries": query_count,
+        "field_population_percent": None if not total_records or not all_field_count else round(
+            sum(
+                int((entry["fields"].get(spec["field"]) or {}).get("populated") or 0)
+                for entry in counties.values() for spec in specs
+            ) / (total_records * all_field_count) * 100.0, 2
+        ),
+        "mandatory_population_percent": None if not total_records or not mandatory_fields else round(
+            mandatory_populated_cells / (total_records * len(mandatory_fields)) * 100.0, 2
+        ),
+        "counties": counties,
+        "fields": field_summaries,
+    }
+
+
 def _arcgis_geometry_sample(url: str, timeout: int, *, sample_size: int = 250, prefer_curl: bool = False) -> dict:
     """Retrieve a bounded geometry sample and calculate lightweight geometry signals."""
     query_url = url.rstrip("/") + "/query?" + urllib.parse.urlencode({
@@ -649,6 +897,7 @@ def _arcgis_layer(source: dict, timeout: int) -> dict:
         "type": data.get("type"),
         "geometry_type": data.get("geometryType"),
         "wkid": _spatial_wkid(data),
+        "object_id_field": data.get("objectIdField") or data.get("objectIdFieldName"),
         "field_count": len(fields_sorted),
         "field_names": [x["name"] for x in fields_sorted],
         "max_record_count": data.get("maxRecordCount"),
@@ -658,6 +907,24 @@ def _arcgis_layer(source: dict, timeout: int) -> dict:
     }
     if source.get("count"):
         result["feature_count"] = _arcgis_count_query(source["url"], "1=1", timeout, prefer_curl=bool(source.get("prefer_curl")))
+    if source.get("mngac_completeness"):
+        settings = source.get("mngac_completeness")
+        if not isinstance(settings, dict):
+            settings = {}
+        try:
+            result["mngac_completeness"] = _arcgis_mngac_completeness(
+                source["url"],
+                result["field_names"],
+                result.get("object_id_field"),
+                int(settings.get("timeout_seconds", max(timeout, 60))),
+                prefer_curl=bool(source.get("prefer_curl")),
+                batch_size=int(settings.get("batch_size", 12)),
+            )
+        except Exception as exc:
+            result["mngac_completeness"] = {
+                "status": "unsupported",
+                "error": _safe_diagnostic(exc),
+            }
     if source.get("parcel_quality"):
         id_field, confidence = _parcel_id_candidate(result["field_names"])
         result["parcel_id_field"] = id_field
