@@ -1,6 +1,6 @@
 # Contributing
 
-Contributions are welcome after the repository is approved for public release.
+Contributions are welcome. GIS Data Watchtower is a public pre-1.0 project, so changes should preserve the documented provider-use, privacy, and compatibility boundaries.
 
 Before submitting a change:
 

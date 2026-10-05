@@ -1,93 +1,99 @@
 # GIS Data Watchtower processing architecture
 
-## Current deployment
+Last reviewed: **2026-10-05**
 
-A local workstation is the authoritative Watchtower processor during the development and validation phase.
+GIS Data Watchtower is cloud-neutral at the monitoring-engine layer and supports local, cloud, and hybrid execution.
 
-The machine performs:
+## Components
 
-1. source collection and ArcGIS/OGC queries;
-2. Watchtower change and QA analysis;
-3. local state/history persistence;
-4. snapshot generation; and
-5. private LAN dashboard serving.
+### Monitoring engine
 
-Remote GIS providers still perform query operations that their APIs expose, such as feature counts and server-side statistics. Watchtower interprets and persists the results.
+The Python monitoring engine:
 
-## Portability boundary
+1. selects sources from the configured execution profile;
+2. performs bounded ArcGIS/OGC/API checks;
+3. validates and compares observations;
+4. records source health, changes, telemetry, and alerts; and
+5. persists state/history through the configured storage boundary.
 
-New Watchtower processing code should remain portable across Windows and Linux.
-
-### Processing engine
-
-The collection/QA layer must not depend on:
-
-- Windows drive letters;
-- Windows Task Scheduler;
-- interactive desktop sessions;
-- specific workstation host names;
-- local-only secrets; or
-- dashboard HTTP state.
-
-Configuration and state locations should be supplied through CLI arguments, configuration, or environment variables.
+The engine must remain portable across Windows and Linux. It must not depend on workstation names, drive letters, interactive sessions, embedded secrets, or dashboard process state.
 
 ### Persistence
 
-The current JSON/JSONL state implementation is the local development backend.
+The supported persistence boundary consists of:
 
-The intended boundary is:
+- current state;
+- bounded/rotated history;
+- alert artifacts;
+- optional shared hybrid aggregate state; and
+- snapshot/export output.
 
-- current-state store;
-- append-only observation/history store;
-- snapshot/export store.
+Local filesystem storage is the default. Google Cloud Storage is optional. Read/modify/write cloud artifacts use storage-generation preconditions; local aggregate publication uses lock-and-replace semantics so stale writers fail rather than silently overwriting newer observations.
 
-A future hosted implementation can map those roles to object storage and/or a database without rewriting source adapters.
+### Hybrid aggregation
 
-### Dashboard
+Cloud and local workers may own different source subsets. Each profiled worker publishes only its observations. The aggregate merger preserves observations from other workers and stamps worker provenance, last-report time, last-success time, counts, and telemetry.
 
-The dashboard is a consumer of Watchtower state. It should not be the scheduler or authoritative processor.
+Freshness is separate from source health: an otherwise healthy source can be overdue, and a freshly checked source can be unhealthy.
 
-This separation permits:
+See [hybrid-aggregation.md](hybrid-aggregation.md) and [hybrid-execution.md](hybrid-execution.md).
 
-- local processing + a private LAN dashboard today;
-- scheduled cloud processing + hosted dashboard later;
-- static/public dashboard exports without exposing operational state.
+### Dashboard and exports
 
-## Production migration candidates
+The dashboard is a **consumer of persisted state**, not the authoritative scheduler.
 
-### Google Cloud Run — leading target
+The built-in private dashboard can display local or aggregate state and produce JSON, CSV, and Excel snapshots. A separate hosted deployment may expose the dashboard read-only behind an authentication layer such as IAP. The HTML page refresh reads saved state; it does not poll GIS providers.
 
-Strong fit when Watchtower becomes scheduled production infrastructure:
+Static-site generation uses a reduced public schema and omits detailed change payloads, fingerprints, tracked values, provider URLs, and other private diagnostics.
 
-- containerized Python runtime;
-- scheduled execution through Cloud Scheduler / job orchestration;
-- no requirement to keep a workstation online;
-- well suited to scheduled container execution;
-- processing and dashboard can be deployed separately.
+## Supported deployment patterns
 
-Before migration, measure real Watchtower runtime, memory, outbound request volume, history growth, and geometry-QA cost.
+### Local
 
-### Cloudflare
+A workstation or server runs ordinary unprofiled checks and stores state locally. This remains the simplest deployment.
 
-Potential fit for dashboard/static delivery and lightweight orchestration. Heavy GIS geometry processing should be evaluated against runtime/memory limits before selecting it as the primary processor.
+### Cloud
 
-### Small VPS/container host
+A Cloud Run Job can execute a cloud profile and persist state in GCS. Secret/runtime source configuration is supplied outside the public repository.
 
-Viable fallback when predictable always-on execution and filesystem/database control are more important than serverless operation. Carries more patching and operational responsibility.
+### Hybrid
 
-## Migration gates
+The validated ClearParcel staging pattern is:
 
-Do not migrate merely because the code can run in the cloud. Migrate when:
+```text
+Cloud worker (cloud profile)
+              \
+               -> shared aggregate -> dashboard / exports
+              /
+Local worker (local profile)
+```
 
-1. source coverage and QA behavior are stable;
-2. processing runtime is measured;
-3. history/storage requirements are understood;
-4. secrets/configuration are externalized;
-5. processing can run unattended;
-6. state persistence has a cloud-capable implementation;
-7. dashboard authentication/exposure requirements are defined; and
-8. estimated hosted cost is justified by 24/7 availability.
+This supports providers that permit cloud egress alongside providers that must remain local. It is not a mechanism for bypassing provider network restrictions.
 
-## Current decision
+## Current validated posture
 
-Continue local processing during validation while building to the portability boundary above. Treat Google Cloud Run as the leading long-term option, not a hard dependency.
+As of 2026-10-05:
+
+- the public package and container pass Windows/Linux CI;
+- a private Cloud Run staging worker successfully checks 22 cloud-profile sources;
+- a local worker successfully checks 4 provider-restricted sources;
+- the unified aggregate has been validated at 26/26 healthy observations with no unassigned sources;
+- the private hosted dashboard consumes the shared aggregate;
+- JSON, CSV, and Excel statewide exports contain the complete aggregate source set;
+- Cloud Run startup/provisioning may take several minutes before the container reaches Started; see [google-cloud-deployment.md](google-cloud-deployment.md);
+- Cloud Scheduler is intentionally not enabled for the staging deployment;
+- the existing local production schedule remains authoritative while the multi-day parallel validation gate is open.
+
+## Production migration gate
+
+A production orchestration change should occur only after:
+
+1. multiple parallel validation cycles retain the complete expected aggregate;
+2. no unresolved status/count/schema parity differences remain;
+3. worker/source freshness behaves correctly at the intended cadence;
+4. concurrency protection preserves all writers under overlap;
+5. dashboard and exports remain complete;
+6. provider-use constraints remain satisfied; and
+7. the operator explicitly approves any production scheduling change.
+
+Cloud Run is a validated execution target, not a dependency of the core package.

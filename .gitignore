@@ -5,11 +5,10 @@ __pycache__/
 *.egg-info/
 build/
 dist/
-datawatch/state.json
-datawatch/state.json.bak
-datawatch/state.json.lock
-datawatch/history.jsonl*
-datawatch/alerts.json
-datawatch/alerts.txt
-datawatch/latest.txt
+/datawatch/
 .env
+.env.*
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage

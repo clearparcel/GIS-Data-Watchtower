@@ -7,7 +7,13 @@ if not exist "%PYTHON%" (
   exit /b 2
 )
 set "PYTHONPATH=%ROOT%;%PYTHONPATH%"
-"%PYTHON%" -m clearparcel.datawatch --config "%ROOT%config\example_sources.json" check > "%ROOT%datawatch\latest.txt" 2>&1
+if not exist "%ROOT%datawatch" mkdir "%ROOT%datawatch"
+if defined CLEARPARCEL_WATCHTOWER_CONFIG (
+  set "CONFIG=%CLEARPARCEL_WATCHTOWER_CONFIG%"
+) else (
+  set "CONFIG=%ROOT%config\example_sources.json"
+)
+"%PYTHON%" -m clearparcel.datawatch --config "%CONFIG%" check > "%ROOT%datawatch\latest.txt" 2>&1
 set "RC=%ERRORLEVEL%"
 if not "%RC%"=="0" exit /b %RC%
 exit /b 0

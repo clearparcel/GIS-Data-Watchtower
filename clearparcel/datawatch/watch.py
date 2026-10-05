@@ -218,6 +218,7 @@ def load_config(path: str | Path) -> dict:
         "history_file": "CLEARPARCEL_WATCHTOWER_HISTORY_FILE",
         "alerts_file": "CLEARPARCEL_WATCHTOWER_ALERTS_FILE",
         "alerts_text_file": "CLEARPARCEL_WATCHTOWER_ALERTS_TEXT_FILE",
+        "aggregate_state_file": "CLEARPARCEL_WATCHTOWER_AGGREGATE_STATE_FILE",
     }
     for key, env_name in overrides.items():
         env_value = os.environ.get(env_name)

@@ -1,3 +1,4 @@
+# Python 3.13 is the validated container baseline; CI separately verifies package compatibility on 3.12-3.14.
 FROM python:3.13-slim
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl && rm -rf /var/lib/apt/lists/*
