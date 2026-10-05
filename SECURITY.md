@@ -18,4 +18,4 @@ Provider responses are bounded by `WATCHTOWER_MAX_RESPONSE_BYTES` (16 MiB by def
 
 Cloud-backed state, history, alert, and aggregate read/modify/write operations use storage-version preconditions so a stale worker fails closed rather than overwriting a newer object. The built-in private dashboard also bounds request bodies, socket time, and concurrent handlers. Deployment proxies should retain their own connection, request-size, and timeout limits as defense in depth.
 
-Static dashboard publication uses a deliberately reduced public schema. Detailed change payloads, fingerprints, tracked values, provider URLs, and other private diagnostic fields are not copied into public `state.json`.
+Public dashboard publication uses a deliberately reduced schema. Both static publication and the hosted read-only renderer exclude detailed change payloads, fingerprints, tracked values, operational provider URLs, provenance details, worker telemetry, and other private diagnostic fields. The hosted public service should receive read access only to the shared aggregate object and should not receive the private provider registry or provider credentials.

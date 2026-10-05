@@ -5,6 +5,8 @@
 
 GIS Data Watchtower is a lightweight Python monitor for public GIS services. It checks whether configured services are reachable, records meaningful changes over time, performs bounded parcel-data quality checks, and provides a plain-language dashboard without republishing source datasets.
 
+ClearParcel also operates a read-only public dashboard at **https://gis-watchtower.clear-parcel.com**. The hosted view is deliberately sanitized and is separate from the private operational dashboard.
+
 ## What it monitors
 
 - ArcGIS FeatureServer, MapServer, and ImageServer endpoints

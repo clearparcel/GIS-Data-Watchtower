@@ -33,6 +33,12 @@ The hardened post-security-review build was revalidated end-to-end on 2026-10-05
 
 The same staging architecture also validated the MN GAC completeness feature against MnGeo Plan Parcels Open. The 2026-10-05 observation represented **59 of 87 counties**, **2,710,201 parcel records**, and all **91 standard fields** using **8 bounded grouped-statistics queries**. The other 28 counties are reported as **No data**, not 0%. The observed record-weighted all-field population was **42.92%** and Mandatory-field population was **78.37%**; these are descriptive population statistics, not compliance grades. The full cloud retry after this feature was enabled returned **22/22 OK**, preserving the **26/26** hybrid aggregate.
 
+## Public dashboard hosting
+
+A separate read-only Cloud Run service serves the shareable dashboard at **https://gis-watchtower.clear-parcel.com** through a Google Cloud external Application Load Balancer. The service reads the shared aggregate from Google Cloud Storage using a dedicated service account restricted to that aggregate object. It does not receive the private provider registry or provider credentials.
+
+The public renderer removes operational provider URLs, raw change payloads, tracked values, fingerprints, provenance details, and worker telemetry before rendering or exporting state. The existing private operational dashboard remains separate. Cloudflare is used only for authoritative DNS for the hostname; the record is DNS-only and application traffic is served by Google Cloud.
+
 ## Staging architecture
 
 ```text

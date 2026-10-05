@@ -32,6 +32,14 @@ The project is tested on:
 
 The Linux 3.14 matrix leg also smoke-tests the Docker image.
 
+## Hosted public dashboard
+
+The shareable read-only dashboard is hosted at **https://gis-watchtower.clear-parcel.com**. Public traffic terminates on a Google Cloud external Application Load Balancer and is routed through a serverless NEG to a dedicated Cloud Run service. The Cloud Run service reads only the shared aggregate object in Google Cloud Storage with a dedicated least-privilege service account.
+
+The public rendering path strips operational provider URLs, raw change payloads, tracked values, schema/observation fingerprints, provenance, and worker telemetry. It preserves derived health/freshness summaries, county views, MN GAC completeness, the interactive county map, public catalog/contact references, and JSON/CSV/Excel exports. The private operational dashboard remains separate and is not made anonymously accessible.
+
+Cloudflare remains authoritative for the parent DNS zone, but the Watchtower record is DNS-only; dashboard content and TLS termination are handled by Google Cloud.
+
 ## Validated cloud staging
 
 A private Google Cloud staging deployment has been validated in `us-central1`.
