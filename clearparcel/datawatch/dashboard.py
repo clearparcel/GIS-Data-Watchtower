@@ -641,9 +641,9 @@ def render_mngac(config: dict) -> str:
     payload_json = json.dumps(payload, separators=(",", ":"), ensure_ascii=False).replace("</", "<\\/")
     map_svg = _mngac_map_svg()
     body = f"""
-<p><a href="/counties">← Minnesota counties</a> · <a href="/snapshot.xlsx">Statewide Excel with MNGAC sheets</a></p>
+<p><a href="/counties">← Minnesota counties</a> · <a href="/mngac.csv">Download field summary (CSV)</a> · <a href="/mngac.json">Download MN GAC data (JSON)</a> · <a href="/snapshot.xlsx">Statewide Excel with MN GAC sheets</a></p>
 <div class="grid primary-grid">
-  <div class="card"><div class="muted">MNGAC fields</div><div class="metric">{field_count}</div><span class="subtext">{_esc(standard.get("name") or "MN GAC Parcel Data Standard")} v{_esc(standard.get("version") or "—")}.</span></div>
+  <div class="card"><div class="muted">Standard fields</div><div class="metric">{field_count}</div><span class="subtext">{_esc(standard.get("name") or "MN GAC Parcel Data Standard")} v{_esc(standard.get("version") or "—")}.</span></div>
   <div class="card"><div class="muted">Counties represented</div><div class="metric">{covered}/{total_counties}</div><span class="subtext">Counties currently represented in MnGeo Plan Parcels Open.</span></div>
   <div class="card"><div class="muted">Not represented</div><div class="metric">{uncovered}</div><span class="subtext">Shown as No data on the map, not as 0% populated.</span></div>
   <div class="card"><div class="muted">Open parcel records</div><div class="metric">{record_count:,}</div><span class="subtext">Parcel records included in the current MnGeo statewide open layer.</span></div>
@@ -654,7 +654,7 @@ def render_mngac(config: dict) -> str:
 </div>
 <div class="mngac-note"><strong>How to read these percentages:</strong> this page measures whether standardized MNGAC fields contain values. It is <strong>not a compliance score</strong>. Conditional fields may be correctly blank when their condition does not apply; “If Available” fields are only required when the provider has the data; Optional fields may be blank. Mandatory-field population is shown separately. Source: {standard_link}. Observation: {_format_time_pair(observed_at)}</div>
 <div class="card">
-  <div class="section-head"><div><h2>Interactive Minnesota MNGAC map</h2><p>Select a statistic, then click or keyboard-select any county to inspect it.</p></div></div>
+  <div class="section-head"><div><h2>Interactive Minnesota county map</h2><p>Select an MN GAC field or summary statistic, then click or keyboard-select any county to inspect it.</p></div></div>
   <div class="mngac-controls">
     <label>Map statistic<select id="mngac-metric">{"".join(options)}</select></label>
   </div>
@@ -662,11 +662,11 @@ def render_mngac(config: dict) -> str:
     <div class="mngac-map-panel">{map_svg}
       <div class="mngac-legend" aria-label="Map legend">
         <span><i class="mngac-swatch" style="background:#d5dbe0"></i>No data</span>
-        <span><i class="mngac-swatch" style="background:#edf5e5"></i>0–25%</span>
-        <span><i class="mngac-swatch" style="background:#cbe6b5"></i>25–50%</span>
-        <span><i class="mngac-swatch" style="background:#9ace72"></i>50–75%</span>
-        <span><i class="mngac-swatch" style="background:#64a743"></i>75–90%</span>
-        <span><i class="mngac-swatch" style="background:#2d6a4f"></i>90–100%</span>
+        <span><i class="mngac-swatch" style="background:#edf3f8"></i>0–25%</span>
+        <span><i class="mngac-swatch" style="background:#d7e6f2"></i>25–50%</span>
+        <span><i class="mngac-swatch" style="background:#a9c9df"></i>50–75%</span>
+        <span><i class="mngac-swatch" style="background:#6f9fbe"></i>75–90%</span>
+        <span><i class="mngac-swatch" style="background:#2f668f"></i>90–100%</span>
       </div>
     </div>
     <div class="card mngac-detail" id="mngac-detail" aria-live="polite">
@@ -678,10 +678,10 @@ def render_mngac(config: dict) -> str:
     </div>
   </div>
 </div>
-<div class="section-head"><div><h2>Statewide MNGAC fields</h2><p>Population across all parcel records currently represented by MnGeo, plus county-level coverage.</p></div></div>
+<div class="section-head"><div><h2>Statewide MN GAC field completeness</h2><p>Population across all parcel records currently represented by MnGeo, plus county-level coverage.</p></div></div>
 <div class="card">
   <div class="filters">
-    <input id="mngac-q" placeholder="Filter MNGAC fields…" aria-label="Filter MNGAC fields">
+    <input id="mngac-q" placeholder="Filter standard fields…" aria-label="Filter MN GAC fields">
     <select id="mngac-inclusion" aria-label="Filter inclusion category"><option value="">All inclusion categories</option><option>Mandatory</option><option>Conditional</option><option>If Available</option><option>Optional</option></select>
   </div>
   <div class="mngac-table-wrap"><table id="mngac-fields"><thead><tr>
@@ -698,7 +698,7 @@ def render_mngac(config: dict) -> str:
   const paths=[...root.querySelectorAll('.mngac-county')];
   const q=root.getElementById('mngac-q'),inc=root.getElementById('mngac-inclusion');
   let selected=null;
-  const colors=['#edf5e5','#cbe6b5','#9ace72','#64a743','#2d6a4f'];
+  const colors=['#edf3f8','#d7e6f2','#a9c9df','#6f9fbe','#2f668f'];
   function metricMeta(key){{
     if(key==='__overall__')return {{label:'All 91 fields — row population rate',inclusion:'Descriptive'}};
     if(key==='__mandatory__')return {{label:'Mandatory fields — row population rate',inclusion:'Mandatory'}};
@@ -808,18 +808,18 @@ def _render_county_mngac(state: dict, county: dict) -> str:
     data, stats = _mngac_county_record(state, str(county.get("name") or ""))
     if not data:
         return (
-            '<div class="card"><h2>MNGAC field completeness</h2>'
-            '<p class="muted">A stored statewide MNGAC completeness observation is not available yet.</p>'
-            '<p><a href="/mngac">Open statewide MNGAC page →</a></p></div>'
+            '<div class="card"><h2>MN GAC field completeness</h2>'
+            '<p class="muted">A stored statewide MN GAC completeness observation is not available yet.</p>'
+            '<p><a href="/mngac">Open statewide MN GAC page →</a></p></div>'
         )
     standard = data.get("standard") or _load_mngac_schema().get("standard") or {}
     if not stats:
         return (
-            '<div class="card"><h2>MNGAC field completeness</h2>'
+            '<div class="card"><h2>MN GAC field completeness</h2>'
             '<p>This county is not represented in the current MnGeo Plan Parcels Open layer. '
             'Watchtower reports this as <strong>No data</strong>, not 0% populated.</p>'
             f'<p class="subtext">The statewide open layer currently represents {_esc(data.get("covered_counties") or 0)} of 87 Minnesota counties.</p>'
-            '<p><a href="/mngac">Explore the statewide MNGAC map →</a></p></div>'
+            '<p><a href="/mngac">Explore the statewide MN GAC map →</a></p></div>'
         )
     record_count = int(stats.get("record_count") or 0)
     field_count = int(stats.get("field_count") or 0)
@@ -830,7 +830,7 @@ def _render_county_mngac(state: dict, county: dict) -> str:
     mandatory_count = int(stats.get("mandatory_field_count") or 0)
     rows = _mngac_field_rows(stats)
     return f"""
-<div class="section-head"><div><h2>MNGAC field completeness</h2><p>Population of the official Minnesota GAC parcel-transfer fields for this county in MnGeo Plan Parcels Open.</p></div><a href="/mngac">Statewide map →</a></div>
+<div class="section-head"><div><h2>MN GAC field completeness</h2><p>Population of the official Minnesota GAC parcel-transfer fields for this county in MnGeo Plan Parcels Open.</p></div><a href="/mngac">Statewide map →</a></div>
 <div class="grid primary-grid">
   <div class="card"><div class="muted">MnGeo parcel records</div><div class="metric">{record_count:,}</div><span class="subtext">Records used as the denominator for county field-population percentages.</span></div>
   <div class="card"><div class="muted">Fields with values</div><div class="metric">{fields_with_values}/{field_count}</div><span class="subtext">Standard fields containing at least one populated value in this county.</span></div>

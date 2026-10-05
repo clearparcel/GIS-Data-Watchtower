@@ -462,69 +462,6 @@ def _post_json(url: str, payload: dict, timeout: int) -> tuple[dict, dict]:
         return data_obj, meta
     raise RuntimeError(f"provider redirect limit exceeded ({max_redirects})")
 
-def _arcgis_query_params_json(url: str, payload: dict, timeout: int, *, prefer_curl: bool = False) -> tuple[dict, dict]:
-    """POST bounded ArcGIS form parameters with the same redirect/response safeguards."""
-    _url_host(url)
-    body = urllib.parse.urlencode(payload).encode("utf-8")
-    if prefer_curl:
-        raw, meta = _curl_request(
-            url,
-            timeout,
-            transport="curl-form-preferred",
-            initial_url=url,
-            data=body,
-            content_type="application/x-www-form-urlencoded",
-        )
-        data_obj = json.loads(raw.decode("utf-8-sig"))
-        if isinstance(data_obj, dict) and "error" in data_obj:
-            raise RuntimeError(f"ArcGIS error: {_safe_diagnostic(data_obj['error'])}")
-        return data_obj, meta
-    current = url
-    max_redirects = _max_redirects()
-    for hop in range(max_redirects + 1):
-        try:
-            raw, meta = _urllib_request_once(
-                current,
-                timeout,
-                data=body,
-                content_type="application/x-www-form-urlencoded",
-            )
-        except (urllib.error.URLError, TimeoutError, OSError) as primary:
-            try:
-                raw, meta = _curl_request(
-                    current,
-                    timeout,
-                    transport="curl-form-fallback",
-                    initial_url=url,
-                    data=body,
-                    content_type="application/x-www-form-urlencoded",
-                )
-                meta["primary_error"] = _safe_diagnostic(f"{type(primary).__name__}: {primary}")
-            except Exception as fallback:
-                raise RuntimeError(
-                    f"ArcGIS form transport failed ({_safe_diagnostic(type(primary).__name__ + ': ' + str(primary))}); "
-                    f"curl fallback failed ({_safe_diagnostic(type(fallback).__name__ + ': ' + str(fallback))})"
-                ) from primary
-        status = int(meta.get("status") or 0)
-        if status in _REDIRECT_CODES:
-            location = meta.get("location")
-            if not location:
-                raise RuntimeError(f"provider returned redirect HTTP {status} without Location")
-            if status not in (307, 308):
-                raise RuntimeError(f"form POST redirect HTTP {status} rejected to avoid payload forwarding")
-            if hop >= max_redirects:
-                raise RuntimeError(f"provider redirect limit exceeded ({max_redirects})")
-            current = _validated_redirect(current, str(location), url)
-            continue
-        if status < 200 or status >= 300:
-            raise RuntimeError(f"provider returned HTTP {status}")
-        data_obj = json.loads(raw.decode("utf-8-sig"))
-        if isinstance(data_obj, dict) and "error" in data_obj:
-            raise RuntimeError(f"ArcGIS error: {_safe_diagnostic(data_obj['error'])}")
-        return data_obj, meta
-    raise RuntimeError(f"provider redirect limit exceeded ({max_redirects})")
-
-
 def _arcgis_url(url: str) -> str:
     parsed = urllib.parse.urlparse(url)
     query = urllib.parse.parse_qs(parsed.query)
@@ -732,8 +669,8 @@ def _arcgis_mngac_completeness(
             "orderByFields": county_field,
             "f": "json",
         }
-        # Form POST keeps each grouped statistics request bounded and avoids long query URLs.
-        data, _ = _arcgis_query_params_json(url.rstrip("/") + "/query", params, timeout, prefer_curl=prefer_curl)
+        query_url = url.rstrip("/") + "/query?" + urllib.parse.urlencode(params)
+        data, _ = _json_request(query_url, timeout, prefer_curl=prefer_curl)
         query_count += 1
         for feature in data.get("features") or []:
             attrs = feature.get("attributes") or {}
