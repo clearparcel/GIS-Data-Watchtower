@@ -2,11 +2,15 @@ from __future__ import annotations
 
 import datetime as dt
 import hashlib
+import ipaddress
 import json
 import os
+import re
 import shutil
+import socket
 import subprocess
 import sys
+import tempfile
 import tracemalloc
 import time
 import urllib.error
@@ -23,7 +27,187 @@ class ProviderRateLimitError(RuntimeError):
         super().__init__(f"provider rate limit (HTTP 429); retry-after={retry_after or 'unspecified'}")
 
 
+
 USER_AGENT = "GIS-Data-Watchtower/0.1 (+https://github.com/clearparcel/GIS-Data-Watchtower)"
+_REDIRECT_CODES = {301, 302, 303, 307, 308}
+_ANSI_ESCAPE_RE = re.compile(r"\x1b(?:\[[0-?]*[ -/]*[@-~]|\][^\x07]*(?:\x07|\x1b\\))")
+_MAX_DIAGNOSTIC_CHARS = 1024
+
+
+class ProviderResponseTooLargeError(RuntimeError):
+    """A provider response exceeded the configured byte budget."""
+
+
+class _NoRedirectHandler(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+def _safe_diagnostic(value, limit: int = _MAX_DIAGNOSTIC_CHARS) -> str:
+    """Make lower-trust diagnostics inert in JSON, terminals, and line-oriented logs."""
+    text = _ANSI_ESCAPE_RE.sub("", str(value if value is not None else ""))
+    out = []
+    for char in text:
+        code = ord(char)
+        if char in "\r\n\t":
+            out.append(" ")
+        elif code < 32 or 127 <= code < 160:
+            out.append(f"\\x{code:02x}")
+        else:
+            out.append(char)
+    cleaned = re.sub(r"\s+", " ", "".join(out)).strip()
+    if len(cleaned) > max(16, int(limit)):
+        cleaned = cleaned[: max(15, int(limit) - 1)] + "…"
+    return cleaned
+
+
+def _max_response_bytes() -> int:
+    default = 16 * 1024 * 1024
+    hard_max = 128 * 1024 * 1024
+    try:
+        value = int(os.environ.get("WATCHTOWER_MAX_RESPONSE_BYTES", default))
+    except (TypeError, ValueError):
+        value = default
+    return max(1024, min(value, hard_max))
+
+
+def _read_bounded(stream, limit: int | None = None) -> bytes:
+    limit = _max_response_bytes() if limit is None else max(1, int(limit))
+    chunks = []
+    total = 0
+    while True:
+        chunk = stream.read(min(65536, limit - total + 1))
+        if not chunk:
+            break
+        total += len(chunk)
+        if total > limit:
+            raise ProviderResponseTooLargeError(f"provider response exceeded {limit} bytes")
+        chunks.append(chunk)
+    return b"".join(chunks)
+
+
+def _redirect_allow_hosts() -> set[str]:
+    return {
+        item.strip().lower().rstrip(".")
+        for item in os.environ.get("WATCHTOWER_REDIRECT_ALLOW_HOSTS", "").split(",")
+        if item.strip()
+    }
+
+
+def _url_host(url: str) -> str:
+    parsed = urllib.parse.urlparse(url)
+    if parsed.scheme.lower() not in ("http", "https"):
+        raise RuntimeError(f"redirect rejected: unsupported scheme {parsed.scheme or '<none>'}")
+    if parsed.username is not None or parsed.password is not None:
+        raise RuntimeError("redirect rejected: URL userinfo is not allowed")
+    if not parsed.hostname:
+        raise RuntimeError("redirect rejected: destination has no hostname")
+    return parsed.hostname.lower().rstrip(".")
+
+
+def _destination_publicity(url: str) -> bool | None:
+    """Return True for globally routable, False for local/reserved, None if unresolved."""
+    parsed = urllib.parse.urlparse(url)
+    host = _url_host(url)
+    if host in {"localhost", "metadata.google.internal"} or host.endswith(".localhost") or host.endswith(".internal"):
+        return False
+    try:
+        addresses = [ipaddress.ip_address(host)]
+    except ValueError:
+        port = parsed.port or (443 if parsed.scheme.lower() == "https" else 80)
+        try:
+            infos = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
+        except socket.gaierror:
+            return None
+        addresses = []
+        for info in infos:
+            try:
+                addresses.append(ipaddress.ip_address(info[4][0]))
+            except ValueError:
+                continue
+        if not addresses:
+            return None
+    return all(address.is_global for address in addresses)
+
+
+def _validated_redirect(current_url: str, location: str, initial_url: str) -> str:
+    target = urllib.parse.urljoin(current_url, location)
+    target_host = _url_host(target)
+    initial_host = _url_host(initial_url)
+    current_host = _url_host(current_url)
+    if target_host in _redirect_allow_hosts():
+        return target
+
+    initial_public = _destination_publicity(initial_url)
+    target_public = _destination_publicity(target)
+    if target_host in {initial_host, current_host}:
+        # Same-provider redirects do not expand the operator-approved host boundary,
+        # but a provider that started public may not DNS-rebind a later hop to a
+        # private, link-local, loopback, reserved, or metadata address.
+        if initial_public is True and target_public is not True:
+            raise RuntimeError(f"redirect rejected: {target_host} no longer resolves only to public addresses")
+        if target_public is False and initial_public is not False:
+            raise RuntimeError(f"redirect rejected: non-public destination {target_host}")
+        return target
+
+    # Cross-host redirects expand trust. Permit them only when the new host resolves
+    # entirely to globally routable addresses or has been explicitly allowlisted.
+    if target_public is not True:
+        raise RuntimeError(f"redirect rejected: cross-host destination {target_host} is not public/approved")
+    return target
+
+
+def _max_redirects() -> int:
+    try:
+        value = int(os.environ.get("WATCHTOWER_MAX_REDIRECTS", "0"))
+    except ValueError:
+        value = 0
+    return max(0, min(value, 10))
+
+
+def _urllib_request_once(
+    url: str,
+    timeout: int,
+    *,
+    data: bytes | None = None,
+    content_type: str | None = None,
+) -> tuple[bytes, dict]:
+    headers = {"User-Agent": USER_AGENT}
+    if content_type:
+        headers["Content-Type"] = content_type
+    req = urllib.request.Request(url, data=data, headers=headers, method="POST" if data is not None else "GET")
+    opener = urllib.request.build_opener(_NoRedirectHandler)
+    try:
+        with opener.open(req, timeout=timeout) as response:
+            content_length = response.headers.get("Content-Length")
+            if content_length:
+                try:
+                    if int(content_length) > _max_response_bytes():
+                        raise ProviderResponseTooLargeError(
+                            f"provider response declared {content_length} bytes; limit is {_max_response_bytes()}"
+                        )
+                except ValueError:
+                    pass
+            body = _read_bounded(response)
+            return body, {
+                "status": int(response.status),
+                "headers": {k.lower(): v for k, v in response.headers.items()},
+                "final_url": response.geturl(),
+                "transport": "urllib-post" if data is not None else "urllib",
+            }
+    except urllib.error.HTTPError as exc:
+        retry_after = exc.headers.get("Retry-After") if exc.headers else None
+        if exc.code == 429:
+            raise ProviderRateLimitError(retry_after) from exc
+        if exc.code in _REDIRECT_CODES:
+            return b"", {
+                "status": int(exc.code),
+                "headers": {k.lower(): v for k, v in (exc.headers.items() if exc.headers else [])},
+                "final_url": url,
+                "location": exc.headers.get("Location") if exc.headers else None,
+                "transport": "urllib-post" if data is not None else "urllib",
+            }
+        raise RuntimeError(f"provider returned HTTP {exc.code}; fallback transport not attempted") from exc
 
 def load_config(path: str | Path) -> dict:
     config_path = Path(path).expanduser().resolve()
@@ -85,145 +269,195 @@ def _hash_json(value) -> str:
     raw = json.dumps(value, sort_keys=True, separators=(",", ":")).encode("utf-8")
     return hashlib.sha256(raw).hexdigest()
 
-def _curl_request(url: str, timeout: int, *, transport: str = "curl") -> tuple[bytes, dict]:
-    marker = b"\n__CP_HTTP__"
+def _curl_request_once(
+    url: str,
+    timeout: int,
+    *,
+    transport: str,
+    data: bytes | None = None,
+    content_type: str | None = None,
+) -> tuple[bytes, dict]:
     curl_exe = shutil.which("curl") or shutil.which("curl.exe")
-    if not curl_exe: raise RuntimeError("curl fallback unavailable")
-    cp = subprocess.run(
-        [
-            curl_exe, "-L",
+    if not curl_exe:
+        raise RuntimeError("curl fallback unavailable")
+    limit = _max_response_bytes()
+    with tempfile.TemporaryDirectory(prefix="watchtower-curl-") as td:
+        body_path = Path(td) / "body.bin"
+        headers_path = Path(td) / "headers.txt"
+        command = [
+            curl_exe,
             "--connect-timeout", str(min(timeout, 15)),
             "--max-time", str(timeout),
+            "--max-filesize", str(limit),
+            "--proto", "=http,https",
             "-A", USER_AGENT,
             "-sS",
-            "-w", "\n__CP_HTTP__%{http_code}",
-            url,
-        ],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        timeout=timeout + 5,
-    )
-    if cp.returncode != 0:
-        detail = cp.stderr.decode("utf-8", errors="replace").strip()
-        raise RuntimeError(f"curl failed ({cp.returncode}: {detail})")
-    pos = cp.stdout.rfind(marker)
-    if pos < 0:
-        raise RuntimeError("curl returned no HTTP status marker")
-    body = cp.stdout[:pos]
-    status_text = cp.stdout[pos + len(marker):].strip().decode("ascii", errors="replace")
-    try:
-        status = int(status_text)
-    except ValueError as exc:
-        raise RuntimeError(f"curl returned invalid HTTP status: {status_text}") from exc
-    if status < 200 or status >= 400:
-        raise RuntimeError(f"curl HTTP status {status}")
-    return body, {
-        "status": status,
-        "headers": {},
-        "final_url": url,
-        "transport": transport,
-    }
+            "-D", str(headers_path),
+            "-o", str(body_path),
+            "-w", "\n__CP_HTTP__%{http_code}\n__CP_REDIRECT__%{redirect_url}",
+        ]
+        if data is not None:
+            command.extend(["-H", f"Content-Type: {content_type or 'application/octet-stream'}", "--data-binary", "@-"])
+        command.append(url)
+        cp = subprocess.run(
+            command,
+            input=data,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=timeout + 5,
+        )
+        if cp.returncode == 63:
+            raise ProviderResponseTooLargeError(f"provider response exceeded {limit} bytes")
+        if cp.returncode != 0:
+            detail = _safe_diagnostic(cp.stderr.decode("utf-8", errors="replace"))
+            raise RuntimeError(f"curl failed ({cp.returncode}: {detail})")
+        metadata = cp.stdout.decode("utf-8", errors="replace")
+        status_match = re.search(r"__CP_HTTP__(\d{3})", metadata)
+        redirect_match = re.search(r"__CP_REDIRECT__(.*?)(?:\r?\n|$)", metadata)
+        if not status_match:
+            raise RuntimeError("curl returned no HTTP status marker")
+        status = int(status_match.group(1))
+        location = (redirect_match.group(1).strip() if redirect_match else "") or None
+        retry_after = None
+        if headers_path.is_file() and headers_path.stat().st_size <= 256 * 1024:
+            header_text = headers_path.read_text(encoding="iso-8859-1", errors="replace")
+            match = re.search(r"(?im)^Retry-After:\s*([^\r\n]+)", header_text)
+            retry_after = match.group(1).strip() if match else None
+        if status == 429:
+            raise ProviderRateLimitError(retry_after)
+        if body_path.is_file() and body_path.stat().st_size > limit:
+            raise ProviderResponseTooLargeError(f"provider response exceeded {limit} bytes")
+        body = body_path.read_bytes() if body_path.is_file() else b""
+        return body, {
+            "status": status,
+            "headers": {},
+            "final_url": url,
+            "location": location,
+            "transport": transport,
+        }
+
+
+def _curl_request(
+    url: str,
+    timeout: int,
+    *,
+    transport: str = "curl",
+    initial_url: str | None = None,
+    data: bytes | None = None,
+    content_type: str | None = None,
+) -> tuple[bytes, dict]:
+    initial_url = initial_url or url
+    current = url
+    max_redirects = _max_redirects()
+    for hop in range(max_redirects + 1):
+        body, meta = _curl_request_once(
+            current, timeout, transport=transport, data=data, content_type=content_type
+        )
+        status = int(meta.get("status") or 0)
+        if status in _REDIRECT_CODES:
+            location = meta.get("location")
+            if not location:
+                raise RuntimeError(f"provider returned redirect HTTP {status} without Location")
+            if data is not None and status not in (307, 308):
+                raise RuntimeError(f"POST redirect HTTP {status} rejected to avoid method/payload forwarding")
+            if hop >= max_redirects:
+                raise RuntimeError(f"provider redirect limit exceeded ({max_redirects})")
+            current = _validated_redirect(current, str(location), initial_url)
+            continue
+        if status < 200 or status >= 300:
+            raise RuntimeError(f"curl HTTP status {status}")
+        meta["final_url"] = current
+        return body, meta
+    raise RuntimeError(f"provider redirect limit exceeded ({max_redirects})")
+
 
 def _request(url: str, timeout: int, *, prefer_curl: bool = False) -> tuple[bytes, dict]:
+    _url_host(url)
     if prefer_curl:
         return _curl_request(url, timeout, transport="curl-preferred")
-    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as response:
-            body = response.read()
-            headers = {k.lower(): v for k, v in response.headers.items()}
-            return body, {
-                "status": response.status,
-                "headers": headers,
-                "final_url": response.geturl(),
-                "transport": "urllib",
-            }
-    except urllib.error.HTTPError as primary:
-        retry_after = primary.headers.get("Retry-After") if primary.headers else None
-        if primary.code == 429:
-            raise ProviderRateLimitError(retry_after) from primary
-        detail = f"HTTP {primary.code}"
-        raise RuntimeError(f"provider returned {detail}; fallback transport not attempted") from primary
-    except (urllib.error.URLError, TimeoutError, OSError) as primary:
+    current = url
+    max_redirects = _max_redirects()
+    for hop in range(max_redirects + 1):
         try:
-            body, meta = _curl_request(url, timeout, transport="curl-fallback")
-            meta["primary_error"] = f"{type(primary).__name__}: {primary}"
-            return body, meta
-        except Exception as fallback:
-            raise RuntimeError(f"urllib transport failed ({type(primary).__name__}: {primary}); curl fallback failed ({type(fallback).__name__}: {fallback})") from primary
+            body, meta = _urllib_request_once(current, timeout)
+        except (urllib.error.URLError, TimeoutError, OSError) as primary:
+            try:
+                body, meta = _curl_request(current, timeout, transport="curl-fallback", initial_url=url)
+                meta["primary_error"] = _safe_diagnostic(f"{type(primary).__name__}: {primary}")
+                return body, meta
+            except Exception as fallback:
+                raise RuntimeError(
+                    f"urllib transport failed ({_safe_diagnostic(type(primary).__name__ + ': ' + str(primary))}); "
+                    f"curl fallback failed ({_safe_diagnostic(type(fallback).__name__ + ': ' + str(fallback))})"
+                ) from primary
+        status = int(meta.get("status") or 0)
+        if status in _REDIRECT_CODES:
+            location = meta.get("location")
+            if not location:
+                raise RuntimeError(f"provider returned redirect HTTP {status} without Location")
+            if hop >= max_redirects:
+                raise RuntimeError(f"provider redirect limit exceeded ({max_redirects})")
+            current = _validated_redirect(current, str(location), url)
+            continue
+        if status < 200 or status >= 300:
+            raise RuntimeError(f"provider returned HTTP {status}")
+        meta["final_url"] = current
+        return body, meta
+    raise RuntimeError(f"provider redirect limit exceeded ({max_redirects})")
+
 
 def _json_request(url: str, timeout: int, *, prefer_curl: bool = False) -> tuple[dict, dict]:
     body, meta = _request(url, timeout, prefer_curl=prefer_curl)
     data = json.loads(body.decode("utf-8-sig"))
     if isinstance(data, dict) and "error" in data:
-        raise RuntimeError(f"ArcGIS error: {data['error']}")
+        raise RuntimeError(f"ArcGIS error: {_safe_diagnostic(data['error'])}")
     return data, meta
 
+
 def _post_json(url: str, payload: dict, timeout: int) -> tuple[dict, dict]:
+    _url_host(url)
     body = json.dumps(payload).encode("utf-8")
-    req = urllib.request.Request(
-        url,
-        data=body,
-        headers={
-            "User-Agent": USER_AGENT,
-            "Content-Type": "application/json",
-        },
-        method="POST",
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as response:
-            raw = response.read()
-            meta = {
-                "status": response.status,
-                "transport": "urllib-post",
-                "final_url": response.geturl(),
-            }
-    except urllib.error.HTTPError as primary:
-        if primary.code == 429:
-            retry_after = primary.headers.get("Retry-After") if primary.headers else None
-            raise ProviderRateLimitError(retry_after) from primary
-        curl_exe = shutil.which("curl") or shutil.which("curl.exe")
-        if not curl_exe:
-            raise RuntimeError(f"POST failed with urllib ({type(primary).__name__}: {primary}); curl fallback unavailable") from primary
-        cp = subprocess.run(
-            [
-                curl_exe, "-L",
-                "--connect-timeout", str(min(timeout, 15)),
-                "--max-time", str(timeout),
-                "-A", USER_AGENT,
-                "-H", "Content-Type: application/json",
-                "--data-binary", "@-",
-                "-sS",
-                "-w", "\n__CP_HTTP__%{http_code}",
-                url,
-            ],
-            input=body,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            timeout=timeout + 5,
-        )
-        if cp.returncode != 0:
-            detail = cp.stderr.decode("utf-8", errors="replace").strip()
-            raise RuntimeError(
-                f"POST failed with urllib ({type(primary).__name__}: {primary}) "
-                f"and curl ({cp.returncode}: {detail})"
-            ) from primary
-        marker = b"\n__CP_HTTP__"
-        pos = cp.stdout.rfind(marker)
-        if pos < 0:
-            raise RuntimeError("curl POST returned no HTTP status marker") from primary
-        raw = cp.stdout[:pos]
-        status = int(cp.stdout[pos + len(marker):].strip().decode("ascii"))
-        if status < 200 or status >= 400:
-            raise RuntimeError(f"curl POST HTTP status {status}") from primary
-        meta = {
-            "status": status,
-            "transport": "curl-post-fallback",
-            "final_url": url,
-            "primary_error": f"{type(primary).__name__}: {primary}",
-        }
-    data = json.loads(raw.decode("utf-8-sig"))
-    return data, meta
+    current = url
+    max_redirects = _max_redirects()
+    for hop in range(max_redirects + 1):
+        try:
+            raw, meta = _urllib_request_once(
+                current, timeout, data=body, content_type="application/json"
+            )
+        except (urllib.error.URLError, TimeoutError, OSError) as primary:
+            try:
+                raw, meta = _curl_request(
+                    current,
+                    timeout,
+                    transport="curl-post-fallback",
+                    initial_url=url,
+                    data=body,
+                    content_type="application/json",
+                )
+                meta["primary_error"] = _safe_diagnostic(f"{type(primary).__name__}: {primary}")
+                data_obj = json.loads(raw.decode("utf-8-sig"))
+                return data_obj, meta
+            except Exception as fallback:
+                raise RuntimeError(
+                    f"POST transport failed ({_safe_diagnostic(type(primary).__name__ + ': ' + str(primary))}); "
+                    f"curl fallback failed ({_safe_diagnostic(type(fallback).__name__ + ': ' + str(fallback))})"
+                ) from primary
+        status = int(meta.get("status") or 0)
+        if status in _REDIRECT_CODES:
+            location = meta.get("location")
+            if not location:
+                raise RuntimeError(f"provider returned redirect HTTP {status} without Location")
+            if status not in (307, 308):
+                raise RuntimeError(f"POST redirect HTTP {status} rejected to avoid method/payload forwarding")
+            if hop >= max_redirects:
+                raise RuntimeError(f"provider redirect limit exceeded ({max_redirects})")
+            current = _validated_redirect(current, str(location), url)
+            continue
+        if status < 200 or status >= 300:
+            raise RuntimeError(f"provider returned HTTP {status}")
+        data_obj = json.loads(raw.decode("utf-8-sig"))
+        return data_obj, meta
+    raise RuntimeError(f"provider redirect limit exceeded ({max_redirects})")
 
 def _arcgis_url(url: str) -> str:
     parsed = urllib.parse.urlparse(url)
@@ -264,12 +498,20 @@ def _parcel_id_candidate(field_names: list[str]) -> tuple[str | None, str]:
     return None, "none"
 
 
-def _arcgis_count_query(url: str, where: str, timeout: int, *, prefer_curl: bool = False) -> int | None:
+def _validated_provider_count(value, *, label: str = "count", maximum: int = 2_147_483_647) -> int:
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise ValueError(f"{label} must be an integer")
+    if value < 0 or value > maximum:
+        raise ValueError(f"{label} out of allowed range 0..{maximum}")
+    return value
+
+
+def _arcgis_count_query(url: str, where: str, timeout: int, *, prefer_curl: bool = False) -> int:
     query_url = url.rstrip("/") + "/query?" + urllib.parse.urlencode({
         "where": where, "returnCountOnly": "true", "f": "json",
     })
     data, _ = _json_request(query_url, timeout, prefer_curl=prefer_curl)
-    return data.get("count")
+    return _validated_provider_count(data.get("count"), label="ArcGIS count")
 
 
 def _arcgis_statistics_query(url: str, field: str, timeout: int, *, prefer_curl: bool = False) -> dict:
@@ -814,7 +1056,7 @@ def _build_alerts(
     for sid, current in current_sources.items():
         status = current.get("status", "unknown")
         if status == "error":
-            message = current.get("error") or "; ".join(current.get("problems", [])) or "source check failed"
+            message = _safe_diagnostic(current.get("error") or "; ".join(str(x) for x in current.get("problems", [])) or "source check failed")
             active.append({
                 "severity": "error",
                 "source": sid,
@@ -828,9 +1070,9 @@ def _build_alerts(
                 change for change in current.get("changes", [])
                 if change.get("severity") == "warn"
             ]
-            message = (
-                "; ".join(change.get("message", "source warning") for change in warning_changes)
-                or "; ".join(current.get("problems", []))
+            message = _safe_diagnostic(
+                "; ".join(str(change.get("message", "source warning")) for change in warning_changes)
+                or "; ".join(str(x) for x in current.get("problems", []))
                 or "source warning"
             )
             active.append({
@@ -851,7 +1093,7 @@ def _build_alerts(
                 "source": sid,
                 "name": current.get("name"),
                 "type": "recovered",
-                "message": f"source recovered from {previous.get('status')} to ok",
+                "message": _safe_diagnostic(f"source recovered from {previous.get('status')} to ok"),
                 "checked_at": now,
             })
         for change in current.get("changes", []):
@@ -861,7 +1103,7 @@ def _build_alerts(
                     "source": sid,
                     "name": current.get("name"),
                     "type": change.get("type", "change"),
-                    "message": change.get("message", "source value changed"),
+                    "message": _safe_diagnostic(change.get("message", "source value changed")),
                     "checked_at": now,
                 })
     return active, events
@@ -877,14 +1119,14 @@ def _write_alert_text(path: Path, document: dict) -> None:
     else:
         for alert in document["active"]:
             lines.append(
-                f"[{alert.get('severity', 'info').upper()}] "
-                f"{alert.get('name') or alert.get('source')}: {alert.get('message')}"
+                f"[{_safe_diagnostic(alert.get('severity', 'info')).upper()}] "
+                f"{_safe_diagnostic(alert.get('name') or alert.get('source'))}: {_safe_diagnostic(alert.get('message'))}"
             )
     if document.get("events"):
         lines.extend(["", "Recent informational events:"])
         for event in document["events"]:
             lines.append(
-                f"[INFO] {event.get('name') or event.get('source')}: {event.get('message')}"
+                f"[INFO] {_safe_diagnostic(event.get('name') or event.get('source'))}: {_safe_diagnostic(event.get('message'))}"
             )
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -969,33 +1211,39 @@ def _check_sources_unlocked(
 
         elapsed_ms = int((dt.datetime.now(dt.timezone.utc) - started).total_seconds() * 1000)
         if details is not None:
-            details["observation_fingerprint"] = _observation_fingerprint(details)
-            changes = _compare(previous_sources.get(source["id"]), details, source)
-            problems = details.get("problems", [])
-            status = "error" if problems else ("warn" if any(x["severity"] == "warn" for x in changes) else "ok")
-            records[source["id"]] = {
-                "id": source["id"],
-                "name": source["name"],
-                "provider": source.get("provider"),
-                "category": source.get("category"),
-                "county_slug": source.get("county_slug"),
-                "kind": source.get("kind") or _adapter_name(source),
-                "adapter": _adapter_name(source),
-                "url": source["url"],
-                "provenance": {
-                    "source_url": source["url"],
+            try:
+                details["observation_fingerprint"] = _observation_fingerprint(details)
+                changes = _compare(previous_sources.get(source["id"]), details, source)
+                problems = details.get("problems", [])
+                status = "error" if problems else ("warn" if any(x["severity"] == "warn" for x in changes) else "ok")
+                records[source["id"]] = {
+                    "id": source["id"],
+                    "name": source["name"],
+                    "provider": source.get("provider"),
+                    "category": source.get("category"),
+                    "county_slug": source.get("county_slug"),
+                    "kind": source.get("kind") or _adapter_name(source),
                     "adapter": _adapter_name(source),
-                    "observed_at": now,
-                    "publisher_modified": details.get("last_modified") or details.get("modified") or details.get("editing_info"),
-                },
-                "status": status,
-                "checked_at": now,
-                "elapsed_ms": elapsed_ms,
-                "attempts": attempts,
-                **details,
-                "changes": changes,
-            }
-        else:
+                    "url": source["url"],
+                    "provenance": {
+                        "source_url": source["url"],
+                        "adapter": _adapter_name(source),
+                        "observed_at": now,
+                        "publisher_modified": details.get("last_modified") or details.get("modified") or details.get("editing_info"),
+                    },
+                    "status": status,
+                    "checked_at": now,
+                    "elapsed_ms": elapsed_ms,
+                    "attempts": attempts,
+                    **details,
+                    "changes": changes,
+                }
+            except Exception as exc:
+                # Malformed provider-derived values must fail only this source;
+                # they must never abort later sources or fleet publication.
+                last_error = exc
+                details = None
+        if details is None:
             records[source["id"]] = {
                 "id": source["id"],
                 "name": source["name"],
@@ -1015,7 +1263,7 @@ def _check_sources_unlocked(
                 "checked_at": now,
                 "elapsed_ms": elapsed_ms,
                 "attempts": attempts,
-                "error": f"{type(last_error).__name__}: {last_error}",
+                "error": _safe_diagnostic(f"{type(last_error).__name__}: {last_error}"),
                 "changes": [],
             }
     counts = {

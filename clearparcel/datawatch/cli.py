@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 
 from clearparcel.datawatch.dashboard import build_static_site, serve
-from clearparcel.datawatch.watch import check_sources, load_config, load_history, load_state
+from clearparcel.datawatch.watch import _safe_diagnostic, check_sources, load_config, load_history, load_state
 
 
 def _default_config() -> Path:
@@ -29,7 +29,7 @@ def _render(report: dict) -> str:
         if source.get("elapsed_ms") is not None:
             line += f' - {source["elapsed_ms"]} ms'
         if source.get("error"):
-            line += f' - {source["error"]}'
+            line += f' - {_safe_diagnostic(source["error"])}'
         lines.append(line)
     return "\n".join(lines) + "\n"
 
@@ -100,7 +100,7 @@ def main() -> int:
     except KeyboardInterrupt:
         return 130
     except Exception as exc:
-        print(f"ERROR: {type(exc).__name__}: {exc}", file=sys.stderr); return 2
+        print(f"ERROR: {_safe_diagnostic(type(exc).__name__ + ': ' + str(exc))}", file=sys.stderr); return 2
 
 
 if __name__ == "__main__":

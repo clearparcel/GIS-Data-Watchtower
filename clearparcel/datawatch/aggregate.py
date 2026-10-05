@@ -10,6 +10,12 @@ from pathlib import Path
 
 from .storage import StorageConflictError
 
+_ALLOWED_STATUS = {"ok", "warn", "error"}
+
+def _normalized_status(value) -> str:
+    value = str(value or "").strip().lower()
+    return value if value in _ALLOWED_STATUS else "error"
+
 
 def stamp_worker(result: dict, worker: str) -> dict:
     stamped = deepcopy(result)
@@ -27,6 +33,7 @@ def merge_states(base: dict | None, partial: dict, worker: str) -> dict:
     generated = partial.get("generated_at") or dt.datetime.now(dt.timezone.utc).isoformat()
     for source_id, record in partial_sources.items():
         previous = merged_sources.get(source_id) or {}
+        record["status"] = _normalized_status(record.get("status"))
         record["worker"] = worker
         record["last_report_at"] = generated
         if record.get("status") == "ok":
@@ -45,7 +52,7 @@ def merge_states(base: dict | None, partial: dict, worker: str) -> dict:
         "last_report_at": generated,
         "last_success_at": generated,
         "source_count": len(partial_sources),
-        "overall": partial.get("overall"),
+        "overall": _normalized_status(partial.get("overall")),
         "counts": partial.get("counts") or {},
         "telemetry": partial.get("telemetry") or {},
     }

@@ -442,27 +442,23 @@ class DataWatchTests(unittest.TestCase):
             self.assertIn('About this data', detail)
             self.assertNotIn('>Provenance<', detail)
 
+
     def test_watchtower_user_agent_identifies_project_and_429_does_not_fallback(self):
         self.assertIn('GIS-Data-Watchtower', datawatch.USER_AGENT)
         self.assertIn('github.com/clearparcel/GIS-Data-Watchtower', datawatch.USER_AGENT)
-        import urllib.error
         from unittest.mock import patch
-        err = urllib.error.HTTPError('https://example.invalid', 429, 'Too Many Requests', {'Retry-After': '60'}, None)
-        with patch('urllib.request.urlopen', side_effect=err), patch.object(datawatch, '_curl_request') as fallback:
+        with patch.object(datawatch, '_urllib_request_once', side_effect=datawatch.ProviderRateLimitError('60')), patch.object(datawatch, '_curl_request') as fallback:
             with self.assertRaisesRegex(RuntimeError, 'HTTP 429'):
                 datawatch._request('https://example.invalid', 1)
             fallback.assert_not_called()
-        err.close()
+
 
     def test_post_429_stops_without_curl_fallback(self):
-        import urllib.error
         from unittest.mock import patch
-        err = urllib.error.HTTPError('https://example.invalid', 429, 'Too Many Requests', {'Retry-After': '120'}, None)
-        with patch('urllib.request.urlopen', side_effect=err), patch('subprocess.run') as curl:
+        with patch.object(datawatch, '_urllib_request_once', side_effect=datawatch.ProviderRateLimitError('120')), patch.object(datawatch, '_curl_request') as curl:
             with self.assertRaises(datawatch.ProviderRateLimitError):
                 datawatch._post_json('https://example.invalid', {'x': 1}, 1)
             curl.assert_not_called()
-        err.close()
 
     def test_rate_limit_stops_source_retry_loop(self):
         from unittest.mock import patch
@@ -533,29 +529,37 @@ class DataWatchTests(unittest.TestCase):
         self.assertEqual(datawatch_dashboard._csv_safe('=HYPERLINK("x")'), '\'=HYPERLINK("x")')
         self.assertEqual(datawatch_dashboard._csv_safe('+cmd'), "'+cmd")
 
+
     def test_provider_http_refusals_do_not_use_fallback_transport(self):
-        import urllib.error
         from unittest.mock import patch
-        for code in (403, 429):
-            err = urllib.error.HTTPError('https://example.invalid', code, 'Denied', {'Retry-After': '60'}, None)
-            with patch('urllib.request.urlopen', side_effect=err), patch.object(datawatch, '_curl_request') as fallback:
+        failures = (
+            (403, RuntimeError('provider returned HTTP 403; fallback transport not attempted')),
+            (429, datawatch.ProviderRateLimitError('60')),
+        )
+        for code, failure in failures:
+            with patch.object(datawatch, '_urllib_request_once', side_effect=failure), patch.object(datawatch, '_curl_request') as fallback:
                 with self.assertRaisesRegex(RuntimeError, f'HTTP {code}'):
                     datawatch._request('https://example.invalid', 1)
                 fallback.assert_not_called()
-            err.close()
+
 
     def test_curl_fallback_resolves_portable_executable(self):
         from unittest.mock import patch
-
         class CP:
             returncode = 0
             stderr = b''
-            stdout = b'{}\n__CP_HTTP__200'
-        with patch.object(datawatch.shutil, 'which', side_effect=lambda name: '/usr/bin/curl' if name == 'curl' else None), patch.object(datawatch.subprocess, 'run', return_value=CP()) as run:
+            stdout = b'\n__CP_HTTP__200\n__CP_REDIRECT__'
+        def fake_run(command, **kwargs):
+            Path(command[command.index('-o') + 1]).write_bytes(b'{}')
+            Path(command[command.index('-D') + 1]).write_text('', encoding='utf-8')
+            return CP()
+        with patch.object(datawatch.shutil, 'which', side_effect=lambda name: '/usr/bin/curl' if name == 'curl' else None), patch.object(datawatch.subprocess, 'run', side_effect=fake_run) as run:
             body, meta = datawatch._curl_request('https://example.invalid', 1)
         self.assertEqual(body, b'{}')
         self.assertEqual(meta['status'], 200)
         self.assertEqual(run.call_args.args[0][0], '/usr/bin/curl')
+        self.assertIn('--max-filesize', run.call_args.args[0])
+        self.assertNotIn('-L', run.call_args.args[0])
 
     def test_watchtower_config_paths_are_relative_and_portable(self):
         import tempfile, os
@@ -573,12 +577,14 @@ class DataWatchTests(unittest.TestCase):
             self.assertEqual(Path(cfg2['state_file']), root / 'alt' / 'datawatch' / 'state.json')
 
     def test_public_state_api_removes_internal_watchtower_details(self):
-        state = {'schema_version': 2, 'generated_at': '2026-10-04T12:00:00+00:00', 'overall': 'ok', 'counts': {'ok': 1}, 'sources': {'x': {'id': 'x', 'name': 'X', 'provider': 'P', 'category': 'Parcels', 'status': 'ok', 'feature_count': 10, 'checked_at': 'now', 'changes': [], 'url': 'https://secret.invalid', 'schema_hash': 'abc', 'observation_fingerprint': 'def', 'wkid': 26915, 'field_names': ['A'], 'telemetry': {'x': 1}}}}
+        state = {'schema_version': 2, 'generated_at': '2026-10-04T12:00:00+00:00', 'overall': 'ok', 'counts': {'ok': 1}, 'sources': {'x': {'id': 'x', 'name': 'X', 'provider': 'P', 'category': 'Parcels', 'status': 'ok', 'feature_count': 10, 'checked_at': 'now', 'changes': [{'type':'tracked_value','previous':'PRIVATE-OLD','current':'PRIVATE-NEW'}], 'tracked_values': {'secret':'PRIVATE-VALUE'}, 'url': 'https://secret.invalid', 'schema_hash': 'abc', 'observation_fingerprint': 'def', 'wkid': 26915, 'field_names': ['A'], 'telemetry': {'x': 1}}}}
         public = datawatch_dashboard._sanitize_public_state(state)
         row = public['sources']['x']
         self.assertEqual(row['feature_count'], 10)
-        for key in ('url', 'schema_hash', 'observation_fingerprint', 'wkid', 'field_names', 'telemetry', 'adapter', 'kind'):
+        self.assertEqual(row['change_count'], 1)
+        for key in ('url', 'schema_hash', 'observation_fingerprint', 'wkid', 'field_names', 'telemetry', 'adapter', 'kind', 'changes', 'tracked_values'):
             self.assertNotIn(key, row)
+        self.assertNotIn('PRIVATE-', json.dumps(public))
 
     def test_public_dashboard_requires_password_when_internet_exposure_enabled(self):
         import os
@@ -592,14 +598,145 @@ class DataWatchTests(unittest.TestCase):
             self.assertEqual(password, 'test-secret')
             self.assertEqual(user, 'watchtower')
 
+
     def test_get_429_raises_provider_rate_limit_error(self):
-        import urllib.error
         from unittest.mock import patch
-        err = urllib.error.HTTPError('https://example.invalid', 429, 'Too Many Requests', {'Retry-After': '60'}, None)
-        with patch('urllib.request.urlopen', side_effect=err):
+        with patch.object(datawatch, '_urllib_request_once', side_effect=datawatch.ProviderRateLimitError('60')):
             with self.assertRaises(datawatch.ProviderRateLimitError):
                 datawatch._request('https://example.invalid', 1)
-        err.close()
+
+    def test_arcgis_count_validation_rejects_malformed_and_extreme_values(self):
+        for bad in ("12", None, {}, [], True, -1, 2_147_483_648):
+            with self.subTest(value=bad):
+                with self.assertRaises(ValueError):
+                    datawatch._validated_provider_count(bad, label="ArcGIS count")
+        self.assertEqual(datawatch._validated_provider_count(0), 0)
+        self.assertEqual(datawatch._validated_provider_count(123), 123)
+
+    def test_malformed_provider_value_fails_one_source_without_aborting_fleet(self):
+        from unittest.mock import patch
+        import tempfile
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            config = {
+                'state_file': str(root / 'state.json'),
+                'history_file': str(root / 'history.jsonl'),
+                'retries': 0,
+                'sources': [
+                    {'id':'bad','name':'Bad','kind':'arcgis_layer','url':'https://example.invalid/bad'},
+                    {'id':'good','name':'Good','kind':'arcgis_layer','url':'https://example.invalid/good'},
+                ],
+            }
+            previous = {'sources': {'bad': {'feature_count': 5, 'status': 'ok'}}}
+            with patch.object(datawatch, 'load_state', return_value=previous), patch.object(
+                datawatch, '_source_check',
+                side_effect=[
+                    {'feature_count':'not-an-int','schema_hash':'same','problems':[]},
+                    {'feature_count':10,'schema_hash':'same','problems':[]},
+                ]
+            ):
+                report = datawatch.check_sources(config, save=False)
+        self.assertEqual(report['sources']['bad']['status'], 'error')
+        self.assertIn('TypeError', report['sources']['bad']['error'])
+        self.assertEqual(report['sources']['good']['status'], 'ok')
+
+    def test_redirect_policy_rejects_private_and_metadata_destinations(self):
+        from unittest.mock import patch
+        def publicity(url):
+            return False if ('127.0.0.1' in url or 'metadata.google.internal' in url) else True
+        with patch.object(datawatch, '_destination_publicity', side_effect=publicity):
+            with self.assertRaisesRegex(RuntimeError, 'redirect rejected'):
+                datawatch._validated_redirect('https://provider.example/a', 'http://127.0.0.1/admin', 'https://provider.example/a')
+            with self.assertRaisesRegex(RuntimeError, 'redirect rejected'):
+                datawatch._validated_redirect('https://provider.example/a', 'http://metadata.google.internal/', 'https://provider.example/a')
+            self.assertEqual(
+                datawatch._validated_redirect('https://provider.example/a', '/next', 'https://provider.example/a'),
+                'https://provider.example/next'
+            )
+
+    def test_post_redirect_does_not_forward_payload_on_method_changing_status(self):
+        from unittest.mock import patch
+        with patch.object(datawatch, '_urllib_request_once', return_value=(b'', {'status':302,'location':'https://other.example/x','transport':'test'})), patch.object(datawatch, '_curl_request') as fallback:
+            with self.assertRaisesRegex(RuntimeError, 'POST redirect HTTP 302 rejected'):
+                datawatch._post_json('https://provider.example/post', {'x':1}, 1)
+            fallback.assert_not_called()
+
+    def test_provider_response_reader_enforces_byte_budget(self):
+        import io
+        with self.assertRaises(datawatch.ProviderResponseTooLargeError):
+            datawatch._read_bounded(io.BytesIO(b'x' * 11), 10)
+        self.assertEqual(datawatch._read_bounded(io.BytesIO(b'x' * 10), 10), b'x' * 10)
+
+    def test_diagnostic_text_is_single_line_bounded_and_terminal_safe(self):
+        value = 'first\r\nFAKE ALERT\x1b[31mRED\x1b[0m\t' + ('x' * 2000)
+        safe = datawatch._safe_diagnostic(value, limit=80)
+        self.assertNotIn('\n', safe)
+        self.assertNotIn('\r', safe)
+        self.assertNotIn('\x1b', safe)
+        self.assertLessEqual(len(safe), 80)
+        self.assertIn('FAKE ALERT', safe)
+
+    def test_alert_text_cannot_gain_provider_controlled_lines(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / 'alerts.txt'
+            datawatch._write_alert_text(path, {
+                'generated_at':'now',
+                'active':[{'severity':'error','name':'X','message':'boom\n[INFO] forged\x1b[31m'}],
+                'events':[],
+            })
+            lines = path.read_text(encoding='utf-8').splitlines()
+        self.assertEqual(len([line for line in lines if 'forged' in line]), 1)
+        self.assertNotIn('\x1b', '\n'.join(lines))
+
+    def test_content_length_validation_rejects_negative_invalid_and_oversized(self):
+        self.assertEqual(datawatch_dashboard._validated_content_length('12', 4096), 12)
+        for bad in (None, '-1', 'abc'):
+            with self.subTest(value=bad):
+                with self.assertRaises(ValueError):
+                    datawatch_dashboard._validated_content_length(bad, 4096)
+        with self.assertRaises(OverflowError):
+            datawatch_dashboard._validated_content_length('4097', 4096)
+
+    def test_aggregate_status_is_closed_enum_before_dashboard_rendering(self):
+        from clearparcel.datawatch.aggregate import merge_states
+        state = merge_states({}, {
+            'generated_at':'2026-10-04T12:00:00+00:00',
+            'overall':'ok" onmouseover="alert(1)',
+            'sources': {'x': {'id':'x','status':'ok" onmouseover="alert(1)'}},
+        }, 'cloud')
+        self.assertEqual(state['workers']['cloud']['overall'], 'error')
+        self.assertEqual(state['sources']['x']['status'], 'error')
+        self.assertEqual(datawatch_dashboard._status_class('ok" onmouseover="alert(1)'), 'unknown')
+
+    def test_static_publication_omits_change_payload_and_fingerprints(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            state = root / 'state.json'
+            history = root / 'history.jsonl'
+            state.write_text(json.dumps({
+                'schema_version':2,'generated_at':'2026-10-04T12:00:00+00:00',
+                'overall':'ok\" onmouseover=\"alert(1)','counts':{'ok':1,'warn':0,'error':0},
+                'sources':{'x':{'id':'x','name':'X','status':'ok\" onmouseover=\"alert(1)','feature_count':1,
+                    'checked_at':'now','observation_fingerprint':'SECRET-FP',
+                    'tracked_values':{'private':'SECRET-VALUE'},
+                    'changes':[{'type':'tracked_value','previous':'SECRET-OLD','current':'SECRET-NEW'}]}}
+            }), encoding='utf-8')
+            history.write_text('', encoding='utf-8')
+            out = root / 'site'
+            datawatch_dashboard.build_static_site({'state_file':str(state),'history_file':str(history),'sources':[]}, out)
+            published = (out / 'state.json').read_text(encoding='utf-8')
+            index_html = (out / 'index.html').read_text(encoding='utf-8')
+            detail_html = (out / 'source-x.html').read_text(encoding='utf-8')
+        self.assertNotIn('SECRET-', published)
+        self.assertNotIn('onmouseover', index_html)
+        self.assertNotIn('onmouseover', detail_html)
+        document = json.loads(published)
+        self.assertEqual(document['overall'], 'unknown')
+        self.assertEqual(document['sources']['x']['status'], 'unknown')
+        self.assertEqual(document['sources']['x']['change_count'], 1)
+        self.assertNotIn('changes', document['sources']['x'])
 
     def test_safe_url_allows_only_http_https(self):
         self.assertEqual(datawatch_dashboard._safe_url('https://example.com/x'), 'https://example.com/x')
@@ -630,16 +767,14 @@ class DataWatchTests(unittest.TestCase):
         self.assertIn('multiple parcel-like layers', result['problems'][0])
         self.assertNotIn('parcel_layer_id', result)
 
+
     def test_get_429_stops_outer_retry_loop(self):
-        import urllib.error
         from unittest.mock import patch
-        err = urllib.error.HTTPError('https://example.invalid', 429, 'Too Many Requests', {'Retry-After': '60'}, None)
         config = {'state_file': str(TOOLS_ROOT / 'datawatch' / 'test-get-rate-state.json'), 'history_file': str(TOOLS_ROOT / 'datawatch' / 'test-get-rate-history.jsonl'), 'retries': 3, 'sources': [{'id': 'rate', 'name': 'Rate', 'kind': 'arcgis_layer', 'url': 'https://example.invalid/0'}]}
-        with patch.object(datawatch, 'load_state', return_value={'sources': {}}), patch('urllib.request.urlopen', side_effect=err) as request:
+        with patch.object(datawatch, 'load_state', return_value={'sources': {}}), patch.object(datawatch, '_urllib_request_once', side_effect=datawatch.ProviderRateLimitError('60')) as request:
             report = datawatch.check_sources(config, save=False)
         self.assertEqual(request.call_count, 1)
         self.assertEqual(report['sources']['rate']['attempts'], 1)
-        err.close()
 
     def test_private_lan_bind_is_allowed_without_password_but_wildcard_is_not(self):
         import os
@@ -775,13 +910,10 @@ class DataWatchTests(unittest.TestCase):
         self.assertFalse(datawatch_dashboard._valid_refresh_request('abc', 'abc', 'cross-site'))
 
     def test_get_429_uses_rate_limit_exception_and_stops_retry_loop(self):
-        import urllib.error
         from unittest.mock import patch
-        err = urllib.error.HTTPError('https://example.invalid', 429, 'Too Many Requests', {'Retry-After': '60'}, None)
-        with patch('urllib.request.urlopen', side_effect=err):
+        with patch.object(datawatch, '_urllib_request_once', side_effect=datawatch.ProviderRateLimitError('60')):
             with self.assertRaises(datawatch.ProviderRateLimitError):
                 datawatch._request('https://example.invalid', 1)
-        err.close()
         config = {'state_file': str(TOOLS_ROOT / 'datawatch' / 'test-get429-state.json'), 'history_file': str(TOOLS_ROOT / 'datawatch' / 'test-get429-history.jsonl'), 'retries': 3, 'sources': [{'id': 'rate', 'name': 'Rate', 'kind': 'arcgis_layer', 'url': 'https://example.invalid/0'}]}
         with patch.object(datawatch, 'load_state', return_value={'sources': {}}), patch.object(datawatch, '_source_check', side_effect=datawatch.ProviderRateLimitError('60')) as check:
             report = datawatch.check_sources(config, save=False)

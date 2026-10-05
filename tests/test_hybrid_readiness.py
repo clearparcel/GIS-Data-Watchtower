@@ -47,8 +47,14 @@ def _fake_gcs_backend():
         def generation(self):
             return self._bucket.objects[self._name]["generation"]
 
-        def download_to_filename(self, path):
-            Path(path).write_bytes(self._bucket.objects[self._name]["data"])
+        def download_to_filename(self, path, if_generation_match=None):
+            with self._bucket.lock:
+                current = self._bucket.objects.get(self._name)
+                if current is None:
+                    raise NotFound(self._name)
+                if if_generation_match is not None and if_generation_match != current["generation"]:
+                    raise PreconditionFailed(self._name)
+                Path(path).write_bytes(current["data"])
 
         def upload_from_filename(self, path, if_generation_match=None):
             with self._bucket.lock:
@@ -125,6 +131,97 @@ class HybridReadinessTests(unittest.TestCase):
                 backend.upload_if_version("aggregate.json", src, version)
                 with self.assertRaises(StorageConflictError):
                     backend.upload_if_version("aggregate.json", src, version)
+
+
+    def test_local_version_token_hashes_exact_downloaded_snapshot(self):
+        import hashlib
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            storage = LocalStorage(root / "objects")
+            source = root / "objects" / "state.json"
+            source.parent.mkdir(parents=True)
+            source.write_bytes(b"old-snapshot")
+            copied = root / "copied.json"
+            exists, version = storage.download_versioned("state.json", copied)
+            self.assertTrue(exists)
+            source.write_bytes(b"newer-snapshot")
+            self.assertEqual(version, hashlib.sha256(copied.read_bytes()).hexdigest())
+            self.assertNotEqual(version, hashlib.sha256(source.read_bytes()).hexdigest())
+
+    def test_gcs_versioned_download_rejects_generation_change(self):
+        backend, exceptions_mod = _fake_gcs_backend()
+        backend.bucket.objects["state.json"] = {"data": b'{"a":1}', "generation": 1}
+        original_blob = backend.bucket.blob
+
+        class RacingBlob:
+            def __init__(self, inner):
+                self.inner = inner
+                self.changed = False
+            def reload(self, client=None):
+                return self.inner.reload(client=client)
+            @property
+            def generation(self):
+                return self.inner.generation
+            def download_to_filename(self, path, if_generation_match=None):
+                if not self.changed:
+                    self.changed = True
+                    with backend.bucket.lock:
+                        backend.bucket.objects["state.json"] = {"data": b'{"a":2}', "generation": 2}
+                return self.inner.download_to_filename(path, if_generation_match=if_generation_match)
+
+        backend.bucket.blob = lambda name: RacingBlob(original_blob(name))
+        with patch.dict(sys.modules, {"google.api_core.exceptions": exceptions_mod}):
+            with tempfile.TemporaryDirectory() as td:
+                dest = Path(td) / "state.json"
+                # The first generation-matched read conflicts; the retry obtains
+                # generation 2 and returns bytes that match that exact token.
+                exists, version = backend.download_versioned("state.json", dest)
+                self.assertTrue(exists)
+                self.assertEqual(version, 2)
+                self.assertEqual(dest.read_bytes(), b'{"a":2}')
+
+    def test_cloud_job_uses_cas_for_all_read_modify_write_artifacts(self):
+        from clearparcel.datawatch import cloud_job
+        class FakeStorage:
+            def __init__(self):
+                self.versions = {}
+                self.conditional = []
+                self.unconditional = []
+            def download_versioned(self, name, destination):
+                self.versions[name] = 7
+                return False, 7
+            def upload_if_version(self, name, source, version):
+                self.conditional.append((name, version))
+            def upload(self, name, source):
+                self.unconditional.append(name)
+        fake = FakeStorage()
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            cfg = root / "config.json"
+            cfg.write_text(json.dumps({
+                "state_file": "data/state.json",
+                "history_file": "data/history.jsonl",
+                "alerts_file": "data/alerts.json",
+                "alerts_text_file": "data/alerts.txt",
+                "sources": [],
+            }), encoding="utf-8")
+            result = {
+                "generated_at": "2026-10-04T20:00:00+00:00", "overall": "ok",
+                "counts": {"ok": 0, "warn": 0, "error": 0}, "sources": {},
+            }
+            def fake_check(config, save=True, execution_profile=None):
+                for key, content in (
+                    ("state_file", "{}"), ("history_file", "{}\n"),
+                    ("alerts_file", "{}"), ("alerts_text_file", "ok\n"),
+                ):
+                    Path(config[key]).parent.mkdir(parents=True, exist_ok=True)
+                    Path(config[key]).write_text(content, encoding="utf-8")
+                return result
+            with patch.object(cloud_job, "backend_from_env", return_value=fake),                  patch.object(cloud_job, "check_sources", side_effect=fake_check),                  patch.object(cloud_job, "publish_worker_result", return_value=None),                  patch.dict(os.environ, {"WATCHTOWER_WORKDIR": str(root / "work")}, clear=False):
+                cloud_job.run_cloud_job(cfg)
+        self.assertFalse(fake.unconditional)
+        self.assertEqual({name for name, _ in fake.conditional}, {"state.json","history.jsonl","alerts.json","alerts.txt"})
+        self.assertTrue(all(version == 7 for _, version in fake.conditional))
 
     def test_competing_gcs_publishers_preserve_both_workers(self):
         backend, exceptions_mod = _fake_gcs_backend()
