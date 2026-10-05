@@ -23,7 +23,13 @@ Serverless NEG
   |
 Cloud Run: public read-only dashboard
   |
-Google Cloud Storage: shared aggregate object
+Google Cloud Storage: production/aggregate-state.json (sanitized)
+             ^
+             |
+Cloud Run Job: public aggregate publisher
+             ^
+             |
+Google Cloud Storage: unified private aggregate
              ^
              |
        hybrid publishers
@@ -35,7 +41,7 @@ The public Cloud Run service uses `internal-and-cloud-load-balancing` ingress. I
 
 ## Public/private boundary
 
-The anonymous service downloads only the shared aggregate object, immediately sanitizes it in memory/on ephemeral disk, and renders from the reduced representation.
+The anonymous service reads only the sanitized production aggregate. A separate non-public publisher job reads the unified aggregate, applies the public allowlist, validates that forbidden operational fields are absent, and writes the reduced snapshot to the production bucket. The dashboard never needs access to the private aggregate or provider registry.
 
 Public output may include:
 
@@ -55,19 +61,20 @@ The public representation intentionally omits:
 - provider credentials and Secret Manager content;
 - the private dashboard's manual refresh/check controls.
 
-The service account used by the public dashboard should have read-only access only to the shared aggregate object, not to the broader Watchtower bucket or deployment secrets.
+Use three separate identities: the public dashboard service account reads only the sanitized production aggregate object; the publisher service account reads only the unified source aggregate and writes only the sanitized production aggregate; the scheduler identity can only invoke the publisher job. None of these identities needs provider credentials or broad project-level roles.
 
 ## Runtime
 
-The container uses the standard Watchtower image with the public command:
+The container uses the standard Watchtower image with two public-serving commands:
 
 ```text
-watchtower --config /app/config/example_sources.json public-dashboard --host 0.0.0.0 --port 8080
+watchtower public-dashboard --host 0.0.0.0 --port 8080
+watchtower public-publish --json
 ```
 
-The example configuration is loaded only to satisfy the CLI's configuration contract. The public service does not use its source registry to contact providers. Its display state comes from the sanitized shared aggregate downloaded from Google Cloud Storage.
+Neither command loads the private source registry or contacts a GIS provider. The public dashboard reads the sanitized production aggregate from Google Cloud Storage. The publisher reads the unified aggregate, sanitizes it, validates the reduced schema, and writes the production object.
 
-The public service refreshes the aggregate cache on a bounded interval (30 seconds in the production deployment). Page refreshes do not trigger external provider requests.
+The public dashboard refreshes its local aggregate cache on a bounded interval (30 seconds in the production deployment). A separate Cloud Scheduler job may invoke only the publisher job every five minutes. That schedule is a publication cadence, not a GIS-provider polling cadence, and does not replace the validation gate for authoritative Watchtower monitoring schedules.
 
 ## Security expectations
 
