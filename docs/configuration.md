@@ -57,6 +57,17 @@ Optional common controls include:
 
 ArcGIS layer checks may use `count`, `expected_geometry`, `expected_wkid`, `required_fields`, `parcel_quality`, `geometry_sample`, and `geometry_sample_size`.
 
+For a layer that follows the Minnesota GAC parcel-transfer schema, `mngac_completeness` enables grouped field-population statistics. It may be `true` for defaults or an object such as:
+
+```json
+"mngac_completeness": {
+  "timeout_seconds": 90,
+  "batch_size": 12
+}
+```
+
+The source must expose `CO_NAME`, `CO_CODE`, an object-id field, and GAC field names. Watchtower batches the standard fields into bounded grouped-statistics requests; the current 91-field MnGeo layer uses eight requests at the default batch size. See [`mngac-completeness.md`](mngac-completeness.md) for methodology and interpretation.
+
 Adapter-specific keys include `expected_layers` for WMS, `expected_feature_types`/`version` for WFS, and `query`/`expected_columns`/`tracked_values` for Soil Data Access.
 
 ## Path environment overrides
