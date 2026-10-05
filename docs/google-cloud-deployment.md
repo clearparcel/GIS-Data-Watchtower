@@ -57,10 +57,23 @@ Run cloud and local processing in parallel before changing production. Compare s
 
 ## Validated staging behavior
 
-As of 2026-10-04, a private Cloud Run Job deployment in `us-central1` has been validated with Google Cloud Storage persistence and Secret Manager-provided deployment configuration.
+As of 2026-10-05, a private Cloud Run Job deployment in `us-central1` has been validated with Google Cloud Storage persistence and Secret Manager-provided deployment configuration.
 
 The validated cloud profile processes 22 deployment sources with exact status/count/schema parity against the same local observations. Four provider-specific sources remain local-only because they reject or cannot validate requests from the Google Cloud environment. The project intentionally does not bypass those provider controls.
 
-Hybrid aggregation has also been validated: 22 cloud observations plus 4 local observations merge into one 26-source authoritative state while preserving worker provenance.
+Hybrid aggregation has also been validated: 22 cloud observations plus 4 local observations merge into one 26-source authoritative state while preserving worker provenance. The hardened post-security-review build completed 22/22 cloud checks and 4/4 local checks with a 26/26 OK aggregate and complete JSON/CSV/Excel exports.
+
+### Cloud Run execution startup latency
+
+Cloud Run may report **Waiting for execution to start** for several minutes after the image is imported and resources are provisioned. This is a control-plane scheduling/provisioning phase; the Watchtower container has not necessarily started yet.
+
+In the validated staging environment, successful executions have required approximately **2m30s to 4m15s** to reach the Started condition. Therefore:
+
+- do not cancel solely because Started is still Unknown during the first five minutes;
+- inspect execution conditions and regional/control-plane evidence if startup exceeds roughly 5–7 minutes;
+- investigate a sustained 7–10 minute wait, but do not infer application failure without a Failed condition or application logs;
+- use the configured 15-minute task timeout as the final execution bound.
+
+This guidance prevents normal provisioning latency from being mistaken for a Watchtower hang.
 
 Cloud Scheduler is intentionally not enabled yet. See `current-status.md`.

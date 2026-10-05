@@ -1,6 +1,6 @@
 # Current project status
 
-Last validated: **2026-10-04**
+Last validated: **2026-10-05**
 
 ## Release status
 
@@ -54,14 +54,18 @@ The aggregate state was validated with:
 
 Worker provenance, check timestamps, counts, and telemetry are retained in the aggregate state.
 
+The hardened post-security-review build was revalidated on 2026-10-05. The Cloud Run worker completed **22/22 cloud sources OK** and the local worker completed **4/4 local-only sources OK**. The resulting aggregate remained **26/26 OK**, with **0 unassigned observations**; JSON, CSV, and Excel exports each represented all 26 sources.
+
 ## Concurrency-safe aggregate publishing
 
 The shared aggregate object is now written with compare-and-swap semantics: Google Cloud Storage generation preconditions for cloud deployments, and an atomic lock-and-replace with retry for local/shared-filesystem deployments. A competing writer reloads the latest aggregate, re-merges, and retries instead of overwriting another worker's observations. A normal profiled `watchtower check` run (for example, the `local` execution profile) can publish directly to the configured shared aggregate store when opted in via `aggregate_object` or `WATCHTOWER_AGGREGATE_OBJECT`; this does not require a separate one-off script.
 
 The private dashboard and the CSV/JSON/Excel snapshot exports now read the unified aggregate state. They show worker provenance, each worker's and source's last-success time (America/Chicago primary, UTC secondary), and reporting freshness against configurable thresholds, while keeping unhealthy sources (bad data) distinct from stale reporting (a worker or source overdue for a check). See `docs/hybrid-aggregation.md` for details and regression-test coverage.
 
+Cloud Run startup latency was also characterized during this validation. A Job can remain in **Waiting for execution to start** for several minutes even after its image and resources are ready. Successful staging executions have taken roughly **2m30s to 4m15s** to reach Started. Operators should not treat this state alone as a failure during the first five minutes; explicit Failed conditions and the 15-minute job timeout are the authoritative failure bounds.
+
 ## Not yet enabled
 
 The staging Cloud Run Job is manually invoked. **No Cloud Scheduler automation is enabled yet.** A local production worker remains active while parallel validation continues.
 
-Automated local-worker publication to the shared aggregate and dashboard consumption of the aggregate state are implemented, as described above, but have not yet completed a multi-day parallel validation run. The next release phase is that validation, followed by scheduled cloud orchestration only once it passes.
+Automated local-worker publication to the shared aggregate and dashboard consumption of the aggregate state are implemented and have completed a successful one-cycle hardened hybrid validation. They have not yet completed a multi-day parallel validation run. The next release phase is that longer observation window, followed by scheduled cloud orchestration only once it passes.
