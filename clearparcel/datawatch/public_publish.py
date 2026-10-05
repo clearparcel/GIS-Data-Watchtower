@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime as dt
 import json
 import os
 from pathlib import Path
@@ -67,6 +68,7 @@ def publish_public_snapshot(
 
     raw = json.loads(raw_path.read_text(encoding="utf-8"))
     public = sanitize_public_render_state(raw)
+    public["public_published_at"] = dt.datetime.now(dt.timezone.utc).isoformat()
     validate_public_state(public)
 
     temp = public_path.with_suffix(".tmp")
@@ -76,6 +78,7 @@ def publish_public_snapshot(
 
     return {
         "published": True,
+        "public_published_at": public.get("public_published_at"),
         "generated_at": public.get("generated_at"),
         "overall": public.get("overall"),
         "source_count": len(public.get("sources") or {}),

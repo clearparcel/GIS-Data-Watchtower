@@ -56,10 +56,12 @@ class PublicPublishTests(unittest.TestCase):
             )
 
             self.assertTrue(result["published"])
+            self.assertTrue(result["public_published_at"])
             self.assertEqual(result["source_count"], 1)
             self.assertEqual(result["worker_count"], 1)
 
             public = json.loads((dest_root / "aggregate-state.json").read_text(encoding="utf-8"))
+            self.assertEqual(public["public_published_at"], result["public_published_at"])
             source = public["sources"]["county-parcels"]
             self.assertEqual(source["change_count"], 1)
             self.assertNotIn("url", source)
