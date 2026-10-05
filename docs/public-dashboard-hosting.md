@@ -74,7 +74,7 @@ watchtower public-publish --json
 
 Neither command loads the private source registry or contacts a GIS provider. The public dashboard reads the sanitized production aggregate from Google Cloud Storage. The publisher reads the unified aggregate, sanitizes it, validates the reduced schema, and writes the production object.
 
-The public dashboard refreshes its local aggregate cache on a bounded interval (30 seconds in the production deployment). A separate Cloud Scheduler job may invoke only the publisher job every five minutes. That schedule is a publication cadence, not a GIS-provider polling cadence, and does not replace the validation gate for authoritative Watchtower monitoring schedules.
+The public dashboard refreshes its local aggregate cache on a bounded interval (30 seconds in the production deployment). A separate Cloud Scheduler job invokes only the publisher job every **15 minutes**. The 15-minute cadence was chosen after a validated publisher execution took about 2m26s, leaving ample room for Cloud Run startup variability without unnecessary overlap. This schedule is a publication cadence, not a GIS-provider polling cadence, and does not replace the validation gate for authoritative Watchtower monitoring schedules.
 
 ## Security expectations
 
@@ -82,5 +82,7 @@ The public dashboard refreshes its local aggregate cache on a bounded interval (
 - Keep public Cloud Run ingress limited to internal traffic and Google Cloud Load Balancing.
 - Do not grant the public service account Secret Manager access.
 - Keep the DNS record unproxied when Google is terminating TLS at the load balancer.
+- Attach Cloud Armor at the public backend with a conservative per-IP rate limit; the current deployment allows 120 requests/minute/IP before returning 429.
+- Keep load-balancer request logging enabled and use the one-minute HTTPS `/healthz` check plus availability/5xx alerting for the public serving path.
 - Preserve the sanitized-state regression tests before deployment.
 - Treat any addition to the public state schema as a security-sensitive change.

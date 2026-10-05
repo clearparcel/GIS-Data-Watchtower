@@ -34,11 +34,13 @@ The Linux 3.14 matrix leg also smoke-tests the Docker image.
 
 ## Hosted public dashboard
 
-The shareable read-only dashboard is hosted at **https://gis-watchtower.clear-parcel.com**. Public traffic terminates on a Google Cloud external Application Load Balancer and is routed through a serverless NEG to a dedicated Cloud Run service. The Cloud Run service reads only the shared aggregate object in Google Cloud Storage with a dedicated least-privilege service account.
+The shareable read-only dashboard is hosted at **https://gis-watchtower.clear-parcel.com**. Public traffic terminates on a Google Cloud external Application Load Balancer and is routed through a serverless NEG to the dedicated `gis-data-watchtower-public` Cloud Run service. The service reads only the sanitized production object at `gs://clearparcel-watchtower-dark-bit-503017-j7/production/aggregate-state.json`; its service account has no read access to the unified staging aggregate.
+
+The `gis-data-watchtower-public-publisher` Cloud Run Job reads only the unified source aggregate, applies the public allowlist and forbidden-field validation, and writes only that production object. `gis-watchtower-public-publish` invokes the publisher every **15 minutes** using a separate scheduler identity. This is a publication schedule only and performs no provider checks. The first validated publisher execution completed successfully in about **2m26s**.
 
 The public rendering path strips operational provider URLs, raw change payloads, tracked values, schema/observation fingerprints, provenance, and worker telemetry. It preserves derived health/freshness summaries, county views, MN GAC completeness, the interactive county map, public catalog/contact references, and JSON/CSV/Excel exports. The private operational dashboard remains separate and is not made anonymously accessible.
 
-Cloudflare remains authoritative for the parent DNS zone, but the Watchtower record is DNS-only; dashboard content and TLS termination are handled by Google Cloud.
+Cloudflare remains authoritative for the parent DNS zone, but the Watchtower record is DNS-only; dashboard content and TLS termination are handled by Google Cloud. Cloud Armor is attached with a conservative **120 requests/minute/IP** throttle, load-balancer logging is enabled at full sampling, and Cloud Monitoring runs a one-minute HTTPS `/healthz` check plus availability and Cloud Run 5xx alert policies.
 
 ## Validated cloud staging
 
@@ -91,6 +93,6 @@ Cloud Run startup latency was also characterized during this validation. A Job c
 
 ## Not yet enabled
 
-The staging Cloud Run Job is manually invoked. **No Cloud Scheduler automation is enabled yet.** A local production worker remains active while parallel validation continues.
+The GIS-provider staging Cloud Run Job remains manually invoked. **No Cloud Scheduler automation is enabled for provider polling/check execution.** The only Scheduler automation is the separate 15-minute sanitized public-publication job. A local production monitoring worker remains active while parallel validation continues.
 
 Automated local-worker publication to the shared aggregate and dashboard consumption of the aggregate state are implemented and have completed a successful one-cycle hardened hybrid validation. They have not yet completed a multi-day parallel validation run. The next release phase is that longer observation window, followed by scheduled cloud orchestration only once it passes.
