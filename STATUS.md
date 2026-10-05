@@ -37,7 +37,7 @@ The same staging architecture also validated the MN GAC completeness feature aga
 
 A separate read-only Cloud Run service serves the shareable dashboard at **https://gis-watchtower.clear-parcel.com** through a Google Cloud external Application Load Balancer. The dashboard now reads only the sanitized production object at `gs://clearparcel-watchtower-dark-bit-503017-j7/production/aggregate-state.json`; its service account no longer has access to the unified staging aggregate, private provider registry, or provider credentials.
 
-A dedicated Cloud Run publisher job reads only the unified aggregate object, applies the public allowlist and fail-closed forbidden-field validation, then writes only the production aggregate object. A separate least-privilege scheduler identity invokes that job every **15 minutes**. This publication schedule performs no GIS-provider polling and does not replace the multi-day validation gate for the authoritative monitoring schedule.
+A dedicated Cloud Run publisher job reads only the unified aggregate object, applies the public allowlist and fail-closed forbidden-field validation, then writes only the production aggregate object. A separate least-privilege scheduler identity invokes that job every **10 minutes**. The final least-privilege publisher execution completed successfully in about **3m6s**. This publication schedule performs no GIS-provider polling and does not replace the multi-day validation gate for the authoritative monitoring schedule.
 
 The public renderer removes operational provider URLs, raw change payloads, tracked values, fingerprints, provenance details, and worker telemetry before rendering or exporting state. The existing private operational dashboard remains separate. Cloudflare is used only for authoritative DNS for the hostname; the record is DNS-only and application traffic is served by Google Cloud. Cloud Armor applies a conservative 120 requests/minute/IP throttle, load-balancer request logging is enabled at full sampling, and Cloud Monitoring checks `/healthz` every minute with availability and Cloud Run 5xx alert policies.
 
@@ -61,7 +61,7 @@ A single hardened hybrid staging cycle has now been completed successfully. The 
 
 ## Not yet enabled
 
-- No Cloud Scheduler trigger has been enabled for the GIS-provider staging/check job. The only enabled Cloud Scheduler job is the 15-minute sanitized public-publication job, which performs no provider polling.
+- No Cloud Scheduler trigger has been enabled for the GIS-provider staging/check job. The only enabled Cloud Scheduler job is the 10-minute sanitized public-publication job, which performs no provider polling.
 - The existing local production monitoring schedule has not been retired.
 - The hybrid staging deployment is not yet the authoritative production monitoring scheduler.
 

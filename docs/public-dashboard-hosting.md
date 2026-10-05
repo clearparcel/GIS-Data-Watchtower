@@ -74,7 +74,7 @@ watchtower public-publish --json
 
 Neither command loads the private source registry or contacts a GIS provider. The public dashboard reads the sanitized production aggregate from Google Cloud Storage. The publisher reads the unified aggregate, sanitizes it, validates the reduced schema, and writes the production object.
 
-The public dashboard refreshes its local aggregate cache on a bounded interval (30 seconds in the production deployment). A separate Cloud Scheduler job invokes only the publisher job every **15 minutes**. The 15-minute cadence was chosen after a validated publisher execution took about 2m26s, leaving ample room for Cloud Run startup variability without unnecessary overlap. This schedule is a publication cadence, not a GIS-provider polling cadence, and does not replace the validation gate for authoritative Watchtower monitoring schedules.
+The public dashboard refreshes its local aggregate cache on a bounded interval (30 seconds in the production deployment). A separate Cloud Scheduler job invokes only the publisher job every **10 minutes**, staggered at `:03, :13, :23, :33, :43, :53`. The cadence was selected after the final least-privilege publisher execution completed in about 3m6s and after broader Cloud Run startup validation showed several-minute cold starts; ten minutes leaves useful headroom without making public-state propagation unnecessarily slow. This schedule is a publication cadence, not a GIS-provider polling cadence, and does not replace the validation gate for authoritative Watchtower monitoring schedules.
 
 ## Security expectations
 
