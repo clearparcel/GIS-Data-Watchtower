@@ -44,6 +44,22 @@ Counties that are not represented in the current MnGeo open parcel layer are dis
 
 The number of represented counties is derived from each stored observation rather than hard-coded.
 
+## Validated observation
+
+A live staging observation on **2026-10-05** validated the full calculation and dashboard path:
+
+- **59 of 87 Minnesota counties** were represented in MnGeo Plan Parcels Open;
+- **28 counties** were correctly classified as **No data**;
+- **2,710,201 parcel records** were evaluated;
+- all **91 MN GAC fields** were present in the source schema;
+- the calculation completed using **8 bounded grouped-statistics queries**;
+- the statewide record-weighted all-field population was **42.92%**;
+- the record-weighted Mandatory-field population was **78.37%**.
+
+The statewide parcel source completed its check in about **45 seconds** during that validation. A subsequent full cloud-profile retry completed **22/22 sources OK**, while the shared hybrid aggregate remained **26/26 OK** with the four local-only observations preserved.
+
+These percentages are a point-in-time description of the source and will change as MnGeo republishes county parcel data. They must not be interpreted as a standards-compliance grade.
+
 ## Provider-friendly calculation
 
 The monitor does not download all parcel records.

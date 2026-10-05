@@ -16,7 +16,8 @@ Base functionality includes:
 - Cloud Run Job-compatible container deployment;
 - hybrid source execution profiles;
 - hybrid worker result aggregation;
-- concurrency-safe aggregate publishing (GCS generation preconditions, atomic local locking) with dashboard/export consumption of the unified aggregate state.
+- concurrency-safe aggregate publishing (GCS generation preconditions, atomic local locking) with dashboard/export consumption of the unified aggregate state;
+- MN GAC parcel-field completeness statistics, county-level field tables, and an interactive Minnesota county map driven by the stored statewide observation.
 
 ## CI
 
@@ -57,6 +58,20 @@ The aggregate state was validated with:
 Worker provenance, check timestamps, counts, and telemetry are retained in the aggregate state.
 
 The hardened post-security-review build was revalidated on 2026-10-05. The Cloud Run worker completed **22/22 cloud sources OK** and the local worker completed **4/4 local-only sources OK**. The resulting aggregate remained **26/26 OK**, with **0 unassigned observations**; JSON, CSV, and Excel exports each represented all 26 sources.
+
+### Validated MN GAC completeness observation
+
+The current MN GAC feature was validated against MnGeo Plan Parcels Open on 2026-10-05:
+
+- **59/87 counties represented** in the statewide open parcel layer;
+- **28 counties explicitly reported as No data**, rather than 0%;
+- **2,710,201 parcel records** in the denominator;
+- **91/91 standard fields present** in the MnGeo source schema;
+- **8 bounded grouped-statistics queries** at the default 12-field batch size;
+- **42.92%** record-weighted population across all 91 fields;
+- **78.37%** record-weighted population across the standard's Mandatory fields.
+
+These percentages describe field population only. They are not pass/fail standards-compliance scores because Conditional, If Available, and Optional fields may legitimately be blank. The interactive county map, county field tables, JSON/CSV output, and Excel MN GAC sheets were validated against the stored observation.
 
 ## Concurrency-safe aggregate publishing
 

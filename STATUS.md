@@ -15,6 +15,7 @@ GIS Data Watchtower is public, MIT-licensed, and supports local, cloud, and hybr
 - Cloud Run Job container deployment
 - source execution profiles (`cloud`, `local`, `any`)
 - hybrid worker aggregation with per-source worker provenance
+- MN GAC parcel-field completeness analysis with county pages, interactive Minnesota county map, and JSON/CSV/Excel exports
 
 ## ClearParcel staging validation
 
@@ -29,6 +30,8 @@ A private ClearParcel staging deployment has validated the hybrid architecture a
 The four local-profile sources are kept local because their providers' network/TLS behavior does not support the Google Cloud egress path used in staging. Watchtower does not bypass those restrictions.
 
 The hardened post-security-review build was revalidated end-to-end on 2026-10-05: the Cloud Run worker completed **22/22 cloud sources OK**, the local worker completed **4/4 local-only sources OK**, and the resulting aggregate remained **26/26 OK** with **0 unassigned observations**. JSON, CSV, and Excel exports each represented all 26 monitored sources.
+
+The same staging architecture also validated the MN GAC completeness feature against MnGeo Plan Parcels Open. The 2026-10-05 observation represented **59 of 87 counties**, **2,710,201 parcel records**, and all **91 standard fields** using **8 bounded grouped-statistics queries**. The other 28 counties are reported as **No data**, not 0%. The observed record-weighted all-field population was **42.92%** and Mandatory-field population was **78.37%**; these are descriptive population statistics, not compliance grades. The full cloud retry after this feature was enabled returned **22/22 OK**, preserving the **26/26** hybrid aggregate.
 
 ## Staging architecture
 
