@@ -22,6 +22,7 @@ from clearparcel.datawatch.aggregate import with_freshness
 
 COUNTIES_FILE = Path(__file__).with_name("minnesota_counties.json")
 COUNTY_CONTACTS_FILE = Path(__file__).with_name("minnesota_county_contacts.json")
+COUNTY_CONTACT_VERIFICATION_FILE = Path(__file__).with_name("minnesota_county_contact_verification.json")
 
 
 def _esc(value) -> str:
@@ -242,10 +243,10 @@ code{{font-size:12px;overflow-wrap:anywhere}}
   .bar-row{{grid-template-columns:minmax(105px,1.3fr) minmax(80px,2fr) 46px;gap:6px;font-size:11.5px}}
   .spark{{height:82px}}
   .filters{{display:grid;grid-template-columns:1fr;gap:8px}} .filters input,.filters select{{width:100%;min-width:0}}
-  #counties thead,#datasets thead,.history-table thead{{display:none}}
-  #counties,#counties tbody,#counties tr,#counties td,#datasets,#datasets tbody,#datasets tr,#datasets td,.history-table,.history-table tbody,.history-table tr,.history-table td{{display:block;width:100%}}
-  #counties tr,#datasets tr,.history-table tr{{padding:11px 0;border-bottom:1px solid #e6eaee}}
-  #counties td,#datasets td,.history-table td{{border:0;padding:4px 2px;white-space:normal;overflow-wrap:anywhere}}
+  #counties thead,#datasets thead,.history-table thead,.contacts-table thead{{display:none}}
+  #counties,#counties tbody,#counties tr,#counties td,#datasets,#datasets tbody,#datasets tr,#datasets td,.history-table,.history-table tbody,.history-table tr,.history-table td,.contacts-table,.contacts-table tbody,.contacts-table tr,.contacts-table td{{display:block;width:100%}}
+  #counties tr,#datasets tr,.history-table tr,.contacts-table tr{{padding:11px 0;border-bottom:1px solid #e6eaee}}
+  #counties td,#datasets td,.history-table td,.contacts-table td{{border:0;padding:4px 2px;white-space:normal;overflow-wrap:anywhere}}
   #counties td:nth-child(2)::before{{content:"Coverage: ";font-weight:700;color:var(--muted)}}
   #counties td:nth-child(3)::before{{content:"Direct sources: ";font-weight:700;color:var(--muted)}}
   #datasets td:nth-child(2)::before{{content:"Provider / type: ";font-weight:700;color:var(--muted)}}
@@ -260,6 +261,10 @@ code{{font-size:12px;overflow-wrap:anywhere}}
   .history-table td:nth-child(3)::before{{content:"Records: ";font-weight:700;color:var(--muted)}}
   .history-table td:nth-child(4)::before{{content:"Changes: ";font-weight:700;color:var(--muted)}}
   .history-table td:nth-child(5)::before{{content:"Response: ";font-weight:700;color:var(--muted)}}
+  .contacts-table td:nth-child(2)::before{{content:"Title: ";font-weight:700;color:var(--muted)}}
+  .contacts-table td:nth-child(3)::before{{content:"Department: ";font-weight:700;color:var(--muted)}}
+  .contacts-table td:nth-child(4)::before{{content:"Phone: ";font-weight:700;color:var(--muted)}}
+  .contacts-table td:nth-child(5)::before{{content:"Email: ";font-weight:700;color:var(--muted)}}
   .definition-list{{grid-template-columns:1fr;gap:2px}} .definition-list dd{{margin-bottom:8px}}
   .mobile-nav{{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));width:100%;position:fixed;bottom:0;left:0;right:0;height:62px;background:var(--navy);border-top:1px solid #ffffff18;z-index:50;padding-bottom:env(safe-area-inset-bottom)}}
   .mobile-nav a{{color:#b9d1e2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:10px;font-weight:600}}
@@ -298,12 +303,52 @@ def _load_counties() -> list[dict]:
         return []
 
 
-def _load_county_contacts() -> dict:
+def _load_county_contact_records() -> dict[str, dict]:
     try:
-        data = json.loads(COUNTY_CONTACTS_FILE.read_text(encoding="utf-8"))
-        return {str(x.get("county")): x.get("contacts", []) for x in data.get("counties", [])}
+        baseline = json.loads(COUNTY_CONTACTS_FILE.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
-        return {}
+        baseline = {"source": {}, "counties": []}
+    try:
+        verification = json.loads(COUNTY_CONTACT_VERIFICATION_FILE.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        verification = {"counties": []}
+
+    mngeo_source = baseline.get("source") or {}
+    verified = {str(x.get("county")): x for x in verification.get("counties", []) if x.get("county")}
+    records = {}
+    for item in baseline.get("counties", []):
+        county = str(item.get("county") or "")
+        if not county:
+            continue
+        check = verified.get(county) or {}
+        official_contacts = check.get("contacts") or []
+        use_county = check.get("authority") == "county" and bool(official_contacts)
+        records[county] = {
+            "contacts": official_contacts if use_county else (item.get("contacts") or []),
+            "authority": "county" if use_county else ("mngeo" if check.get("verified") else "mngeo_unverified"),
+            "source_name": "Official county website" if use_county else (mngeo_source.get("name") or "MnGeo County GIS Contacts"),
+            "source_url": (check.get("official_contact_page_url") or check.get("official_county_url")) if use_county else mngeo_source.get("url"),
+            "official_county_url": check.get("official_county_url"),
+            "official_contact_page_url": check.get("official_contact_page_url"),
+            "verified": check.get("verified"),
+            "verification_note": check.get("evidence_note"),
+        }
+    for county, check in verified.items():
+        if county in records or check.get("authority") != "county" or not check.get("contacts"):
+            continue
+        records[county] = {
+            "contacts": check.get("contacts") or [], "authority": "county",
+            "source_name": "Official county website",
+            "source_url": check.get("official_contact_page_url") or check.get("official_county_url"),
+            "official_county_url": check.get("official_county_url"),
+            "official_contact_page_url": check.get("official_contact_page_url"),
+            "verified": check.get("verified"), "verification_note": check.get("evidence_note"),
+        }
+    return records
+
+
+def _load_county_contacts() -> dict:
+    return {county: record.get("contacts", []) for county, record in _load_county_contact_records().items()}
 
 
 def _county_status(config: dict, county: dict, state: dict) -> dict:
@@ -404,17 +449,28 @@ def render_county(config: dict, slug: str) -> str:
         source_cards = f'<div class="card"><h3>County parcel update information</h3><p><strong>MnGeo public-data approval:</strong> {_esc(approval)}<br><strong>Last county update:</strong> {_esc(_format_arcgis_date(catalog.get("acqdate")))}<br><strong>MnGeo listing refreshed:</strong> {_esc(_format_arcgis_date(catalog.get("rundate")))}<br><strong>Parcel links:</strong> {source_links}</p></div>'
     elif not source_cards:
         source_cards = '<div class="card"><h3>A usable parcel-data source has not been found yet</h3><p>No direct county source or MnGeo parcel catalog record is currently available.</p></div>'
-    contacts = _load_county_contacts().get(county["name"], [])
+    contact_record = _load_county_contact_records().get(county["name"], {})
+    contacts = contact_record.get("contacts", [])
     contact_rows = ""
     for contact in contacts:
         email = str(contact.get("email") or "").strip().rstrip(".")
         phone = str(contact.get("phone") or "").strip()
         email_html = f'<a href="mailto:{_esc(email)}">{_esc(email)}</a>' if email else "—"
         phone_html = f'<a href="tel:{_esc(phone)}">{_esc(phone)}</a>' if phone else "—"
-        contact_rows += f'<tr><td><strong>{_esc(contact.get("name") or "TBD")}</strong></td><td>{_esc(contact.get("title") or "—")}</td><td>{_esc(contact.get("department") or "—")}</td><td>{phone_html}</td><td>{email_html}</td></tr>'
+        contact_rows += f'<tr><td><strong>{_esc(contact.get("name") or "Department contact")}</strong></td><td>{_esc(contact.get("title") or "—")}</td><td>{_esc(contact.get("department") or "—")}</td><td>{phone_html}</td><td>{email_html}</td></tr>'
     if not contact_rows:
         contact_rows = '<tr><td colspan="5">No contact is currently listed in the MnGeo county GIS directory.</td></tr>'
-    contacts_html = f'<div class="card"><h2>County GIS contacts</h2><p class="muted">Source address: <a href="https://mn.gov/mngeo/community/gis-contacts/county-gis-contacts/" target="_blank" rel="noopener">Minnesota Geospatial Information Office (MnGeo)</a>. MnGeo describes this as a starting-point directory and notes that it depends on updates from associated jurisdictions.</p><table><thead><tr><th>Name</th><th>Title</th><th>Department</th><th>Phone</th><th>Email</th></tr></thead><tbody>{contact_rows}</tbody></table></div>'
+    contact_source_url = _safe_url(contact_record.get("source_url"))
+    contact_source_name = contact_record.get("source_name") or "MnGeo County GIS Contacts"
+    contact_source = f'<a href="{_esc(contact_source_url)}" target="_blank" rel="noopener">{_esc(contact_source_name)}</a>' if contact_source_url else _esc(contact_source_name)
+    if contact_record.get("authority") == "county":
+        contact_source_note = "The official county website provides additional or changed GIS/land-records contact information, so the county website is authoritative."
+    elif contact_record.get("verified"):
+        contact_source_note = "The official county website was checked; because it did not provide additional or changed usable GIS contact information, the MnGeo county GIS directory is retained as the fallback."
+    else:
+        contact_source_note = "MnGeo is the current contact source; an official-county verification result is not recorded yet."
+    verified_text = f' Verified {_esc(contact_record.get("verified"))}.' if contact_record.get("verified") else ""
+    contacts_html = f'<div class="card"><h2>County GIS contacts</h2><p class="muted"><strong>Contact source:</strong> {contact_source}. {contact_source_note}{verified_text}</p><table class="contacts-table"><thead><tr><th>Name</th><th>Title</th><th>Department</th><th>Phone</th><th>Email</th></tr></thead><tbody>{contact_rows}</tbody></table></div>'
     export_links = f'<p><a href="/county-snapshot.csv?slug={urllib.parse.quote(slug)}">Download county snapshot (CSV)</a> · <a href="/county-snapshot.xlsx?slug={urllib.parse.quote(slug)}">Download county snapshot (Excel)</a> · <a href="/county-snapshot.json?slug={urllib.parse.quote(slug)}">Download county snapshot (JSON)</a></p>'
     body = f'<p><a href="/counties">← Minnesota counties</a></p>{export_links}<div class="grid"><div class="card"><div class="muted">County</div><h2>{_esc(county["name"])} County</h2></div><div class="card"><div class="muted">Data availability</div><div class="metric {_esc(info["status"])}">{_esc(_friendly_status(info["status"]).upper())}</div></div><div class="card"><div class="muted">Direct data sources</div><div class="metric">{len(info["sources"])}</div></div></div><div class="grid">{source_cards}</div><br>{contacts_html}'
     return _layout(f'{county["name"]} County — Watchtower', body, csrf_token=str(config.get("_csrf_token") or ""))
@@ -443,6 +499,9 @@ def _county_snapshot(config: dict, slug: str) -> dict | None:
             } for x in info.get("sources", [])
         ],
         "contacts": _load_county_contacts().get(county["name"], []),
+        "contact_source": (_load_county_contact_records().get(county["name"], {}) or {}).get("authority"),
+        "contact_source_url": (_load_county_contact_records().get(county["name"], {}) or {}).get("source_url"),
+        "contact_verified": (_load_county_contact_records().get(county["name"], {}) or {}).get("verified"),
         **_snapshot_time_fields(dt.datetime.now(dt.timezone.utc).isoformat(), "snapshot_created"),
     }
 
@@ -511,7 +570,7 @@ def _snapshot_csv(snapshot: dict) -> str:
                 "checked_at": source.get("checked_at"),
             }.items()})
         return out.getvalue()
-    fields = ["county","status","last_county_update","catalog_refresh_date","public_data_approved","parcel_data_url","parcel_viewer_url","worker_provenance","stale_source_count","contact_names"]
+    fields = ["county","status","last_county_update","catalog_refresh_date","public_data_approved","parcel_data_url","parcel_viewer_url","worker_provenance","stale_source_count","contact_names","contact_source","contact_source_url","contact_verified"]
     writer = csv.DictWriter(out, fieldnames=fields)
     writer.writeheader()
     for row in [snapshot]:
@@ -525,6 +584,9 @@ def _snapshot_csv(snapshot: dict) -> str:
             "worker_provenance": "; ".join(sorted({str(x.get("worker")) for x in row.get("direct_sources",[]) if x.get("worker")})),
             "stale_source_count": sum(1 for x in row.get("direct_sources",[]) if x.get("stale") or x.get("worker_stale")),
             "contact_names": "; ".join(x.get("name","") for x in row.get("contacts",[]) if x.get("name")),
+            "contact_source": row.get("contact_source"),
+            "contact_source_url": row.get("contact_source_url"),
+            "contact_verified": row.get("contact_verified"),
         }.items()})
     return out.getvalue()
 
@@ -553,18 +615,18 @@ def _xlsx_sheet_xml(rows: list[list]) -> str:
     return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>' + "".join(xml_rows) + '</sheetData></worksheet>'
 
 def _snapshot_xlsx(snapshot: dict) -> bytes:
-    county_rows = [["County","Status","Last county update","Catalog refresh date","Public data approved","Parcel data URL","Parcel viewer URL","Contact names"]]
+    county_rows = [["County","Status","Last county update","Catalog refresh date","Public data approved","Parcel data URL","Parcel viewer URL","Contact names","Contact source","Contact source URL","Contact verified"]]
     source_rows = [["County","Source","Status","Record count","Worker","Reporting","Stale source","Stale worker","Last successful check","Last checked"]]
-    contact_rows = [["County","Name","Title","Department","Phone","Email"]]
+    contact_rows = [["County","Name","Title","Department","Phone","Email","Contact source","Contact source URL","Verified"]]
     rows = snapshot.get("counties") if "counties" in snapshot else [snapshot]
     for row in rows:
         county = row.get("county") or ""
-        county_rows.append([county,row.get("status"),row.get("last_county_update"),row.get("catalog_refresh_date"),bool(row.get("public_data_approved")),row.get("parcel_data_url"),row.get("parcel_viewer_url"),"; ".join(x.get("name","") for x in row.get("contacts",[]) if x.get("name"))])
+        county_rows.append([county,row.get("status"),row.get("last_county_update"),row.get("catalog_refresh_date"),bool(row.get("public_data_approved")),row.get("parcel_data_url"),row.get("parcel_viewer_url"),"; ".join(x.get("name","") for x in row.get("contacts",[]) if x.get("name")),row.get("contact_source"),row.get("contact_source_url"),row.get("contact_verified")])
         for source in row.get("direct_sources", []):
             if "sources" not in snapshot:
                 source_rows.append([county,source.get("name"),source.get("status"),source.get("feature_count"),source.get("worker"),source.get("reporting"),bool(source.get("stale")),bool(source.get("worker_stale")),source.get("last_success_at"),source.get("checked_at")])
         for contact in row.get("contacts", []):
-            contact_rows.append([county,contact.get("name"),contact.get("title"),contact.get("department"),contact.get("phone"),contact.get("email")])
+            contact_rows.append([county,contact.get("name"),contact.get("title"),contact.get("department"),contact.get("phone"),contact.get("email"),row.get("contact_source"),row.get("contact_source_url"),row.get("contact_verified")])
     if "sources" in snapshot:
         for source in snapshot.get("sources", []):
             source_rows.append([source.get("county"),source.get("name"),source.get("status"),source.get("feature_count"),source.get("worker"),source.get("reporting"),bool(source.get("stale")),bool(source.get("worker_stale")),source.get("last_success_at"),source.get("checked_at")])

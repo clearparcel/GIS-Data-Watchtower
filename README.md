@@ -49,6 +49,12 @@ See `docs/data-watchtower-provider-compliance.md` for the project's provider-use
 
 Watchtower stores derived monitoring observations locally. Public/static outputs are intentionally sanitized and do not expose internal service fingerprints, field inventories, operational URLs, or raw parcel-owner records.
 
+## County GIS contact provenance
+
+Minnesota county contact information follows an explicit source-precedence rule. The official county government website is checked first. When that site provides additional or changed usable GIS, mapping, or land-records contact information, the county website is authoritative. When the official county site does not provide additional or changed usable contact information, Watchtower retains the Minnesota Geospatial Information Office (MnGeo) County GIS Contacts directory as the fallback. The dashboard and exports identify which source is in use and the verification date.
+
+The baseline MnGeo directory and the official-county verification layer are stored separately so the fallback source is preserved rather than silently overwritten.
+
 ## Security
 
 Do not report security vulnerabilities in public issues. See `SECURITY.md`.

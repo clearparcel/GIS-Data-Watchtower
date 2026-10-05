@@ -1,0 +1,1426 @@
+{
+  "schema_version": 1,
+  "verification_policy": "Official county website first. If it supplies additional or changed usable GIS/land-records contact information, county data is authoritative. Otherwise retain the MnGeo County GIS Contacts baseline.",
+  "verified": "2026-10-04",
+  "counties": [
+    {
+      "county": "Aitkin",
+      "verified": "2026-10-04",
+      "authority": "county",
+      "official_county_url": "https://www.co.aitkin.mn.us/",
+      "official_contact_page_url": "https://www.co.aitkin.mn.us/departments/gis/",
+      "county_site_has_usable_contact": true,
+      "contacts": [
+        {
+          "name": "Dan Haasken",
+          "title": "GIS Coordinator",
+          "department": "GIS",
+          "phone": "218-927-7391",
+          "email": "dan.haasken@aitkincountymn.gov"
+        }
+      ],
+      "evidence_note": "The official county GIS page identifies the GIS office as responsible for county GIS, 911 addressing data, and parcel mapping, and lists Dan Haasken's contact information."
+    },
+    {
+      "county": "Anoka",
+      "verified": "2026-10-04",
+      "authority": "county",
+      "official_county_url": "https://www.anokacountymn.gov/",
+      "official_contact_page_url": "https://www.anokacountymn.gov/m/directory/department?did=107",
+      "county_site_has_usable_contact": true,
+      "contacts": [
+        {
+          "name": "Nicholas Lahr",
+          "title": "GIS Developer",
+          "department": "GIS",
+          "phone": "763-324-3172",
+          "email": null
+        },
+        {
+          "name": "John Slusarczyk",
+          "title": "Manager, GIS",
+          "department": "GIS",
+          "phone": "763-324-3109",
+          "email": null
+        },
+        {
+          "name": "Charlie Teff",
+          "title": "GIS Developer",
+          "department": "GIS",
+          "phone": "763-324-3107",
+          "email": null
+        }
+      ],
+      "evidence_note": "Official county directory identifies the GIS department and staff; emails were not stated in the saved page evidence."
+    },
+    {
+      "county": "Becker",
+      "verified": "2026-10-04",
+      "authority": "mngeo",
+      "official_county_url": "https://www.co.becker.mn.us/",
+      "official_contact_page_url": "https://www.co.becker.mn.us/online_services/GIS_data.aspx",
+      "county_site_has_usable_contact": false,
+      "contacts": [],
+      "evidence_note": "The official county GIS/parcel pages were checked, but no additional or changed current GIS staff contact information was established. Retain the more complete MnGeo GIS contact baseline."
+    },
+    {
+      "county": "Beltrami",
+      "verified": "2026-10-04",
+      "authority": "mngeo",
+      "official_county_url": "https://www.beltramicountymn.gov/",
+      "official_contact_page_url": "https://www.beltramicountymn.gov/",
+      "county_site_has_usable_contact": false,
+      "contacts": [],
+      "evidence_note": "Current 2026 official county publications identify Kevin Trappe as GIS Director at 218-333-8457, matching the MnGeo baseline. No additional or changed GIS contact detail was established, so retain MnGeo."
+    },
+    {
+      "county": "Benton",
+      "verified": "2026-10-04",
+      "authority": "county",
+      "official_county_url": "https://www.bentoncountymn.gov/",
+      "official_contact_page_url": "https://www.bentoncountymn.gov/274/GIS-Mapping",
+      "county_site_has_usable_contact": true,
+      "contacts": [
+        {
+          "name": "Scott Zwick",
+          "title": "GIS Coordinator",
+          "department": "GIS / Mapping",
+          "phone": "320-968-5075",
+          "email": "gis@co.benton.mn.us"
+        }
+      ],
+      "evidence_note": "The official GIS / Mapping page describes county GIS, parcel downloads, maps, and mapping services and lists Scott Zwick's contact information."
+    },
+    {
+      "county": "Big Stone",
+      "verified": "2026-10-04",
+      "authority": "county",
+      "official_county_url": "https://bigstonecounty.gov/",
+      "official_contact_page_url": "https://bigstonecounty.gov/contact-us/department-list/",
+      "county_site_has_usable_contact": true,
+      "contacts": [
+        {
+          "name": "Matt Anderson",
+          "title": "IT Director",
+          "department": "GIS Maps County / Information Technology",
+          "phone": "320-487-1111",
+          "email": "matt.anderson@bigstonecounty.gov"
+        }
+      ],
+      "evidence_note": "The official county Department List identifies Matt Anderson as IT Director for County GIS Maps and provides current phone 320-487-1111 and county-domain email. These differ from the MnGeo baseline, so the county website is authoritative."
+    },
+    {
+      "county": "Blue Earth",
+      "verified": "2026-10-04",
+      "authority": "county",
+      "official_county_url": "https://www.blueearthcountymn.gov/",
+      "official_contact_page_url": "https://www.blueearthcountymn.gov/329/Mapping-Data",
+      "county_site_has_usable_contact": true,
+      "contacts": [
+        {
+          "name": null,
+          "title": null,
+          "department": "Mapping and Data",
+          "phone": "507-304-4251",
+          "email": null
+        },
+        {
+          "name": "David Sieberg",
+          "title": "Mapping & Recording Records Specialist",
+          "department": "Mapping and Data",
+          "phone": "507-304-4140",
+          "email": null
+        },
+        {
+          "name": "Besiem Yemiru",
+          "title": "GIS and Technology Coordinator",
+          "department": "Mapping and Data",
+          "phone": null,
+          "email": null
+        }
+      ],
+      "evidence_note": "Official county search evidence identifies the Mapping and Data page, department phone, and directory staff."
+    },
+    {
+      "county": "Brown",
+      "verified": "2026-10-04",
+      "authority": "mngeo",
+      "official_county_url": "https://www.browncountymn.gov/",
+      "official_contact_page_url": null,
+      "county_site_has_usable_contact": false,
+      "contacts": [],
+      "evidence_note": "The official county website was checked, but no additional or changed current GIS contact information was established. Retain the MnGeo GIS contact baseline."
+    },
+    {
+      "county": "Carlton",
+      "verified": "2026-10-04",
+      "authority": "county",
+      "official_county_url": "https://www.carltoncountymn.gov/",
+      "official_contact_page_url": "https://www.carltoncountymn.gov/185/GIS-Mapping",
+      "county_site_has_usable_contact": true,
+      "contacts": [
+        {
+          "name": null,
+          "title": null,
+          "department": "Carlton County Land Department; GIS / Mapping",
+          "phone": "218-384-9502",
+          "email": null
+        }
+      ],
+      "evidence_note": "Official county GIS / Mapping directory evidence states the department, address, phone, and an email-contact link, but no email address was shown."
+    },
+    {
+      "county": "Carver",
+      "verified": "2026-10-04",
+      "authority": "county",
+      "official_county_url": "https://www.carvercountymn.gov/",
+      "official_contact_page_url": "https://gis.co.carver.mn.us/publicparcel/",
+      "county_site_has_usable_contact": true,
+      "contacts": [
+        {
+          "name": null,
+          "title": null,
+          "department": "GIS",
+          "phone": null,
+          "email": "gis@carvercountymn.gov"
+        }
+      ],
+      "evidence_note": "Official Carver County GIS parcel application states the GIS contact email."
+    },
+    {
+      "county": "Cass",
+      "verified": "2026-10-04",
+      "authority": "mngeo",
+      "official_county_url": "https://www.casscountymn.gov/",
+      "official_contact_page_url": "https://www.casscountymn.gov/1316/GISMap-Services",
+      "county_site_has_usable_contact": false,
+      "contacts": [],
+      "evidence_note": "The official county GIS/Map Services material was checked, but no additional or changed current named GIS contact information was established. Retain the more complete MnGeo baseline."
+    },
+    {
+      "county": "Chippewa",
+      "verified": "2026-10-04",
+      "authority": "mngeo",
+      "official_county_url": "https://www.chippewacountymn.gov/",
+      "official_contact_page_url": "https://www.chippewacountymn.gov/m/directory/department?did=6",
+      "county_site_has_usable_contact": true,
+      "contacts": [],
+      "evidence_note": "Official county site checked; no additional or changed usable GIS contact information found."
+    },
+    {
+      "county": "Chisago",
+      "verified": "2026-10-04",
+      "authority": "county",
+      "official_county_url": "https://www.chisagocountymn.gov/",
+      "official_contact_page_url": "https://www.chisagocountymn.gov/427/Geographic-Information-Systems-GIS",
+      "county_site_has_usable_contact": true,
+      "contacts": [
+        {
+          "name": "Beth Wulf",
+          "title": "GIS Analyst",
+          "department": "Geographic Information Systems (GIS)",
+          "phone": "651-213-8200",
+          "email": null
+        }
+      ],
+      "evidence_note": "The official county GIS page identifies Beth Wulf as GIS Analyst and lists phone 651-213-8200. This differs from the MnGeo phone, so the county website is authoritative."
+    },
+    {
+      "county": "Clay",
+      "verified": "2026-10-04",
+      "authority": "county",
+      "official_county_url": "https://claycountymn.gov/",
+      "official_contact_page_url": "https://claycountymn.gov/635/Addressing",
+      "county_site_has_usable_contact": true,
+      "contacts": [
+        {
+          "name": null,
+          "title": null,
+          "department": "GIS",
+          "phone": "218-299-5003",
+          "email": "gis@claycountymn.gov"
+        }
+      ],
+      "evidence_note": ""
+    },
+    {
+      "county": "Clearwater",
+      "verified": "2026-10-04",
+      "authority": "county",
+      "official_county_url": "https://www.co.clearwater.mn.us/",
+      "official_contact_page_url": "https://www.co.clearwater.mn.us/gis",
+      "county_site_has_usable_contact": true,
+      "contacts": [
+        {
+          "name": null,
+          "title": null,
+          "department": "GIS Mapping/E911",
+          "phone": "218-694-3633",
+          "email": null
+        }
+      ],
+      "evidence_note": "Official county search evidence states the GIS Mapping/E911 phone number."
+    },
+    {
+      "county": "Cook",
+      "verified": "2026-10-04",
+      "authority": "mngeo",
+      "official_county_url": "https://cookcountymn.gov/",
+      "official_contact_page_url": "https://cookcountymn.gov/assessor",
+      "county_site_has_usable_contact": true,
+      "contacts": [],
+      "evidence_note": "Saved official county Assessor page identifies Robert Thompson and the Assessor's Office phone."
+    },
+    {
+      "county": "Cottonwood",
+      "verified": "2026-10-04",
+      "authority": "mngeo",
+      "official_county_url": "https://www.cottonwoodcountymn.gov/",
+      "official_contact_page_url": "https://www.cottonwoodcountymn.gov/departments/administrative/assessor/index.php",
+      "county_site_has_usable_contact": true,
+      "contacts": [],
+      "evidence_note": "Official county site checked; no additional or changed usable GIS contact information found."
+    },
+    {
+      "county": "Crow Wing",
+      "verified": "2026-10-04",
+      "authority": "county",
+      "official_county_url": "https://www.crowwing.us/",
+      "official_contact_page_url": "https://crowwing.us/85/Interactive-",
+      "county_site_has_usable_contact": true,
+      "contacts": [
+        {
+          "name": null,
+          "title": null,
+          "department": "GIS",
+          "phone": "218-824-1106",
+          "email": null
+        },
+        {
+          "name": null,
+          "title": null,
+          "department": "Land Services",
+          "phone": "218-824-1010",
+          "email": null
+        }
+      ],
+      "evidence_note": "Official county Interactive Maps/GIS Data page states the GIS and Land Services contact numbers."
+    },
+    {
+      "county": "Dakota",
+      "verified": "2026-10-04",
+      "authority": "county",
+      "official_county_url": "https://www.co.dakota.mn.us/",
+      "official_contact_page_url": "https://www.co.dakota.mn.us/HomeProperty/MappingServices/GISData/Pages/default.aspx",
+      "county_site_has_usable_contact": true,
+      "contacts": [
+        {
+          "name": "Office of GIS",
+          "title": null,
+          "department": "Office of GIS",
+          "phone": "952-891-7081",
+          "email": "gis@co.dakota.mn.us"
+        },
+        {
+          "name": "Property Taxation & Records",
+          "title": null,
+          "department": "Property Taxation & Records",
+          "phone": "651-438-4597",
+          "email": "records@co.dakota.mn.us"
+        }
+      ],
+      "evidence_note": "Official Dakota County pages provide contacts for GIS data and property-map/records questions."
+    },
+    {
+      "county": "Dodge",
+      "verified": "2026-10-04",
+      "authority": "county",
+      "official_county_url": "https://dodgecountymn.gov/",
+      "official_contact_page_url": "https://dodgecountymn.gov/departments/land_records/gis.php",
+      "county_site_has_usable_contact": true,
+      "contacts": [
+        {
+          "name": "Bryan Byholm",
+          "title": null,
+          "department": "Geographical Information Systems (GIS)",
+          "phone": "651-385-3193",
+          "email": "bryan.byholm@goodhuecountymn.gov"
+        },
+        {
+          "name": "Dodge County Land Records Office",
+          "title": null,
+          "department": "Land Records",
+          "phone": "507-635-6245",
+          "email": null
+        }
+      ],
+      "evidence_note": "The official Dodge County GIS & Maps page identifies a GIS contact and separately provides the Dodge County Land Records Office phone."
+    },
+    {
+      "county": "Douglas",
+      "verified": "2026-10-04",
+      "authority": "county",
+      "official_county_url": "https://www.douglascountymn.gov/",
+      "official_contact_page_url": "https://www.douglascountymn.gov/gis",
+      "county_site_has_usable_contact": true,
+      "contacts": [
+        {
+          "name": "Katie Reitter",
+          "title": "GIS Coordinator",
+          "department": "GIS Office",
+          "phone": "(320) 762-2933",
+          "email": null
+        },
+        {
+          "name": "Doug Thom",
+          "title": "E-911 Coordinator",
+          "department": "E911 Addressing",
+          "phone": "320-762-2988",
+          "email": null
+        },
+        {
+          "name": "Patrick D. Veraguth, LS",
+          "title": "County Surveyor",
+          "department": "Douglas County Public Works Survey Division",
+          "phone": "320-762-2964",
+          "email": null
+        },
+        {
+          "name": "Stacy Honkomp",
+          "title": "County Assessor",
+          "department": "Assessor's Office",
+          "phone": "320-762-3884",
+          "email": null
+        },
+        {
+          "name": null,
+          "title": null,
+          "department": "Recorder's Office",
+          "phone": "320-762-3877",
+          "email": null
+        }
+      ],
+      "evidence_note": "Official Douglas County pages list GIS, E-911, survey, assessor, and recorder contacts."
+    },
+    {
+      "county": "Faribault",
+      "verified": "2026-10-04",
+      "authority": "county",
+      "official_county_url": "https://www.faribaultcountymn.gov/",
+      "official_contact_page_url": "https://www.faribaultcountymn.gov/1220/GIS",
+      "county_site_has_usable_contact": true,
+      "contacts": [
+        {
+          "name": "Brandee Douglas",
+          "title": "GIS Coordinator",
+          "department": "GIS",
+          "phone": "507-526-2388",
+          "email": "brandee.douglas@faribaultcountymn.gov",
+          "contact_page_url": "https://www.faribaultcountymn.gov/1220/GIS"
+        }
+      ],
+      "evidence_note": "The official county GIS page lists Brandee Douglas, GIS Coordinator, with email brandee.douglas@faribaultcountymn.gov and phone 507-526-2388."
+    },
+    {
+      "county": "Fillmore",
+      "verified": "2026-10-04",
+      "authority": "mngeo",
+      "official_county_url": "https://www.co.fillmore.mn.us/",
+      "official_contact_page_url": "https://www.co.fillmore.mn.us/departments/gis/gis_services.php",
+      "county_site_has_usable_contact": false,
+      "contacts": [],
+      "evidence_note": "The official county GIS Services page confirms the GIS office and its functions but does not identify a current GIS coordinator. Retain the MnGeo baseline rather than substituting unrelated assessor staff."
+    },
+    {
+      "county": "Freeborn",
+      "verified": "2026-10-04",
+      "authority": "mngeo",
+      "official_county_url": "https://www.freeborncountymn.gov/",
+      "official_contact_page_url": "https://www.freeborncountymn.gov/126/Assessor",
+      "county_site_has_usable_contact": true,
+      "contacts": [],
+      "evidence_note": "Official county pages identify the Assessor's Office phone and Heather Bagley as Recorder with the Recorder's Office phone. No complete email address was exposed in the saved official-page evidence."
+    },
+    {
+      "county": "Goodhue",
+      "verified": "2026-10-04",
+      "authority": "county",
+      "official_county_url": "https://goodhuecountymn.gov/",
+      "official_contact_page_url": "https://goodhuecountymn.gov/surveyor_gis/",
+      "county_site_has_usable_contact": true,
+      "contacts": [
+        {
+          "name": "Bryan Byholm",
+          "title": "GIS System Specialist",
+          "department": "Surveyor & Geographic Information Systems (GIS)",
+          "phone": "651-385-3231"
+        },
+        {
+          "name": "Jeff Ekblad",
+          "title": "County Surveyor/Recorder",
+          "department": "Surveyor & Geographic Information Systems (GIS)",
+          "phone": "651-385-3231"
+        },
+        {
+          "name": "Leanne Knott",
+          "title": "GIS System Specialist",
+          "department": "Surveyor & Geographic Information Systems (GIS)",
+          "phone": "651-385-3231"
+        },
+        {
+          "name": "Alan Laumeyer",
+          "title": "GIS Specialist",
+          "department": "Surveyor & Geographic Information Systems (GIS)",
+          "phone": "651-385-3231"
+        }
+      ],
+      "evidence_note": "The official Goodhue Surveyor & GIS page states that the office develops and maintains county GIS datasets including parcel information, aerial photography, contours, and public-land-survey data; it lists the four staff members and a shared phone. No GIS staff email is stated on that page."
+    },
+    {
+      "county": "Grant",
+      "verified": "2026-10-04",
+      "authority": "mngeo",
+      "official_county_url": "https://www.grantcountymn.gov/",
+      "official_contact_page_url": "https://www.grantcountymn.gov/177/Recorder",
+      "county_site_has_usable_contact": true,
+      "contacts": [],
+      "evidence_note": "The official Grant County Recorder page states Holly Jo Wevley is County Recorder and lists the department email and phone."
+    },
+    {
+      "county": "Hennepin",
+      "verified": "2026-10-04",
+      "authority": "county",
+      "official_county_url": "https://www.hennepincounty.gov/",
+      "official_contact_page_url": "https://www.hennepincounty.gov/services/property/property-maps-data/public-land-survey-monuments",
+      "county_site_has_usable_contact": true,
+      "contacts": [
+        {
+          "name": "Chris Mavis",
+          "title": "GIS Cadastral Data Manager",
+          "email": "chris.mavis@hennepin.us",
+          "phone": "612-348-2618"
+        },
+        {
+          "department": "County Surveyor's Office",
+          "email": "surveyor.maps@hennepin.us",
+          "phone": "612-348-3131"
+        },
+        {
+          "department": "Hennepin County GIS",
+          "email": "gis.info@hennepin.us"
+        },
+        {
+          "department": "Property Tax Division",
+          "email": "taxinfo@hennepin.us",
+          "phone": "612-348-3011"
+        },
+        {
+          "department": "Recorder - Registrar of Titles",
+          "email": "recordinginfo@hennepin.us",
+          "phone": "612-348-5139"
+        },
+        {
+          "department": "Assessor",
+          "email": "assessor.ao@hennepin.us",
+          "phone": "612-348-3046"
+        }
+      ],
+      "evidence_note": "Saved official Hennepin County GIS, surveyor, property-tax, recorder, and assessor pages state these contacts."
+    },
+    {
+      "county": "Houston",
+      "verified": "2026-10-04",
+      "authority": "mngeo",
+      "official_county_url": "https://www.hocomn.gov/",
+      "official_contact_page_url": "https://www.hocomn.gov/departments/assessor/index.php",
+      "county_site_has_usable_contact": true,
+      "contacts": [],
+      "evidence_note": "The official Assessor page identifies Luke Onstad and provides the Assessor's Office phone."
+    },
+    {
+      "county": "Hubbard",
+      "verified": "2026-10-04",
+      "authority": "county",
+      "official_county_url": "https://www.hubbardcounty.gov/",
+      "official_contact_page_url": "https://www.hubbardcounty.gov/index.asp?SEC=D7FFB7AB-2D53-4054-8A28-E91077B7ED71",
+      "county_site_has_usable_contact": true,
+      "contacts": [
+        {
+          "name": "Ryan Miller",
+          "title": "County Surveyor",
+          "department": "Land Survey Department",
+          "phone": "(218) 732-7016",
+          "email": "ryan.miller@hubbardcounty.gov",
+          "contact_page_url": "https://www.hubbardcounty.gov/index.asp?SEC=D7FFB7AB-2D53-4054-8A28-E91077B7ED71"
+        }
+      ],
+      "evidence_note": "The official Land Survey page states that the department updates maps and develops parcel maps, and lists Ryan Miller, County Surveyor, with phone (218) 732-7016 and email ryan.miller@hubbardcounty.gov."
+    },
+    {
+      "county": "Isanti",
+      "verified": "2026-10-04",
+      "authority": "county",
+      "official_county_url": "https://www.isanticountymn.gov/",
+      "official_contact_page_url": "https://www.isanticountymn.gov/directory.aspx?did=79",
+      "county_site_has_usable_contact": true,
+      "contacts": [
+        {
+          "department": "Geographic Information Systems (GIS)",
+          "phone": "763-689-8243",
+          "email": "GIS@co.isanti.mn.us"
+        }
+      ],
+      "evidence_note": "The official Isanti County GIS directory entry lists the GIS department, phone, and email."
+    },
+    {
+      "county": "Itasca",
+      "verified": "2026-10-04",
+      "authority": "county",
+      "official_county_url": "https://www.itascacountymn.gov/",
+      "official_contact_page_url": "https://www.itascacountymn.gov/m/faq?cat=29",
+      "county_site_has_usable_contact": true,
+      "contacts": [
+        {
+          "department": "Geographical Information Services (GIS)",
+          "phone": "218-327-2854"
+        }
+      ],
+      "evidence_note": "The official Itasca County GIS FAQ repeatedly states that GIS questions may be directed to 218-327-2854."
+    },
+    {
+      "county": "Jackson",
+      "verified": "2026-10-04",
+      "authority": "county",
+      "official_county_url": "https://jacksoncountymn.gov/",
+      "official_contact_page_url": "https://jacksoncountymn.gov/maps",
+      "county_site_has_usable_contact": true,
+      "contacts": [
+        {
+          "name": "Jared Baloun",
+          "title": "GIS Technician",
+          "department": "Public Works / GIS",
+          "phone": "507-849-7253",
+          "email": null
+        }
+      ],
+      "evidence_note": "The official county Maps page identifies Jared Baloun as GIS Technician; an official county notice confirms the GIS Technician phone as 507-849-7253. This differs from the MnGeo baseline contact."
+    },
+    {
+      "county": "Kanabec",
+      "verified": "2026-10-04",
+      "authority": "county",
+      "official_county_url": "https://www.kanabeccounty.org/",
+      "official_contact_page_url": "https://www.kanabeccounty.org/departments/gis.php",
+      "county_site_has_usable_contact": true,
+      "contacts": [
+        {
+          "name": "Ryan Carda",
+          "title": "Environmental Services Supervisor",
+          "department": "Public Works / GIS",
+          "phone": "320-679-6456",
+          "email": "ryan.carda@co.kanabec.mn.us"
+        }
+      ],
+      "evidence_note": "The official GIS page directs reports of inaccurate GIS information to Ryan Carda at a county email; the official Public Works page identifies Ryan Carda as Environmental Services Supervisor and provides phone 320-679-6456. The official email differs from the MnGeo baseline."
+    },
+    {
+      "county": "Kandiyohi",
+      "verified": "2026-10-04",
+      "authority": "mngeo",
+      "official_county_url": "https://www.kcmn.us/",
+      "official_contact_page_url": "https://www.kcmn.us/departments/assessor/index.php",
+      "county_site_has_usable_contact": true,
+      "contacts": [],
+      "evidence_note": "The official Assessor page lists the county assessor and commercial appraiser with phone and email information."
+    },
+    {
+      "county": "Kittson",
+      "verified": "2026-10-04",
+      "authority": "mngeo",
+      "official_county_url": "https://www.co.kittson.mn.us/",
+      "official_contact_page_url": "https://www.co.kittson.mn.us/government/departments/taxpayer_services.php",
+      "county_site_has_usable_contact": true,
+      "contacts": [],
+      "evidence_note": "The official Taxpayer Services page states the office phone for property tax information assistance."
+    },
+    {
+      "county": "Koochiching",
+      "verified": "2026-10-04",
+      "authority": "county",
+      "official_county_url": "https://www.koochiching.gov/",
+      "official_contact_page_url": "https://www.koochiching.gov/m/directory",
+      "county_site_has_usable_contact": true,
+      "contacts": [
+        {
+          "name": "Mary-Jean Becker",
+          "title": "GIS Technician",
+          "department": "Information Systems",
+          "phone": "218-283-1172",
+          "email": "mjbecker@koochiching.gov"
+        }
+      ],
+      "evidence_note": "Official county staff directory lists Mary-Jean Becker as GIS Technician in Information Systems with current county-domain email and phone."
+    },
+    {
+      "county": "Lac qui Parle",
+      "verified": "2026-10-04",
+      "authority": "mngeo",
+      "official_county_url": "https://www.lqpcomn.gov/",
+      "official_contact_page_url": "https://www.lqpcomn.gov/35/Services",
+      "county_site_has_usable_contact": false,
+      "contacts": [],
+      "evidence_note": "The official county site provides GIS/Open Data and parcel services but the reviewed official pages do not provide additional or changed usable GIS contact information. Retain the MnGeo baseline."
+    },
+    {
+      "county": "Lake",
+      "verified": "2026-10-04",
+      "authority": "county",
+      "official_county_url": "https://www.co.lake.mn.us/",
+      "official_contact_page_url": "https://www.co.lake.mn.us/gis/",
+      "county_site_has_usable_contact": true,
+      "contacts": [
+        {
+          "name": null,
+          "title": null,
+          "department": "Information Technology / GIS",
+          "phone": "218-834-8490",
+          "email": "gis@co.lake.mn.us"
+        }
+      ],
+      "evidence_note": "Official county GIS page directs GIS program inquiries to gis@co.lake.mn.us and lists Information Technology as the directory contact."
+    },
+    {
+      "county": "Lake of the Woods",
+      "verified": "2026-10-04",
+      "authority": "county",
+      "official_county_url": "https://lotwcounty.gov/",
+      "official_contact_page_url": "https://lotwcounty.gov/mis-gis/",
+      "county_site_has_usable_contact": true,
+      "contacts": [
+        {
+          "name": null,
+          "title": "IT/GIS Contact",
+          "department": "IT/GIS",
+          "phone": "218-634-4519",
+          "email": "mis.tech@co.lotw.mn.us"
+        }
+      ],
+      "evidence_note": "Official IT/GIS page states that IT maintains the county GIS program and provides the IT/GIS phone and email."
+    },
+    {
+      "county": "Le Sueur",
+      "verified": "2026-10-04",
+      "authority": "mngeo",
+      "official_county_url": "https://www.lesueurcounty.gov/",
+      "official_contact_page_url": "https://www.lesueurcounty.gov/m/directory",
+      "county_site_has_usable_contact": true,
+      "contacts": [],
+      "evidence_note": "The official staff directory lists an Assessor category with phone 507-357-8213."
+    },
+    {
+      "county": "Lincoln",
+      "verified": "2026-10-04",
+      "authority": "mngeo",
+      "official_county_url": "https://www.lincolncounty-mn.us/",
+      "official_contact_page_url": "https://www.lincolncounty-mn.us/departments_agencies/gis_maps.php",
+      "county_site_has_usable_contact": false,
+      "contacts": [],
+      "evidence_note": "The official GIS/maps page evidence states only the county general phone 507-694-1000; no GIS-specific staff contact is stated."
+    },
+    {
+      "county": "Lyon",
+      "verified": "2026-10-04",
+      "authority": "mngeo",
+      "official_county_url": "https://www.lyoncountymn.gov/",
+      "official_contact_page_url": "https://www.lyoncountymn.gov/departments/gis-mapping",
+      "county_site_has_usable_contact": true,
+      "contacts": [],
+      "evidence_note": "The official GIS page and department-contact page identify Mark Volz as GIS Coordinator with phone and email. These match the MnGeo baseline, so MnGeo remains the fallback under the precedence rule."
+    },
+    {
+      "county": "Mahnomen",
+      "verified": "2026-10-04",
+      "authority": "county",
+      "official_county_url": "https://www.mahnomencounty.gov/",
+      "official_contact_page_url": "https://www.mahnomencounty.gov/department/departments_a_h/assessor/department_contacts.php",
+      "county_site_has_usable_contact": true,
+      "contacts": [
+        {
+          "name": "Jeff Bjerk",
+          "title": "Assessor",
+          "department": "Mahnomen County Assessor's Office",
+          "phone": null,
+          "email": null
+        }
+      ],
+      "evidence_note": "The official Assessor Department Contacts page lists Jeff Bjerk as Assessor."
+    },
+    {
+      "county": "Marshall",
+      "verified": "2026-10-04",
+      "authority": "county",
+      "official_county_url": "https://www.marshallcountymn.gov/",
+      "official_contact_page_url": "https://www.marshallcountymn.gov/departments/gis.php",
+      "county_site_has_usable_contact": true,
+      "contacts": [
+        {
+          "name": "Liz Dustin",
+          "title": "Marshall County GIS Administrator",
+          "department": "GIS",
+          "phone": "218-745-4201",
+          "email": "liz.dustin@marshallcountymn.gov"
+        }
+      ],
+      "evidence_note": "The official GIS page identifies Liz Dustin and states her title, phone, and email."
+    },
+    {
+      "county": "Martin",
+      "verified": "2026-10-04",
+      "authority": "mngeo",
+      "official_county_url": "https://martincountymn.gov/",
+      "official_contact_page_url": "https://martincountymn.gov/your_government/departments/assessor/index.php",
+      "county_site_has_usable_contact": true,
+      "contacts": [],
+      "evidence_note": "The official Assessor page lists Jessica Laue as County Assessor with phone and email."
+    },
+    {
+      "county": "McLeod",
+      "verified": "2026-10-04",
+      "authority": "county",
+      "official_county_url": "https://www.mcleodcountymn.gov/",
+      "official_contact_page_url": "https://www.mcleodcountymn.gov/departments/public_works/gis_(mapping___surveying)/index.php",
+      "county_site_has_usable_contact": true,
+      "contacts": [
+        {
+          "name": "Christy Christensen",
+          "title": "McLeod County GIS Manager",
+          "department": "Public Works\u2014GIS",
+          "phone": "320-484-4375",
+          "email": null
+        },
+        {
+          "name": "Joel Crawford",
+          "title": "McLeod County GIS Specialist",
+          "department": "Public Works\u2014GIS",
+          "phone": "320-484-4375",
+          "email": null
+        }
+      ],
+      "evidence_note": "The official GIS page identifies Christy Christensen and Joel Crawford and states the GIS phone number."
+    },
+    {
+      "county": "Meeker",
+      "verified": "2026-10-04",
+      "authority": "county",
+      "official_county_url": "https://www.meekercountymn.gov/",
+      "official_contact_page_url": "https://www.meekercountymn.gov/539/GIS",
+      "county_site_has_usable_contact": true,
+      "contacts": [
+        {
+          "name": "Teresa Lieser",
+          "title": "GIS",
+          "department": "Land Use Records (Planning/Zoning)",
+          "phone": "320-693-5718",
+          "email": "teresa.lieser@co.meeker.mn.us"
+        }
+      ],
+      "evidence_note": "Official GIS page identifies Teresa Lieser as the GIS contact and gives phone 320-693-5718; this differs from the MnGeo phone."
+    },
+    {
+      "county": "Mille Lacs",
+      "verified": "2026-10-04",
+      "authority": "mngeo",
+      "official_county_url": "https://www.millelacs.mn.gov/",
+      "official_contact_page_url": "https://www.millelacs.mn.gov/1185/Assessors-Office",
+      "county_site_has_usable_contact": false,
+      "contacts": [],
+      "evidence_note": "The official Assessor and Land Services pages contain loading/boilerplate content in the saved evidence and no usable staff contact details."
+    },
+    {
+      "county": "Morrison",
+      "verified": "2026-10-04",
+      "authority": "county",
+      "official_county_url": "https://www.morrisoncountymn.gov/",
+      "official_contact_page_url": "https://www.morrisoncountymn.gov/m/directory/department?did=27",
+      "county_site_has_usable_contact": true,
+      "contacts": [
+        {
+          "name": "Brad Bolton",
+          "title": "GIS Coordinator",
+          "department": "GIS",
+          "phone": "320-631-0834",
+          "email": "brad.bolton@morrisoncountymn.gov"
+        }
+      ],
+      "evidence_note": "The official directory lists Brad Bolton as GIS Coordinator with phone and email."
+    },
+    {
+      "county": "Mower",
+      "verified": "2026-10-04",
+      "authority": "county",
+      "official_county_url": "https://www.co.mower.mn.us/",
+      "official_contact_page_url": "https://www.co.mower.mn.us/482/GIS---Online-Mapping",
+      "county_site_has_usable_contact": true,
+      "contacts": [
+        {
+          "name": "Eric Miller",
+          "title": "GIS Administrator",
+          "department": "Geographic Information Systems (GIS)",
+          "phone": "507-437-9584",
+          "email": "ericm@co.mower.mn.us"
+        },
+        {
+          "name": "Keith Bollinger",
+          "title": "GIS Specialist",
+          "department": "Geographic Information Systems (GIS)",
+          "phone": "507-481-8867",
+          "email": "keithb@co.mower.mn.us"
+        },
+        {
+          "name": "Michele Mann",
+          "title": "Office Technician",
+          "department": "Geographic Information Systems (GIS)",
+          "phone": "507-437-9553",
+          "email": "michelem@co.mower.mn.us"
+        }
+      ],
+      "evidence_note": "Official GIS page and staff directory list the GIS office and three current GIS staff contacts."
+    },
+    {
+      "county": "Murray",
+      "verified": "2026-10-04",
+      "authority": "county",
+      "official_county_url": "https://www.murraycountymn.com/",
+      "official_contact_page_url": "https://www.murraycountymn.com/contact/index.php",
+      "county_site_has_usable_contact": true,
+      "contacts": [
+        {
+          "name": "Grant Fischer",
+          "title": "GIS Technician/Administrative",
+          "department": "IT/GIS Services",
+          "phone": "507-836-1168",
+          "email": "grant.fischer@murraycountymn.gov"
+        }
+      ],
+      "evidence_note": "The official county Contact page lists Grant Fischer as GIS Technician/Administrative with the current county-domain email and phone. The email differs from the MnGeo baseline, so the county website is authoritative."
+    },
+    {
+      "county": "Nicollet",
+      "verified": "2026-10-04",
+      "authority": "county",
+      "official_county_url": "https://www.nicolletcountymn.gov/",
+      "official_contact_page_url": "https://www.nicolletcountymn.gov/847/County-Maps",
+      "county_site_has_usable_contact": true,
+      "contacts": [
+        {
+          "name": "David Runck",
+          "title": "GIS Specialist",
+          "department": "GIS Services",
+          "phone": "507-934-7192",
+          "email": "david.runck@co.nicollet.mn.us"
+        },
+        {
+          "name": "M. Garet Madison",
+          "title": "GIS Property Questions",
+          "department": "GIS Services",
+          "phone": null,
+          "email": "michael.madison@co.nicollet.mn.us"
+        }
+      ],
+      "evidence_note": "The official County Public GIS Dashboard lists David Runck for GIS software questions and M. Garet Madison for GIS property questions; the official staff directory identifies David Runck as GIS Specialist with phone 507-934-7192. This adds a GIS contact beyond the MnGeo baseline."
+    },
+    {
+      "county": "Nobles",
+      "verified": "2026-10-04",
+      "authority": "mngeo",
+      "official_county_url": "https://www.co.nobles.mn.us/",
+      "official_contact_page_url": "https://www.co.nobles.mn.us/departments/assessor/",
+      "county_site_has_usable_contact": false,
+      "contacts": [],
+      "evidence_note": "The official Assessor page describes property-assessment services but the saved page evidence states no staff name, phone, or email."
+    },
+    {
+      "county": "Norman",
+      "verified": "2026-10-04",
+      "authority": "county",
+      "official_county_url": "https://www.normanmn.gov/",
+      "official_contact_page_url": "https://www.normanmn.gov/departments/assessor/index.php",
+      "county_site_has_usable_contact": true,
+      "contacts": [
+        {
+          "name": "Marti Sip, SAMA",
+          "title": "Norman County Assessor",
+          "department": "Norman County Assessors Department",
+          "phone": "(218)784-5487",
+          "email": "marti.sip@normanmn.gov"
+        }
+      ],
+      "evidence_note": "The official assessor page states the office maintains assessment records for all parcels and lists Marti Sip with the cited phone and email addresses."
+    },
+    {
+      "county": "Olmsted",
+      "verified": "2026-10-04",
+      "authority": "county",
+      "official_county_url": "https://www.olmstedcounty.gov/",
+      "official_contact_page_url": "https://www.olmstedcounty.gov/business/building-development-gis/building-well-septic/about-gis-maps-addressing",
+      "county_site_has_usable_contact": true,
+      "contacts": [
+        {
+          "name": "Olmsted County GIS",
+          "title": "GIS",
+          "department": "Geographic Information Systems (GIS)",
+          "phone": "507-328-7100",
+          "email": "gissupport@olmstedcounty.gov"
+        }
+      ],
+      "evidence_note": "Official GIS page directs assistance, inquiries, special projects, map/data, and E911 GIS requests to the GIS support phone and email."
+    },
+    {
+      "county": "Otter Tail",
+      "verified": "2026-10-04",
+      "authority": "county",
+      "official_county_url": "https://ottertailcounty.gov/",
+      "official_contact_page_url": "https://ottertailcounty.gov/department/gis/",
+      "county_site_has_usable_contact": true,
+      "contacts": [
+        {
+          "name": "Geographic Information Systems",
+          "title": "General inquiries",
+          "department": "Geographic Information Systems",
+          "phone": "218-998-8310",
+          "email": "gis@ottertailcounty.gov"
+        }
+      ],
+      "evidence_note": "Official GIS department page provides the current general GIS phone and email."
+    },
+    {
+      "county": "Pennington",
+      "verified": "2026-10-04",
+      "authority": "mngeo",
+      "official_county_url": "https://www.penningtonmn.gov/",
+      "official_contact_page_url": "https://www.penningtonmn.gov/index.php",
+      "county_site_has_usable_contact": false,
+      "contacts": [],
+      "evidence_note": "Official county site exposes GIS Mapping as a service but the reviewed official pages did not provide a GIS-specific staff contact; retain MnGeo fallback."
+    },
+    {
+      "county": "Pine",
+      "verified": "2026-10-04",
+      "authority": "county",
+      "official_county_url": "https://www.pinecountymn.gov/",
+      "official_contact_page_url": "https://www.pinecountymn.gov/departments/public_works/surveying.php",
+      "county_site_has_usable_contact": true,
+      "contacts": [
+        {
+          "name": "Robin Mathews",
+          "title": "County Surveyor",
+          "department": "County Surveyor's Office",
+          "phone": "320-216-4205",
+          "email": "robin.mathews@pinecountymn.gov"
+        }
+      ],
+      "evidence_note": "Official county surveying page provides current mapping, boundary-data, and land-survey-record contact information."
+    },
+    {
+      "county": "Pipestone",
+      "verified": "2026-10-04",
+      "authority": "mngeo",
+      "official_county_url": "https://www.pipestone-county.com/",
+      "official_contact_page_url": "https://www.pipestone-county.com/government/departments/assessor/index.php#faq-questions-3",
+      "county_site_has_usable_contact": true,
+      "contacts": [],
+      "evidence_note": "The official county Assessor page states Jean Nelson is County Assessor, provides her phone and email, and separately lists the Assessor office email."
+    },
+    {
+      "county": "Polk",
+      "verified": "2026-10-04",
+      "authority": "county",
+      "official_county_url": "https://www.polkcountymn.gov/",
+      "official_contact_page_url": "https://www.polkcountymn.gov/m/directory/department?did=56",
+      "county_site_has_usable_contact": true,
+      "contacts": [
+        {
+          "name": null,
+          "title": null,
+          "department": "GIS",
+          "phone": "218-521-7759",
+          "email": null
+        }
+      ],
+      "evidence_note": "The official Polk County directory page identifies GIS and states phone 218-521-7759. No email address is stated in the saved page evidence."
+    },
+    {
+      "county": "Pope",
+      "verified": "2026-10-04",
+      "authority": "mngeo",
+      "official_county_url": "https://www.popecountymn.gov/",
+      "official_contact_page_url": "https://www.popecountymn.gov/assessor/",
+      "county_site_has_usable_contact": true,
+      "contacts": [],
+      "evidence_note": "The official Assessor page identifies Mike Wacker and states the Assessor contact phone."
+    },
+    {
+      "county": "Ramsey",
+      "verified": "2026-10-04",
+      "authority": "mngeo",
+      "official_county_url": "https://www.ramseycounty.us/",
+      "official_contact_page_url": "https://www.ramseycounty.us/assessor",
+      "county_site_has_usable_contact": true,
+      "contacts": [],
+      "evidence_note": "The official County Assessor page names Patrick Chapman and states the Assessor contact number."
+    },
+    {
+      "county": "Red Lake",
+      "verified": "2026-10-04",
+      "authority": "mngeo",
+      "official_county_url": "https://redlakecounty.gov/",
+      "official_contact_page_url": "https://redlakecounty.gov/departments/assessor.php",
+      "county_site_has_usable_contact": true,
+      "contacts": [],
+      "evidence_note": "The official Assessor page lists Shelly Nelson with phone and email and describes the office's property-parcel assessment duties."
+    },
+    {
+      "county": "Redwood",
+      "verified": "2026-10-04",
+      "authority": "mngeo",
+      "official_county_url": "https://redwoodcounty-mn.gov/",
+      "official_contact_page_url": "https://redwoodcounty-mn.gov/departments/assessor/",
+      "county_site_has_usable_contact": true,
+      "contacts": [],
+      "evidence_note": "The official Redwood County Assessor page states the department phone and email and identifies Jesse Jacobson as County Assessor."
+    },
+    {
+      "county": "Renville",
+      "verified": "2026-10-04",
+      "authority": "county",
+      "official_county_url": "https://www.renvillecountymn.gov/",
+      "official_contact_page_url": "https://www.renvillecountymn.gov/directory-page/",
+      "county_site_has_usable_contact": true,
+      "contacts": [
+        {
+          "name": null,
+          "title": null,
+          "department": "GIS/County Maps",
+          "phone": "320-523-3803",
+          "email": null
+        }
+      ],
+      "evidence_note": "Official county directory lists GIS/County Maps with phone 320-523-3803."
+    },
+    {
+      "county": "Rice",
+      "verified": "2026-10-04",
+      "authority": "county",
+      "official_county_url": "https://www.ricecountymn.gov/",
+      "official_contact_page_url": "https://www.ricecountymn.gov/152/Geographic-Information-Systems",
+      "county_site_has_usable_contact": true,
+      "contacts": [
+        {
+          "name": "Michelle Trager",
+          "title": "GIS Coordinator",
+          "department": "Geographic Information Systems",
+          "phone": "507-332-5950",
+          "email": "RCGIS@ricecountymn.gov"
+        }
+      ],
+      "evidence_note": "Official GIS page identifies Michelle Trager and the GIS division; official directory provides the GIS division email and phone."
+    },
+    {
+      "county": "Rock",
+      "verified": "2026-10-04",
+      "authority": "county",
+      "official_county_url": "https://www.co.rock.mn.us/",
+      "official_contact_page_url": "https://www.co.rock.mn.us/department_directory/land_records_office_(recording_and_assesing).php",
+      "county_site_has_usable_contact": true,
+      "contacts": [
+        {
+          "name": "Tom Houselog",
+          "title": "Director",
+          "department": "Land Records Office (Recording and Assessing)",
+          "phone": "507-283-5022",
+          "email": "tom.houselog@co.rock.mn.us"
+        }
+      ],
+      "evidence_note": "The official land-records page states the office conducts property assessment, records real-estate documents, and provides GIS services."
+    },
+    {
+      "county": "Roseau",
+      "verified": "2026-10-04",
+      "authority": "mngeo",
+      "official_county_url": "https://www.roseaucountymn.gov/",
+      "official_contact_page_url": "https://www.roseaucountymn.gov/",
+      "county_site_has_usable_contact": false,
+      "contacts": [],
+      "evidence_note": "Official county website was checked; no current GIS-specific contact information was established from the reviewed official pages, so retain MnGeo fallback."
+    },
+    {
+      "county": "Scott",
+      "verified": "2026-10-04",
+      "authority": "county",
+      "official_county_url": "https://www.scottcountymn.gov/",
+      "official_contact_page_url": "https://www.scottcountymn.gov/308/Geographic-Information-Systems-GIS",
+      "county_site_has_usable_contact": true,
+      "contacts": [
+        {
+          "name": null,
+          "title": null,
+          "department": "Geographic Information Systems (GIS)",
+          "phone": "952-496-8060",
+          "email": "gis@co.scott.mn.us"
+        }
+      ],
+      "evidence_note": "The official GIS page identifies the GIS department and states its phone and email."
+    },
+    {
+      "county": "Sherburne",
+      "verified": "2026-10-04",
+      "authority": "county",
+      "official_county_url": "https://www.co.sherburne.mn.us/",
+      "official_contact_page_url": "https://www.co.sherburne.mn.us/m/directory/department?did=31",
+      "county_site_has_usable_contact": true,
+      "contacts": [
+        {
+          "name": "Brett Forbes",
+          "title": "GIS Coordinator",
+          "department": "GIS Division",
+          "phone": "763-765-3311",
+          "email": "brett.forbes@co.sherburne.mn.us"
+        },
+        {
+          "name": "Jenna Walz",
+          "title": "GIS Specialist",
+          "department": "GIS Division",
+          "phone": "763-765-3304",
+          "email": "Jenna.Walz@co.sherburne.mn.us"
+        },
+        {
+          "name": "Melissa Gearman",
+          "title": "GIS Specialist",
+          "department": "GIS Division",
+          "phone": "763-765-3314",
+          "email": "melissa.gearman@co.sherburne.mn.us"
+        }
+      ],
+      "evidence_note": "The official GIS Division directory page states each person's name, title, phone, and email."
+    },
+    {
+      "county": "Sibley",
+      "verified": "2026-10-04",
+      "authority": "county",
+      "official_county_url": "https://www.sibleycounty.gov/",
+      "official_contact_page_url": "https://www.sibleycounty.gov/384/Parcel-Mapping",
+      "county_site_has_usable_contact": true,
+      "contacts": [
+        {
+          "name": "Luke Kranz",
+          "title": "Sibley County Surveyor",
+          "department": null,
+          "phone": "612-916-3019",
+          "email": null
+        }
+      ],
+      "evidence_note": "The official Parcel Mapping page instructs users to contact Sibley County Surveyor Luke Kranz at 612-916-3019 regarding Coordinate System Data."
+    },
+    {
+      "county": "St. Louis",
+      "verified": "2026-10-04",
+      "authority": "county",
+      "official_county_url": "https://www.stlouiscountymn.gov/",
+      "official_contact_page_url": "https://www.stlouiscountymn.gov/departments-a-z/economic-community-development/about-economic-community-development/our-staff",
+      "county_site_has_usable_contact": true,
+      "contacts": [
+        {
+          "name": "Enterprise GIS",
+          "title": "Enterprise GIS",
+          "department": "Economic & Community Development",
+          "phone": "218-733-2755",
+          "email": "GIS@StLouisCountyMN.gov"
+        }
+      ],
+      "evidence_note": "Official current staff page provides the Enterprise GIS department phone and email."
+    },
+    {
+      "county": "Stearns",
+      "verified": "2026-10-04",
+      "authority": "mngeo",
+      "official_county_url": "https://www.stearnscountymn.gov",
+      "official_contact_page_url": "https://www.stearnscountymn.gov/property-services",
+      "county_site_has_usable_contact": false,
+      "contacts": [],
+      "evidence_note": "The official Property Services page was captured, but no usable GIS or land-records staff contact details were present in the captured content."
+    },
+    {
+      "county": "Steele",
+      "verified": "2026-10-04",
+      "authority": "county",
+      "official_county_url": "https://www.steelecountymn.gov/",
+      "official_contact_page_url": "https://www.steelecountymn.gov/departments/gis_geographic_information_systems/index.php",
+      "county_site_has_usable_contact": true,
+      "contacts": [
+        {
+          "name": null,
+          "title": null,
+          "department": "GIS Department",
+          "phone": "507.444.7486",
+          "email": "GisDept@SteeleCountyMn.gov"
+        }
+      ],
+      "evidence_note": "The official Steele County GIS page states that the GIS department maintains tax parcel data, creates maps and online mapping applications, provides NG-911 GIS data, and supports GIS services. Its official Contact Us section lists the GIS Department phone and email. No individual name or title is stated."
+    },
+    {
+      "county": "Stevens",
+      "verified": "2026-10-04",
+      "authority": "mngeo",
+      "official_county_url": "https://www.stevenscountymn.gov",
+      "official_contact_page_url": "https://www.stevenscountymn.gov/924/Information-Technology",
+      "county_site_has_usable_contact": false,
+      "contacts": [],
+      "evidence_note": "The official Information Technology page was captured, but its content contained only loading placeholders and no usable contact details."
+    },
+    {
+      "county": "Swift",
+      "verified": "2026-10-04",
+      "authority": "mngeo",
+      "official_county_url": "https://swiftcounty.gov",
+      "official_contact_page_url": "https://swiftcounty.gov/gis",
+      "county_site_has_usable_contact": false,
+      "contacts": [],
+      "evidence_note": "The official site identifies a Maps & GIS page and describes GIS functions, but the captured content does not state a staff name, phone, or email."
+    },
+    {
+      "county": "Todd",
+      "verified": "2026-10-04",
+      "authority": "county",
+      "official_county_url": "https://www.toddcountymn.gov/",
+      "official_contact_page_url": "https://www.toddcountymn.gov/government/departments/interactive_gis_mapping.php",
+      "county_site_has_usable_contact": true,
+      "contacts": [
+        {
+          "name": "Thomas Krivanek",
+          "title": "GIS Specialist",
+          "department": "Todd County GIS",
+          "phone": "320-732-4248",
+          "email": "todd.gis@co.todd.mn.us"
+        }
+      ],
+      "evidence_note": "The official Todd County Interactive GIS Mapping page lists Thomas Krivanek as GIS Specialist with Todd County GIS contact details and states that the county GIS viewer includes parcel boundaries, address points, plats, zoning, and certified corners."
+    },
+    {
+      "county": "Traverse",
+      "verified": "2026-10-04",
+      "authority": "mngeo",
+      "official_county_url": "https://traversecountymn.gov/",
+      "official_contact_page_url": "https://traversecountymn.gov/departments/departments/assessor/",
+      "county_site_has_usable_contact": true,
+      "contacts": [],
+      "evidence_note": "The official Traverse County Assessor page lists the Assessor's Office phone, Kayla Kleindl as County Assessor, and Nick Rasmussen as Deputy Assessor with county email addresses. It states that the office determines property values and classifications and maintains assessment records."
+    },
+    {
+      "county": "Wabasha",
+      "verified": "2026-10-04",
+      "authority": "county",
+      "official_county_url": "https://www.co.wabasha.mn.us/",
+      "official_contact_page_url": null,
+      "county_site_has_usable_contact": true,
+      "contacts": [
+        {
+          "name": null,
+          "title": "Interim GIS Coordinator",
+          "department": "Wabasha County GIS",
+          "phone": "651-565-5164",
+          "email": "jgusa@co.wabasha.mn.us"
+        }
+      ],
+      "evidence_note": "The official county GIS content provides an Interim GIS Coordinator contact phone and email, but the displayed person name and email identity are internally inconsistent. The dashboard therefore uses the official role/contact channel without attaching that email to a named individual."
+    },
+    {
+      "county": "Wadena",
+      "verified": "2026-10-04",
+      "authority": "county",
+      "official_county_url": "https://www.wadenacounty.gov/",
+      "official_contact_page_url": "https://www.wadenacounty.gov/194/GIS",
+      "county_site_has_usable_contact": true,
+      "contacts": [
+        {
+          "name": "Gina Dahms",
+          "title": "GIS Coordinator",
+          "department": "GIS Department",
+          "phone": "218-631-7643",
+          "email": "gina.dahms@wcmn.us",
+          "contact_page_url": "https://www.wadenacounty.gov/194/GIS"
+        }
+      ],
+      "evidence_note": "The official GIS page states that the GIS Department maps property boundaries and creates or updates E911 addresses, and lists Gina Dahms, GIS Coordinator, with email gina.dahms@wcmn.us and phone 218-631-7643."
+    },
+    {
+      "county": "Waseca",
+      "verified": "2026-10-04",
+      "authority": "mngeo",
+      "official_county_url": "https://www.wasecacounty.gov",
+      "official_contact_page_url": "https://www.wasecacounty.gov/m/directory/department?did=7",
+      "county_site_has_usable_contact": true,
+      "contacts": [],
+      "evidence_note": "The official county directory states the Assessor's Office staff names, titles, phones, and emails."
+    },
+    {
+      "county": "Washington",
+      "verified": "2026-10-04",
+      "authority": "mngeo",
+      "official_county_url": "https://www.washingtoncountymn.gov/",
+      "official_contact_page_url": null,
+      "county_site_has_usable_contact": false,
+      "contacts": [],
+      "evidence_note": "The official county website was checked, but no current official evidence established that the MnGeo GIS Support contact has been replaced. Retain the MnGeo GIS contact baseline rather than substituting a survey contact."
+    },
+    {
+      "county": "Watonwan",
+      "verified": "2026-10-04",
+      "authority": "mngeo",
+      "official_county_url": "https://www.watonwancountymn.gov/",
+      "official_contact_page_url": "https://www.watonwancountymn.gov/112/Assessor",
+      "county_site_has_usable_contact": true,
+      "contacts": [],
+      "evidence_note": "The official Watonwan County Assessor page lists each staff member's title, phone, and county-government email and describes the office's property assessment responsibilities."
+    },
+    {
+      "county": "Wilkin",
+      "verified": "2026-10-04",
+      "authority": "mngeo",
+      "official_county_url": "https://wilkincounty.gov",
+      "official_contact_page_url": null,
+      "county_site_has_usable_contact": false,
+      "contacts": [],
+      "evidence_note": "The official county home page provides a county GIS link and general county phone, but no usable GIS or land-records staff contact details were captured."
+    },
+    {
+      "county": "Winona",
+      "verified": "2026-10-04",
+      "authority": "mngeo",
+      "official_county_url": "https://winonacounty.gov",
+      "official_contact_page_url": "https://winonacounty.gov/162/Assessor",
+      "county_site_has_usable_contact": false,
+      "contacts": [],
+      "evidence_note": "The official Assessor and Mapping Applications pages were captured, but their content contained loading placeholders and no usable contact details."
+    },
+    {
+      "county": "Wright",
+      "verified": "2026-10-04",
+      "authority": "mngeo",
+      "official_county_url": "https://www.wrightcountymn.gov",
+      "official_contact_page_url": "https://www.wrightcountymn.gov/m/directory",
+      "county_site_has_usable_contact": true,
+      "contacts": [],
+      "evidence_note": "The official directory lists the Assessor department and phone number; no person name or email was present in the captured directory content."
+    },
+    {
+      "county": "Yellow Medicine",
+      "verified": "2026-10-04",
+      "authority": "mngeo",
+      "official_county_url": "https://www.co.ym.mn.gov/",
+      "official_contact_page_url": "https://www.co.ym.mn.gov/index.asp?Type=B_BASIC&SEC=%7BE12C74A9-6349-46C6-8A04-94EA57AE40A2%7D",
+      "county_site_has_usable_contact": true,
+      "contacts": [],
+      "evidence_note": "The official Yellow Medicine County Property Records page states that the property records division accepts and records deeds, mortgages, easements, tax liens, judgments, and other real-estate records, and lists these county contacts."
+    }
+  ]
+}
