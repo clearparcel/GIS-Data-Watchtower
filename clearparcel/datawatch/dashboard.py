@@ -138,6 +138,7 @@ def _layout(title: str, body: str, *, refresh_seconds: int = 30, static: bool = 
         f'<input type="hidden" name="csrf_token" value="{_esc(csrf_token)}">'
         '<button>Check now</button></form>'
     )
+    side_context = "Public read-only view" if static else "Private dashboard"
     def icon(kind: str) -> str:
         paths = {
             "overview": '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
@@ -325,7 +326,7 @@ code{{font-size:12px;overflow-wrap:anywhere}}
 <a href="/#changes">{icon("changes")}<span>Recent Changes</span></a>
 <a href="/#alerts">{icon("alerts")}<span>Alerts</span></a>
 <a href="/snapshot.xlsx">{icon("export")}<span>Export</span></a>
-</nav><div class="side-note">Private dashboard<br><small>Central Time primary</small></div></aside>
+</nav><div class="side-note">{side_context}<br><small>Central Time primary</small></div></aside>
 <section class="content-shell">
 <div class="pagebar"><div class="pagebar-title">{_esc(page_title)}</div><div class="page-actions"><details class="export-menu"><summary>Export</summary><div class="export-pop"><a href="/snapshot.xlsx">Excel (.xlsx)</a><a href="/snapshot.csv">CSV</a><a href="/snapshot.json">JSON</a></div></details></div></div>
 <main>{body}</main>
@@ -553,7 +554,7 @@ def render_mngac(config: dict) -> str:
             '<p>The statewide parcel source has not published a stored MNGAC completeness observation. '
             'Once the configured MnGeo statewide parcel check records it, this page will show county and field statistics.</p></div>'
         )
-        return _layout("MN GAC Completeness — GIS Data Watchtower", body, refresh_seconds=300, csrf_token=str(config.get("_csrf_token") or ""))
+        return _layout("MN GAC Completeness — GIS Data Watchtower", body, refresh_seconds=300, static=bool(config.get("_public_mode")), csrf_token=str(config.get("_csrf_token") or ""))
 
     covered = int(data.get("covered_counties") or 0)
     uncovered = max(0, total_counties - covered)
@@ -761,7 +762,7 @@ def render_mngac(config: dict) -> str:
 }})();
 </script>
 """
-    return _layout("MN GAC Completeness — GIS Data Watchtower", body, refresh_seconds=0, csrf_token=str(config.get("_csrf_token") or ""))
+    return _layout("MN GAC Completeness — GIS Data Watchtower", body, refresh_seconds=0, static=bool(config.get("_public_mode")), csrf_token=str(config.get("_csrf_token") or ""))
 
 
 def render_counties(config: dict) -> str:
@@ -801,7 +802,7 @@ def render_counties(config: dict) -> str:
         '<div class="filters"><input id="cq" placeholder="Filter counties…" oninput="filterCounties()"><select id="cs" onchange="filterCounties()"><option value="">All coverage types</option><option value="ok">Directly monitored</option><option value="catalog">MnGeo update data only</option><option value="needs-source">Direct source not yet identified</option><option value="not-configured">No source information yet</option><option value="warn">Needs attention</option><option value="error">Check failed</option></select></div>' \
         f'<table id="counties"><thead><tr><th>County</th><th>Coverage<br><span class="subtext">How Watchtower currently knows about this county</span></th><th>Direct sources<br><span class="subtext">County-specific sources actively checked</span></th></tr></thead><tbody>{rows}</tbody></table></div>' \
         "<script>function filterCounties(){const q=document.getElementById('cq').value.toLowerCase(),s=document.getElementById('cs').value;document.querySelectorAll('#counties tbody tr').forEach(r=>r.style.display=(!q||r.dataset.name.includes(q))&&(!s||r.dataset.status===s)?'':'none')}</script>"
-    return _layout("Minnesota Counties — GIS Data Watchtower", '<p><a href="/">← Watchtower overview</a></p>'+body, csrf_token=str(config.get("_csrf_token") or ""))
+    return _layout("Minnesota Counties — GIS Data Watchtower", '<p><a href="/">← Watchtower overview</a></p>'+body, static=bool(config.get("_public_mode")), csrf_token=str(config.get("_csrf_token") or ""))
 
 
 def _render_county_mngac(state: dict, county: dict) -> str:
@@ -862,7 +863,7 @@ def render_county(config: dict, slug: str) -> str:
     state = _dashboard_state(config)
     county = next((x for x in _load_counties() if x.get("slug") == slug), None)
     if not county:
-        return _layout("County not found", '<p><a href="/counties">← Minnesota counties</a></p><div class="card">County not found.</div>', csrf_token=str(config.get("_csrf_token") or ""))
+        return _layout("County not found", '<p><a href="/counties">← Minnesota counties</a></p><div class="card">County not found.</div>', static=bool(config.get("_public_mode")), csrf_token=str(config.get("_csrf_token") or ""))
     info = _county_status(config, county, state)
     mngac_html = _render_county_mngac(state, county)
     source_cards = ""
@@ -903,7 +904,7 @@ def render_county(config: dict, slug: str) -> str:
     contacts_html = f'<div class="card"><h2>County GIS contacts</h2><p class="muted"><strong>Contact source:</strong> {contact_source}. {contact_source_note}{verified_text}</p><table class="contacts-table"><thead><tr><th>Name</th><th>Title</th><th>Department</th><th>Phone</th><th>Email</th></tr></thead><tbody>{contact_rows}</tbody></table></div>'
     export_links = f'<p><a href="/county-snapshot.csv?slug={urllib.parse.quote(slug)}">Download county snapshot (CSV)</a> · <a href="/county-snapshot.xlsx?slug={urllib.parse.quote(slug)}">Download county snapshot (Excel)</a> · <a href="/county-snapshot.json?slug={urllib.parse.quote(slug)}">Download county snapshot (JSON)</a></p>'
     body = f'<p><a href="/counties">← Minnesota counties</a></p>{export_links}<div class="grid"><div class="card"><div class="muted">County</div><h2>{_esc(county["name"])} County</h2></div><div class="card"><div class="muted">Data availability</div><div class="metric {_esc(info["status"])}">{_esc(_friendly_status(info["status"]).upper())}</div></div><div class="card"><div class="muted">Direct data sources</div><div class="metric">{len(info["sources"])}</div></div></div><div class="grid">{source_cards}</div>{mngac_html}<br>{contacts_html}'
-    return _layout(f'{county["name"]} County — Watchtower', body, csrf_token=str(config.get("_csrf_token") or ""))
+    return _layout(f'{county["name"]} County — Watchtower', body, static=bool(config.get("_public_mode")), csrf_token=str(config.get("_csrf_token") or ""))
 
 def _county_snapshot(config: dict, slug: str, *, include_mngac: bool = True) -> dict | None:
     state = _dashboard_state(config)

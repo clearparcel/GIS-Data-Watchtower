@@ -42,9 +42,9 @@ See [hybrid-aggregation.md](hybrid-aggregation.md) and [hybrid-execution.md](hyb
 
 The dashboard is a **consumer of persisted state**, not the authoritative scheduler.
 
-The built-in private dashboard can display local or aggregate state and produce JSON, CSV, and Excel snapshots. A separate hosted deployment may expose the dashboard read-only behind an authentication layer such as IAP. The HTML page refresh reads saved state; it does not poll GIS providers.
+The built-in private dashboard can display local or aggregate state and produce JSON, CSV, and Excel snapshots. ClearParcel also operates a separate read-only public renderer. It reads only the persisted aggregate, reduces it to an explicit public allowlist, and does not expose the private dashboard's provider connections or state-changing controls. HTML refreshes read saved state; they do not poll GIS providers.
 
-Static-site generation uses a reduced public schema and omits detailed change payloads, fingerprints, tracked values, provider URLs, and other private diagnostics.
+Both static-site publication and the hosted public renderer omit detailed change payloads, fingerprints, tracked values, operational provider URLs, provenance details, worker telemetry, and other private diagnostics.
 
 ### Minnesota GAC completeness
 
@@ -86,7 +86,8 @@ As of 2026-10-05:
 - a private Cloud Run staging worker successfully checks 22 cloud-profile sources;
 - a local worker successfully checks 4 provider-restricted sources;
 - the unified aggregate has been validated at 26/26 healthy observations with no unassigned sources;
-- the private hosted dashboard consumes the shared aggregate;
+- the private hosted dashboard consumes the shared aggregate behind its authentication boundary;
+- a separate read-only Google Cloud public dashboard consumes a sanitized projection of that same aggregate at `gis-watchtower.clear-parcel.com`;
 - JSON, CSV, and Excel statewide exports contain the complete aggregate source set;
 - Cloud Run startup/provisioning may take several minutes before the container reaches Started; see [google-cloud-deployment.md](google-cloud-deployment.md);
 - Cloud Scheduler is intentionally not enabled for the staging deployment;

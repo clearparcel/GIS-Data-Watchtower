@@ -51,6 +51,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--base", type=Path, required=True); p.add_argument("--partial", type=Path, required=True); p.add_argument("--worker", required=True); p.add_argument("--output", type=Path, required=True)
     p = sub.add_parser("dashboard", help="Serve the private dashboard")
     p.add_argument("--host", default="127.0.0.1"); p.add_argument("--port", type=int, default=8765)
+    p = sub.add_parser("public-dashboard", help="Serve the read-only sanitized public dashboard")
+    p.add_argument("--host", default="0.0.0.0"); p.add_argument("--port", type=int, default=8080)
     p = sub.add_parser("cloud-job", help="Run one check using configured cloud storage")
     p.add_argument("--json", action="store_true")
     p = sub.add_parser("dashboard-build", help="Build a sanitized static dashboard")
@@ -88,6 +90,9 @@ def main() -> int:
             save_json(args.output, merged); print(json.dumps(merged, indent=2)); return 0
         if args.command == "dashboard":
             serve(config, host=args.host, port=args.port); return 0
+        if args.command == "public-dashboard":
+            from clearparcel.datawatch.public_dashboard import serve_public
+            serve_public(host=args.host, port=args.port); return 0
         if args.command == "cloud-job":
             from clearparcel.datawatch.cloud_job import run_cloud_job
             result = run_cloud_job(args.config)
