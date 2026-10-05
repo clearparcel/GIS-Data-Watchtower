@@ -533,7 +533,7 @@ def _statewide_snapshot(config: dict) -> dict:
         "title": "Minnesota GIS Data Watchtower snapshot",
         **_snapshot_time_fields(dt.datetime.now(dt.timezone.utc).isoformat(), "snapshot_created"),
         **_snapshot_time_fields(state.get("generated_at"), "watchtower_last_checked"),
-        "overall": state.get("overall"),
+        "overall": _status_class(state.get("overall","unknown")),
         "county_count": len(counties),
         "source_count": len(aggregate_sources),
         "sources": aggregate_sources,
@@ -653,12 +653,18 @@ def _coverage_status(value: str) -> str:
 
 
 def _health_status(value: str) -> str:
+    value = str(value or "unknown").strip().lower()
     return {
         "ok": "Healthy",
         "warn": "Warning",
         "error": "Error",
         "unknown": "Unknown",
-    }.get(value, value.replace("-", " ").title())
+    }.get(value, "Unknown")
+
+
+def _status_class(value: str) -> str:
+    value = str(value or "unknown").strip().lower()
+    return value if value in {"ok", "warn", "error", "info", "unknown"} else "unknown"
 
 
 def _friendly_status(value: str) -> str:
@@ -696,14 +702,14 @@ def render_dashboard(config: dict) -> str:
         source_count = worker.get("source_count")
         freshness_text = "Reporting overdue" if stale else "Reporting on time"
         worker_cards.append(f"""<div class="card worker-card">
-<div><h3><span class="status-dot {worker_status}"></span>{_esc(worker_name.title())} worker</h3><span class="subtext">{_esc(worker_health)} · {_esc(freshness_text)}</span></div>
+<div><h3><span class="status-dot {_status_class(worker_status)}"></span>{_esc(worker_name.title())} worker</h3><span class="subtext">{_esc(worker_health)} · {_esc(freshness_text)}</span></div>
 <div class="worker-meta">
 <div><span class="muted">Sources</span><strong>{_esc(source_count if source_count is not None else "—")}</strong></div>
 <div><span class="muted">Run time</span><strong>{_esc(duration_text)}</strong></div>
 <div><span class="muted">Last success</span><strong style="font-size:13px">{_format_time_pair(worker.get("last_success_at") or worker.get("checked_at"))}</strong></div>
 </div></div>""")
     body = f"""<div class="grid primary-grid">
-<div class="card"><div class="muted">Overall health</div><div class="metric {state.get('overall','')}">{_esc(_health_status(state.get('overall','unknown')))}</div><span class="subtext">Combined health of all cloud and local source checks.</span></div>
+<div class="card"><div class="muted">Overall health</div><div class="metric {_status_class(state.get('overall','unknown'))}">{_esc(_health_status(state.get('overall','unknown')))}</div><span class="subtext">Combined health of all cloud and local source checks.</span></div>
 <div class="card"><div class="muted">Monitored sources</div><div class="metric">{len(sources)}</div><span class="subtext">Sources currently included across the cloud and local workers.</span></div>
 <div class="card"><div class="muted">Source issues</div><div class="metric">{counts.get('warn',0) + counts.get('error',0)}</div><span class="subtext">Sources whose latest check reported a warning or error.</span></div>
 <div class="card"><div class="muted">Reporting overdue</div><div class="metric">{state.get('stale_sources',0)}</div><span class="subtext">Sources that have not reported within the configured freshness window · {state.get('stale_workers',0)} worker(s) overdue.</span></div>
@@ -716,7 +722,7 @@ def render_dashboard(config: dict) -> str:
 </div>"""
     if alerts:
         body += '<div class="card" id="alerts"><h2>Active alerts</h2>' + "".join(
-            f'<p class="{_esc(a.get("severity","warn"))}"><strong>{_esc(a.get("name") or a.get("source"))}</strong> — {_esc(a.get("message"))}</p>'
+            f'<p class="{_status_class(a.get("severity","warn"))}"><strong>{_esc(a.get("name") or a.get("source"))}</strong> — {_esc(a.get("message"))}</p>'
             for a in alerts
         ) + "</div><br>"
     else:
@@ -735,7 +741,7 @@ def render_dashboard(config: dict) -> str:
         rows.append(f"""<tr data-name="{_esc((src.get('name') or sid).lower())}" data-category="{_esc(category)}" data-status="{_esc(src.get('status','unknown'))}">
 <td><a href="/source?{urllib.parse.urlencode({'id':sid})}"><strong>{_esc(src.get('name') or sid)}</strong></a><br><span class="muted">{_esc(sid)}</span></td>
 <td>{_esc(provider)}<br><span class="muted">{_esc(category)}</span></td>
-<td><span class="pill {_esc(src.get('status',''))}">{_esc(_health_status(src.get('status','unknown')))}</span><br><span class="muted">{_esc(src.get('reporting','current'))} reporting · {_esc(src.get('worker') or 'default')} worker</span></td>
+<td><span class="pill {_status_class(src.get('status','unknown'))}">{_esc(_health_status(src.get('status','unknown')))}</span><br><span class="muted">{_esc(src.get('reporting','current'))} reporting · {_esc(src.get('worker') or 'default')} worker</span></td>
 <td>{_esc(f"{current_count:,}" if isinstance(current_count,int) else current_count or '—')}<br><span class="{delta_class}">{_esc(delta_text)}</span></td>
 <td>{_esc(stats.get('change_age_days') if stats.get('change_age_days') is not None else '—')}</td>
 <td>{_esc(stats.get('success_rate') if stats.get('success_rate') is not None else '—')}%<br><span class="muted">{_esc(stats.get('consecutive_ok'))} consecutive</span></td>
@@ -824,7 +830,7 @@ def render_source(config: dict, source_id: str) -> str:
     source_count_text = _esc(f"{src.get('feature_count'):,}" if isinstance(src.get('feature_count'),int) else src.get('feature_count','—'))
     body = f"""<p><a href="/">← All data sources</a></p><div class="grid">
 <div class="card"><div class="muted">Data source</div><h2>{_esc(src.get('name') or source_id)}</h2><code>{_esc(source_id)}</code></div>
-<div class="card"><div class="muted">Health</div><div class="metric {_esc(src.get('status',''))}">{_esc(_health_status(src.get('status','unknown')))}</div><span class="subtext">{_esc('Reporting overdue' if src.get('reporting') == 'stale' else 'Reporting on time')} · {_esc(src.get('worker') or 'local/default')} worker</span></div>
+<div class="card"><div class="muted">Health</div><div class="metric {_status_class(src.get('status','unknown'))}">{_esc(_health_status(src.get('status','unknown')))}</div><span class="subtext">{_esc('Reporting overdue' if src.get('reporting') == 'stale' else 'Reporting on time')} · {_esc(src.get('worker') or 'local/default')} worker</span></div>
 <div class="card"><div class="muted">Record count</div><div class="metric">{source_count_text}</div><span class="subtext">Features or rows reported during the latest successful check.</span></div>
 <div class="card"><div class="muted">Recent reliability</div><div class="metric">{_esc(stats.get('success_rate') if stats.get('success_rate') is not None else '—')}%</div><span class="subtext">{_esc(stats.get('consecutive_ok'))} successful checks in a row.</span></div>
 <div class="card"><div class="muted">Days since data changed</div><div class="metric">{_esc(stats.get('change_age_days') if stats.get('change_age_days') is not None else '—')}</div><span class="subtext">Elapsed days since Watchtower last detected a meaningful observation change.</span></div></div>
@@ -862,20 +868,23 @@ def _sanitize_public_state(state: dict) -> dict:
     public = {
         "schema_version": state.get("schema_version"),
         "generated_at": state.get("generated_at"),
-        "overall": state.get("overall"),
+        "overall": _status_class(state.get("overall","unknown")),
         "counts": state.get("counts", {}),
         "sources": {},
     }
     for sid, src in (state.get("sources") or {}).items():
-        public["sources"][sid] = {
+        summary = {
             key: src.get(key)
             for key in (
                 "id", "name", "provider", "category", "status", "feature_count",
-                "checked_at", "changes", "worker", "last_success_at", "last_report_at",
+                "checked_at", "worker", "last_success_at", "last_report_at",
                 "stale", "worker_stale", "health", "reporting",
             )
             if src.get(key) is not None
         }
+        summary["status"] = _status_class(src.get("status","unknown"))
+        summary["change_count"] = len(src.get("changes") or [])
+        public["sources"][sid] = summary
     return public
 
 
@@ -893,22 +902,22 @@ def build_static_site(config: dict, output_dir: str | Path) -> dict:
         rows.append(
             f'<tr><td><a href="{_esc(filename)}"><strong>{_esc(src.get("name") or sid)}</strong></a>'
             f'<br><span class="muted">{_esc(sid)}</span></td>'
-            f'<td><span class="pill {_esc(src.get("status",""))}">{_esc(_health_status(src.get("status","unknown")))}</span></td>'
+            f'<td><span class="pill {_status_class(src.get("status","unknown"))}">{_esc(_health_status(src.get("status","unknown")))}</span></td>'
             f'<td>{_esc(src.get("provider") or "—")}</td>'
             f'<td>{_esc(src.get("category") or "—")}</td>'
             f'<td>{_esc(src.get("feature_count","—"))}</td>'
-            f'<td>{_esc(len(src.get("changes") or []))}</td><td>{_esc(src.get("checked_at","—"))}</td></tr>'
+            f'<td>{_esc(src.get("change_count", 0))}</td><td>{_esc(src.get("checked_at","—"))}</td></tr>'
         )
         detail = f'<p><a href="index.html">← All data sources</a></p><div class="grid">' \
             f'<div class="card"><div class="muted">Data source</div><h2>{_esc(src.get("name") or sid)}</h2></div>' \
-            f'<div class="card"><div class="muted">Status</div><div class="metric {_esc(src.get("status",""))}">{_esc(_health_status(src.get("status","unknown")))}</div></div>' \
+            f'<div class="card"><div class="muted">Status</div><div class="metric {_status_class(src.get("status","unknown"))}">{_esc(_health_status(src.get("status","unknown")))}</div></div>' \
             f'<div class="card"><div class="muted">Record count</div><div class="metric">{_esc(src.get("feature_count","—"))}</div></div></div>' \
             f'<div class="card"><h2>About this data</h2><p><strong>Provided by:</strong> {_esc(src.get("provider") or "—")}<br>' \
             f'<strong>Data type:</strong> {_esc(src.get("category") or "—")}<br><strong>Last checked:</strong> {_esc(src.get("checked_at") or "—")}<br>' \
-            f'<strong>Changes found this check:</strong> {_esc(len(src.get("changes") or []))}</p></div>'
+            f'<strong>Changes found this check:</strong> {_esc(src.get("change_count", 0))}</p></div>'
         (output / filename).write_text(_layout(f'Watchtower — {src.get("name") or sid}', detail, refresh_seconds=300, static=True), encoding="utf-8")
 
-    body = f'<div class="grid"><div class="card"><div class="muted">Overall status</div><div class="metric {public.get("overall","")}">{_esc(str(public.get("overall","unknown")).upper())}</div></div>' \
+    body = f'<div class="grid"><div class="card"><div class="muted">Overall status</div><div class="metric {_status_class(public.get("overall","unknown"))}">{_esc(_health_status(public.get("overall","unknown")))}</div></div>' \
         f'<div class="card"><div class="muted">Data sources</div><div class="metric">{len(sources)}</div><span class="subtext">Total source observations currently represented in the unified Watchtower state.</span></div>' \
         f'<div class="card"><div class="muted">Working normally</div><div class="metric ok">{counts.get("ok",0)}</div></div>' \
         f'<div class="card"><div class="muted">Warnings / errors</div><div class="metric">{counts.get("warn",0)} / {counts.get("error",0)}</div></div></div>' \
@@ -942,6 +951,52 @@ def _dashboard_auth(config: dict, host: str = "127.0.0.1") -> tuple[str | None, 
     return password, username
 
 
+def _validated_content_length(value: str | None, maximum: int = 4096) -> int:
+    if value is None:
+        raise ValueError("Content-Length is required")
+    try:
+        length = int(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("Content-Length must be a nonnegative integer") from exc
+    if length < 0:
+        raise ValueError("Content-Length must be nonnegative")
+    if length > maximum:
+        raise OverflowError(f"request body exceeds {maximum} bytes")
+    return length
+
+
+class _BoundedThreadingHTTPServer(ThreadingHTTPServer):
+    daemon_threads = True
+    request_queue_size = 64
+
+    def __init__(self, server_address, handler_cls, *, max_connections: int = 32):
+        self._connection_slots = threading.BoundedSemaphore(max(1, int(max_connections)))
+        super().__init__(server_address, handler_cls)
+
+    def process_request(self, request, client_address):
+        if not self._connection_slots.acquire(blocking=False):
+            try:
+                request.sendall(
+                    b"HTTP/1.1 503 Service Unavailable\r\n"
+                    b"Connection: close\r\nContent-Length: 0\r\n\r\n"
+                )
+            except OSError:
+                pass
+            self.shutdown_request(request)
+            return
+        try:
+            super().process_request(request, client_address)
+        except Exception:
+            self._connection_slots.release()
+            raise
+
+    def process_request_thread(self, request, client_address):
+        try:
+            super().process_request_thread(request, client_address)
+        finally:
+            self._connection_slots.release()
+
+
 def serve(config: dict, host: str = "127.0.0.1", port: int = 8765) -> None:
     auth_password, auth_username = _dashboard_auth(config, host)
     csrf_token = secrets.token_urlsafe(32)
@@ -949,6 +1004,8 @@ def serve(config: dict, host: str = "127.0.0.1", port: int = 8765) -> None:
     refresh_lock = threading.Lock()
     refresh_state = {"last_started": 0.0}
     refresh_cooldown_seconds = int(config.get("dashboard_refresh_cooldown_seconds", 300))
+    request_timeout_seconds = max(2, min(int(config.get("dashboard_request_timeout_seconds", 10)), 60))
+    max_connections = max(1, min(int(config.get("dashboard_max_connections", 32)), 256))
 
     def _guarded_refresh():
         now = dt.datetime.now(dt.timezone.utc).timestamp()
@@ -963,6 +1020,10 @@ def serve(config: dict, host: str = "127.0.0.1", port: int = 8765) -> None:
             refresh_lock.release()
 
     class Handler(BaseHTTPRequestHandler):
+        def setup(self):
+            super().setup()
+            self.connection.settimeout(request_timeout_seconds)
+
         def _authorized(self) -> bool:
             if not auth_password:
                 return True
@@ -1053,10 +1114,14 @@ def serve(config: dict, host: str = "127.0.0.1", port: int = 8765) -> None:
                 return
             if urllib.parse.urlparse(self.path).path != "/refresh":
                 return self._send(404, "Not found", "text/plain; charset=utf-8")
+            if self.headers.get("Transfer-Encoding"):
+                return self._send(400, "Transfer-Encoding is not supported.", "text/plain; charset=utf-8")
             try:
-                length = min(int(self.headers.get("Content-Length", "0")), 4096)
+                length = _validated_content_length(self.headers.get("Content-Length"), 4096)
+            except OverflowError:
+                return self._send(413, "Refresh request body is too large.", "text/plain; charset=utf-8")
             except ValueError:
-                length = 0
+                return self._send(400, "Invalid Content-Length.", "text/plain; charset=utf-8")
             form = urllib.parse.parse_qs(self.rfile.read(length).decode("utf-8", errors="replace"))
             token = (form.get("csrf_token") or [""])[0]
             if not _valid_refresh_request(token, csrf_token, self.headers.get("Sec-Fetch-Site")):
@@ -1067,7 +1132,7 @@ def serve(config: dict, host: str = "127.0.0.1", port: int = 8765) -> None:
         def log_message(self, format, *args):
             return
 
-    server = ThreadingHTTPServer((host, port), Handler)
+    server = _BoundedThreadingHTTPServer((host, port), Handler, max_connections=max_connections)
     print(f"GIS Data Watchtower dashboard: http://{host}:{port}")
     try:
         server.serve_forever()

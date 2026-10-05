@@ -50,8 +50,16 @@ class LocalStorage(StorageBackend):
         return True
 
     def download_versioned(self, name: str, destination: Path) -> tuple[bool, str | None]:
-        exists = self.download(name, destination)
-        return exists, self._token(self._path(name))
+        source = self._path(name)
+        if not source.is_file():
+            return False, None
+        # Read one immutable byte snapshot and derive the token from exactly the
+        # bytes copied to the worker. Writers use atomic replacement, so this
+        # binds the compare-and-swap token to the snapshot the caller consumed.
+        raw = source.read_bytes()
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_bytes(raw)
+        return True, hashlib.sha256(raw).hexdigest()
 
     def upload(self, name: str, source: Path) -> None:
         destination = self._path(name)
@@ -102,19 +110,38 @@ class GCSStorage(StorageBackend):
 
     def download_versioned(self, name: str, destination: Path) -> tuple[bool, int | None]:
         blob = self.bucket.blob(self._name(name))
-        try:
-            blob.reload(client=self.client)
-        except Exception as exc:
-            try:
-                from google.api_core.exceptions import NotFound
-                if isinstance(exc, NotFound):
-                    return False, None
-            except ImportError:
-                pass
-            raise
         destination.parent.mkdir(parents=True, exist_ok=True)
-        blob.download_to_filename(str(destination))
-        return True, int(blob.generation)
+        for attempt in range(3):
+            try:
+                blob.reload(client=self.client)
+            except Exception as exc:
+                try:
+                    from google.api_core.exceptions import NotFound
+                    if isinstance(exc, NotFound):
+                        return False, None
+                except ImportError:
+                    pass
+                raise
+            generation = int(blob.generation)
+            try:
+                # Bind downloaded bytes to the generation token. If the object
+                # changes after reload(), GCS rejects this read instead of
+                # returning bytes from a different generation with a stale token.
+                blob.download_to_filename(str(destination), if_generation_match=generation)
+                return True, generation
+            except Exception as exc:
+                try:
+                    from google.api_core.exceptions import NotFound, PreconditionFailed
+                    if isinstance(exc, NotFound):
+                        raise StorageConflictError(f"object changed while reading: {name}") from exc
+                    if isinstance(exc, PreconditionFailed):
+                        if attempt < 2:
+                            continue
+                        raise StorageConflictError(f"object changed while reading: {name}") from exc
+                except ImportError:
+                    pass
+                raise
+        raise StorageConflictError(f"object changed repeatedly while reading: {name}")
 
     def upload(self, name: str, source: Path) -> None:
         self.bucket.blob(self._name(name)).upload_from_filename(str(source))
