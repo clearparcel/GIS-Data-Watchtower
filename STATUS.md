@@ -1,6 +1,6 @@
 # Project status
 
-Last validated: **2026-10-04**
+Last validated: **2026-10-05**
 
 GIS Data Watchtower is public, MIT-licensed, and supports local, cloud, and hybrid execution.
 
@@ -28,6 +28,8 @@ A private ClearParcel staging deployment has validated the hybrid architecture a
 
 The four local-profile sources are kept local because their providers' network/TLS behavior does not support the Google Cloud egress path used in staging. Watchtower does not bypass those restrictions.
 
+The hardened post-security-review build was revalidated end-to-end on 2026-10-05: the Cloud Run worker completed **22/22 cloud sources OK**, the local worker completed **4/4 local-only sources OK**, and the resulting aggregate remained **26/26 OK** with **0 unassigned observations**. JSON, CSV, and Excel exports each represented all 26 monitored sources.
+
 ## Staging architecture
 
 ```text
@@ -42,7 +44,9 @@ The cloud worker persists its staging artifacts in Google Cloud Storage. Private
 
 ## Concurrency-safe aggregate publishing
 
-The shared aggregate store now uses compare-and-swap writes: Google Cloud Storage deployments use object-generation preconditions, and local/shared-filesystem deployments use an atomic lock-and-replace with retry. A normal profiled `watchtower check` run can publish directly to the configured shared aggregate store (opt-in via `aggregate_object` / `WATCHTOWER_AGGREGATE_OBJECT`); no separate script is required. The dashboard and the CSV/JSON/Excel exports now read the unified aggregate state and show worker provenance, last-success time, and reporting freshness, with unhealthy sources tracked separately from stale/overdue reporting. See `docs/hybrid-aggregation.md` for the safety model and regression-test coverage. This closes the "automated local-worker publication" and "dashboard consumption of aggregate state" items noted below as the prior next step; it has not yet been exercised in a multi-day parallel staging run.
+The shared aggregate store now uses compare-and-swap writes: Google Cloud Storage deployments use object-generation preconditions, and local/shared-filesystem deployments use an atomic lock-and-replace with retry. Ordinary cloud-job state, history, and alert artifacts also use version preconditions so a stale execution fails closed instead of overwriting a newer object. A normal profiled `watchtower check` run can publish directly to the configured shared aggregate store (opt-in via `aggregate_object` / `WATCHTOWER_AGGREGATE_OBJECT`); no separate script is required. The dashboard and the CSV/JSON/Excel exports read the unified aggregate state and show worker provenance, last-success time, and reporting freshness, with unhealthy sources tracked separately from stale/overdue reporting. See `docs/hybrid-aggregation.md` for the safety model and regression-test coverage.
+
+A single hardened hybrid staging cycle has now been completed successfully. The remaining validation gate is multi-day parallel observation, not basic Cloud Run or aggregate correctness.
 
 ## Not yet enabled
 
@@ -50,6 +54,12 @@ The shared aggregate store now uses compare-and-swap writes: Google Cloud Storag
 - The existing local production schedule has not been retired.
 - The hybrid staging deployment is not yet the authoritative production scheduler.
 
+## Cloud Run startup behavior
+
+Cloud Run Job provisioning can remain in **Waiting for execution to start** for several minutes after the image is imported and resources are provisioned. In the validated staging environment, successful executions have taken approximately **2m30s to 4m15s** to reach the Started condition. This delay is a Cloud Run scheduling/provisioning interval, not evidence that Watchtower itself has failed.
+
+Operationally, do not cancel an execution solely because Started is still Unknown during the first five minutes. Inspect the execution conditions if the delay exceeds roughly 5–7 minutes, investigate further by 7–10 minutes, and treat an explicit Failed condition as the real failure signal. The configured 15-minute task timeout remains the final execution bound.
+
 ## Next validation gate
 
-Run the hybrid system automatically in parallel for several days using the new concurrency-safe publishing path, verify aggregate freshness and failure/recovery behavior under real concurrent writes, then decide whether Cloud Scheduler should become the primary orchestration mechanism while retaining the local worker for provider-restricted sources.
+Run the hybrid system in parallel for several days using the concurrency-safe publishing path, verify aggregate freshness and failure/recovery behavior over multiple real runs, then decide whether Cloud Scheduler should become the primary orchestration mechanism while retaining the local worker for provider-restricted sources.
