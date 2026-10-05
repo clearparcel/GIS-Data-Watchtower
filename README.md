@@ -1,5 +1,8 @@
 # GIS Data Watchtower
 
+[![CI](https://github.com/clearparcel/GIS-Data-Watchtower/actions/workflows/watchtower-ci.yml/badge.svg)](https://github.com/clearparcel/GIS-Data-Watchtower/actions/workflows/watchtower-ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 GIS Data Watchtower is a lightweight Python monitor for public GIS services. It checks whether configured services are reachable, records meaningful changes over time, performs bounded parcel-data quality checks, and provides a plain-language dashboard without republishing source datasets.
 
 ## What it monitors
@@ -25,9 +28,15 @@ python -m venv .venv
 python -m pip install -e .
 ```
 
+For Google Cloud Storage support:
+
+```bash
+python -m pip install -e ".[gcs]"
+```
+
 ## Configure
 
-Start from `config/example_sources.json`. Runtime paths may be relative to the repository root or supplied with environment variables documented in `docs/data-watchtower-standalone-readiness.md`.
+Start from `config/example_sources.json`. Runtime paths may be relative to the repository root or supplied through environment variables. See [`docs/configuration.md`](docs/configuration.md) for the supported top-level keys, source controls, storage options, dashboard settings, and environment overrides.
 
 ## Run
 
@@ -47,7 +56,7 @@ See `docs/data-watchtower-provider-compliance.md` for the project's provider-use
 
 ## Data and privacy
 
-Watchtower stores derived monitoring observations locally. Public/static outputs are intentionally sanitized and do not expose internal service fingerprints, field inventories, operational URLs, or raw parcel-owner records.
+Watchtower stores derived monitoring observations in the configured local or cloud storage backend. Public/static outputs are intentionally sanitized and do not expose internal service fingerprints, tracked values, operational URLs, or raw parcel-owner records.
 
 ## County GIS contact provenance
 
@@ -66,20 +75,23 @@ python -W error::ResourceWarning -m unittest discover -s tests -q
 python -m compileall -q clearparcel tests
 ```
 
-CI tests Windows and Ubuntu on supported Python versions.
+CI tests Windows and Ubuntu on Python 3.12, 3.13, and 3.14, plus a Linux container smoke test.
 
-## Current status
+## Project documentation
 
-See [`docs/current-status.md`](docs/current-status.md) for the latest validated local/cloud/hybrid deployment status.
-
-## Project status
-
-See [STATUS.md](STATUS.md) for the latest validated local/cloud/hybrid deployment state.
+- [`STATUS.md`](STATUS.md) — concise validated project/deployment status
+- [`docs/current-status.md`](docs/current-status.md) — detailed current local/cloud/hybrid state
+- [`docs/configuration.md`](docs/configuration.md) — supported configuration and environment variables
+- [`docs/data-watchtower-processing-architecture.md`](docs/data-watchtower-processing-architecture.md) — processing/storage/dashboard boundaries
+- [`docs/google-cloud-deployment.md`](docs/google-cloud-deployment.md) — optional Cloud Run/GCS deployment
+- [`docs/hybrid-execution.md`](docs/hybrid-execution.md) and [`docs/hybrid-aggregation.md`](docs/hybrid-aggregation.md) — hybrid worker model
+- [`docs/data-watchtower-provider-compliance.md`](docs/data-watchtower-provider-compliance.md) — respectful-use methodology and known provider constraints
+- [`docs/release-policy.md`](docs/release-policy.md) — versioning and release policy
 
 ## Cloud deployment
 
-The base package remains cloud-neutral. Optional Google Cloud Storage support and a Cloud Run Job deployment path are documented in `docs/google-cloud-deployment.md`. Local filesystem storage remains the default.
+The base package remains cloud-neutral. Optional Google Cloud Storage support and a Cloud Run Job deployment path are documented in [`docs/google-cloud-deployment.md`](docs/google-cloud-deployment.md). Local filesystem storage remains the default.
 
 ## License
 
-GIS Data Watchtower is licensed under the **MIT License**. See `LICENSE`.
+GIS Data Watchtower is licensed under the **MIT License**. See [`LICENSE`](LICENSE).

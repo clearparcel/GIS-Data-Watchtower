@@ -22,4 +22,4 @@ Aggregation never bypasses provider restrictions. Sources that are unsuitable fo
 
 ## Deployment validation
 
-The aggregation path was previously validated with a real hybrid staging run containing 26 sources: 22 refreshed by the cloud worker and 4 refreshed by the local worker. The resulting aggregate reported 26 healthy sources and retained per-source worker provenance plus per-worker telemetry. Concurrency hardening must pass CI and private staging validation before production scheduling changes are considered.
+As of 2026-10-05, the hardened aggregation path has been validated with a real hybrid staging cycle containing 26 sources: 22 refreshed by the cloud worker and 4 refreshed by the local worker. The resulting aggregate reported 26 healthy sources, 0 unassigned observations, complete JSON/CSV/Excel exports, per-source worker provenance, and per-worker telemetry. The remaining release gate is multi-day parallel observation; production scheduling changes still require explicit approval.

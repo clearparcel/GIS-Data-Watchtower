@@ -6,7 +6,7 @@ GIS Data Watchtower is public, MIT-licensed, and supports local, cloud, and hybr
 
 ## Validated capabilities
 
-- Windows and Ubuntu CI on Python 3.12 and 3.13
+- Windows and Ubuntu CI on Python 3.12, 3.13, and 3.14
 - ArcGIS/WMS/WFS and catalog/API monitoring adapters
 - bounded provider-friendly polling and HTTP 429 handling
 - plain-language dashboard with county pages

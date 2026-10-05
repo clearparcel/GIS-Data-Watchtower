@@ -6,8 +6,17 @@ build-backend = "setuptools.build_meta"
 name = "clearparcel-gis-data-watchtower"
 version = "0.1.0.dev0"
 description = "Provider-friendly monitoring and QA for public GIS data services"
+readme = "README.md"
 license = "MIT"
 requires-python = ">=3.12"
+keywords = ["gis", "geospatial", "monitoring", "arcgis", "wms", "wfs", "data-quality"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+]
 dependencies = ["tzdata>=2025.2; platform_system == 'Windows'"]
 
 [project.optional-dependencies]
@@ -15,6 +24,11 @@ gcs = ["google-cloud-storage>=3.0,<4"]
 
 [project.scripts]
 watchtower = "clearparcel.datawatch.cli:main"
+
+[project.urls]
+Repository = "https://github.com/clearparcel/GIS-Data-Watchtower"
+Issues = "https://github.com/clearparcel/GIS-Data-Watchtower/issues"
+Documentation = "https://github.com/clearparcel/GIS-Data-Watchtower/tree/main/docs"
 
 [tool.setuptools.package-data]
 "clearparcel.datawatch" = ["*.json"]

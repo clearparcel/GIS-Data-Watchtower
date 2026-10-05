@@ -22,6 +22,36 @@ class DataWatchTests(unittest.TestCase):
         self.assertIn('example-arcgis-layer', ids)
         self.assertIn('example-wms', ids)
 
+    def test_public_example_uses_supported_configuration_keys(self):
+        example = json.loads((TOOLS_ROOT / 'config' / 'example_sources.json').read_text(encoding='utf-8'))
+        self.assertEqual(example.get('history_max_mb'), 5)
+        self.assertNotIn('history_max_lines', example)
+        self.assertNotIn('history_max_bytes', example)
+        self.assertNotIn('raw_state_api', example.get('public_dashboard', {}))
+        arcgis = next(x for x in example['sources'] if x['id'] == 'example-arcgis-layer')
+        self.assertIn('required_fields', arcgis)
+        self.assertNotIn('expected_fields', arcgis)
+
+    def test_load_config_resolves_and_overrides_aggregate_state_path(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            config_dir = root / 'config'
+            config_dir.mkdir()
+            config_path = config_dir / 'watchtower.json'
+            config_path.write_text(json.dumps({
+                'state_file': 'datawatch/state.json',
+                'history_file': 'datawatch/history.jsonl',
+                'aggregate_state_file': 'datawatch/aggregate.json',
+                'sources': [],
+            }), encoding='utf-8')
+            loaded = load_data_config(config_path)
+            self.assertEqual(Path(loaded['aggregate_state_file']), (root / 'datawatch' / 'aggregate.json').resolve())
+            override = root / 'override.json'
+            with patch.dict(os.environ, {'CLEARPARCEL_WATCHTOWER_AGGREGATE_STATE_FILE': str(override)}):
+                loaded = load_data_config(config_path)
+            self.assertEqual(Path(loaded['aggregate_state_file']), override)
+
     def test_schema_change_is_warning(self):
         changes = _compare({'schema_hash': 'old', 'feature_count': 10}, {'schema_hash': 'new', 'feature_count': 12})
         self.assertTrue(any((x['severity'] == 'warn' and x['type'] == 'schema' for x in changes)))
@@ -978,12 +1008,18 @@ class DataWatchTests(unittest.TestCase):
     def test_run_wrapper_preserves_warning_exit_code(self):
         wrapper = (TOOLS_ROOT / 'run-datawatch.cmd').read_text(encoding='utf-8')
         self.assertIn('exit /b %RC%', wrapper)
+        self.assertIn('CLEARPARCEL_WATCHTOWER_CONFIG', wrapper)
+        self.assertIn('if not exist "%ROOT%datawatch" mkdir "%ROOT%datawatch"', wrapper)
         self.assertNotIn('if %RC% GEQ 2', wrapper)
 
     def test_watchtower_ci_covers_standalone_package_without_live_provider_check(self):
         workflow = (TOOLS_ROOT / ".github" / "workflows" / "watchtower-ci.yml").read_text(encoding="utf-8")
         self.assertIn("pip install --disable-pip-version-check -e .", workflow)
         self.assertIn("unittest discover -s tests", workflow)
+        self.assertIn("ubuntu-24.04", workflow)
+        self.assertIn('"3.14"', workflow)
+        self.assertNotIn("actions/checkout@v4", workflow)
+        self.assertNotIn("actions/setup-python@v5", workflow)
         self.assertNotIn(" check --no-save", workflow)
 
     def test_refresh_requires_matching_csrf_token_and_same_origin(self):

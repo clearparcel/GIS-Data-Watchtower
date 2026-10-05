@@ -2,7 +2,7 @@
 
 Reviewed: 2026-10-04
 
-This document records an operational terms-of-use review. It is not legal advice. Re-review provider terms before public launch and periodically afterward.
+This document records an operational terms-of-use review. It is not legal advice. Re-review provider terms before adding or materially changing a deployment source and periodically afterward. The public repository ships provider-neutral examples; deployment-specific registries remain private.
 
 ## Current polling behavior
 
@@ -111,18 +111,20 @@ Watchtower checks a publicly reachable county imagery MapServer. No explicit aut
 
 Operational decision: keep this source metadata-only and low-frequency. No image-tile crawling or bulk imagery retrieval.
 
-## Public-launch requirements
+## Public-operation requirements
 
-Before making Watchtower public:
+The repository is already public. For any deployment or public-facing output:
 
 - display source/provider attribution;
 - include provider-specific disclaimers where required;
 - keep raw owner/assessment records out of public snapshots by default;
 - document that county parcel boundaries are approximate and not legal surveys;
-- resolve Aitkin direct-endpoint redistribution language;
-- seek clarification for Morrison direct API automation if retained;
-- record source-specific license/use-constraint metadata in the source registry;
-- publish Watchtower's own respectful-use policy and contact information.
+- keep Aitkin direct-endpoint output derived-only unless redistribution language is clarified;
+- keep Morrison direct API monitoring conservative and derived-only until automation terms are clarified;
+- record source-specific license/use-constraint metadata in the private deployment registry;
+- preserve Watchtower's respectful-use policy and a current contact channel.
+
+The unresolved Aitkin and Morrison questions constrain deployment behavior; they do not require the public source-code repository itself to be private.
 
 ## Recommended cadence
 

@@ -6,7 +6,7 @@ Until the first stable release, security fixes are applied to the current `main`
 
 ## Reporting a vulnerability
 
-Please do not open a public issue for a suspected vulnerability. Report security concerns privately to the repository owner through GitHub's private vulnerability reporting feature when enabled, or through the ClearParcel contact channel published on the project website.
+Please do not open a public issue for a suspected vulnerability. Use GitHub's **Report a vulnerability** / private vulnerability reporting flow for this repository, or use the ClearParcel contact channel published on the project website if GitHub reporting is unavailable.
 
 Include the affected version/commit, reproduction details, impact, and any suggested mitigation. Do not include secrets or sensitive provider data in reports.
 

@@ -22,12 +22,14 @@ Base functionality includes:
 
 The project is tested on:
 
-- Ubuntu / Python 3.12
-- Ubuntu / Python 3.13
+- Ubuntu 24.04 / Python 3.12
+- Ubuntu 24.04 / Python 3.13
+- Ubuntu 24.04 / Python 3.14
 - Windows / Python 3.12
 - Windows / Python 3.13
+- Windows / Python 3.14
 
-The Linux 3.13 job also smoke-tests the Docker image.
+The Linux 3.14 matrix leg also smoke-tests the Docker image.
 
 ## Validated cloud staging
 

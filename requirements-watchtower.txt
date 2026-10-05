@@ -1,3 +1,0 @@
-# GIS Data Watchtower runtime dependencies
-# Python 3.12+; standard library otherwise.
-tzdata>=2025.2

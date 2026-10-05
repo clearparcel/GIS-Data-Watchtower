@@ -1,50 +1,77 @@
-# GIS Data Watchtower standalone/public-readiness plan
+# GIS Data Watchtower standalone/public-readiness status
 
-Watchtower has been extracted into a standalone repository and remains in private validation before public release.
+Last reviewed: **2026-10-05**
+
+GIS Data Watchtower has been extracted into this standalone **public, MIT-licensed** repository. This document is retained because earlier project documentation links to the original readiness plan; it now records the current standalone boundary and the completed public-release gate.
 
 ## Standalone runtime surface
 
-Required Watchtower files:
+Core runtime files:
 
 - `clearparcel/datawatch/`
 - `config/example_sources.json`
-- `requirements-watchtower.txt`
-- `setup_watchtower_env.ps1` for the current Windows deployment
+- `pyproject.toml`
+- `Dockerfile`
+- optional Windows helper: `setup_watchtower_env.ps1`
 
-Standalone command:
+Install:
 
-```text
-python -m clearparcel.datawatch --config config/example_sources.json check
+```bash
+python -m venv .venv
+# activate the environment
+python -m pip install -e .
 ```
 
-The runtime uses environment-driven path overrides:
+For Google Cloud Storage support:
 
-- `CLEARPARCEL_WATCHTOWER_ROOT`
-- `CLEARPARCEL_WATCHTOWER_STATE_FILE`
-- `CLEARPARCEL_WATCHTOWER_HISTORY_FILE`
-- `CLEARPARCEL_WATCHTOWER_ALERTS_FILE`
-- `CLEARPARCEL_WATCHTOWER_ALERTS_TEXT_FILE`
-- `CLEARPARCEL_WATCHTOWER_CONFIG`
-- `CLEARPARCEL_WATCHTOWER_DASHBOARD_USER`
-- `CLEARPARCEL_WATCHTOWER_DASHBOARD_PASSWORD`
+```bash
+python -m pip install -e ".[gcs]"
+```
 
-## Public repository gate
+Run:
 
-Do not make the extracted repository public until:
+```text
+watchtower --config config/example_sources.json check
+```
 
-1. provider-use review remains current;
-2. Aitkin/Morrison direct-source questions are resolved or excluded from public derivations;
-3. CI passes on Windows and Linux;
-4. public static output contains only sanitized, plain-language fields;
-5. Internet dashboard exposure is either disabled or protected by authentication;
-6. the MIT LICENSE, SECURITY.md, CONTRIBUTING.md, CODE_OF_CONDUCT.md and public README are present/reviewed;
-7. public examples contain no local machine names, private paths, secrets, or operational state;
-8. the extracted repository receives its own versioning/release policy.
+See [configuration.md](configuration.md) for supported configuration keys and environment variables.
 
-## Current deployment
+## Public-repository boundary
 
-The current private Windows host remains the authoritative processor. A Windows scheduled deployment may invoke `run-datawatch.cmd`, which uses the isolated `.venv-watchtower` environment. The LAN dashboard may remain unauthenticated while bound only to the trusted private LAN; any future Internet exposure requires `CLEARPARCEL_WATCHTOWER_DASHBOARD_PASSWORD`.
+The repository intentionally contains:
 
-## Cloud migration
+- provider-neutral example source configuration;
+- monitoring, aggregation, dashboard, export, and storage code;
+- Minnesota county reference/contact provenance used by the dashboard;
+- tests and deployment documentation.
 
-The same standalone CLI/config surface is intended for a containerized runtime. Google Cloud Run remains the leading target, but no cloud-specific dependency has been added.
+It intentionally does **not** contain:
+
+- private production provider registries;
+- credentials or API secrets;
+- workstation-specific operational state;
+- private GCP resource identifiers or runtime secrets;
+- raw parcel-owner/assessment datasets.
+
+Deployment-specific provider configuration belongs outside the public repository.
+
+## Completed public-release gate
+
+The repository is already public. The original release prerequisites are complete:
+
+- MIT license present;
+- SECURITY, CONTRIBUTING, and Code of Conduct present;
+- Windows/Linux CI active;
+- public examples sanitized;
+- dashboard defaults private and Internet/wildcard binding fails closed without authentication;
+- static publication uses a reduced public schema;
+- provider-compliance guidance is documented;
+- versioning/release policy is documented in [release-policy.md](release-policy.md).
+
+Aitkin and Morrison provider-use questions remain tracked as **deployment/provider constraints**, not blockers to repository visibility, because the public repository does not ship the private production source registry or redistribute those providers' raw data.
+
+## Current deployment posture
+
+A local production schedule remains authoritative while a private hybrid staging deployment is validated over multiple daily cycles. Cloud Run and GCS have passed one-cycle hardened validation; Cloud Scheduler remains intentionally disabled pending the multi-day validation gate.
+
+See [current-status.md](current-status.md) and [google-cloud-deployment.md](google-cloud-deployment.md).
