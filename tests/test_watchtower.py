@@ -103,6 +103,7 @@ class DataWatchTests(unittest.TestCase):
                 30,
             )
         self.assertEqual(query.call_count, 1)
+        self.assertTrue(query.call_args.args[0].endswith('/query'))
         self.assertEqual(result['statistics_queries'], 1)
         self.assertEqual(result['covered_counties'], 2)
         self.assertEqual(result['record_count'], 30)
@@ -168,6 +169,8 @@ class DataWatchTests(unittest.TestCase):
             config = {'state_file': str(state_file), 'history_file': str(hist), 'sources': []}
             page = datawatch_dashboard.render_mngac(config)
             self.assertIn('Interactive Minnesota MNGAC map', page)
+            self.assertNotIn('http-equiv="refresh"', page)
+            self.assertIn('Interactive view · reload for latest saved data', page)
             self.assertEqual(page.count('class="mngac-county"'), 87)
             self.assertIn('All 91 fields', page)
             self.assertIn('No data', page)
