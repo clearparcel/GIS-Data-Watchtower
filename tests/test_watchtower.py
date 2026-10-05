@@ -95,7 +95,7 @@ class DataWatchTests(unittest.TestCase):
             {'attributes': {'CO_NAME': 'Aitkin', 'CO_CODE': '27001', 'record_count': 10, 'p0': 10, 'p1': 10, 'p2': 10, 'p3': 8}},
             {'attributes': {'CO_NAME': 'Anoka', 'CO_CODE': '27003', 'record_count': 20, 'p0': 20, 'p1': 20, 'p2': 20, 'p3': 10}},
         ]}
-        with patch.object(datawatch, '_arcgis_query_params_json', return_value=(response, {'status': 200})) as query:
+        with patch.object(datawatch, '_json_request', return_value=(response, {'status': 200})) as query:
             result = datawatch._arcgis_mngac_completeness(
                 'https://example.invalid/FeatureServer/0',
                 field_names,
@@ -103,7 +103,8 @@ class DataWatchTests(unittest.TestCase):
                 30,
             )
         self.assertEqual(query.call_count, 1)
-        self.assertTrue(query.call_args.args[0].endswith('/query'))
+        self.assertIn('/query?', query.call_args.args[0])
+        self.assertIn('groupByFieldsForStatistics=CO_NAME%2CCO_CODE', query.call_args.args[0])
         self.assertEqual(result['statistics_queries'], 1)
         self.assertEqual(result['covered_counties'], 2)
         self.assertEqual(result['record_count'], 30)
@@ -113,6 +114,26 @@ class DataWatchTests(unittest.TestCase):
         self.assertEqual(result['fields']['OWNER_NAME']['percent'], 60.0)
         self.assertEqual(result['fields']['OWNER_NAME']['counties_with_values'], 2)
         self.assertIn('COUNTY_PIN', result['source_schema_missing_fields'])
+
+    def test_mngac_full_schema_uses_eight_bounded_batches(self):
+        schema = datawatch._load_mngac_schema()
+        field_names = ['OBJECTID'] + [x['field'] for x in schema['fields']]
+        attrs = {'CO_NAME': 'Aitkin', 'CO_CODE': '27001', 'record_count': 10}
+        attrs.update({f'p{i}': 10 for i in range(20)})
+        response = {'features': [{'attributes': attrs}]}
+        with patch.object(datawatch, '_json_request', return_value=(response, {'status': 200})) as query:
+            result = datawatch._arcgis_mngac_completeness(
+                'https://example.invalid/FeatureServer/0',
+                field_names,
+                'OBJECTID',
+                30,
+                batch_size=12,
+            )
+        self.assertEqual(query.call_count, 8)
+        self.assertEqual(result['statistics_queries'], 8)
+        self.assertEqual(result['field_count'], 91)
+        self.assertTrue(all('/query?' in call.args[0] for call in query.call_args_list))
+        self.assertLess(max(len(call.args[0]) for call in query.call_args_list), 8000)
 
     def test_mngac_dashboard_map_county_page_and_exports(self):
         import tempfile
@@ -168,7 +189,7 @@ class DataWatchTests(unittest.TestCase):
             hist.write_text('', encoding='utf-8')
             config = {'state_file': str(state_file), 'history_file': str(hist), 'sources': []}
             page = datawatch_dashboard.render_mngac(config)
-            self.assertIn('Interactive Minnesota MNGAC map', page)
+            self.assertIn('Interactive Minnesota county map', page)
             self.assertNotIn('http-equiv="refresh"', page)
             self.assertIn('Interactive view · reload for latest saved data', page)
             self.assertEqual(page.count('class="mngac-county"'), 87)
@@ -176,7 +197,7 @@ class DataWatchTests(unittest.TestCase):
             self.assertIn('No data', page)
             self.assertIn('OWNER_NAME', page)
             county_page = datawatch_dashboard.render_county(config, 'aitkin')
-            self.assertIn('MNGAC field completeness', county_page)
+            self.assertIn('MN GAC field completeness', county_page)
             self.assertIn('80.00%', county_page)
             self.assertIn('Conditional', county_page)
             statewide = datawatch_dashboard._statewide_snapshot(config)
