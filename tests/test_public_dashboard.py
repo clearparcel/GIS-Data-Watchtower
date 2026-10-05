@@ -4,10 +4,11 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from clearparcel.datawatch.dashboard import render_counties
+from clearparcel.datawatch.dashboard import _layout, render_counties
 from clearparcel.datawatch.public_dashboard import (
     _publication_health,
     render_public_dashboard,
+    render_public_source,
     sanitize_public_render_state,
 )
 
@@ -133,6 +134,81 @@ class PublicDashboardTests(unittest.TestCase):
             self.assertNotIn("PRIVATE-SCHEMA", page)
             self.assertNotIn("PRIVATE-FINGERPRINT", page)
             self.assertNotIn('<form method="post" action="/refresh"', page)
+            self.assertIn("CLEARPARCEL GIS DATA WATCHTOWER", page)
+            self.assertIn("Minnesota GIS Data Watchtower", page)
+            self.assertIn("summary-v2", page)
+            self.assertIn("Explore Minnesota GIS data", page)
+            self.assertIn('id="mngac-map"', page)
+            self.assertIn("PUBLIC · LIVE", page)
+            self.assertNotIn('class="sidebar"', page)
+
+    def test_public_source_marks_data_sources_tab_active(self):
+        public = sanitize_public_render_state(self._state())
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            state = root / "state.json"
+            history = root / "history.jsonl"
+            state.write_text(json.dumps(public), encoding="utf-8")
+            history.write_text("", encoding="utf-8")
+            config = {
+                "state_file": str(state),
+                "aggregate_state_file": str(state),
+                "history_file": str(history),
+                "sources": [],
+                "_public_mode": True,
+            }
+            page = render_public_source(config, "county-parcels-direct")
+            self.assertIn('class="active">Data Sources</a>', page)
+            self.assertIn("Data Source — County Parcels", page)
+
+    def test_public_overview_uses_v2_shell_and_interactive_map(self):
+        public = sanitize_public_render_state(self._state())
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            state = root / "state.json"
+            history = root / "history.jsonl"
+            state.write_text(json.dumps(public), encoding="utf-8")
+            history.write_text("", encoding="utf-8")
+            config = {
+                "state_file": str(state),
+                "aggregate_state_file": str(state),
+                "history_file": str(history),
+                "sources": [],
+                "_public_mode": True,
+            }
+            page = render_public_dashboard(config)
+            self.assertIn("CLEARPARCEL GIS DATA WATCHTOWER", page)
+            self.assertIn("Minnesota GIS Data Watchtower", page)
+            self.assertIn("Explore Minnesota GIS data", page)
+            self.assertIn('class="summary-v2"', page)
+            self.assertIn('id="mngac-map"', page)
+            self.assertNotIn('class="sidebar"', page)
+
+    def test_public_source_uses_sources_tab_and_readable_timestamp(self):
+        raw = self._state()
+        public = sanitize_public_render_state(raw)
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            state = root / "state.json"
+            history = root / "history.jsonl"
+            state.write_text(json.dumps(public), encoding="utf-8")
+            history.write_text("", encoding="utf-8")
+            config = {
+                "state_file": str(state),
+                "aggregate_state_file": str(state),
+                "history_file": str(history),
+                "sources": [],
+                "_public_mode": True,
+            }
+            page = render_public_source(config, "county-parcels-direct")
+            self.assertIn('<a href="/#datasets" class="active">Data Sources</a>', page)
+            self.assertNotIn(raw["sources"]["county-parcels-direct"]["checked_at"], page)
+
+    def test_private_layout_does_not_use_public_v2_shell(self):
+        page = _layout("Private dashboard", "<p>private</p>", static=False)
+        self.assertIn('class="sidebar"', page)
+        self.assertNotIn("CLEARPARCEL GIS DATA WATCHTOWER", page)
+        self.assertNotIn('class="summary-v2"', page)
 
     def test_public_county_index_hides_refresh_control(self):
         public = sanitize_public_render_state(self._state())

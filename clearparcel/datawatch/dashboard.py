@@ -52,6 +52,16 @@ def _format_time_pair(value) -> str:
     ut=f"{utc.strftime('%b')} {utc.day}, {utc.year} {utc.strftime('%I:%M:%S %p').lstrip('0')} UTC"
     return f'{ct}<br><span class="muted">{ut}</span>'
 
+def _format_public_time_compact(value) -> str:
+    parsed = _parse_time(value)
+    if not parsed:
+        return _esc(value or "—")
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=dt.timezone.utc)
+    central = parsed.astimezone(CENTRAL_TZ)
+    return f"{central.strftime('%b')} {central.day}, {central.year} · {central.strftime('%I:%M %p').lstrip('0')} {central.tzname()}"
+
+
 def _snapshot_time_fields(value, prefix: str) -> dict:
     parsed=_parse_time(value)
     if not parsed: return {f"{prefix}_central":None,f"{prefix}_utc":None}
@@ -129,7 +139,91 @@ def _dashboard_state(config: dict) -> dict:
         source_stale_minutes=int(config.get("source_stale_minutes", 1560)),
     )
 
+
+_PUBLIC_V2_CSS = """
+:root{color-scheme:dark;--bg:#080b12;--panel:#111722;--panel2:#151d2b;--panel3:#0d131e;--line:#263247;--line2:#34445e;--text:#eef4ff;--muted:#8e9bb0;--blue:#6ea8fe;--blue2:#4b8ee8;--green:#5bd49a;--amber:#f5c66a;--red:#ff7b86;--shadow:0 12px 30px #0004;--radius:14px}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;background:var(--bg)}
+body{margin:0;background:radial-gradient(circle at 30% -10%,#152039 0,transparent 38%),var(--bg);color:var(--text);font:14px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;min-height:100vh}
+a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
+a:focus-visible,button:focus-visible,summary:focus-visible,input:focus-visible,select:focus-visible,.mngac-county:focus{outline:2px solid var(--blue);outline-offset:2px}
+.public-header{height:88px;padding:18px max(22px,calc((100vw - 1400px)/2));display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);background:#090d15cc;position:sticky;top:0;backdrop-filter:blur(16px);z-index:30}
+.brand-eyebrow{font-size:10px;letter-spacing:.18em;color:var(--blue);font-weight:800}
+.public-header h1{font-size:24px;margin:3px 0 0;letter-spacing:-.25px}
+.live-state{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--green);font-weight:800;white-space:nowrap}.live-dot{width:7px;height:7px;border-radius:50%;background:currentColor;box-shadow:0 0 14px currentColor}
+.public-main{max-width:1400px;margin:auto;padding:0 22px 64px}
+.public-tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin:0 0 24px;position:sticky;top:88px;background:#080b12ed;backdrop-filter:blur(14px);z-index:20}
+.public-tabs a{color:var(--muted);padding:14px 13px 11px;border-bottom:2px solid transparent;font-weight:700;white-space:nowrap}.public-tabs a:hover{text-decoration:none;color:var(--text)}.public-tabs a.active{color:var(--text);border-bottom-color:var(--blue)}
+.public-tools{margin-left:auto;display:flex;align-items:center}.public-export{position:relative}.public-export summary{list-style:none;cursor:pointer;border:1px solid var(--line);background:var(--panel);color:#c4d1e5;border-radius:8px;padding:8px 10px;font-weight:700}.public-export summary::-webkit-details-marker{display:none}.public-export[open] .export-pop{display:grid}
+.export-pop{display:none;position:absolute;right:0;top:42px;min-width:160px;padding:6px;background:#0b1019;border:1px solid var(--line);border-radius:10px;box-shadow:0 16px 40px #0008;z-index:60}.export-pop a{padding:9px 10px;border-radius:7px}.export-pop a:hover{background:var(--panel2);text-decoration:none}
+.page-kicker{padding:25px 0 16px}.page-kicker .eyebrow{font-size:10px;letter-spacing:.14em;color:var(--blue);font-weight:800;text-transform:uppercase}.page-kicker h2{font-size:27px;margin:4px 0 3px;letter-spacing:-.35px}.page-kicker p{margin:0;color:var(--muted);max-width:840px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-bottom:18px}.primary-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.worker-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.card{background:linear-gradient(145deg,var(--panel),#0d121c);border:1px solid var(--line);border-radius:var(--radius);padding:17px;box-shadow:var(--shadow);min-width:0}.card h2,.card h3{margin-top:0}.card h2{font-size:18px}.card h3{font-size:15px}
+.metric{font-size:27px;font-weight:800;line-height:1.05;letter-spacing:-.5px;margin-top:4px}.muted{color:var(--muted)}.subtext{display:block;color:var(--muted);font-size:11px;line-height:1.45;margin-top:6px}.ok{color:var(--green)}.warn{color:var(--amber)}.error{color:var(--red)}.catalog{color:var(--blue)}.not-configured,.needs-source{color:var(--muted)}
+.status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:currentColor;margin-right:7px}.pill{display:inline-flex;align-items:center;height:24px;padding:4px 9px;border:1px solid var(--line);border-radius:999px;font-size:10px;text-transform:uppercase;font-weight:800}.pill.ok{border-color:#2d7155}.pill.warn,.pill.catalog{border-color:#705b2d}.pill.error{border-color:#773944}
+.section-head{display:flex;align-items:end;justify-content:space-between;gap:16px;margin:28px 2px 12px}.section-head h2{margin:0;font-size:18px}.section-head p,.section-head span{margin:3px 0 0;color:var(--muted);font-size:11px}.section-head>a{font-size:11px;font-weight:700}
+.activity-strip{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px}.worker-card{display:grid;grid-template-columns:1fr auto;gap:10px 18px}.worker-card h3{margin:0}.worker-meta{display:flex;gap:14px}.worker-meta div{min-width:90px}.worker-meta .muted,.worker-meta span{display:block;font-size:9px}.worker-meta strong{display:block;margin-top:3px;font-size:13px;overflow-wrap:anywhere}
+.summary-v2{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;margin-bottom:30px}.summary-v2 .card{padding:16px 18px}.summary-v2 .metric{font-size:24px}.summary-v2 .muted{font-size:11px}
+.hero-panel{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(300px,.75fr);gap:14px;margin-bottom:26px}.hero-copy{padding:22px}.hero-copy h2{font-size:24px;margin:0 0 8px}.hero-copy p{color:#c4cede;max-width:720px;margin:0 0 18px}.hero-actions{display:flex;gap:8px;flex-wrap:wrap}.hero-actions a{display:inline-flex;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:#121a27;color:#c4d1e5;font-weight:700}.hero-actions a.primary{border-color:#315078;color:#dceaff;background:#101827}
+.hero-stat{display:grid;grid-template-columns:1fr 1fr;gap:8px}.hero-stat>div{background:var(--panel2);border:1px solid #ffffff0d;border-radius:10px;padding:13px}.hero-stat small{display:block;color:var(--muted);font-size:9px;letter-spacing:.07em;text-transform:uppercase}.hero-stat b{display:block;font-size:19px;margin-top:4px}
+table{width:100%;border-collapse:collapse;background:transparent}th,td{padding:11px 12px;border-bottom:1px solid #1b2535;text-align:left;vertical-align:top}th{font-size:9px;text-transform:uppercase;color:var(--muted);letter-spacing:.08em;background:#0d131e}td{color:#c4cede}td strong{color:var(--text)}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}.filters input,.filters select,.mngac-controls select,.mngac-controls input{background:#0d131e;border:1px solid var(--line);color:var(--text);border-radius:9px;padding:9px 11px;font:inherit;min-height:38px}.filters input{flex:1;min-width:200px}.filters input::placeholder{color:#68768b}
+.bar-row{min-width:0;display:grid;grid-template-columns:minmax(120px,1.35fr) minmax(100px,3fr) 64px;gap:9px;align-items:center;margin:9px 0;font-size:11px}.bar-row>span{min-width:0;overflow-wrap:anywhere}.bar-track{height:7px;background:#202a3b;border-radius:999px;overflow:hidden}.bar-track i{display:block;height:100%;background:var(--blue);border-radius:999px}.chart-range{font-size:10px;color:var(--muted)}
+.definition-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.definition-group{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px}.definition-list{display:grid;grid-template-columns:minmax(120px,.8fr) 1.4fr;gap:7px 12px;margin:0}.definition-list dt{font-weight:700;color:var(--muted)}.definition-list dd{margin:0;overflow-wrap:anywhere;color:#c4cede}
+.mngac-controls{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:14px}.mngac-controls label{display:grid;gap:4px;font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.mngac-layout{display:grid;grid-template-columns:minmax(360px,1.35fr) minmax(260px,.65fr);gap:14px;align-items:start}.mngac-map-panel{background:#0b111b;border:1px solid var(--line);border-radius:11px;padding:10px;min-width:0}.mngac-map{display:block;width:100%;height:auto;max-height:690px}.mngac-county{fill:#1b2636;stroke:#51647e;stroke-width:1.1;vector-effect:non-scaling-stroke;cursor:pointer;transition:fill .12s ease,stroke .12s ease,stroke-width .12s ease}.mngac-county:hover,.mngac-county:focus{stroke:#d7e8ff;stroke-width:2.2;outline:none}.mngac-county.selected{stroke:#fff;stroke-width:3}.mngac-detail{min-height:220px}.mngac-detail h3{margin-bottom:4px}.mngac-kpi{font-size:25px;font-weight:800}.mngac-legend{display:flex;flex-wrap:wrap;gap:7px 12px;margin:10px 0 0;font-size:10px;color:var(--muted)}.mngac-legend span{display:inline-flex;align-items:center;gap:5px}.mngac-swatch{width:13px;height:13px;border-radius:3px;border:1px solid #ffffff33;display:inline-block}.mngac-note{border-left:3px solid var(--blue);padding:10px 12px;background:#0e1622;border-radius:0 8px 8px 0;color:#aeb9ca;margin:12px 0}.mngac-table-wrap{overflow-x:auto}.mngac-field-select{background:none;color:var(--blue);padding:0;border:0;text-align:left;font:inherit;cursor:pointer}.mngac-field-select:hover{text-decoration:underline}
+code{font-size:11px;color:#b9c6d8}.technical summary,.diagnostics summary{cursor:pointer;font-weight:700;color:var(--blue);padding:4px 0}.diagnostics{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);margin:18px 0}.flat-note{padding:20px 4px;color:var(--muted);font-size:12px}
+.public-footnote{margin:30px 2px 0;padding-top:16px;border-top:1px solid var(--line);color:#66778f;font-size:10px;display:flex;justify-content:space-between;gap:20px}.public-footnote strong{color:#8da4c4}
+@media(max-width:1050px){.summary-v2{grid-template-columns:repeat(3,minmax(0,1fr))}.primary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.hero-panel{grid-template-columns:1fr}.mngac-layout{grid-template-columns:1fr}.definition-grid{grid-template-columns:1fr}}
+@media(max-width:760px){.public-header{height:74px;padding:13px 14px}.public-header h1{font-size:20px}.brand-eyebrow{font-size:8px}.live-state span:last-child{display:none}.public-main{padding:0 12px 76px}.public-tabs{top:74px;overflow-x:auto;margin:0 -12px 18px;padding:0 12px}.public-tabs a{padding:12px 10px 10px}.public-tools{margin-left:4px}.summary-v2{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.grid,.primary-grid,.worker-grid,.activity-strip{grid-template-columns:1fr;gap:9px}.card{padding:14px}.hero-copy{padding:16px}.hero-copy h2{font-size:21px}.hero-stat{grid-template-columns:1fr 1fr}.section-head{margin-top:22px}.section-head span{display:none}.filters{display:grid;grid-template-columns:1fr}.filters input,.filters select{width:100%;min-width:0}#counties thead,#datasets thead,.contacts-table thead,.history-table thead,#mngac-fields thead,#county-mngac-fields thead{display:none}#counties,#counties tbody,#counties tr,#counties td,#datasets,#datasets tbody,#datasets tr,#datasets td,.contacts-table,.contacts-table tbody,.contacts-table tr,.contacts-table td,.history-table,.history-table tbody,.history-table tr,.history-table td,#mngac-fields,#mngac-fields tbody,#mngac-fields tr,#mngac-fields td,#county-mngac-fields,#county-mngac-fields tbody,#county-mngac-fields tr,#county-mngac-fields td{display:block;width:100%}#counties tr,#datasets tr,.contacts-table tr,.history-table tr,#mngac-fields tr,#county-mngac-fields tr{padding:10px 0;border-bottom:1px solid #1b2535}#counties td,#datasets td,.contacts-table td,.history-table td,#mngac-fields td,#county-mngac-fields td{border:0;padding:4px 2px;white-space:normal;overflow-wrap:anywhere}.worker-card{grid-template-columns:1fr}.worker-meta{display:grid;grid-template-columns:1fr 1fr}.definition-list{grid-template-columns:1fr;gap:2px}.definition-list dd{margin-bottom:8px}.mngac-controls label,.mngac-controls select{width:100%}.public-footnote{flex-direction:column;gap:4px}}
+@media(max-width:430px){.summary-v2{grid-template-columns:1fr 1fr}.summary-v2 .card{padding:12px}.summary-v2 .metric{font-size:21px}.hero-stat{grid-template-columns:1fr 1fr}.public-export summary{padding:7px 8px}.page-kicker{padding-top:18px}.page-kicker h2{font-size:23px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+"""
+
+def _public_layout_v2(title: str, body: str, *, refresh_seconds: int = 30) -> str:
+    refresh_meta = f'<meta http-equiv="refresh" content="{int(refresh_seconds)}">' if int(refresh_seconds or 0) > 0 else ""
+    lower = title.lower()
+    active = "mngac" if "gac" in lower else "sources" if "source" in lower else "counties" if "county" in lower or "counties" in lower else "overview"
+    tabs = [
+        ("overview", "/", "Overview"),
+        ("counties", "/counties", "Minnesota Counties"),
+        ("mngac", "/mngac", "MN GAC"),
+        ("sources", "/#datasets", "Data Sources"),
+    ]
+    nav = "".join(
+        f'<a href="{href}" class="{"active" if key == active else ""}">{label}</a>'
+        for key, href, label in tabs
+    )
+    page_name = (
+        title.replace(" — GIS Data Watchtower", "")
+        .replace(" — Watchtower", "")
+        .replace("GIS Data Watchtower", "Overview")
+    )
+    subtitle = {
+        "overview": "Availability, freshness, and structure of Minnesota public GIS data.",
+        "counties": "County profiles, parcel availability, monitoring coverage, and GIS contact references.",
+        "mngac": "Field population across the Minnesota GAC parcel-transfer standard and all 87 counties.",
+        "sources": "Public source health and high-level structural observations.",
+    }.get(active, "Minnesota public GIS data, summarized for practical exploration.")
+    return f"""<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+{refresh_meta}<title>{_esc(title)}</title><style>{_PUBLIC_V2_CSS}</style></head><body>
+<header class="public-header">
+  <div><div class="brand-eyebrow">CLEARPARCEL GIS DATA WATCHTOWER</div><h1>Minnesota GIS Data Watchtower</h1></div>
+  <div class="live-state"><span class="live-dot"></span><span>PUBLIC · LIVE</span></div>
+</header>
+<main class="public-main">
+  <nav class="public-tabs" aria-label="Watchtower views">{nav}
+    <div class="public-tools"><details class="public-export"><summary>Export</summary><div class="export-pop"><a href="/snapshot.xlsx">Excel (.xlsx)</a><a href="/snapshot.csv">CSV</a><a href="/snapshot.json">JSON</a></div></details></div>
+  </nav>
+  <div class="page-kicker"><div class="eyebrow">PUBLIC DATA INTELLIGENCE</div><h2>{_esc(page_name)}</h2><p>{_esc(subtitle)}</p></div>
+  {body}
+  <footer class="public-footnote"><span><strong>ClearParcel</strong> · Public read-only view</span><span>Monitoring results are informational and source-dependent.</span></footer>
+</main></body></html>"""
+
 def _layout(title: str, body: str, *, refresh_seconds: int = 30, static: bool = False, csrf_token: str = "") -> str:
+    if static:
+        return _public_layout_v2(title, body, refresh_seconds=refresh_seconds)
     auto_refresh = int(refresh_seconds or 0) > 0
     refresh_meta = f'<meta http-equiv="refresh" content="{int(refresh_seconds)}">' if auto_refresh else ""
     refresh_label = f"Dashboard view refreshes every {int(refresh_seconds)}s" if auto_refresh else "Interactive view · reload for latest saved data"
@@ -699,7 +793,7 @@ def render_mngac(config: dict) -> str:
   const paths=[...root.querySelectorAll('.mngac-county')];
   const q=root.getElementById('mngac-q'),inc=root.getElementById('mngac-inclusion');
   let selected=null;
-  const colors=['#edf3f8','#d7e6f2','#a9c9df','#6f9fbe','#2f668f'];
+  const colors={json.dumps(['#1b2b40','#263d59','#315373','#3c708f','#4c9b7b']) if config.get('_public_mode') else json.dumps(['#edf3f8','#d7e6f2','#a9c9df','#6f9fbe','#2f668f'])};
   function metricMeta(key){{
     if(key==='__overall__')return {{label:'All 91 fields — row population rate',inclusion:'Descriptive'}};
     if(key==='__mandatory__')return {{label:'Mandatory fields — row population rate',inclusion:'Mandatory'}};
@@ -714,7 +808,7 @@ def render_mngac(config: dict) -> str:
     const f=(c.fields||{{}})[key]; return f&&typeof f.percent==='number'?f.percent:null;
   }}
   function color(v){{
-    if(typeof v!=='number')return '#d5dbe0';
+    if(typeof v!=='number')return {repr('#151d2b' if config.get('_public_mode') else '#d5dbe0')};
     if(v<25)return colors[0]; if(v<50)return colors[1]; if(v<75)return colors[2]; if(v<90)return colors[3]; return colors[4];
   }}
   function updateMap(){{
@@ -868,7 +962,8 @@ def render_county(config: dict, slug: str) -> str:
     mngac_html = _render_county_mngac(state, county)
     source_cards = ""
     for src in info["sources"]:
-        source_cards += f'<div class="card"><h3>{_esc(src.get("name"))}</h3><p><strong>Status:</strong> {_esc(src.get("status"))}<br><strong>Records:</strong> {_esc(src.get("feature_count","—"))}<br><strong>Provided by:</strong> {_esc(src.get("provider","—"))}<br><strong>Last checked:</strong> {_esc(src.get("checked_at","—"))}</p></div>'
+        checked = _format_public_time_compact(src.get("checked_at")) if config.get("_public_mode") else _esc(src.get("checked_at", "—"))
+        source_cards += f'<div class="card"><h3>{_esc(src.get("name"))}</h3><p><strong>Status:</strong> {_esc(_friendly_status(src.get("status") or "unknown"))}<br><strong>Records:</strong> {_esc(src.get("feature_count","—"))}<br><strong>Provided by:</strong> {_esc(src.get("provider","—"))}<br><strong>Last checked:</strong> {checked}</p></div>'
     catalog = info.get("catalog") or {}
     if not source_cards and catalog:
         approval = str(catalog.get("gac_open_approval") or "—")
