@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime as dt
 import json
 import os
 import threading
@@ -114,6 +115,7 @@ def sanitize_public_render_state(state: dict) -> dict:
     public = {
         "schema_version": state.get("schema_version"),
         "generated_at": state.get("generated_at"),
+        "public_published_at": state.get("public_published_at"),
         "overall": state.get("overall"),
         "counts": _json_copy(state.get("counts") or {}),
         "workers": {},
@@ -151,6 +153,26 @@ def sanitize_public_render_state(state: dict) -> dict:
         public["sources"][str(source_id)] = summary
 
     return public
+
+
+def _publication_health(state: dict, *, max_age_seconds: int, now: dt.datetime | None = None) -> tuple[bool, dict]:
+    stamp = str(state.get("public_published_at") or "").strip()
+    if not stamp:
+        return False, {"status": "stale", "reason": "publication_timestamp_missing"}
+    try:
+        published = dt.datetime.fromisoformat(stamp.replace("Z", "+00:00"))
+        if published.tzinfo is None:
+            published = published.replace(tzinfo=dt.timezone.utc)
+    except ValueError:
+        return False, {"status": "stale", "reason": "publication_timestamp_invalid"}
+    now = now or dt.datetime.now(dt.timezone.utc)
+    age_seconds = max(0, int((now - published.astimezone(dt.timezone.utc)).total_seconds()))
+    payload = {"status": "ok", "public_published_at": stamp, "age_seconds": age_seconds}
+    if age_seconds > max_age_seconds:
+        payload["status"] = "stale"
+        payload["reason"] = "publication_too_old"
+        return False, payload
+    return True, payload
 
 
 def render_public_dashboard(config: dict) -> str:
@@ -323,6 +345,7 @@ def serve_public(host: str = "0.0.0.0", port: int = 8080) -> None:
     cache = _PublicStateCache()
     cache.refresh(force=True)
     max_connections = max(1, min(int(os.environ.get("WATCHTOWER_PUBLIC_MAX_CONNECTIONS", "64")), 256))
+    max_publication_age_seconds = max(60, min(int(os.environ.get("WATCHTOWER_PUBLIC_MAX_PUBLICATION_AGE_SECONDS", "1800")), 86400))
 
     class Handler(BaseHTTPRequestHandler):
         def _send(self, status: int, content: str, content_type: str = "text/html; charset=utf-8"):
@@ -359,7 +382,9 @@ def serve_public(host: str = "0.0.0.0", port: int = 8080) -> None:
             if parsed.path == "/healthz":
                 try:
                     cache.refresh()
-                    return self._send(200, '{"status":"ok"}', "application/json; charset=utf-8")
+                    state = json.loads(cache.public_path.read_text(encoding="utf-8"))
+                    healthy, payload = _publication_health(state, max_age_seconds=max_publication_age_seconds)
+                    return self._send(200 if healthy else 503, json.dumps(payload, separators=(",", ":")), "application/json; charset=utf-8")
                 except Exception:
                     return self._send(503, '{"status":"unavailable"}', "application/json; charset=utf-8")
 

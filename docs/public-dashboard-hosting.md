@@ -83,6 +83,6 @@ The public dashboard refreshes its local aggregate cache on a bounded interval (
 - Do not grant the public service account Secret Manager access.
 - Keep the DNS record unproxied when Google is terminating TLS at the load balancer.
 - Attach Cloud Armor at the public backend with a conservative per-IP rate limit; the current deployment allows 120 requests/minute/IP before returning 429.
-- Keep load-balancer request logging enabled and use the one-minute HTTPS `/healthz` check plus availability/5xx alerting for the public serving path.
+- Keep load-balancer request logging enabled and use the one-minute HTTPS `/healthz` check plus availability/5xx alerting for the public serving path. Each published snapshot carries `public_published_at`; `/healthz` returns 503 when the production snapshot is more than 30 minutes old, so missed publication cycles are externally detectable.
 - Preserve the sanitized-state regression tests before deployment.
 - Treat any addition to the public state schema as a security-sensitive change.

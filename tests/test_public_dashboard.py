@@ -6,6 +6,7 @@ from pathlib import Path
 
 from clearparcel.datawatch.dashboard import render_counties
 from clearparcel.datawatch.public_dashboard import (
+    _publication_health,
     render_public_dashboard,
     sanitize_public_render_state,
 )
@@ -86,6 +87,30 @@ class PublicDashboardTests(unittest.TestCase):
         mngac = public["sources"]["mn-state-parcels"]["mngac_completeness"]
         self.assertEqual(mngac["field_population_percent"], 80.0)
         self.assertNotIn("statistics_queries", mngac)
+
+    def test_publication_health_accepts_fresh_snapshot(self):
+        now = dt.datetime(2026, 10, 5, 23, 0, tzinfo=dt.timezone.utc)
+        healthy, payload = _publication_health(
+            {"public_published_at": "2026-10-05T22:50:00+00:00"},
+            max_age_seconds=1800,
+            now=now,
+        )
+        self.assertTrue(healthy)
+        self.assertEqual(payload["status"], "ok")
+        self.assertEqual(payload["age_seconds"], 600)
+
+    def test_publication_health_rejects_stale_or_missing_snapshot(self):
+        now = dt.datetime(2026, 10, 5, 23, 30, tzinfo=dt.timezone.utc)
+        healthy, payload = _publication_health(
+            {"public_published_at": "2026-10-05T22:50:00+00:00"},
+            max_age_seconds=1800,
+            now=now,
+        )
+        self.assertFalse(healthy)
+        self.assertEqual(payload["reason"], "publication_too_old")
+        healthy, payload = _publication_health({}, max_age_seconds=1800, now=now)
+        self.assertFalse(healthy)
+        self.assertEqual(payload["reason"], "publication_timestamp_missing")
 
     def test_public_overview_does_not_emit_private_values(self):
         public = sanitize_public_render_state(self._state())
