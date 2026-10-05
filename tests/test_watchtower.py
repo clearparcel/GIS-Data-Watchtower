@@ -50,7 +50,7 @@ class DataWatchTests(unittest.TestCase):
             override = root / 'override.json'
             with patch.dict(os.environ, {'CLEARPARCEL_WATCHTOWER_AGGREGATE_STATE_FILE': str(override)}):
                 loaded = load_data_config(config_path)
-            self.assertEqual(Path(loaded['aggregate_state_file']), override.resolve())
+            self.assertEqual(Path(loaded['aggregate_state_file']), override)
 
     def test_schema_change_is_warning(self):
         changes = _compare({'schema_hash': 'old', 'feature_count': 10}, {'schema_hash': 'new', 'feature_count': 12})
