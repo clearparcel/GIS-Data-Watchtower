@@ -130,6 +130,9 @@ def _dashboard_state(config: dict) -> dict:
     )
 
 def _layout(title: str, body: str, *, refresh_seconds: int = 30, static: bool = False, csrf_token: str = "") -> str:
+    auto_refresh = int(refresh_seconds or 0) > 0
+    refresh_meta = f'<meta http-equiv="refresh" content="{int(refresh_seconds)}">' if auto_refresh else ""
+    refresh_label = f"Dashboard view refreshes every {int(refresh_seconds)}s" if auto_refresh else "Interactive view · reload for latest saved data"
     refresh_form = "" if static else (
         '<form method="post" action="/refresh" class="refresh-form">'
         f'<input type="hidden" name="csrf_token" value="{_esc(csrf_token)}">'
@@ -150,7 +153,7 @@ def _layout(title: str, body: str, *, refresh_seconds: int = 30, static: bool = 
     page_title = title.replace(" — GIS Data Watchtower", "").replace("GIS Data Watchtower", "Overview")
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta http-equiv="refresh" content="{refresh_seconds}">
+{refresh_meta}
 <title>{_esc(title)}</title>
 <style>
 :root{{--navy:#10263b;--navy-2:#17324d;--green:#2d6a4f;--bg:#edf2f6;--card:#fff;--text:#17212b;--muted:#64727e;--accent:#0b6fa4;--soft:#f6f8fa;--line:#d9e1e7;--warn:#8a4600;--err:#a3342f;--shadow:0 3px 14px rgb(23 50 77 / 9%);--radius:13px}}
@@ -312,7 +315,7 @@ code{{font-size:12px;overflow-wrap:anywhere}}
   .bar-row{{grid-template-columns:100px minmax(60px,1fr) 40px}}
 }}
 </style></head><body>
-<header><h1>GIS Data Watchtower</h1><div class="actions"><span>Dashboard view refreshes every {refresh_seconds}s</span>{refresh_form}</div></header>
+<header><h1>GIS Data Watchtower</h1><div class="actions"><span>{_esc(refresh_label)}</span>{refresh_form}</div></header>
 <div class="app-shell">
 <aside class="sidebar"><div class="side-brand"><strong>ClearParcel</strong><small>GIS Data Watchtower</small></div><nav>
 <a href="/">{icon("overview")}<span>Overview</span></a>
@@ -758,7 +761,7 @@ def render_mngac(config: dict) -> str:
 }})();
 </script>
 """
-    return _layout("MN GAC Completeness — GIS Data Watchtower", body, refresh_seconds=300, csrf_token=str(config.get("_csrf_token") or ""))
+    return _layout("MN GAC Completeness — GIS Data Watchtower", body, refresh_seconds=0, csrf_token=str(config.get("_csrf_token") or ""))
 
 
 def render_counties(config: dict) -> str:
@@ -1017,32 +1020,6 @@ def _csv_safe(value) -> str:
     if text.startswith(("=", "+", "-", "@")):
         return "'" + text
     return text
-
-
-def _mngac_csv(data: dict) -> str:
-    out = io.StringIO()
-    fields = ["field","element","section","inclusion","data_type","counties_with_values","counties_covered","populated_records","record_count","population_percent","median_county_population_percent"]
-    writer = csv.DictWriter(out, fieldnames=fields)
-    writer.writeheader()
-    schema = _load_mngac_schema()
-    summaries = data.get("fields") or {}
-    for spec in schema.get("fields") or []:
-        field = spec.get("field")
-        stats = summaries.get(field) or {}
-        writer.writerow({key: _csv_safe(value) for key, value in {
-            "field": field,
-            "element": spec.get("label"),
-            "section": spec.get("section_name"),
-            "inclusion": spec.get("inclusion"),
-            "data_type": spec.get("data_type"),
-            "counties_with_values": stats.get("counties_with_values"),
-            "counties_covered": stats.get("counties_covered"),
-            "populated_records": stats.get("populated"),
-            "record_count": stats.get("record_count"),
-            "population_percent": stats.get("percent"),
-            "median_county_population_percent": stats.get("county_median_percent"),
-        }.items()})
-    return out.getvalue()
 
 
 def _snapshot_csv(snapshot: dict) -> str:
