@@ -188,14 +188,24 @@ class DataWatchTests(unittest.TestCase):
             self.assertIn('Wabasha County Parcels', wabasha)
             self.assertIn('A usable parcel-data source has not been found yet', aitkin)
 
-    def test_all_minnesota_counties_have_mngeo_contact_records(self):
+    def test_all_minnesota_counties_have_verified_contact_authority(self):
         contacts = datawatch_dashboard._load_county_contacts()
+        records = datawatch_dashboard._load_county_contact_records()
         counties = datawatch_dashboard._load_counties()
         self.assertEqual(len(counties), 87)
         self.assertEqual(len(contacts), 87)
-        wabasha = datawatch_dashboard.render_county({'state_file': str(TOOLS_ROOT / 'datawatch' / 'state.json'), 'history_file': str(TOOLS_ROOT / 'datawatch' / 'history.jsonl'), 'sources': []}, 'wabasha')
+        self.assertEqual(len(records), 87)
+        self.assertFalse([name for name, record in records.items() if record.get('authority') == 'mngeo_unverified'])
+        self.assertTrue(all(record.get('authority') in ('county', 'mngeo') for record in records.values()))
+        config = {'state_file': str(TOOLS_ROOT / 'datawatch' / 'state.json'), 'history_file': str(TOOLS_ROOT / 'datawatch' / 'history.jsonl'), 'sources': []}
+        wabasha = datawatch_dashboard.render_county(config, 'wabasha')
+        lincoln = datawatch_dashboard.render_county(config, 'lincoln')
         self.assertIn('County GIS contacts', wabasha)
-        self.assertIn('Minnesota Geospatial Information Office', wabasha)
+        self.assertIn('Official county website', wabasha)
+        self.assertIn('class="contacts-table"', wabasha)
+        self.assertIn('contacts-table td:nth-child(4)::before', wabasha)
+        self.assertIn('MnGeo', lincoln)
+        self.assertIn('retained as the fallback', lincoln)
 
     def test_arcgis_county_catalog_and_county_status(self):
         from unittest.mock import patch
@@ -208,6 +218,38 @@ class DataWatchTests(unittest.TestCase):
         roseau = datawatch_dashboard._county_status({}, {'name': 'Roseau', 'slug': 'roseau'}, state)
         self.assertEqual(aitkin['status'], 'catalog')
         self.assertEqual(roseau['status'], 'needs-source')
+
+    def test_county_contact_verification_prefers_official_county_override_and_keeps_mngeo_fallback(self):
+        import tempfile
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            baseline = root / 'contacts.json'
+            verification = root / 'verified.json'
+            baseline.write_text(json.dumps({
+                'source': {'name': 'MnGeo County GIS Contacts', 'url': 'https://mn.gov/example'},
+                'counties': [
+                    {'county': 'Alpha', 'contacts': [{'name': 'Old Person', 'title': 'GIS Coordinator', 'department': 'GIS', 'phone': '111', 'email': 'old@example.gov'}]},
+                    {'county': 'Beta', 'contacts': [{'name': 'MnGeo Person', 'title': 'GIS Coordinator', 'department': 'GIS', 'phone': '222', 'email': 'mngeo@example.gov'}]},
+                ],
+            }), encoding='utf-8')
+            verification.write_text(json.dumps({'counties': [
+                {'county': 'Alpha', 'authority': 'county', 'verified': '2026-10-04',
+                 'official_county_url': 'https://alpha.gov', 'official_contact_page_url': 'https://alpha.gov/gis',
+                 'contacts': [{'name': 'New Person', 'title': 'GIS Manager', 'department': 'GIS', 'phone': '333', 'email': 'new@alpha.gov'}],
+                 'evidence_note': 'Official GIS page lists updated staff.'},
+                {'county': 'Beta', 'authority': 'mngeo', 'verified': '2026-10-04',
+                 'official_county_url': 'https://beta.gov', 'official_contact_page_url': 'https://beta.gov/maps',
+                 'contacts': [], 'evidence_note': 'No additional or changed GIS contact information found.'},
+            ]}), encoding='utf-8')
+            with patch.object(datawatch_dashboard, 'COUNTY_CONTACTS_FILE', baseline), patch.object(datawatch_dashboard, 'COUNTY_CONTACT_VERIFICATION_FILE', verification):
+                records = datawatch_dashboard._load_county_contact_records()
+                self.assertEqual(records['Alpha']['authority'], 'county')
+                self.assertEqual(records['Alpha']['contacts'][0]['name'], 'New Person')
+                self.assertEqual(records['Alpha']['source_url'], 'https://alpha.gov/gis')
+                self.assertEqual(records['Beta']['authority'], 'mngeo')
+                self.assertEqual(records['Beta']['contacts'][0]['name'], 'MnGeo Person')
+                self.assertEqual(records['Beta']['source_url'], 'https://mn.gov/example')
 
     def test_dashboard_v05_friendly_county_charts_and_snapshots(self):
         import tempfile
@@ -230,6 +272,11 @@ class DataWatchTests(unittest.TestCase):
             self.assertIn('Download county snapshot', county)
             self.assertNotIn('MnGeo parcel metadata', county)
             self.assertEqual(snap['county'], 'Aitkin')
+            self.assertEqual(snap['contact_source'], 'county')
+            self.assertEqual(snap['contact_verified'], '2026-10-04')
+            self.assertIn('contact_source', csv_text)
+            self.assertIn('contact_source_url', csv_text)
+            self.assertIn('contact_verified', csv_text)
             self.assertIn('last_county_update', csv_text)
 
     def test_dashboard_central_time_primary_utc_secondary_and_direct_counties(self):
