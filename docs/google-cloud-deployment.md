@@ -51,18 +51,23 @@ Use `--max-retries=0` initially: Watchtower already implements provider-aware re
 ClearParcel's hosted public view uses a separate Cloud Run service from the private operational dashboard:
 
 ```text
-DNS -> Google external Application Load Balancer -> serverless NEG -> Cloud Run public dashboard -> shared GCS aggregate
+DNS -> Google external Application Load Balancer -> serverless NEG -> Cloud Run public dashboard -> sanitized production GCS aggregate
+                                                                                                      ^
+                                                                                                      |
+                                                Cloud Scheduler -> Cloud Run public publisher -> unified private GCS aggregate
 ```
 
-The public service runs `watchtower public-dashboard`, performs no provider polling, and accepts no state-changing POST actions. It downloads the shared aggregate, reduces it to a public allowlist, and renders from that reduced copy. Operational provider URLs, raw change payloads, tracked values, fingerprints, provenance, and worker telemetry are excluded.
+The public service runs `watchtower public-dashboard`, performs no provider polling, accepts no state-changing POST actions, and reads only the sanitized production object. A separate `watchtower public-publish` Cloud Run Job reads the unified aggregate, reduces it to a public allowlist, validates that forbidden operational fields are absent, and writes the production object. Operational provider URLs, raw change payloads, tracked values, fingerprints, provenance, and worker telemetry are excluded.
 
-Use a dedicated runtime service account with `storage.objects.get` access scoped to the aggregate object rather than granting bucket-wide access. Restrict Cloud Run ingress to `internal-and-cloud-load-balancing`; anonymous access is then provided only through the Google load-balancing path. The private operational dashboard remains behind its own authentication boundary.
+Use separate least-privilege service accounts: the public dashboard receives `storage.objects.get` only for the production aggregate; the publisher receives source-object read plus production-object write; the Scheduler identity receives only `run.jobs.run` through the job's invoker binding. Restrict Cloud Run ingress to `internal-and-cloud-load-balancing`; anonymous access is then provided only through the Google load-balancing path. The private operational dashboard remains behind its own authentication boundary.
 
 The ClearParcel deployment is published at **https://gis-watchtower.clear-parcel.com**. Its Cloudflare record is DNS-only; Cloudflare provides authoritative DNS but does not proxy the application traffic.
 
 ## Scheduling
 
-Start with **daily** execution. County parcel and similar GIS datasets generally do not justify high-frequency deep polling. Increase frequency only when provider terms and operational need support it.
+Start provider-check execution at **daily** cadence. County parcel and similar GIS datasets generally do not justify high-frequency deep polling. Increase provider-check frequency only when provider terms and operational need support it.
+
+The sanitized public publisher is different: it performs no provider requests and may run more frequently. The ClearParcel deployment uses a **15-minute** publication cadence, selected to leave ample room around observed Cloud Run Job startup/runtime while keeping the public snapshot reasonably fresh.
 
 ## Migration
 
