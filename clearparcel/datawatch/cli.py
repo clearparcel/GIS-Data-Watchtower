@@ -53,6 +53,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--host", default="127.0.0.1"); p.add_argument("--port", type=int, default=8765)
     p = sub.add_parser("public-dashboard", help="Serve the read-only sanitized public dashboard")
     p.add_argument("--host", default="0.0.0.0"); p.add_argument("--port", type=int, default=8080)
+    p = sub.add_parser("public-publish", help="Publish a sanitized public aggregate to production storage")
+    p.add_argument("--json", action="store_true")
     p = sub.add_parser("cloud-job", help="Run one check using configured cloud storage")
     p.add_argument("--json", action="store_true")
     p = sub.add_parser("dashboard-build", help="Build a sanitized static dashboard")
@@ -63,6 +65,14 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> int:
     args = build_parser().parse_args()
     try:
+        if args.command == "public-dashboard":
+            from clearparcel.datawatch.public_dashboard import serve_public
+            serve_public(host=args.host, port=args.port); return 0
+        if args.command == "public-publish":
+            from clearparcel.datawatch.public_publish import publish_public_snapshot_from_env
+            result = publish_public_snapshot_from_env()
+            print(json.dumps(result, indent=2) if args.json else f'Published {result["source_count"]} public Watchtower sources')
+            return 0
         config = load_config(args.config)
         if args.command == "check":
             result = check_sources(config, source_filter=args.source, save=not args.no_save, execution_profile=args.execution_profile)
@@ -90,9 +100,6 @@ def main() -> int:
             save_json(args.output, merged); print(json.dumps(merged, indent=2)); return 0
         if args.command == "dashboard":
             serve(config, host=args.host, port=args.port); return 0
-        if args.command == "public-dashboard":
-            from clearparcel.datawatch.public_dashboard import serve_public
-            serve_public(host=args.host, port=args.port); return 0
         if args.command == "cloud-job":
             from clearparcel.datawatch.cloud_job import run_cloud_job
             result = run_cloud_job(args.config)
