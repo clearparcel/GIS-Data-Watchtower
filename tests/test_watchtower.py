@@ -87,7 +87,7 @@ class DataWatchTests(unittest.TestCase):
             "CASE WHEN ACRES_POLY IS NULL THEN 0 ELSE 1 END",
         )
         with self.assertRaises(ValueError):
-            datawatch._mngac_population_expression({'field': 'OWNER_NAME', 'data_type': 'Text'}, 'OWNER_NAME); DROP TABLE x')
+            datawatch._mngac_population_expression({'field': 'OWNER_NAME', 'data_type': 'Text'}, 'OWNER_NAME); INVALID_FIELD')
 
     def test_mngac_completeness_uses_bounded_grouped_statistics_query(self):
         field_names = ['OBJECTID', 'CO_NAME', 'CO_CODE', 'CTU_NAME', 'OWNER_NAME']
@@ -997,7 +997,6 @@ class DataWatchTests(unittest.TestCase):
             os.environ.pop('CLEARPARCEL_WATCHTOWER_DASHBOARD_PASSWORD', None)
             with self.assertRaisesRegex(RuntimeError, 'CLEARPARCEL_WATCHTOWER_DASHBOARD_PASSWORD'):
                 datawatch_dashboard._dashboard_auth({'public_dashboard': {'internet_exposure': False}}, '0.0.0.0')
-
     def test_county_status_uses_explicit_slug_not_substring(self):
         state = {'sources': {'lake-source': {'name': 'Lake of the Woods County Parcels', 'provider': 'County', 'status': 'ok', 'county_slug': 'lake-of-the-woods'}}}
         lake = datawatch_dashboard._county_status({}, {'name': 'Lake', 'slug': 'lake'}, state)
