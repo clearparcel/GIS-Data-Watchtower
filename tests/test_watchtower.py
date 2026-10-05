@@ -443,6 +443,88 @@ class DataWatchTests(unittest.TestCase):
             self.assertNotIn('>Provenance<', detail)
 
 
+    def test_security_arcgis_count_validation_and_source_isolation(self):
+        for value in ("10", None, {}, [], True, -1, 2_147_483_648):
+            with patch.object(datawatch, '_json_request', return_value=({'count': value}, {'status': 200})):
+                with self.assertRaises(ValueError):
+                    datawatch._arcgis_count_query('https://example.invalid/0', '1=1', 1)
+        with patch.object(datawatch, '_json_request', return_value=({'count': 0}, {'status': 200})):
+            self.assertEqual(datawatch._arcgis_count_query('https://example.invalid/0', '1=1', 1), 0)
+
+        import tempfile
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            config = {
+                'state_file': str(root / 'state.json'), 'history_file': str(root / 'history.jsonl'),
+                'retries': 0,
+                'sources': [
+                    {'id': 'bad', 'name': 'Bad', 'kind': 'arcgis_layer', 'url': 'https://bad.invalid'},
+                    {'id': 'good', 'name': 'Good', 'kind': 'arcgis_layer', 'url': 'https://good.invalid'},
+                ],
+            }
+            def fake(source, timeout):
+                if source['id'] == 'bad':
+                    return {'feature_count': 'not-an-int', 'schema_hash': 'x', 'problems': []}
+                return {'feature_count': 5, 'schema_hash': 'y', 'problems': []}
+            previous = {'sources': {'bad': {'feature_count': 4, 'schema_hash': 'x'}, 'good': {'feature_count': 5, 'schema_hash': 'y'}}}
+            with patch.object(datawatch, 'load_state', return_value=previous), patch.object(datawatch, '_source_check', side_effect=fake):
+                report = datawatch.check_sources(config, save=False)
+            self.assertEqual(report['sources']['bad']['status'], 'error')
+            self.assertEqual(report['sources']['good']['status'], 'ok')
+
+    def test_security_redirect_policy_rejects_private_and_allows_public(self):
+        with patch.object(datawatch, '_destination_publicity', side_effect=lambda url: False if '127.0.0.1' in url else True):
+            with self.assertRaisesRegex(RuntimeError, 'redirect rejected'):
+                datawatch._validated_redirect('https://provider.example/a', 'http://127.0.0.1/admin', 'https://provider.example/a')
+            self.assertEqual(
+                datawatch._validated_redirect('https://provider.example/a', 'https://cdn.example/b', 'https://provider.example/a'),
+                'https://cdn.example/b',
+            )
+        with patch.dict(os.environ, {'WATCHTOWER_REDIRECT_ALLOW_HOSTS': 'internal.example'}):
+            self.assertEqual(
+                datawatch._validated_redirect('https://provider.example/a', 'https://internal.example/b', 'https://provider.example/a'),
+                'https://internal.example/b',
+            )
+
+    def test_security_bounded_response_and_safe_diagnostics(self):
+        import io
+        self.assertEqual(datawatch._read_bounded(io.BytesIO(b'12345678'), limit=8), b'12345678')
+        with self.assertRaises(datawatch.ProviderResponseTooLargeError):
+            datawatch._read_bounded(io.BytesIO(b'123456789'), limit=8)
+        dirty = "bad\r\nFORGED\x1b[31m red\t" + ("x" * 3000)
+        safe = datawatch._safe_diagnostic(dirty)
+        self.assertNotIn("\n", safe)
+        self.assertNotIn("\r", safe)
+        self.assertNotIn("\x1b", safe)
+        self.assertLessEqual(len(safe), 1024)
+
+    def test_security_static_state_omits_change_details_and_status_attributes_are_safe(self):
+        state = {
+            'overall': 'ok" onmouseover="alert(1)',
+            'counts': {},
+            'sources': {
+                'a': {
+                    'id': 'a', 'name': 'A', 'status': 'ok" onmouseover="alert(1)',
+                    'changes': [{'previous': 'secret-old', 'current': 'secret-new', 'message': 'secret-change'}],
+                }
+            },
+        }
+        public = datawatch_dashboard._sanitize_public_state(state)
+        self.assertEqual(public['sources']['a']['change_count'], 1)
+        self.assertNotIn('changes', public['sources']['a'])
+        self.assertNotIn('secret-old', json.dumps(public))
+        self.assertEqual(datawatch_dashboard._status_class(state['overall']), 'unknown')
+        self.assertEqual(datawatch_dashboard._status_class(state['sources']['a']['status']), 'unknown')
+
+    def test_security_content_length_validation(self):
+        self.assertEqual(datawatch_dashboard._validated_content_length('0'), 0)
+        self.assertEqual(datawatch_dashboard._validated_content_length('4096'), 4096)
+        for value in (None, '-1', 'nope'):
+            with self.assertRaises(ValueError):
+                datawatch_dashboard._validated_content_length(value)
+        with self.assertRaises(OverflowError):
+            datawatch_dashboard._validated_content_length('4097')
+
     def test_watchtower_user_agent_identifies_project_and_429_does_not_fallback(self):
         self.assertIn('GIS-Data-Watchtower', datawatch.USER_AGENT)
         self.assertIn('github.com/clearparcel/GIS-Data-Watchtower', datawatch.USER_AGENT)
