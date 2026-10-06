@@ -14,6 +14,25 @@ from clearparcel.datawatch.public_dashboard import (
 
 
 class PublicDashboardTests(unittest.TestCase):
+    def test_overview_labels_follow_selected_map_view(self):
+        from unittest.mock import patch
+        import re
+        state = sanitize_public_render_state(self._state())
+        with patch('clearparcel.datawatch.public_dashboard._dashboard_state', return_value=state):
+            page = render_public_dashboard({'_public_mode': True})
+        initial = re.search(r'<p id="home-county-detail">(.*?)</p>', page).group(1)
+        self.assertIn('monitoring paths', initial)
+        self.assertNotIn('population across', initial)
+        self.assertIn('function monitoringLabel(paths)', page)
+        self.assertIn('function updateDescription()', page)
+        self.assertIn("p.setAttribute('aria-label',p.dataset.county+' County, '+label)", page)
+        self.assertIn('selectedPath=path', page)
+        self.assertIn('updateDescription();', page)
+        self.assertIn('const monitoring=selector.value==="monitoring"', page)
+        self.assertIn('No active parcel monitoring path', page)
+        self.assertIn('Statewide completeness is unavailable', page)
+        self.assertIn('These statistics are separate from county-direct monitoring', page)
+
     def test_both_maps_embed_all_87_complete_profiles(self):
         import re
         from unittest.mock import patch

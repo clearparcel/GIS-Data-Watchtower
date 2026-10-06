@@ -337,7 +337,7 @@ def render_public_dashboard(config: dict) -> str:
   <div class="card hero-copy">
     <div class="muted">Selected county</div>
     <h2 id="home-county-name">Choose a county</h2>
-    <p id="home-county-detail">The map shows record-weighted population across all 91 Minnesota GAC parcel-transfer fields. Counties without a statewide open-layer observation remain distinct from 0%.</p>
+    <p id="home-county-detail">The map shows active parcel monitoring paths: county-direct, MnGeo open parcels, both, or no active parcel monitoring path. Select a county to inspect its complete source profile.</p>
     <div class="hero-stat">
       <div><small>Field population</small><b id="home-county-rate">—</b></div>
       <div><small>Parcel records</small><b id="home-county-records">—</b></div>
@@ -374,36 +374,51 @@ def render_public_dashboard(config: dict) -> str:
   const root=document;
   const monitoringPaths={monitoring_json};
   const selector=root.getElementById("overview-metric");
+  let selectedPath=null;
+  function monitoringLabel(paths){{
+    return paths.length===2?'Both county-direct and MnGeo open parcel monitoring paths':paths.includes('county-direct')?'County-direct parcel monitoring path':paths.includes('mngeo-open')?'MnGeo open parcel monitoring path':'No active parcel monitoring path';
+  }}
+  function updateDescription(){{
+    const detail=root.getElementById('home-county-detail');
+    if(selector.value==='monitoring'){{
+      detail.textContent=selectedPath?monitoringLabel(monitoringPaths[selectedPath.dataset.slug]||[])+'. Statewide completeness statistics below are separate from monitoring coverage.':'The map shows active parcel monitoring paths: county-direct, MnGeo open parcels, both, or no active parcel monitoring path. Select a county to inspect its complete source profile.';
+    }}else{{
+      const d=selectedPath&&countyData[selectedPath.dataset.county];
+      detail.textContent=!selectedPath?'The map shows record-weighted population across all 91 Minnesota GAC parcel-transfer fields. Unavailable statewide completeness remains distinct from 0%.':!d||d.pct==null?'Statewide completeness is unavailable for this county. These statistics are separate from county-direct monitoring; no 0% value is inferred.':'Current record-weighted population across the standard parcel-transfer fields for this county. These statistics are separate from county-direct monitoring.';
+    }}
+  }}
   function updateOverview(){{
     const monitoring=selector.value==="monitoring";
-    root.querySelectorAll(".mngac-county").forEach(p=>{{const paths=monitoringPaths[p.dataset.slug]||[];const d=countyData[p.dataset.county];p.style.fill=monitoring?(paths.length===2?"#4c9b7b":paths.includes("county-direct")?"#3c708f":paths.includes("mngeo-open")?"#315373":"#151d2b"):fill(d&&d.pct)}});
+    root.querySelectorAll(".mngac-county").forEach(p=>{{
+      const paths=monitoringPaths[p.dataset.slug]||[],d=countyData[p.dataset.county];
+      p.style.fill=monitoring?(paths.length===2?"#4c9b7b":paths.includes("county-direct")?"#3c708f":paths.includes("mngeo-open")?"#315373":"#151d2b"):fill(d&&d.pct);
+      const label=monitoring?monitoringLabel(paths):d&&d.pct!=null?Number(d.pct).toFixed(2)+'% MN GAC field population':'Statewide completeness is unavailable';
+      p.setAttribute('aria-label',p.dataset.county+' County, '+label);
+    }});
+    updateDescription();
     root.getElementById("overview-legend").innerHTML=monitoring?'<div class="mngac-legend"><span><i class="mngac-swatch" style="background:#4c9b7b"></i>Both paths</span><span><i class="mngac-swatch" style="background:#3c708f"></i>County-direct</span><span><i class="mngac-swatch" style="background:#315373"></i>MnGeo open</span><span><i class="mngac-swatch" style="background:#151d2b"></i>No active parcel path</span></div>':{json.dumps(percentage_legend())};
   }}
   selector.addEventListener("change",updateOverview);
   {percentage_color_js()}
   const fill=percentageColor;
   function show(name,path){{
+    selectedPath=path;
     const d=countyData[name];
     root.querySelectorAll('.mngac-county').forEach(p=>p.classList.toggle('selected',p===path));
     root.getElementById('home-county-name').textContent=name+' County';
     const rate=root.getElementById('home-county-rate'), rec=root.getElementById('home-county-records'), fields=root.getElementById('home-county-fields'), link=root.getElementById('home-county-link');
     if(!d){{
       rate.textContent='No data';rec.textContent='—';fields.textContent='—';
-      root.getElementById('home-county-detail').textContent='This county is not represented in the current MnGeo Plan Parcels Open observation. Watchtower does not infer 0%.';
     }}else{{
       rate.textContent=d.pct==null?'—':Number(d.pct).toFixed(2)+'%';
       rec.textContent=d.records==null?"Not available":Number(d.records).toLocaleString();
       fields.textContent=(d.fields==null?'—':d.fields)+' / '+(d.field_count||91);
-      root.getElementById('home-county-detail').textContent='Current record-weighted population across the standard parcel-transfer fields for this county.';
     }}
     const slug=(d&&d.slug)||path.dataset.slug||'';
     link.href=slug?'/county?slug='+encodeURIComponent(slug):'/counties';
+    updateDescription();
   }}
   root.querySelectorAll('.mngac-county').forEach(p=>{{
-    const d=countyData[p.dataset.county];
-    p.style.fill=fill(d&&d.pct);
-    const label=p.dataset.county+' County'+(d&&d.pct!=null?', '+Number(d.pct).toFixed(2)+'% field population':', no MN GAC data');
-    p.setAttribute('aria-label',label);
     p.addEventListener('click',()=>show(p.dataset.county,p));
     p.addEventListener('keydown',e=>{{if(e.key==='Enter'||e.key===' '){{e.preventDefault();show(p.dataset.county,p)}}}});
   }});
