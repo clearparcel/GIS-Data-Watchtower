@@ -99,6 +99,38 @@ class CountyProfilesTests(unittest.TestCase):
         self.assertFalse(p['monitoring']['active'])
         self.assertEqual(p['mngeo_public_repository']['sources'], [])
 
+    def test_repository_exact_dataset_identity_retains_observation(self):
+        research = load_parcel_access()
+        dataset = {'inventory_id': 'repo-dataset', 'monitored_source_id': 'parcel-data', 'name': 'Repository parcels',
+            'authority': 'statewide', 'dataset_type': 'parcels', 'approved_public_links': []}
+        catalog = {**dataset, 'inventory_id': 'repo-catalog', 'monitored_source_id': 'mn-parcel-county-catalog'}
+        research['Aitkin']['source_inventory']['mngeo_public_repository'].update(availability='yes', sources=[dataset, catalog])
+        research['Aitkin']['source_inventory']['county_arcgis_rest'].update(availability='yes', sources=[copy.deepcopy(dataset)])
+        state = {'sources': {'parcel-data': {'county_slug': 'aitkin', 'category': 'Parcels', 'adapter': 'arcgis_layer',
+            'feature_count': 1234, 'checked_at': STAMP, 'last_success_at': STAMP, 'status': 'ok',
+            'geometry_type': 'esriGeometryPolygon', 'editing_info': {'lastEditDate': 1735689600000}},
+            'mn-parcel-county-catalog': {'county_slug': 'aitkin', 'category': 'Parcels', 'feature_count': 87,
+                'checked_at': STAMP, 'status': 'ok', 'county_records': {'Aitkin': {'acqdate': 1735689600000}}}}}
+        p = compose(state, research)['aitkin']
+        observed, catalog_only = p['mngeo_public_repository']['sources']
+        self.assertEqual(observed['feature_count'], 1234)
+        self.assertEqual(observed['checked_at'], STAMP)
+        self.assertEqual(observed['last_success_at'], STAMP)
+        self.assertEqual(observed['health'], 'ok')
+        self.assertEqual(observed['reporting'], 'current')
+        self.assertEqual(observed['geometry_type'], 'esriGeometryPolygon')
+        self.assertEqual(observed['provider_updated_at'], '2025-01-01T00:00:00+00:00')
+        self.assertIsNone(catalog_only['feature_count'])
+        self.assertIsNone(catalog_only['checked_at'])
+        self.assertEqual(catalog_only['health'], 'unknown')
+        self.assertEqual(catalog_only['county_acquired_at'], '2025-01-01T00:00:00+00:00')
+        self.assertEqual(p['monitoring']['active_parcel_source_count'], 1)
+        self.assertEqual(p['county_arcgis_rest']['sources'][0]['monitored_source_id'], observed['monitored_source_id'])
+        del state['sources']['parcel-data']
+        p = compose(state, research)['aitkin']
+        self.assertFalse(p['monitoring']['active'])
+        self.assertIsNone(p['mngeo_public_repository']['sources'][0]['feature_count'])
+
     def test_research_change_propagates_without_observation_change(self):
         research = load_parcel_access()
         before = compose(coverage_state(), research)

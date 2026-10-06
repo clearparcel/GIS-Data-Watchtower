@@ -113,7 +113,7 @@ def compose_county_profiles(state: dict, research: dict[str, dict], *, now: dt.d
             composed = []
             for item in static.get('sources') or []:
                 sid = item.get('monitored_source_id') or item.get('inventory_id')
-                observed = direct.get(sid) if category in ('county_arcgis_rest', 'county_download') else None
+                observed = direct.get(sid) if category in ('county_arcgis_rest', 'county_download', 'mngeo_public_repository') else None
                 composed.append(_source(item, observed, sid if observed else item.get('monitored_source_id'),
                                         state, now, freshness_policy,
                                         catalog=catalog_records.get(name) if category == 'mngeo_public_repository' else None))
