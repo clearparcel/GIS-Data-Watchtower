@@ -28,6 +28,49 @@ def compose(state=None, research=None):
 
 
 class CountyProfilesTests(unittest.TestCase):
+    def test_aitkin_clay_batch_reviews_keep_policy_and_runtime_independent(self):
+        names = ('Aitkin', 'Anoka', 'Becker', 'Beltrami', 'Benton', 'Big Stone',
+                 'Carlton', 'Carver', 'Cass', 'Chippewa', 'Chisago', 'Clay')
+        research = load_parcel_access()
+        profiles = compose(research=research)
+        for name in names:
+            record = research[name]
+            profile = profiles[name.lower().replace(' ', '-')]
+            self.assertFalse(profile['monitoring']['active'])
+            self.assertEqual(record['monitoring']['decision'], 'not-assessed')
+            self.assertIsNone(record['parcel_dataset_fee'])
+            for category in record['source_inventory'].values():
+                self.assertNotEqual(category['review_status'], 'pending')
+                self.assertTrue(category['evidence'])
+        self.assertFalse(research['Beltrami']['statewide_open_coverage']['available'])
+        self.assertEqual(research['Beltrami']['county_direct_classification'], 'free-parcel-data')
+        self.assertEqual(profiles['beltrami']['county_download']['availability'], 'yes')
+        self.assertEqual(profiles['benton']['county_download']['availability'], 'unknown')
+        self.assertEqual(profiles['benton']['county_arcgis_rest']['availability'], 'yes')
+        for name, layer in (('Anoka', 0), ('Carver', 1)):
+            source = research[name]['source_inventory']['mngeo_public_repository']['sources'][0]
+            self.assertEqual(source['layer_id'], layer)
+            self.assertTrue(any('arcgis.metc.state.mn.us' in link['href'] for link in source['approved_public_links']))
+            self.assertNotIn('monitored_source_id', source)
+        for name in ('Aitkin', 'Big Stone', 'Cass'):
+            self.assertIsNone(research[name]['county_direct_classification'])
+            self.assertFalse(profiles[name.lower().replace(' ', '-')]['research']['complete'])
+
+    def test_aitkin_beltrami_exact_dataset_joins_share_observation(self):
+        for name, layer in (('Aitkin', 0), ('Beltrami', 2)):
+            slug = name.lower()
+            source_id = 'mn-' + slug + '-parcels-direct'
+            state = {'sources': {source_id: {'id': source_id, 'county_slug': slug,
+                'category': 'Parcels', 'adapter': 'arcgis_layer', 'status': 'ok',
+                'checked_at': STAMP, 'last_success_at': STAMP, 'feature_count': 42}}}
+            profile = compose(state)[slug]
+            for category in ('county_arcgis_rest', 'county_download'):
+                source = profile[category]['sources'][0]
+                self.assertEqual(source['monitored_source_id'], source_id)
+                self.assertEqual(source['layer_id'], layer)
+                self.assertEqual(source['feature_count'], 42)
+            self.assertEqual(profile['monitoring']['active_parcel_source_count'], 1)
+
     def test_inventory_completion_requires_all_four_evidence_reviews(self):
         research = load_parcel_access()
         record = research['Brown']
@@ -103,7 +146,7 @@ class CountyProfilesTests(unittest.TestCase):
         p = compose(coverage_state(), research)
         self.assertEqual(p['aitkin']['mngac_public_parcels']['availability'], 'yes')
         self.assertEqual(p['yellow-medicine']['mngac_public_parcels']['availability'], 'no')
-        source = p['aitkin']['mngac_public_parcels']['sources'][0]
+        source = next(s for s in p['aitkin']['mngac_public_parcels']['sources'] if s['monitored_source_id'] == 'statewide')
         self.assertEqual(source['feature_count'], 1000)
         self.assertNotEqual(source['feature_count'], 999999)
 
@@ -111,9 +154,10 @@ class CountyProfilesTests(unittest.TestCase):
         self.assertEqual(compose()['winona']['mngac_public_parcels']['availability'], 'unknown')
         state = coverage_state()
         state['sources']['statewide']['mngac_completeness']['counties']['Aitkin']['record_count'] = None
-        self.assertIsNone(compose(state)['aitkin']['mngac_public_parcels']['sources'][0]['feature_count'])
+        observed = lambda: next(s for s in compose(state)['aitkin']['mngac_public_parcels']['sources'] if s['monitored_source_id'] == 'statewide')
+        self.assertIsNone(observed()['feature_count'])
         state['sources']['statewide']['mngac_completeness']['counties']['Aitkin']['record_count'] = 0
-        self.assertEqual(compose(state)['aitkin']['mngac_public_parcels']['sources'][0]['feature_count'], 0)
+        self.assertEqual(observed()['feature_count'], 0)
 
     def test_70_county_union_and_source_identity(self):
         state = coverage_state()
@@ -138,7 +182,7 @@ class CountyProfilesTests(unittest.TestCase):
         p = compose(state)
         self.assertFalse(p['aitkin']['monitoring']['active'])
         self.assertFalse(p['lake']['monitoring']['active'])
-        source = p['anoka']['county_arcgis_rest']['sources'][0]
+        source = next(s for s in p['anoka']['county_arcgis_rest']['sources'] if s['monitored_source_id'] == 'parcel')
         self.assertEqual(source['health'], 'error')
         self.assertEqual(source['reporting'], 'overdue')
         self.assertEqual(source['feature_count'], 42)
@@ -149,7 +193,7 @@ class CountyProfilesTests(unittest.TestCase):
     def test_repository_requires_distinct_parcel_evidence(self):
         state = {'sources': {'mn-parcel-county-catalog': {'status': 'ok', 'checked_at': STAMP,
             'county_records': {'Aitkin': {'data_url': 'https://example.com/parcels.zip', 'acqdate': 1760000000000}}}}}
-        p = compose(state)['aitkin']
+        p = compose(state, research={})['aitkin']
         self.assertFalse(p['monitoring']['active'])
         self.assertEqual(p['mngeo_public_repository']['sources'], [])
 
@@ -201,7 +245,7 @@ class CountyProfilesTests(unittest.TestCase):
         self.assertEqual(p['aitkin']['access']['public_classification'], 'AMBIGUOUS')
 
     def test_missing_adapter_does_not_invent_category(self):
-        p = compose({'sources': {'parcel': {'county_slug': 'aitkin', 'category': 'Parcels', 'checked_at': STAMP}}})['aitkin']
+        p = compose({'sources': {'parcel': {'county_slug': 'aitkin', 'category': 'Parcels', 'checked_at': STAMP}}}, research={})['aitkin']
         self.assertTrue(p['monitoring']['active'])
         self.assertEqual(p['county_arcgis_rest']['sources'], [])
         self.assertEqual(p['county_download']['sources'], [])

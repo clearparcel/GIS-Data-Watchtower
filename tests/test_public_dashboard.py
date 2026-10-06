@@ -23,7 +23,8 @@ class PublicDashboardTests(unittest.TestCase):
         profiles = compose_county_profiles(public, load_parcel_access(), now=NOW, freshness_policy=FreshnessPolicy())
         self.assertEqual(county_profile_counts(profiles)['active'], 70)
         self.assertEqual(_county_monitoring_counts({}, public)['active'], 70)
-        self.assertEqual(profiles['aitkin']['mngac_public_parcels']['sources'][0]['feature_count'], 1000)
+        observed = next(source for source in profiles['aitkin']['mngac_public_parcels']['sources'] if source['monitored_source_id'] == 'statewide')
+        self.assertEqual(observed['feature_count'], 1000)
         self.assertEqual(public, sanitize_public_render_state(public))
 
     def test_safe_metadata_is_typed_and_idempotent(self):

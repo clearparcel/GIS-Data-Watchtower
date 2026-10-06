@@ -99,19 +99,21 @@ This is why Winona is correctly represented as:
 The original 35 counties were reviewed using bounded official county landing pages, parcel
 service metadata, the [official MnGeo parcel source table](https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp),
 the current state-hosted service directory, and county-specific Commons publishing-account
-metadata searches plus all 87 returned official state-organization parcel-search records. Search responses were read; snippets were only discovery. The other 52
-records are unchanged and their category reviews remain pending.
+metadata searches plus all 87 returned official state-organization parcel-search records. Search responses were read; snippets were only discovery. The next 12 previously unreviewed
+counties (Aitkin–Clay, listed below) now have actual category reviews. The remaining 40
+records retain pending category reviews.
 
-| Category | Reviewed original 35 | Blocked / unresolved original 35 | Pending remaining 52 |
+| Category | Reviewed across 47 county reviews | Blocked / unresolved | Pending remaining 40 |
 | --- | ---: | ---: | ---: |
-| MnGeo Plan Parcels Open | 35 (9 included, 26 excluded) | 0 | 52 |
-| Distinct MnGeo public repository | 0 | 35 | 52 |
-| County-authorized parcel REST | 16 available | 19 | 52 |
-| County parcel download | 4 available (Dodge, Hubbard, Lac qui Parle, Meeker) | 31 | 52 |
+| MnGeo Plan Parcels Open | 47 (20 included, 27 excluded) | 0 | 40 |
+| Distinct MnGeo public repository | 3 available | 44 | 40 |
+| County-authorized parcel REST | 24 available | 23 | 40 |
+| County parcel download | 15 available | 32 | 40 |
 
-These counts are derived from the stored category statuses: **55 reviewed**, **85 blocked**,
-and **208 pending** category assessments across 87 county records. **Zero counties have all
-four categories complete.** The earlier county-direct classification audit is separate from
+These counts are derived from the stored category statuses: **89 reviewed**, **99 blocked**,
+and **160 pending** category assessments across 87 county records. **Three counties have all
+four categories complete** (Aitkin, Anoka, Carver); Aitkin's county-direct pricing/policy
+assessment remains unresolved. The county-direct classification audit is separate from
 this inventory completion measure; creating all four category keys does not finish research.
 
 The official [Plan Parcels Open item metadata](https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson)
@@ -139,7 +141,73 @@ the fee does not prove every access route costs money. Brown is now held in the 
 assessment** pending route-specific permission reconciliation. No runtime registry, scheduling,
 service or configuration changed, and observed monitoring coverage remains independent.
 
-County-direct results for the 35 audited counties:
+### Aitkin–Clay batch, 2026-10-06
+
+This exact 12-county batch adds **34 reviewed / 14 blocked** category assessments; the other 75
+records are unchanged by this batch. Evidence comes from actual official county pages,
+rendered county-linked Hub catalog/About pages, item metadata, bounded REST metadata and
+file HEAD checks. All new source monitoring decisions are **not-assessed**. Published
+products and public links do not activate monitoring.
+
+| County | Dated statewide membership | Distinct repository | County REST | County download | County-direct classification |
+| --- | --- | --- | --- | --- | --- |
+| Aitkin | Included | Available | Available | Advertised | Unresolved product/policy scope |
+| Anoka | Included | Available | Available | Advertised | Free parcel data |
+| Becker | Included | Unknown | Unknown | Advertised | Free parcel data |
+| Beltrami | Excluded | Unknown | Available | Advertised | Free parcel data |
+| Benton | Included | Unknown | Available | Unknown: ZIP 404 | Free parcel data via REST |
+| Big Stone | Included | Unknown | Unknown: 403 | Advertised | Unresolved county policy read |
+| Carlton | Included | Unknown | Available | Advertised | Free parcel data |
+| Carver | Included | Available | Available | Advertised | Free parcel data |
+| Cass | Included | Unknown | Unknown | Advertised | Unresolved county policy read |
+| Chippewa | Included | Unknown | Available | Advertised | Free parcel data |
+| Chisago | Included | Unknown | Unknown | Advertised | Free parcel data |
+| Clay | Included | Unknown | Available | Advertised | Free parcel data |
+
+Aitkin's [distinct Commons parcel item](https://gis.data.mn.gov/datasets/3cd285cbb13a43478d42e2ade3915403_0/about)
+identifies county ParcelTaxData/0. Its 2026-02-23 metadata refers users to current distribution
+procedures and prices without stating an actual parcel dataset fee. The public product and
+requested-product ambiguity are both retained; no fee-based conclusion is invented.
+
+The [official metropolitan parcel repository item](https://www.arcgis.com/sharing/rest/content/items/136b28bd0d874076b702ca55b9aafffc?f=pjson)
+explicitly distributes individual county sublayers/feature classes. Actual service/layer
+metadata verified Anoka County Parcels/0 and Carver County Parcels/1 as distinct repository
+resources, independently of statewide membership. The other nine repository categories
+remain unknown after bounded metadata searches, not absent.
+
+[Anoka's current county-linked Hub](https://acgis-anokacounty.hub.arcgis.com/) states GIS data
+are offered without cost or license and links a verified public parcel product. Its older
+FTP delivery page requires authentication and disclaimer acceptance; that route was not
+traversed and credentials were not retained. The $50/hour custom processing charge is not
+a parcel dataset fee. [Carlton's FAQ](https://www.carltoncountymn.gov/DocumentCenter/View/64/Geographic-Information-Services-FAQ-PDF?bidId=)
+separates free selected datasets from custom maps; its exact parcel download/REST item was
+verified. Carver's county resolution separates no-cost published data from special requests;
+Clay's official Hub advertises its free/open resolution and downloadable parcel product.
+
+Beltrami's county download is independent of its exclusion from the dated statewide release.
+Benton's county page links public Benton_Co_Data item b5240c2d09744e7cb999cf066ffc9c06;
+its actual FeatureServer/0 metadata identifies Benton Parcels polygons with Query/Extract.
+This usable REST route is separate from its linked ZIP, which returned 404 on HEAD.
+Cass's official county directory advertises CASS_PARCELS_20260921.zip (HEAD 200), replacing an
+older discovery URL, but its county policy landing read returned 403. Big Stone's county
+homepage/REST metadata also returned 403; its advertised downloadable county Hub item was
+read separately. No denial was bypassed. Becker's legacy county URL failed TLS/web reads;
+the final official .gov download page was read without bypassing TLS or browser verification.
+Chisago's official GIS page was initially read, then later denied 403; the county-linked Data
+Download catalog advertises its exact parcel ZIP (HEAD 200). Parcel records/property-search
+applications were not read.
+
+Exact vetted Aitkin and Beltrami public dataset identities retain monitored IDs across shared
+REST/Hub/download representations; no other join is inferred from county name or generic
+catalog. Current runtime coverage still overrides dated research membership.
+
+Across all stored records, **44** county-direct classifications are complete: **21 free**,
+**12 fee-based**, **11 viewer-only**. The remaining 43 are unresolved or pending. These research
+totals do not change active monitoring coverage.
+
+### Historical original 35 county-direct results
+
+County-direct results for the original 35 audited counties:
 
 - **12 Free parcel data**
 - **12 Fee-based parcel data**
@@ -330,7 +398,7 @@ Public v2 shows the dimensions separately:
 - **Statewide open access** — current MnGeo Plan Parcels Open coverage.
 - **County-direct sources** — number of county-specific sources actively checked.
 
-For counties outside the completed 35-county direct-access audit, the neutral research label is:
+For records without a completed county-direct assessment, the neutral research label is:
 
 **County-direct parcel access not yet researched**
 
