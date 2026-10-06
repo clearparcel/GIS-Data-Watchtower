@@ -31,6 +31,7 @@ from clearparcel.datawatch.dashboard import (
     render_mngac,
 )
 from clearparcel.datawatch.parcel_access import load_parcel_access
+from clearparcel.datawatch.county_profile_exports import county_profiles_csv, parcel_sources_csv
 from clearparcel.datawatch.county_profiles import county_profile_counts
 from clearparcel.datawatch.county_profile_panel import render_county_profile_panel, percentage_legend, percentage_color_js
 from clearparcel.datawatch.storage import backend_from_env
@@ -581,6 +582,11 @@ def serve_public(host: str = "0.0.0.0", port: int = 8080) -> None:
                 return self._send(200, render_public_source(config, source_id))
             if parsed.path == "/api/state":
                 return self._send(200, cache.public_path.read_text(encoding="utf-8"), "application/json; charset=utf-8")
+            if parsed.path in ("/county-profiles.csv", "/parcel-sources.csv"):
+                snap = _statewide_snapshot(config)
+                profiles = {row["parcel_source_profile"]["county"]["slug"]: row["parcel_source_profile"] for row in snap["counties"]}
+                export = county_profiles_csv if parsed.path == "/county-profiles.csv" else parcel_sources_csv
+                return self._send(200, export(profiles), "text/csv; charset=utf-8")
             if parsed.path == "/snapshot.json":
                 return self._send(200, json.dumps(_statewide_snapshot(config), indent=2), "application/json; charset=utf-8")
             if parsed.path == "/snapshot.csv":

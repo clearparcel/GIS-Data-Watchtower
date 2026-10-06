@@ -7,6 +7,8 @@ The offline county-profile composer derives all 87 county profiles and parcel co
 
 Overview and MN GAC maps now open one complete county source dialog for every canonical county. Overview offers monitoring-path and completeness coloring; both maps share fixed percentage colors and a separate no-data class. The dialog pauses page refresh, preserves date-only evidence, and displays unknown values explicitly. Browser/mobile acceptance and preview deployment remain pending.
 
+County JSON snapshots now include the composed parcel source profile. Statewide county/category CSV routes and the added County Access/Parcel Sources workbook sheets retain all 87 counties and unavailable values; the legacy monitored-source CSV remains compatible. Export regression and full unit validation passed; preview deployment remains pending.
+
 ## Release status
 
 GIS Data Watchtower is a public MIT-licensed repository. The public repository contains provider-neutral example configuration only; deployment-specific source registries and credentials remain private.

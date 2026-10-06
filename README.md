@@ -19,6 +19,7 @@ ClearParcel also operates a read-only public dashboard at **https://gis-watchtow
 - bounded geometry samples
 - source response and processing history
 - CSV, JSON, and Excel (`.xlsx`) snapshot exports
+- County parcel profiles in `/county-profiles.csv` (all 87 counties) and `/parcel-sources.csv` (each category and source, including empty-category placeholders). JSON county records include `parcel_source_profile`; Excel adds `County Access` and `Parcel Sources` sheets. `/snapshot.csv` retains the monitored-source rows. Unknown counts/dates stay blank in spreadsheets, observed zero stays zero, and date/time fields retain ISO semantics.
 
 Watchtower is designed for **low-frequency, respectful monitoring**. It is not a bulk downloader or a scraper for human-facing property-search websites.
 

@@ -13,6 +13,7 @@ import secrets
 import threading
 import urllib.parse
 import zipfile
+import re
 from zoneinfo import ZoneInfo
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -21,6 +22,8 @@ from clearparcel.datawatch.watch import check_sources, load_history, load_state
 from clearparcel.datawatch.aggregate import with_freshness
 from clearparcel.datawatch.parcel_access import access_label, load_parcel_access, statewide_access_label
 from clearparcel.datawatch.county_profile_panel import render_county_profile_panel, render_county_profile_body, percentage_legend, percentage_color_js, profile_time, PERCENT_COLORS, NO_DATA_COLOR
+from clearparcel.datawatch.county_profile_exports import county_profiles_csv, parcel_sources_csv, county_profile_xlsx_sheets, county_profile_summary, SUMMARY_FIELDS
+from clearparcel.datawatch.public_values import spreadsheet_cell
 from clearparcel.datawatch.county_profiles import FreshnessPolicy, compose_county_profiles, county_profile_counts
 
 COUNTIES_FILE = Path(__file__).with_name("minnesota_counties.json")
@@ -229,7 +232,7 @@ def _public_layout_v2(title: str, body: str, *, refresh_seconds: int = 30) -> st
 </header>
 <main class="public-main">
   <nav class="public-tabs" aria-label="Watchtower views">{nav}
-    <div class="public-tools"><details class="public-export"><summary>Export</summary><div class="export-pop"><a href="/snapshot.xlsx">Excel (.xlsx)</a><a href="/snapshot.csv">CSV</a><a href="/snapshot.json">JSON</a></div></details></div>
+    <div class="public-tools"><details class="public-export"><summary>Export</summary><div class="export-pop"><a href="/snapshot.xlsx">Excel (.xlsx)</a><a href="/county-profiles.csv">County profiles (CSV)</a><a href="/parcel-sources.csv">Parcel sources (CSV)</a><a href="/snapshot.csv">Monitored sources (CSV)</a><a href="/snapshot.json">JSON</a></div></details></div>
   </nav>
   <div class="page-kicker"><div class="eyebrow">PUBLIC DATA INTELLIGENCE</div><h2>{_esc(page_name)}</h2><p>{_esc(subtitle)}</p></div>
   {body}
@@ -439,7 +442,7 @@ code{{font-size:12px;overflow-wrap:anywhere}}
 <a href="/snapshot.xlsx">{icon("export")}<span>Export</span></a>
 </nav><div class="side-note">{side_context}<br><small>Central Time primary</small></div></aside>
 <section class="content-shell">
-<div class="pagebar"><div class="pagebar-title">{_esc(page_title)}</div><div class="page-actions"><details class="export-menu"><summary>Export</summary><div class="export-pop"><a href="/snapshot.xlsx">Excel (.xlsx)</a><a href="/snapshot.csv">CSV</a><a href="/snapshot.json">JSON</a></div></details></div></div>
+<div class="pagebar"><div class="pagebar-title">{_esc(page_title)}</div><div class="page-actions"><details class="export-menu"><summary>Export</summary><div class="export-pop"><a href="/snapshot.xlsx">Excel (.xlsx)</a><a href="/county-profiles.csv">County profiles (CSV)</a><a href="/parcel-sources.csv">Parcel sources (CSV)</a><a href="/snapshot.csv">Monitored sources (CSV)</a><a href="/snapshot.json">JSON</a></div></details></div></div>
 <main>{body}</main>
 </section></div>
 <nav class="mobile-nav" aria-label="Mobile navigation">
@@ -1156,6 +1159,8 @@ def _county_snapshot(config: dict, slug: str, *, include_mngac: bool = True, sta
     county = next((x for x in _load_counties() if x.get("slug") == slug), None)
     if not county:
         return None
+    research = load_parcel_access() if research is None else research
+    profiles = _county_profiles(config, state, research) if profiles is None else profiles
     info = _county_status(config, county, state, profiles=profiles, research=research)
     catalog = info.get("catalog") or {}
     mngac_data, mngac_county = _mngac_county_record(state, county["name"])
@@ -1169,6 +1174,7 @@ def _county_snapshot(config: dict, slug: str, *, include_mngac: bool = True, sta
         }
     return {
         "county": county["name"],
+        "parcel_source_profile": profiles[slug],
         "status": info["status"],
         "actively_monitored": bool(info.get("actively_monitored")),
         "monitoring_paths": list(info.get("monitoring_paths") or []),
@@ -1289,10 +1295,7 @@ def _mngac_csv(data: dict | None) -> str:
 
 
 def _csv_safe(value) -> str:
-    text = "" if value is None else str(value)
-    if text.startswith(("=", "+", "-", "@")):
-        return "'" + text
-    return text
+    return spreadsheet_cell(value)
 
 
 def _snapshot_csv(snapshot: dict) -> str:
@@ -1317,10 +1320,12 @@ def _snapshot_csv(snapshot: dict) -> str:
             }.items()})
         return out.getvalue()
     fields = ["county","status","actively_monitored","monitoring_path","county_direct_access","statewide_open_access","county_direct_source_count","parcel_dataset_fee","fee_product","last_county_update","catalog_refresh_date","public_data_approved","parcel_data_url","parcel_viewer_url","worker_provenance","stale_source_count","contact_names","contact_source","contact_source_url","contact_verified","mngac_record_count","mngac_fields_with_values","mngac_field_count","mngac_field_population_percent","mngac_mandatory_population_percent"]
+    fields += ["profile_" + key for key in SUMMARY_FIELDS]
     writer = csv.DictWriter(out, fieldnames=fields)
     writer.writeheader()
     for row in [snapshot]:
         writer.writerow({key: _csv_safe(value) for key, value in {
+            **{"profile_" + key: value for key, value in county_profile_summary(row.get("parcel_source_profile") or {}).items()},
             "county": row.get("county"), "status": row.get("status"),
             "actively_monitored": row.get("actively_monitored"),
             "monitoring_path": row.get("monitoring_path_label"),
@@ -1367,7 +1372,7 @@ def _xlsx_sheet_xml(rows: list[list]) -> str:
             elif isinstance(value, (int, float)) and not isinstance(value, bool):
                 cells.append(f'<c r="{ref}"><v>{value}</v></c>')
             else:
-                text = html.escape("" if value is None else str(value), quote=False)
+                text = html.escape(re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", "", spreadsheet_cell(value)), quote=False)
                 cells.append(f'<c r="{ref}" t="inlineStr"><is><t xml:space="preserve">{text}</t></is></c>')
         xml_rows.append(f'<row r="{r_idx}">{"".join(cells)}</row>')
     return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>' + "".join(xml_rows) + '</sheetData></worksheet>'
@@ -1460,6 +1465,8 @@ def _snapshot_xlsx(snapshot: dict) -> bytes:
             source_rows.append([source.get("county"),source.get("name"),source.get("status"),source.get("feature_count"),source.get("worker"),source.get("reporting"),bool(source.get("stale")),bool(source.get("worker_stale")),source.get("last_success_at"),source.get("checked_at")])
     sheets=[("Counties",county_rows),("Sources",source_rows),("Contacts",contact_rows)]
     sheets.extend(_mngac_xlsx_sheets(snapshot))
+    profiles = {row["parcel_source_profile"]["county"]["slug"]: row["parcel_source_profile"] for row in rows if row.get("parcel_source_profile")}
+    sheets.extend(county_profile_xlsx_sheets(profiles))
     out=io.BytesIO()
     with zipfile.ZipFile(out,"w",zipfile.ZIP_DEFLATED) as zf:
         zf.writestr("[Content_Types].xml",'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'+''.join(f'<Override PartName="/xl/worksheets/sheet{i}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' for i in range(1,len(sheets)+1))+'</Types>')
@@ -1905,6 +1912,11 @@ def serve(config: dict, host: str = "127.0.0.1", port: int = 8765) -> None:
             parsed = urllib.parse.urlparse(self.path)
             if parsed.path == "/":
                 return self._send(200, render_dashboard(config))
+            if parsed.path in ("/county-profiles.csv", "/parcel-sources.csv"):
+                snap = _statewide_snapshot(config)
+                profiles = {row["parcel_source_profile"]["county"]["slug"]: row["parcel_source_profile"] for row in snap["counties"]}
+                export = county_profiles_csv if parsed.path == "/county-profiles.csv" else parcel_sources_csv
+                return self._send(200, export(profiles), "text/csv; charset=utf-8")
             if parsed.path == "/snapshot.json":
                 return self._send(200, json.dumps(_statewide_snapshot(config), indent=2), "application/json; charset=utf-8")
             if parsed.path == "/snapshot.csv":

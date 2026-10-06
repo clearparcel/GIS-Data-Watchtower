@@ -334,6 +334,8 @@ class HybridReadinessTests(unittest.TestCase):
             }), encoding="utf-8")
             config = {"state_file": str(root / "unused.json"), "aggregate_state_file": str(aggregate), "sources": []}
             snapshot = dashboard._statewide_snapshot(config)
+            self.assertEqual(len(snapshot["counties"]), 87)
+            self.assertTrue(all("parcel_source_profile" in row for row in snapshot["counties"]))
             self.assertEqual(snapshot["source_count"], 2)
             self.assertEqual({x["id"] for x in snapshot["sources"]}, {"county-source", "statewide-source"})
             csv_text = dashboard._snapshot_csv(snapshot)
@@ -344,6 +346,9 @@ class HybridReadinessTests(unittest.TestCase):
             import io, zipfile
             with zipfile.ZipFile(io.BytesIO(raw)) as zf:
                 source_xml = zf.read("xl/worksheets/sheet2.xml").decode("utf-8")
+                workbook = zf.read("xl/workbook.xml").decode("utf-8")
+                self.assertIn("County Access", workbook)
+                self.assertIn("Parcel Sources", workbook)
             self.assertIn("County Source", source_xml)
             self.assertIn("Statewide Source", source_xml)
             self.assertIn("Worker", source_xml)
