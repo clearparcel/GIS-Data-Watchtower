@@ -207,7 +207,8 @@
                 "https://www.arcgis.com/sharing/rest/content/items/3cd285cbb13a43478d42e2ade3915403?f=pjson",
                 "https://gis.data.mn.gov/datasets/3cd285cbb13a43478d42e2ade3915403_0/about"
               ],
-              "monitored_source_id": "mn-aitkin-parcels-direct"
+              "monitored_source_id": "mn-aitkin-parcels-direct",
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -241,7 +242,8 @@
                 "https://www.arcgis.com/sharing/rest/content/items/3cd285cbb13a43478d42e2ade3915403?f=pjson",
                 "https://gisweb.co.aitkin.mn.us/arcgis/rest/services/ParcelTaxData/FeatureServer/0?f=pjson"
               ],
-              "monitored_source_id": "mn-aitkin-parcels-direct"
+              "monitored_source_id": "mn-aitkin-parcels-direct",
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -276,7 +278,8 @@
                 "https://gis.data.mn.gov/datasets/3cd285cbb13a43478d42e2ade3915403_0/about",
                 "https://www.arcgis.com/sharing/rest/content/items/3cd285cbb13a43478d42e2ade3915403?f=pjson"
               ],
-              "monitored_source_id": "mn-aitkin-parcels-direct"
+              "monitored_source_id": "mn-aitkin-parcels-direct",
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         }
@@ -497,7 +500,8 @@
                 "https://www.arcgis.com/sharing/rest/content/items/136b28bd0d874076b702ca55b9aafffc?f=pjson",
                 "https://arcgis.metc.state.mn.us/data1/rest/services/parcels/Parcels/FeatureServer/0?f=pjson",
                 "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -530,7 +534,8 @@
                 "https://acgis-anokacounty.hub.arcgis.com/",
                 "https://www.arcgis.com/sharing/rest/content/items/5d8f19a8f460486fad54f8de9107e43a?f=pjson",
                 "https://gisservices.co.anoka.mn.us/anoka_gis/rest/services/OpenData_TaxInfo/FeatureServer/0?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -565,7 +570,8 @@
                 "https://acgis-anokacounty.hub.arcgis.com/datasets/5d8f19a8f460486fad54f8de9107e43a_0/about",
                 "https://www.arcgis.com/sharing/rest/content/items/5d8f19a8f460486fad54f8de9107e43a?f=pjson",
                 "https://www.anokacountymn.gov/1990/Data-Downloads"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         }
@@ -779,7 +785,9 @@
               "monitoring_decision": "not-assessed",
               "evidence": [
                 "https://www.beckercountymn.gov/online_services/GIS_data.aspx"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon",
+              "file_type": "application/zip"
             }
           ]
         }
@@ -994,7 +1002,8 @@
                 "https://www.arcgis.com/sharing/rest/content/items/0a8f80d07f3044bab1395c59674dc4ad?f=pjson",
                 "https://arcgis.co.beltrami.mn.us/arcgis/rest/services/BeltramiData/BeltramiOpenData/MapServer/2?f=pjson"
               ],
-              "monitored_source_id": "mn-beltrami-parcels-direct"
+              "monitored_source_id": "mn-beltrami-parcels-direct",
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -1030,7 +1039,8 @@
                 "https://www.arcgis.com/sharing/rest/content/items/0a8f80d07f3044bab1395c59674dc4ad?f=pjson",
                 "https://gishub-beltramicounty.hub.arcgis.com/pages/data-download"
               ],
-              "monitored_source_id": "mn-beltrami-parcels-direct"
+              "monitored_source_id": "mn-beltrami-parcels-direct",
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         }
@@ -1256,7 +1266,8 @@
                 "https://www.bentoncountymn.gov/274/GIS-Mapping",
                 "https://www.arcgis.com/sharing/rest/content/items/b5240c2d09744e7cb999cf066ffc9c06?f=pjson",
                 "https://services.arcgis.com/cHtpFLI4WlqULV8k/arcgis/rest/services/Benton_Co_Data/FeatureServer/0?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -2217,7 +2228,8 @@
                 "https://www.carltoncountymn.gov/185/GIS-Mapping",
                 "https://www.arcgis.com/sharing/rest/content/items/ebc6796c37824db3ad8e325cc3e144ae?f=pjson",
                 "https://gis.co.carlton.mn.us/arcgis/rest/services/OpenData/Parcels_CarltonCountyMN/MapServer/0?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -2252,7 +2264,8 @@
                 "https://data-carltoncounty.opendata.arcgis.com/datasets/parcels-within-carlton-county-mn/about",
                 "https://www.arcgis.com/sharing/rest/content/items/ebc6796c37824db3ad8e325cc3e144ae?f=pjson",
                 "https://www.carltoncountymn.gov/DocumentCenter/View/64/Geographic-Information-Services-FAQ-PDF?bidId="
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         }
@@ -2473,7 +2486,8 @@
                 "https://www.arcgis.com/sharing/rest/content/items/136b28bd0d874076b702ca55b9aafffc?f=pjson",
                 "https://arcgis.metc.state.mn.us/data1/rest/services/parcels/Parcels/FeatureServer/1?f=pjson",
                 "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -2506,7 +2520,8 @@
                 "https://data-carver.opendata.arcgis.com/",
                 "https://www.arcgis.com/sharing/rest/content/items/e2458486f6324a22a61aa4f3f241dacc?f=pjson",
                 "https://services.arcgis.com/wMZT8kNwa6tOxhKg/arcgis/rest/services/Open_Data_Parcels/FeatureServer/0?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -2541,7 +2556,8 @@
                 "https://data-carver.opendata.arcgis.com/datasets/e2458486f6324a22a61aa4f3f241dacc_0/about",
                 "https://www.arcgis.com/sharing/rest/content/items/e2458486f6324a22a61aa4f3f241dacc?f=pjson",
                 "https://metrogis.org/media/1qvjjulf/carvercountyresolution_2014_04_01.pdf"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         }
@@ -2779,7 +2795,8 @@
                 "https://www.casscountymn.gov/1316/GISMap-Services",
                 "https://cassweb.casscountymn.gov/PublicFolders/Public/GISData/CASS_PARCELS_20260921.zip",
                 "https://cassweb.casscountymn.gov/PublicFolders/Public/GISData/"
-              ]
+              ],
+              "file_type": "application/zip"
             }
           ]
         }
@@ -3005,7 +3022,8 @@
                 "https://www.chippewacountymn.gov/",
                 "https://www.arcgis.com/sharing/rest/content/items/cbcd04ec32184de0b644bb5c5215aa21?f=pjson",
                 "https://gis.chippewa.mn/arcgis/rest/services/Assessor/TaxParcels/FeatureServer/0?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -3038,7 +3056,8 @@
                 "https://www.chippewacountymn.gov/",
                 "https://data-chippewa.opendata.arcgis.com/datasets/tax-parcels/about",
                 "https://www.arcgis.com/sharing/rest/content/items/cbcd04ec32184de0b644bb5c5215aa21?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         }
@@ -3280,7 +3299,8 @@
                 "https://gis.chisagocounty.us/Link/SpatialData/parcels.zip",
                 "https://www.arcgis.com/sharing/rest/content/items/f1e7717bfb1e48fd9ed34c6d7aa01018?f=pjson",
                 "https://experience.arcgis.com/experience/f1e7717bfb1e48fd9ed34c6d7aa01018"
-              ]
+              ],
+              "file_type": "application/zip"
             }
           ]
         }
@@ -3513,7 +3533,8 @@
                 "https://www.claycountymn.gov/658/Access-GIS-Data",
                 "https://www.arcgis.com/sharing/rest/content/items/9f9d7c8662bc4fd98d8340272bcd888d?f=pjson",
                 "https://map.claycountymn.gov/arcgis/rest/services/Authoritative/Tax_Parcels_with_Tax_Data_in_State_Standard/FeatureServer/0?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -3548,7 +3569,8 @@
                 "https://gis-claycountymn.hub.arcgis.com/datasets/9f9d7c8662bc4fd98d8340272bcd888d_0/about",
                 "https://www.arcgis.com/sharing/rest/content/items/9f9d7c8662bc4fd98d8340272bcd888d?f=pjson",
                 "https://gis-claycountymn.hub.arcgis.com/"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         }
@@ -3765,7 +3787,8 @@
               "evidence": [
                 "https://clearwatercountymn.gov/gis",
                 "https://clearwatercountymn.gov/vertical/sites/%7BD1BE6F66-A19E-4CC1-ADD8-8DF38E31F1E3%7D/uploads/Parcel.zip"
-              ]
+              ],
+              "file_type": "application/x-zip-compressed"
             }
           ]
         }
@@ -4000,7 +4023,8 @@
                 "https://www.arcgis.com/sharing/rest/content/items/2d548179e0e946b7b03b7e48f8d5f2ad?f=pjson",
                 "https://services.arcgis.com/L3KwVADPEG6iD24f/arcgis/rest/services/Tax_Parcel_Layer_(Current)/FeatureServer/0?f=pjson",
                 "https://cookcountymn.gov/how%20do%20i/2026%20Fee%20Schedule-%20July%202026.pdf"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -4037,7 +4061,8 @@
                 "https://www.arcgis.com/sharing/rest/content/items/2d548179e0e946b7b03b7e48f8d5f2ad?f=pjson",
                 "https://services.arcgis.com/L3KwVADPEG6iD24f/arcgis/rest/services/Tax_Parcel_Layer_(Current)/FeatureServer/0?f=pjson",
                 "https://cookcountymn.gov/how%20do%20i/2026%20Fee%20Schedule-%20July%202026.pdf"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         }
@@ -4448,7 +4473,8 @@
                 "https://hub-cwccm.hub.arcgis.com/datasets/tax-parcels/about",
                 "https://www.arcgis.com/sharing/rest/content/items/ddbb1314362a4ae49ed9566135f72536?f=pjson",
                 "https://gis.crowwing.us/cwc_external_main/rest/services/AssessmentInformation/TaxParcels_public/FeatureServer/0?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -4483,7 +4509,8 @@
                 "https://hub-cwccm.hub.arcgis.com/datasets/tax-parcels/about",
                 "https://www.arcgis.com/sharing/rest/content/items/ddbb1314362a4ae49ed9566135f72536?f=pjson",
                 "https://gis.crowwing.us/cwc_external_main/rest/services/AssessmentInformation/TaxParcels_public/FeatureServer/0?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         }
@@ -4700,7 +4727,8 @@
                 "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
                 "https://www.arcgis.com/sharing/rest/content/items/136b28bd0d874076b702ca55b9aafffc?f=pjson",
                 "https://arcgis.metc.state.mn.us/data1/rest/services/parcels/Parcels/FeatureServer/2?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -4736,7 +4764,8 @@
                 "https://www.arcgis.com/sharing/rest/content/items/9785dd74842d4d7781be0fe7c0cbfe62?f=pjson",
                 "https://gis2.co.dakota.mn.us/arcgis/rest/services/DCGIS_OL_PropertyInformation/MapServer/71?f=pjson"
               ],
-              "monitored_source_id": "mn-dakota-parcels-direct"
+              "monitored_source_id": "mn-dakota-parcels-direct",
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -4772,7 +4801,8 @@
                 "https://www.arcgis.com/sharing/rest/content/items/9785dd74842d4d7781be0fe7c0cbfe62?f=pjson",
                 "https://gis2.co.dakota.mn.us/arcgis/rest/services/DCGIS_OL_PropertyInformation/MapServer/71?f=pjson"
               ],
-              "monitored_source_id": "mn-dakota-parcels-direct"
+              "monitored_source_id": "mn-dakota-parcels-direct",
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         }
@@ -4993,7 +5023,8 @@
                 "https://maps.co.goodhue.mn.us/pdfs/DodgeCoOpenData/DodgeCoParcels.zip",
                 "https://dodge-county-hub-goodhueco.hub.arcgis.com/pages/contactdatarequests"
               ],
-              "monitored_source_id": "mn-dodge-parcels-direct"
+              "monitored_source_id": "mn-dodge-parcels-direct",
+              "file_type": "application/zip"
             }
           ]
         }
@@ -5219,7 +5250,8 @@
                 "https://data-dcpw.opendata.arcgis.com/datasets/DCPW::douglas-county-mn-open-data-parcels-1/about",
                 "https://www.arcgis.com/sharing/rest/content/items/f27cb86bb31c49d3b7c26dc98e1bc7a1?f=pjson",
                 "https://services2.arcgis.com/8iQOd6RvhPL17pJd/arcgis/rest/services/Douglas_County_MN_Open_Data_Parcels/FeatureServer/0?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -5254,7 +5286,8 @@
                 "https://data-dcpw.opendata.arcgis.com/datasets/DCPW::douglas-county-mn-open-data-parcels-1/about",
                 "https://www.arcgis.com/sharing/rest/content/items/f27cb86bb31c49d3b7c26dc98e1bc7a1?f=pjson",
                 "https://services2.arcgis.com/8iQOd6RvhPL17pJd/arcgis/rest/services/Douglas_County_MN_Open_Data_Parcels/FeatureServer/0?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         }
@@ -5713,7 +5746,8 @@
                 "https://gis.data.mn.gov/datasets/bca87a397c794879a0663b2b290c1133_0/about",
                 "https://www.arcgis.com/sharing/rest/content/items/bca87a397c794879a0663b2b290c1133?f=pjson",
                 "https://services.arcgis.com/3x9exxBaH0fQHR1s/arcgis/rest/services/FillmoreCountyParcels_20260702/FeatureServer/0?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -5748,7 +5782,8 @@
                 "https://gis.data.mn.gov/datasets/bca87a397c794879a0663b2b290c1133_0/about",
                 "https://www.arcgis.com/sharing/rest/content/items/bca87a397c794879a0663b2b290c1133?f=pjson",
                 "https://services.arcgis.com/3x9exxBaH0fQHR1s/arcgis/rest/services/FillmoreCountyParcels_20260702/FeatureServer/0?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -5783,7 +5818,8 @@
                 "https://gis.data.mn.gov/datasets/bca87a397c794879a0663b2b290c1133_0/about",
                 "https://www.arcgis.com/sharing/rest/content/items/bca87a397c794879a0663b2b290c1133?f=pjson",
                 "https://services.arcgis.com/3x9exxBaH0fQHR1s/arcgis/rest/services/FillmoreCountyParcels_20260702/FeatureServer/0?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         }
@@ -6401,7 +6437,8 @@
                 "https://open-data-co-grant-mn-us.hub.arcgis.com/datasets/d95a7443d5814d7faf5d8950d35fc1d6_1/about",
                 "https://www.arcgis.com/sharing/rest/content/items/d95a7443d5814d7faf5d8950d35fc1d6?f=pjson",
                 "https://gis.co.grant.mn.us/arcgis/rest/services/Assessor/TaxParcels_public/FeatureServer/1?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -6436,7 +6473,8 @@
                 "https://open-data-co-grant-mn-us.hub.arcgis.com/datasets/d95a7443d5814d7faf5d8950d35fc1d6_1/about",
                 "https://www.arcgis.com/sharing/rest/content/items/d95a7443d5814d7faf5d8950d35fc1d6?f=pjson",
                 "https://gis.co.grant.mn.us/arcgis/rest/services/Assessor/TaxParcels_public/FeatureServer/1?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         }
@@ -6648,7 +6686,8 @@
                 "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
                 "https://www.arcgis.com/sharing/rest/content/items/136b28bd0d874076b702ca55b9aafffc?f=pjson",
                 "https://arcgis.metc.state.mn.us/data1/rest/services/parcels/Parcels/FeatureServer/3?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -6683,7 +6722,8 @@
                 "https://gis-hennepin.hub.arcgis.com/datasets/county-parcels/about",
                 "https://www.arcgis.com/sharing/rest/content/items/7975aabf6e1e42998a40a4b085ffefdf?f=pjson",
                 "https://gis.hennepin.us/arcgis/rest/services/HennepinData/LAND_PROPERTY/MapServer/1?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -6718,7 +6758,8 @@
                 "https://gis-hennepin.hub.arcgis.com/datasets/county-parcels/about",
                 "https://www.arcgis.com/sharing/rest/content/items/7975aabf6e1e42998a40a4b085ffefdf?f=pjson",
                 "https://gis.hennepin.us/arcgis/rest/services/HennepinData/LAND_PROPERTY/MapServer/1?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         }
@@ -6937,7 +6978,8 @@
                 "https://gis.data.mn.gov/datasets/02fb2175c6554f56b4f39ba6829e3817_0/about",
                 "https://www.arcgis.com/sharing/rest/content/items/02fb2175c6554f56b4f39ba6829e3817?f=pjson",
                 "https://services7.arcgis.com/X4PP9wzxESU6h7Mz/arcgis/rest/services/HoustonParcels/FeatureServer/0?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -6972,7 +7014,8 @@
                 "https://gis.data.mn.gov/datasets/02fb2175c6554f56b4f39ba6829e3817_0/about",
                 "https://www.arcgis.com/sharing/rest/content/items/02fb2175c6554f56b4f39ba6829e3817?f=pjson",
                 "https://services7.arcgis.com/X4PP9wzxESU6h7Mz/arcgis/rest/services/HoustonParcels/FeatureServer/0?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -7007,7 +7050,8 @@
                 "https://gis.data.mn.gov/datasets/02fb2175c6554f56b4f39ba6829e3817_0/about",
                 "https://www.arcgis.com/sharing/rest/content/items/02fb2175c6554f56b4f39ba6829e3817?f=pjson",
                 "https://services7.arcgis.com/X4PP9wzxESU6h7Mz/arcgis/rest/services/HoustonParcels/FeatureServer/0?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         }
@@ -7471,7 +7515,8 @@
               "evidence": [
                 "https://opendata-isanticounty.hub.arcgis.com/pages/our-open-data-policy",
                 "https://gis.co.isanti.mn.us/arcgis/rest/services/LandRecords/TaxParcels_Public/FeatureServer/0?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -7504,7 +7549,8 @@
                 "https://opendata-isanticounty.hub.arcgis.com/pages/our-open-data-policy",
                 "https://opendata-isanticounty.hub.arcgis.com/datasets/1ecbd057d10a43b7976f6ae9957019d5_0/about",
                 "https://www.arcgis.com/sharing/rest/content/items/1ecbd057d10a43b7976f6ae9957019d5?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         }
@@ -7709,7 +7755,9 @@
               "evidence": [
                 "https://www.arcgis.com/sharing/rest/content/items/1b7d710c54b94db2a470433b888f17bd?f=pjson",
                 "https://gis.data.mn.gov/datasets/1b7d710c54b94db2a470433b888f17bd_0/about"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon",
+              "file_type": "application/zip"
             }
           ]
         },
@@ -7740,7 +7788,8 @@
               "evidence": [
                 "https://www.itascacountymn.gov/625/Maps",
                 "https://maps.co.itasca.mn.us/arcgis/rest/services/BaseDataSets/ParcelModel/FeatureServer/8?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -7773,7 +7822,9 @@
                 "https://www.itascacountymn.gov/625/Maps",
                 "https://gis.data.mn.gov/datasets/1b7d710c54b94db2a470433b888f17bd_0/about",
                 "https://www.arcgis.com/sharing/rest/content/items/1b7d710c54b94db2a470433b888f17bd?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon",
+              "file_type": "application/zip"
             }
           ]
         }
@@ -8774,7 +8825,8 @@
               "evidence": [
                 "https://www.koochiching.gov/411/Tax-Parcel-Viewer-Disclaimer",
                 "https://gis.co.koochiching.mn.us/server/rest/services/Tax_Parcels/MapServer/0?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -9260,7 +9312,9 @@
               "evidence": [
                 "https://www.arcgis.com/sharing/rest/content/items/5096b16ebcba4370bacf075bde54b59d?f=pjson",
                 "https://gis.data.mn.gov/datasets/5096b16ebcba4370bacf075bde54b59d_0/about"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon",
+              "file_type": "application/zip"
             }
           ]
         },
@@ -9291,7 +9345,8 @@
               "evidence": [
                 "https://www.co.lake.mn.us/gis/gis-data/",
                 "https://enterprise.gisdata.mn.gov/aghost/rest/services/us_mn_co_lake/plan_tax_parcels/FeatureServer/0?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -9324,7 +9379,9 @@
                 "https://www.co.lake.mn.us/gis/gis-data/",
                 "https://gis.data.mn.gov/datasets/5096b16ebcba4370bacf075bde54b59d_0/about",
                 "https://www.arcgis.com/sharing/rest/content/items/5096b16ebcba4370bacf075bde54b59d?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon",
+              "file_type": "application/zip"
             }
           ]
         }
@@ -10177,7 +10234,8 @@
               "evidence": [
                 "https://maps-lyonmn.hub.arcgis.com/",
                 "https://services.arcgis.com/WSCKzjfnubMgUOk8/arcgis/rest/services/Parcels/FeatureServer/0?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -10210,7 +10268,8 @@
                 "https://maps-lyonmn.hub.arcgis.com/",
                 "https://maps-lyonmn.hub.arcgis.com/datasets/9e45b351612c4f788d69637c473ea662_0/about",
                 "https://www.arcgis.com/sharing/rest/content/items/9e45b351612c4f788d69637c473ea662?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         }
@@ -11512,7 +11571,8 @@
               "evidence": [
                 "https://www.millelacs.mn.gov/2368/Mapping",
                 "https://gis.co.mille-lacs.mn.us/arcgis/rest/services/AGO_Parcels_and_Lots/MapServer/3?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -11741,7 +11801,8 @@
                 "https://www.arcgis.com/sharing/rest/content/items/277775d6801f42c9b8f24afe1955b495?f=pjson",
                 "https://gis.data.mn.gov/datasets/277775d6801f42c9b8f24afe1955b495_0/about"
               ],
-              "monitored_source_id": "mn-morrison-parcels-direct"
+              "monitored_source_id": "mn-morrison-parcels-direct",
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -11773,7 +11834,8 @@
                 "https://morrisoncountymn.gov/292/GIS-Fees",
                 "https://services1.arcgis.com/lQjrBHFnTgKBR9zX/arcgis/rest/services/MorrisonParcelsQ2/FeatureServer/0?f=pjson"
               ],
-              "monitored_source_id": "mn-morrison-parcels-direct"
+              "monitored_source_id": "mn-morrison-parcels-direct",
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -11807,7 +11869,8 @@
                 "https://gis.data.mn.gov/datasets/277775d6801f42c9b8f24afe1955b495_0/about",
                 "https://www.arcgis.com/sharing/rest/content/items/277775d6801f42c9b8f24afe1955b495?f=pjson"
               ],
-              "monitored_source_id": "mn-morrison-parcels-direct"
+              "monitored_source_id": "mn-morrison-parcels-direct",
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         }
@@ -12023,7 +12086,8 @@
               "evidence": [
                 "https://www.co.mower.mn.us/482/GIS---Online-Mapping",
                 "https://gisweb.co.mower.mn.us/server/rest/services/OpenData/Open_Data/FeatureServer/4?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -12056,7 +12120,8 @@
                 "https://www.co.mower.mn.us/482/GIS---Online-Mapping",
                 "https://geospatial-hub-mowercountymn.hub.arcgis.com/datasets/cb79684b0f5c455fa27b16869da4b9c4_4/about",
                 "https://www.arcgis.com/sharing/rest/content/items/cb79684b0f5c455fa27b16869da4b9c4?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         }
@@ -13366,7 +13431,8 @@
                 "https://ottertailcounty.gov/property-home/maps-data/",
                 "https://services3.arcgis.com/Pg1yLLk3jMuhxBKI/arcgis/rest/services/ParcelView/FeatureServer/25?f=pjson",
                 "https://www.arcgis.com/sharing/rest/content/items/b1c0c24fe39449fab559d104da2af402?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -13399,7 +13465,8 @@
                 "https://ottertailcounty.gov/property-home/maps-data/",
                 "https://opendata-otcgis.hub.arcgis.com/datasets/b1c0c24fe39449fab559d104da2af402_25/about",
                 "https://www.arcgis.com/sharing/rest/content/items/b1c0c24fe39449fab559d104da2af402?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         }
@@ -14027,7 +14094,8 @@
                 "https://gis.pcmn.us/arcgis/rest/services/AssessmentInformation/TaxParcels/FeatureServer/0?f=pjson",
                 "https://www.arcgis.com/sharing/rest/content/items/45f2c69f88db4fa3971d9eee08ab855b?f=pjson"
               ],
-              "monitored_source_id": "mn-pipestone-parcels-direct"
+              "monitored_source_id": "mn-pipestone-parcels-direct",
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -14061,7 +14129,8 @@
                 "https://landrecords-pipestone.hub.arcgis.com/datasets/45f2c69f88db4fa3971d9eee08ab855b_0/about",
                 "https://www.arcgis.com/sharing/rest/content/items/45f2c69f88db4fa3971d9eee08ab855b?f=pjson"
               ],
-              "monitored_source_id": "mn-pipestone-parcels-direct"
+              "monitored_source_id": "mn-pipestone-parcels-direct",
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         }
@@ -14301,7 +14370,8 @@
                 "https://polkcountymn.gov/GIS",
                 "https://gis.co.polk.mn.us/arcgis/rest/services/Assessor/TaxParcels/FeatureServer/0?f=pjson",
                 "https://www.arcgis.com/sharing/rest/content/items/3624b2aed63b47bca4c7610156d65abd?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -14334,7 +14404,8 @@
                 "https://polkcountymn.gov/GIS",
                 "https://hub-pcg.hub.arcgis.com/datasets/3624b2aed63b47bca4c7610156d65abd_0/about",
                 "https://www.arcgis.com/sharing/rest/content/items/3624b2aed63b47bca4c7610156d65abd?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         }
@@ -14569,7 +14640,8 @@
                 "https://www.popecountymn.gov/assessor/",
                 "https://gis.popecountymn.gov/arcgis/rest/services/Assessor/TaxParcels/FeatureServer/0?f=pjson",
                 "https://www.arcgis.com/sharing/rest/content/items/0aece12c5e6d4226b97a8d614473278c?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -14602,7 +14674,8 @@
                 "https://www.popecountymn.gov/assessor/",
                 "https://hub-popecounty.hub.arcgis.com/datasets/0aece12c5e6d4226b97a8d614473278c_0/about",
                 "https://www.arcgis.com/sharing/rest/content/items/0aece12c5e6d4226b97a8d614473278c?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         }
@@ -14669,6 +14742,21 @@
           "url": "https://gis.data.mn.gov/search?q=Ramsey%20parcels",
           "authority": "statewide",
           "finding": "Rendered scoped Commons catalog did not resolve a distinct county parcel repository; statewide/derived and regional compilations are separate. This bounded search does not prove exhaustive absence."
+        },
+        {
+          "url": "https://www.arcgis.com/sharing/rest/content/items/136b28bd0d874076b702ca55b9aafffc?f=pjson",
+          "authority": "statewide",
+          "finding": "Official Commons Metropolitan 7-County Parcel Polygons item explicitly distributes individual county polygon sublayers free without fee or license, public domain under Chapter13. Already-reviewed service metadata and rendered About identify Ramsey County Parcels layer 4, esriGeometryPolygon. This distinct county repository resource qualifies independently of native county provenance and statewide inclusion. Native county source identities and regional counts/dates remain separate."
+        },
+        {
+          "url": "https://gis.data.mn.gov/maps/136b28bd0d874076b702ca55b9aafffc/about",
+          "authority": "statewide",
+          "finding": "Official Commons Metropolitan 7-County Parcel Polygons item explicitly distributes individual county polygon sublayers free without fee or license, public domain under Chapter13. Already-reviewed service metadata and rendered About identify Ramsey County Parcels layer 4, esriGeometryPolygon. This distinct county repository resource qualifies independently of native county provenance and statewide inclusion. Native county source identities and regional counts/dates remain separate."
+        },
+        {
+          "url": "https://arcgis.metc.state.mn.us/data1/rest/services/parcels/Parcels/FeatureServer?f=pjson",
+          "authority": "statewide",
+          "finding": "Official Commons Metropolitan 7-County Parcel Polygons item explicitly distributes individual county polygon sublayers free without fee or license, public domain under Chapter13. Already-reviewed service metadata and rendered About identify Ramsey County Parcels layer 4, esriGeometryPolygon. This distinct county repository resource qualifies independently of native county provenance and statewide inclusion. Native county source identities and regional counts/dates remain separate."
         }
       ],
       "review_log": {
@@ -14794,16 +14882,38 @@
           ]
         },
         "mngeo_public_repository": {
-          "review_status": "blocked",
-          "availability": "unknown",
+          "review_status": "reviewed",
+          "availability": "yes",
           "review_date": "2026-10-06",
-          "finding": "Reviewed official MnGeo source table, supplied state-organization parcel search and rendered scoped Commons catalog. Regional MetroGIS parcel point/polygon compilations and government-lot/address datasets are distinct from county-native parcel products. No distinct county parcel repository established; bounded review does not prove exhaustive absence.",
+          "finding": "Official Commons Metropolitan 7-County Parcel Polygons item explicitly distributes individual county polygon sublayers free without fee or license, public domain under Chapter13. Already-reviewed service metadata and rendered About identify Ramsey County Parcels layer 4, esriGeometryPolygon. This distinct county repository resource qualifies independently of native county provenance and statewide inclusion. Native county source identities and regional counts/dates remain separate.",
           "evidence": [
-            "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
-            "https://gis.data.mn.gov/search?q=Ramsey%20parcels",
-            "https://data-ramseygis.opendata.arcgis.com/datasets/RamseyGIS::attributed-parcels/about"
+            "https://www.arcgis.com/sharing/rest/content/items/136b28bd0d874076b702ca55b9aafffc?f=pjson",
+            "https://gis.data.mn.gov/maps/136b28bd0d874076b702ca55b9aafffc/about",
+            "https://arcgis.metc.state.mn.us/data1/rest/services/parcels/Parcels/FeatureServer?f=pjson"
           ],
-          "sources": []
+          "sources": [
+            {
+              "inventory_id": "ramsey:mngeo_public_repository:1",
+              "name": "Ramsey County Parcels regional subdataset",
+              "authority": "statewide",
+              "dataset_type": "Distinct county parcel repository subdataset",
+              "layer_id": 4,
+              "approved_public_links": [
+                {
+                  "label": "Official county sublayer catalog",
+                  "href": "https://gis.data.mn.gov/maps/136b28bd0d874076b702ca55b9aafffc/about"
+                }
+              ],
+              "review_date": "2026-10-06",
+              "monitoring_decision": "not-assessed",
+              "evidence": [
+                "https://www.arcgis.com/sharing/rest/content/items/136b28bd0d874076b702ca55b9aafffc?f=pjson",
+                "https://gis.data.mn.gov/maps/136b28bd0d874076b702ca55b9aafffc/about",
+                "https://arcgis.metc.state.mn.us/data1/rest/services/parcels/Parcels/FeatureServer?f=pjson"
+              ],
+              "geometry_type": "esriGeometryPolygon"
+            }
+          ]
         },
         "county_arcgis_rest": {
           "review_status": "blocked",
@@ -15496,7 +15606,8 @@
                 "https://www.renvillecountymn.gov/county-maps-gis/",
                 "https://gis.renvillecountymn.gov/arcgis/rest/services/LandRecords/TaxParcels/FeatureServer/0?f=pjson",
                 "https://www.arcgis.com/sharing/rest/content/items/555b51a4709e4a64b6a87717d4241661?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -15529,7 +15640,8 @@
                 "https://www.renvillecountymn.gov/county-maps-gis/",
                 "https://hub-renvilleco.hub.arcgis.com/datasets/555b51a4709e4a64b6a87717d4241661_0/about",
                 "https://www.arcgis.com/sharing/rest/content/items/555b51a4709e4a64b6a87717d4241661?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         }
@@ -15759,7 +15871,8 @@
                 "https://gis.data.mn.gov/maps/d79e1a5432e44980877703f5371a1a70/about",
                 "https://www.arcgis.com/sharing/rest/content/items/d79e1a5432e44980877703f5371a1a70?f=pjson"
               ],
-              "monitored_source_id": "mn-rice-parcels-direct"
+              "monitored_source_id": "mn-rice-parcels-direct",
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -15795,7 +15908,8 @@
                 "https://asr-arcgis01.ricecountymn.gov/arcgis/rest/services/Maps/TaxParcels/MapServer/1?f=pjson",
                 "https://www.arcgis.com/sharing/rest/content/items/d79e1a5432e44980877703f5371a1a70?f=pjson"
               ],
-              "monitored_source_id": "mn-rice-parcels-direct"
+              "monitored_source_id": "mn-rice-parcels-direct",
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -16275,6 +16389,21 @@
           "url": "https://metrogis.org/how-do-i-get/parcel-data/",
           "authority": "statewide",
           "finding": "MetroGIS describes county-native publication free of fee/licensure and keeps regional compilation separate."
+        },
+        {
+          "url": "https://www.arcgis.com/sharing/rest/content/items/136b28bd0d874076b702ca55b9aafffc?f=pjson",
+          "authority": "statewide",
+          "finding": "Official Commons Metropolitan 7-County Parcel Polygons item explicitly distributes individual county polygon sublayers free without fee or license, public domain under Chapter13. Already-reviewed service metadata and rendered About identify Scott County Parcels layer 5, esriGeometryPolygon. This distinct county repository resource qualifies independently of native county provenance and statewide inclusion. Native county source identities and regional counts/dates remain separate."
+        },
+        {
+          "url": "https://gis.data.mn.gov/maps/136b28bd0d874076b702ca55b9aafffc/about",
+          "authority": "statewide",
+          "finding": "Official Commons Metropolitan 7-County Parcel Polygons item explicitly distributes individual county polygon sublayers free without fee or license, public domain under Chapter13. Already-reviewed service metadata and rendered About identify Scott County Parcels layer 5, esriGeometryPolygon. This distinct county repository resource qualifies independently of native county provenance and statewide inclusion. Native county source identities and regional counts/dates remain separate."
+        },
+        {
+          "url": "https://arcgis.metc.state.mn.us/data1/rest/services/parcels/Parcels/FeatureServer?f=pjson",
+          "authority": "statewide",
+          "finding": "Official Commons Metropolitan 7-County Parcel Polygons item explicitly distributes individual county polygon sublayers free without fee or license, public domain under Chapter13. Already-reviewed service metadata and rendered About identify Scott County Parcels layer 5, esriGeometryPolygon. This distinct county repository resource qualifies independently of native county provenance and statewide inclusion. Native county source identities and regional counts/dates remain separate."
         }
       ],
       "review_log": {
@@ -16401,16 +16530,38 @@
           ]
         },
         "mngeo_public_repository": {
-          "review_status": "blocked",
-          "availability": "unknown",
+          "review_status": "reviewed",
+          "availability": "yes",
           "review_date": "2026-10-06",
-          "finding": "Reviewed official MnGeo source table, supplied state-organization parcel search and rendered scoped Commons catalog. Regional MetroGIS parcel point/polygon compilations and government-lot/address datasets are distinct from county-native parcel products. No distinct county parcel repository established; bounded review does not prove exhaustive absence.",
+          "finding": "Official Commons Metropolitan 7-County Parcel Polygons item explicitly distributes individual county polygon sublayers free without fee or license, public domain under Chapter13. Already-reviewed service metadata and rendered About identify Scott County Parcels layer 5, esriGeometryPolygon. This distinct county repository resource qualifies independently of native county provenance and statewide inclusion. Native county source identities and regional counts/dates remain separate.",
           "evidence": [
-            "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
-            "https://gis.data.mn.gov/search?q=Scott%20parcels",
-            "https://open-data-scottcounty.hub.arcgis.com/datasets/07feb1aed9364b1a9900fe0ec6f93929_0/about"
+            "https://www.arcgis.com/sharing/rest/content/items/136b28bd0d874076b702ca55b9aafffc?f=pjson",
+            "https://gis.data.mn.gov/maps/136b28bd0d874076b702ca55b9aafffc/about",
+            "https://arcgis.metc.state.mn.us/data1/rest/services/parcels/Parcels/FeatureServer?f=pjson"
           ],
-          "sources": []
+          "sources": [
+            {
+              "inventory_id": "scott:mngeo_public_repository:1",
+              "name": "Scott County Parcels regional subdataset",
+              "authority": "statewide",
+              "dataset_type": "Distinct county parcel repository subdataset",
+              "layer_id": 5,
+              "approved_public_links": [
+                {
+                  "label": "Official county sublayer catalog",
+                  "href": "https://gis.data.mn.gov/maps/136b28bd0d874076b702ca55b9aafffc/about"
+                }
+              ],
+              "review_date": "2026-10-06",
+              "monitoring_decision": "not-assessed",
+              "evidence": [
+                "https://www.arcgis.com/sharing/rest/content/items/136b28bd0d874076b702ca55b9aafffc?f=pjson",
+                "https://gis.data.mn.gov/maps/136b28bd0d874076b702ca55b9aafffc/about",
+                "https://arcgis.metc.state.mn.us/data1/rest/services/parcels/Parcels/FeatureServer?f=pjson"
+              ],
+              "geometry_type": "esriGeometryPolygon"
+            }
+          ]
         },
         "county_arcgis_rest": {
           "review_status": "reviewed",
@@ -16444,7 +16595,8 @@
                 "https://services.arcgis.com/DqIh9WAsIZcPlBEF/arcgis/rest/services/Parcels/FeatureServer/0?f=pjson",
                 "https://www.arcgis.com/sharing/rest/content/items/07feb1aed9364b1a9900fe0ec6f93929?f=pjson"
               ],
-              "monitored_source_id": "mn-scott-parcels-direct"
+              "monitored_source_id": "mn-scott-parcels-direct",
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -16478,7 +16630,8 @@
                 "https://open-data-scottcounty.hub.arcgis.com/datasets/07feb1aed9364b1a9900fe0ec6f93929_0/about",
                 "https://www.arcgis.com/sharing/rest/content/items/07feb1aed9364b1a9900fe0ec6f93929?f=pjson"
               ],
-              "monitored_source_id": "mn-scott-parcels-direct"
+              "monitored_source_id": "mn-scott-parcels-direct",
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         }
@@ -16708,7 +16861,8 @@
                 "https://www.co.sherburne.mn.us/841/GIS-Applications",
                 "https://gis.co.sherburne.mn.us/arcgis4/rest/services/OpenData/Parcels/FeatureServer/0?f=pjson",
                 "https://www.arcgis.com/sharing/rest/content/items/0fdf41eee3004bab9ef04df77a45e5a7?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -16741,7 +16895,8 @@
                 "https://www.co.sherburne.mn.us/841/GIS-Applications",
                 "https://data-sherburnegis.opendata.arcgis.com/datasets/0fdf41eee3004bab9ef04df77a45e5a7_0/about",
                 "https://www.arcgis.com/sharing/rest/content/items/0fdf41eee3004bab9ef04df77a45e5a7?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         }
@@ -17189,7 +17344,8 @@
                 "https://gis.stlouiscountymn.gov/server2/rest/services/GeneralUse/Open_Data/MapServer/7?f=pjson",
                 "https://www.arcgis.com/sharing/rest/content/items/5f05e9148b4a4fe58b04d62e37decff2?f=pjson"
               ],
-              "monitored_source_id": "mn-st-louis-parcels-direct"
+              "monitored_source_id": "mn-st-louis-parcels-direct",
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -17223,7 +17379,8 @@
                 "https://open-data-slcgis.hub.arcgis.com/datasets/5f05e9148b4a4fe58b04d62e37decff2_7/about",
                 "https://www.arcgis.com/sharing/rest/content/items/5f05e9148b4a4fe58b04d62e37decff2?f=pjson"
               ],
-              "monitored_source_id": "mn-st-louis-parcels-direct"
+              "monitored_source_id": "mn-st-louis-parcels-direct",
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         }
@@ -17437,7 +17594,8 @@
               "evidence": [
                 "https://stearns-county-gis-stearns.hub.arcgis.com/",
                 "https://gis.co.stearns.mn.us/gisdata/parcels.zip"
-              ]
+              ],
+              "file_type": "application/x-zip-compressed"
             }
           ]
         }
@@ -17655,7 +17813,8 @@
                 "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
                 "https://gis.data.mn.gov/datasets/bb17fc1a866a4f6396c33737e0bb0963_0/about",
                 "https://www.arcgis.com/sharing/rest/content/items/bb17fc1a866a4f6396c33737e0bb0963?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -17688,7 +17847,8 @@
                 "https://www.steelecountymn.gov/departments/gis_geographic_information_systems/index.php",
                 "https://gis.steele.mn/server/rest/services/gcportal_us_mn_co_steele/Tax_Parcels/MapServer/0?f=pjson",
                 "https://www.arcgis.com/sharing/rest/content/items/bb17fc1a866a4f6396c33737e0bb0963?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -17721,7 +17881,8 @@
                 "https://www.steelecountymn.gov/departments/gis_geographic_information_systems/index.php",
                 "https://gis.data.mn.gov/datasets/bb17fc1a866a4f6396c33737e0bb0963_0/about",
                 "https://www.arcgis.com/sharing/rest/content/items/bb17fc1a866a4f6396c33737e0bb0963?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         }
@@ -17946,7 +18107,8 @@
                 "https://www.stevenscountymn.gov/993/GIS-Open-Data",
                 "https://services2.arcgis.com/7iPhaYyq6PkRoVhV/arcgis/rest/services/July_2026_Parcels/FeatureServer/0?f=pjson",
                 "https://www.arcgis.com/sharing/rest/content/items/f5cc5ff20f5d4fcb8279b26e4eac5f6d?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -17979,7 +18141,8 @@
                 "https://www.stevenscountymn.gov/993/GIS-Open-Data",
                 "https://geospatial-hub-stevens-county.hub.arcgis.com/datasets/f5cc5ff20f5d4fcb8279b26e4eac5f6d_0/about",
                 "https://www.arcgis.com/sharing/rest/content/items/f5cc5ff20f5d4fcb8279b26e4eac5f6d?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         }
@@ -18187,7 +18350,8 @@
                 "https://services3.arcgis.com/D3VRNSq5Pf3sYZAp/arcgis/rest/services/Swift_Parcels/FeatureServer/0?f=pjson",
                 "https://www.arcgis.com/sharing/rest/content/items/d2cbcd51e955466a85c0307d714c65e3?f=pjson"
               ],
-              "monitored_source_id": "mn-swift-parcels-direct"
+              "monitored_source_id": "mn-swift-parcels-direct",
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -18632,7 +18796,8 @@
                 "https://data-traversecountymn.opendata.arcgis.com/",
                 "https://gis.co.traverse.mn.us/arcgis/rest/services/Assessor/TaxParcels/FeatureServer/0?f=pjson",
                 "https://www.arcgis.com/sharing/rest/content/items/19c002d05d2349ebbf712a4da0b9db78?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -18665,7 +18830,8 @@
                 "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
                 "https://data-traversecountymn.opendata.arcgis.com/datasets/TraverseCountyMN::tax-parcels-1/about",
                 "https://www.arcgis.com/sharing/rest/content/items/19c002d05d2349ebbf712a4da0b9db78?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         }
@@ -18871,7 +19037,9 @@
                 "https://gis.data.mn.gov/datasets/bf8ef9d0b3f1455c9af61ef6b60329e2_0/about",
                 "https://www.arcgis.com/sharing/rest/content/items/bf8ef9d0b3f1455c9af61ef6b60329e2?f=pjson"
               ],
-              "monitored_source_id": "mn-wabasha-parcels"
+              "monitored_source_id": "mn-wabasha-parcels",
+              "geometry_type": "esriGeometryPolygon",
+              "file_type": "application/zip"
             }
           ]
         },
@@ -18905,7 +19073,8 @@
                 "https://enterprise.gisdata.mn.gov/aghost/rest/services/us_mn_co_wabasha/plan_parcelspolygon/FeatureServer/0?f=pjson",
                 "https://www.arcgis.com/sharing/rest/content/items/bf8ef9d0b3f1455c9af61ef6b60329e2?f=pjson"
               ],
-              "monitored_source_id": "mn-wabasha-parcels"
+              "monitored_source_id": "mn-wabasha-parcels",
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -18939,7 +19108,9 @@
                 "https://gis.data.mn.gov/datasets/bf8ef9d0b3f1455c9af61ef6b60329e2_0/about",
                 "https://www.arcgis.com/sharing/rest/content/items/bf8ef9d0b3f1455c9af61ef6b60329e2?f=pjson"
               ],
-              "monitored_source_id": "mn-wabasha-parcels"
+              "monitored_source_id": "mn-wabasha-parcels",
+              "geometry_type": "esriGeometryPolygon",
+              "file_type": "application/zip"
             }
           ]
         }
@@ -19355,7 +19526,8 @@
                 "https://gis.data.mn.gov/datasets/7165bef203de488bb45a6fc233e3ded8_0/about",
                 "https://www.arcgis.com/sharing/rest/content/items/7165bef203de488bb45a6fc233e3ded8?f=pjson"
               ],
-              "monitored_source_id": "mn-waseca-parcels-direct"
+              "monitored_source_id": "mn-waseca-parcels-direct",
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -19389,7 +19561,8 @@
                 "https://gis.wasecacounty.gov/arcgis/rest/services/Public/Cadastral/FeatureServer/0?f=pjson",
                 "https://www.arcgis.com/sharing/rest/content/items/7165bef203de488bb45a6fc233e3ded8?f=pjson"
               ],
-              "monitored_source_id": "mn-waseca-parcels-direct"
+              "monitored_source_id": "mn-waseca-parcels-direct",
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -19423,7 +19596,8 @@
                 "https://gis.data.mn.gov/datasets/7165bef203de488bb45a6fc233e3ded8_0/about",
                 "https://www.arcgis.com/sharing/rest/content/items/7165bef203de488bb45a6fc233e3ded8?f=pjson"
               ],
-              "monitored_source_id": "mn-waseca-parcels-direct"
+              "monitored_source_id": "mn-waseca-parcels-direct",
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         }
@@ -19628,7 +19802,8 @@
                 "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
                 "https://gis.data.mn.gov/maps/136b28bd0d874076b702ca55b9aafffc/about",
                 "https://www.arcgis.com/sharing/rest/content/items/136b28bd0d874076b702ca55b9aafffc?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -19661,7 +19836,8 @@
                 "https://www.co.washington.mn.us/surveyor",
                 "https://arcgis.metc.state.mn.us/data1/rest/services/parcels/Parcels/FeatureServer/6?f=pjson",
                 "https://www.arcgis.com/sharing/rest/content/items/136b28bd0d874076b702ca55b9aafffc?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -20105,7 +20281,8 @@
                 "https://share-open-data-wilkinco.hub.arcgis.com/",
                 "https://gisweb.co.wilkin.mn.us/arcgis/rest/services/Assessor/TaxParcels_public/FeatureServer/1?f=pjson",
                 "https://www.arcgis.com/sharing/rest/content/items/e96c2d9e3a83456487057615a8fae615?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -20138,7 +20315,8 @@
                 "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
                 "https://share-open-data-wilkinco.hub.arcgis.com/datasets/e96c2d9e3a83456487057615a8fae615_1/about",
                 "https://www.arcgis.com/sharing/rest/content/items/e96c2d9e3a83456487057615a8fae615?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         }
@@ -20577,7 +20755,8 @@
                 "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
                 "https://wright-county-gis-wrightgis.hub.arcgis.com/datasets/6bae27646e664fad990aa6018c60cb91_0/about",
                 "https://www.arcgis.com/sharing/rest/content/items/6bae27646e664fad990aa6018c60cb91?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -20610,7 +20789,8 @@
                 "https://www.wrightcountymn.gov/215/GIS-Mapping/QuickLinks",
                 "https://services2.arcgis.com/CiQCvRGImIxsaFnM/arcgis/rest/services/Parcels_Wright_County/FeatureServer/0?f=pjson",
                 "https://www.arcgis.com/sharing/rest/content/items/6bae27646e664fad990aa6018c60cb91?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -20643,7 +20823,8 @@
                 "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
                 "https://wright-county-gis-wrightgis.hub.arcgis.com/datasets/6bae27646e664fad990aa6018c60cb91_0/about",
                 "https://www.arcgis.com/sharing/rest/content/items/6bae27646e664fad990aa6018c60cb91?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         }
@@ -20864,7 +21045,8 @@
                 "https://shareopendata-yellowmedicine.hub.arcgis.com/",
                 "https://gis.co.ym.mn.gov/arcgis/rest/services/Assessors/TaxParcels/FeatureServer/0?f=pjson",
                 "https://www.arcgis.com/sharing/rest/content/items/b541e04a4c204811ab3251a980b92138?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         },
@@ -20897,7 +21079,8 @@
                 "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
                 "https://shareopendata-yellowmedicine.hub.arcgis.com/datasets/b541e04a4c204811ab3251a980b92138_0/about",
                 "https://www.arcgis.com/sharing/rest/content/items/b541e04a4c204811ab3251a980b92138?f=pjson"
-              ]
+              ],
+              "geometry_type": "esriGeometryPolygon"
             }
           ]
         }

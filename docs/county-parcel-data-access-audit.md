@@ -99,18 +99,18 @@ This is why Winona is correctly represented as:
 The original 35 counties were reviewed using bounded official county landing pages, parcel
 service metadata, the [official MnGeo parcel source table](https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp),
 the current state-hosted service directory, and county-specific Commons publishing-account
-metadata searches plus all 87 returned official state-organization parcel-search records. Search responses were read; snippets were only discovery. All52 previously unreviewed counties now have actual category reviews, including the exact final eight Swift–Yellow Medicine counties listed below. No county record retains pending categories; unresolved evidence remains blocked/unknown.
+metadata searches plus all 87 returned official state-organization parcel-search records. Search responses were read; snippets were only discovery. All 52 previously unreviewed counties now have actual category reviews, including the exact final eight Swift–Yellow Medicine counties listed below. No county record retains pending categories; unresolved evidence remains blocked/unknown.
 
 | Category | Reviewed across 87 county reviews | Blocked / unresolved | Pending |
 | --- | ---: | ---: | ---: |
 | MnGeo Plan Parcels Open | 87 (59 included, 28 excluded) | 0 | 0 |
-| Distinct MnGeo public repository | 16 available | 71 | 0 |
+| Distinct MnGeo public repository | 18 available | 69 | 0 |
 | County-authorized parcel REST | 59 available | 28 | 0 |
 | County parcel download | 52 available | 35 | 0 |
 
-These counts are derived from stored category statuses: **214 reviewed**, **134 blocked**,
-and **0 pending** category assessments across 87 county records. **15 counties have all
-four categories complete** (Aitkin, Anoka, Carver, Dakota, Fillmore, Hennepin, Houston, Itasca, Lake, Morrison, Steele, Wabasha, Waseca, Washington, Wright);
+These counts are derived from stored category statuses: **216 reviewed**, **132 blocked**,
+and **0 pending** category assessments across 87 county records. **16 counties have all
+four categories complete** (Aitkin, Anoka, Carver, Dakota, Fillmore, Hennepin, Houston, Itasca, Lake, Morrison, Scott, Steele, Wabasha, Waseca, Washington, Wright);
 Aitkin's county-direct pricing/policy assessment remains unresolved. County-direct
 classification is separate from inventory completion; category keys alone do not finish research.
 
@@ -276,10 +276,10 @@ are supported by the dated official publication, separate from current observati
 | Pipestone | Unknown | TaxParcels layer 0, polygon | Hub Tax Parcels, same layer 0 |
 | Polk | Unknown | TaxParcels layer 0, polygon | Current Hub Tax Parcels, same layer 0 |
 | Pope | Unknown | TaxParcels layer 0, polygon | Hub Tax Parcels, same layer 0 |
-| Ramsey | Unknown | Blocked (403) | Current Attributed Parcels Hub product |
+| Ramsey | Metro county polygon sublayer 4 | Blocked (403) | Current Attributed Parcels Hub product |
 | Renville | Unknown | TaxParcels layer 0, polygon | Hub Tax Parcels, same layer 0 |
 | Rice | Current county-owned Tax Parcels item | TaxParcels MapServer layer 1, polygon | Blocked; current Commons page says unavailable |
-| Scott | Unknown | Parcels layer 0, polygon | County-authorized free Hub Parcels |
+| Scott | Metro county polygon sublayer 5 | Parcels layer 0, polygon | County-authorized free Hub Parcels |
 
 Official county pages or the explicit [MnGeo county parcel source table](https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp)
 establish product delegation. Linked county Hub About pages were rendered and their
@@ -326,10 +326,12 @@ current download/product-policy scope, and technical REST access does not finish
 legacy county-direct classification or authorize polling.
 
 All nine scoped Commons catalogs were rendered. Rice's current county-owned item is a
-distinct repository product; the other eight searches found statewide/derived or regional
-compilations, and Ramsey also returned government-lot/address resources. These bounded
-reviews do not prove exhaustive absence, so those eight repository categories remain
-unknown. Their completed county-native product reviews remain independent.
+distinct repository product. Subsequent review of the already-fetched official metropolitan
+item and service metadata establishes separately identified Ramsey/4 and Scott/5 county
+polygon sublayers. Like Anoka, Carver, Dakota, Hennepin and Washington, these are distinct
+county repository resources even though their provenance is regional. The other six
+repository categories remain unknown; bounded searches do not prove exhaustive absence.
+Native county products and their observed identities remain independent.
 
 Exact vetted public identities are retained only for Pipestone, Rice, Ramsey and Scott.
 Rice's repository/REST and Pipestone/Scott REST/download share their same observation;
@@ -602,8 +604,7 @@ public item and layer metadata were read; no external parcel archives were opene
 clicked or retrieved. Advertised downloads establish product publication, not body
 integrity or unattended authority. GeoPackage, Shapefile and File Geodatabase facts
 are retained only where official publication states them; ZIP interior formats and
-REST export formats are not inferred. Typed static geometry/format projection is
-deferred to Task 4c.
+REST export formats are not inferred. Typed stable geometry/file projection is documented below.
 
 
 ### Sherburne–Stevens inventory batch, 2026-10-06
@@ -657,8 +658,7 @@ This is licensing uncertainty, not an established prohibition on bounded metadat
 monitoring. The other four decisions remain **not-assessed**; no provider is activated.
 Four distinct-repository categories remain unknown after actual rendered scoped
 Commons/state metadata reviews; bounded searches do not prove exhaustive absence.
-The eight existing holds remain, for **nine research holds total**. Typed stable geometry/format
-projection remains deferred to Task 4c. No parcel features, property-search pages,
+The eight existing holds remain, for **nine research holds total**. Typed stable geometry/file projection is documented below. No parcel features, property-search pages,
 archives or download bodies were retrieved; no agreement gates were accepted.
 
 
@@ -710,3 +710,35 @@ establish distinct repository products; these remain unknown, without claiming e
 absence. Swift download remains unknown. Exact vetted public observed IDs are retained only
 for Swift, Waseca and Wabasha; Wabasha/Waseca shared repository/REST/download representations
 reuse the same observation identity. Discovery and the two new holds change research only.
+
+
+### Stable source evidence projection and repository reconciliation, 2026-10-06
+
+Optional source `geometry_type` and `file_type` now preserve verified stable facts
+from the county-specific official evidence and bounded metadata reviews above.
+The profile uses validated current live metadata first and falls back to these
+scalars. Unknown facts remain null; parcel names and unspecified export formats
+do not establish geometry or MIME. Supported ZIP containers retain their offered
+file type without claims about contents. Washington's regional FGDB package
+contains point and polygon products, so its download geometry remains null while
+its exact county polygon sublayer is retained. Mille Lacs' separate FGDB geometry
+and MIME remain unknown; original Task 4a service findings without retained exact
+geometry facts remain null. No provider metadata reads were repeated to fill gaps.
+
+The already-reviewed official metropolitan item and service/About evidence identify
+Ramsey County Parcels/4 and Scott County Parcels/5 as `esriGeometryPolygon` county
+resources, distributed freely without fee or license, public domain under Chapter 13.
+Their repository categories are now reviewed/available, matching the same contract
+used for the other five metropolitan counties. County-native classifications,
+monitoring decisions and the eleven holds are unchanged; regional products have no
+native monitored-source IDs, counts or provider dates. Scott now has all four
+categories reviewed; Ramsey's native REST category remains unresolved.
+
+Repository county acquisition and catalog refresh dates require a unique, exact
+catalog data reference to an evidence-backed approved dataset/item, selected layer
+or offered file. County/Hub/search landing links cannot join dataset dates. Unmatched
+or ambiguous repository products retain null dates. Statewide county contribution
+dates retain their separate catalog association. Catalog checks, counts and health
+are never borrowed as dataset observations. Regression tests cover two products in
+one county, shared generic links, separate native/regional identities, safe live
+precedence and unknown operational facts for unmonitored products.

@@ -5,7 +5,7 @@ from pathlib import Path
 import unittest
 
 from clearparcel.datawatch.county_profiles import FreshnessPolicy, compose_county_profiles, county_profile_counts
-from clearparcel.datawatch.parcel_access import INVENTORY_CATEGORIES, load_parcel_access
+from clearparcel.datawatch.parcel_access import INVENTORY_CATEGORIES, load_parcel_access, validate_parcel_access
 
 NOW = dt.datetime(2026, 10, 6, 12, tzinfo=dt.timezone.utc)
 STAMP = NOW.isoformat()
@@ -77,7 +77,7 @@ class CountyProfilesTests(unittest.TestCase):
                                 for c in record['source_inventory'].values()))
             self.assertEqual(record['monitoring']['decision'], 'not-assessed')
             self.assertIsNone(record['parcel_dataset_fee'])
-            self.assertFalse(profiles[name.lower().replace(' ', '-')]['research']['complete'])
+            self.assertEqual(profiles[name.lower().replace(' ', '-')]['research']['complete'], name == 'Scott')
         for name in ('Olmsted', 'Ramsey'):
             self.assertEqual(research[name]['source_inventory']['county_arcgis_rest']['review_status'], 'blocked')
             self.assertEqual(research[name]['source_inventory']['county_arcgis_rest']['availability'], 'unknown')
@@ -226,16 +226,21 @@ class CountyProfilesTests(unittest.TestCase):
             self.assertEqual(profile['monitoring']['active_parcel_source_count'], 1)
 
     def test_inventory_completion_requires_all_four_evidence_reviews(self):
-        research = load_parcel_access()
-        record = research['Brown']
-        for category in INVENTORY_CATEGORIES:
-            record['source_inventory'][category]['review_status'] = 'reviewed'
-        self.assertTrue(compose(research=research)['brown']['research']['complete'])
+        raw = json.loads((Path(__file__).parents[1] / 'clearparcel/datawatch/minnesota_county_parcel_access.json').read_text(encoding='utf-8'))
+        # Anoka is an actually evidenced four-category reviewed positive fixture.
+        validate_parcel_access(raw)
+        research = {record['county']: record for record in raw['counties']}
+        record = research['Anoka']
+        self.assertTrue(record['research_complete'])
+        self.assertTrue(all(category['review_status'] == 'reviewed' and category['availability'] == 'yes'
+            and category['review_date'] and category['evidence'] and category['sources']
+            for category in record['source_inventory'].values()))
+        self.assertTrue(compose(research=research)['anoka']['research']['complete'])
         for category in INVENTORY_CATEGORIES:
             for status in ('pending', 'blocked'):
                 with self.subTest(category=category, status=status):
                     record['source_inventory'][category]['review_status'] = status
-                    self.assertFalse(compose(research=research)['brown']['research']['complete'])
+                    self.assertFalse(compose(research=research)['anoka']['research']['complete'])
                     record['source_inventory'][category]['review_status'] = 'reviewed'
 
     def test_original_inventory_batch_preserves_fee_viewer_and_holds(self):
@@ -375,13 +380,118 @@ class CountyProfilesTests(unittest.TestCase):
         self.assertIsNone(catalog_only['feature_count'])
         self.assertIsNone(catalog_only['checked_at'])
         self.assertEqual(catalog_only['health'], 'unknown')
-        self.assertEqual(catalog_only['county_acquired_at'], '2025-01-01T00:00:00+00:00')
+        self.assertIsNone(catalog_only['county_acquired_at'])
         self.assertEqual(p['monitoring']['active_parcel_source_count'], 1)
         self.assertEqual(p['county_arcgis_rest']['sources'][0]['monitored_source_id'], observed['monitored_source_id'])
         del state['sources']['parcel-data']
         p = compose(state, research)['aitkin']
         self.assertFalse(p['monitoring']['active'])
         self.assertIsNone(p['mngeo_public_repository']['sources'][0]['feature_count'])
+
+    def test_stable_evidence_fallback_live_precedence_and_unknown_operations(self):
+        research = load_parcel_access()
+        item = research['Dodge']['source_inventory']['county_download']['sources'][0]
+        item.update(geometry_type='esriGeometryPolygon', file_type='application/zip')
+        source = compose(research=research)['dodge']['county_download']['sources'][0]
+        self.assertEqual(source['geometry_type'], 'esriGeometryPolygon')
+        self.assertEqual(source['file']['type'], 'application/zip')
+        for key in ('feature_count', 'checked_at', 'last_success_at', 'provider_updated_at'):
+            self.assertIsNone(source[key])
+        self.assertEqual(source['health'], 'unknown')
+        for key in ('size_bytes', 'etag', 'last_modified'):
+            self.assertIsNone(source['file'][key])
+        state = {'sources': {item['monitored_source_id']: {'county_slug': 'dodge', 'category': 'Parcels',
+            'geometry_type': 'esriGeometryPolyline', 'content_type': 'application/octet-stream'}}}
+        source = compose(state, research)['dodge']['county_download']['sources'][0]
+        self.assertEqual(source['geometry_type'], 'esriGeometryPolyline')
+        self.assertEqual(source['file']['type'], 'application/octet-stream')
+        state['sources'][item['monitored_source_id']].update(geometry_type={'raw': 'Polygon'}, content_type=['application/zip'])
+        source = compose(state, research)['dodge']['county_download']['sources'][0]
+        self.assertEqual(source['geometry_type'], 'esriGeometryPolygon')
+        self.assertEqual(source['file']['type'], 'application/zip')
+        item.update(geometry_type='Polygon', file_type={'type': 'application/zip'})
+        source = compose(research=research)['dodge']['county_download']['sources'][0]
+        self.assertIsNone(source['geometry_type'])
+        self.assertIsNone(source['file']['type'])
+
+    def test_persisted_stable_facts_preserve_unknown_and_separate_product_geometry(self):
+        profiles = compose()
+        self.assertEqual(profiles['clearwater']['county_download']['sources'][0]['file']['type'],
+                         'application/x-zip-compressed')
+        self.assertIsNone(profiles['clearwater']['county_download']['sources'][0]['geometry_type'])
+        self.assertEqual(profiles['itasca']['mngeo_public_repository']['sources'][0]['geometry_type'],
+                         'esriGeometryPolygon')
+        self.assertEqual(profiles['itasca']['county_download']['sources'][0]['file']['type'], 'application/zip')
+        self.assertIsNone(profiles['mille-lacs']['county_download']['sources'][0]['geometry_type'])
+        self.assertIsNone(profiles['mille-lacs']['county_download']['sources'][0]['file']['type'])
+        self.assertIsNone(profiles['washington']['county_download']['sources'][0]['geometry_type'])
+        for county in ('Todd', 'Mahnomen', 'Marshall', 'Hubbard'):
+            self.assertIsNone(profiles[county.lower()]['county_arcgis_rest']['sources'][0]['geometry_type'])
+        self.assertFalse(any(p['monitoring']['active'] for p in profiles.values()))
+
+    def test_repository_catalog_dates_require_unique_vetted_product_reference(self):
+        research = load_parcel_access()
+        first = research['Aitkin']['source_inventory']['mngeo_public_repository']['sources'][0]
+        product = 'https://gis.data.mn.gov/datasets/0123456789abcdef0123456789abcdef_0/about'
+        other = 'https://gis.data.mn.gov/datasets/fedcba9876543210fedcba9876543210_0/about'
+        first.update(evidence=[product], approved_public_links=[{'label': 'Product', 'href': product}])
+        second = {**copy.deepcopy(first), 'inventory_id': 'aitkin:second-product',
+            'monitored_source_id': None, 'evidence': [other], 'approved_public_links': [{'label': 'Other', 'href': other}]}
+        research['Aitkin']['source_inventory']['mngeo_public_repository']['sources'].append(second)
+        state = coverage_state()
+        state['sources']['mn-parcel-county-catalog'] = {'status': 'ok', 'checked_at': STAMP, 'feature_count': 87,
+            'county_records': {'Aitkin': {'data_url': product, 'acqdate': 1735689600000, 'rundate': 1735776000000}}}
+        profile = compose(state, research)['aitkin']
+        matched, unmatched = profile['mngeo_public_repository']['sources']
+        self.assertEqual(matched['county_acquired_at'], '2025-01-01T00:00:00+00:00')
+        self.assertEqual(matched['catalog_refreshed_at'], '2025-01-02T00:00:00+00:00')
+        self.assertIsNone(unmatched['county_acquired_at'])
+        self.assertIsNone(unmatched['catalog_refreshed_at'])
+        for source in (matched, unmatched):
+            self.assertIsNone(source['feature_count'])
+            self.assertIsNone(source['checked_at'])
+            self.assertEqual(source['health'], 'unknown')
+        statewide = next(s for s in profile['mngac_public_parcels']['sources'] if s['monitored_source_id'] == 'statewide')
+        self.assertEqual(statewide['county_acquired_at'], matched['county_acquired_at'])
+        self.assertEqual(statewide['catalog_refreshed_at'], matched['catalog_refreshed_at'])
+        for generic in ('https://county.example/gis', 'https://county.hub.arcgis.com/',
+                        'https://gis.data.mn.gov/search?tags=parcel'):
+            with self.subTest(generic=generic):
+                state['sources']['mn-parcel-county-catalog']['county_records']['Aitkin']['data_url'] = generic
+                for item in (first, second):
+                    item.update(evidence=[generic], approved_public_links=[{'label': 'Landing', 'href': generic}])
+                for source in compose(state, research)['aitkin']['mngeo_public_repository']['sources']:
+                    self.assertIsNone(source['county_acquired_at'])
+                    self.assertIsNone(source['catalog_refreshed_at'])
+        # Even a product URL is ambiguous when both distinct records claim it.
+        state['sources']['mn-parcel-county-catalog']['county_records']['Aitkin']['data_url'] = product
+        for item in (first, second):
+            item.update(evidence=[product], approved_public_links=[{'label': 'Shared', 'href': product}])
+        for source in compose(state, research)['aitkin']['mngeo_public_repository']['sources']:
+            self.assertIsNone(source['county_acquired_at'])
+
+    def test_seven_metro_county_repository_layers_remain_distinct_from_native(self):
+        research = load_parcel_access()
+        for name, layer in (('Anoka', 0), ('Carver', 1), ('Dakota', 2), ('Hennepin', 3),
+                            ('Ramsey', 4), ('Scott', 5), ('Washington', 6)):
+            with self.subTest(county=name):
+                category = research[name]['source_inventory']['mngeo_public_repository']
+                self.assertEqual(category['review_status'], 'reviewed')
+                self.assertEqual(category['availability'], 'yes')
+                self.assertEqual(category['sources'][0]['layer_id'], layer)
+                self.assertEqual(category['sources'][0]['geometry_type'], 'esriGeometryPolygon')
+        for name in ('Ramsey', 'Scott'):
+            slug = name.lower()
+            native = research[name]['source_inventory']['county_download']['sources'][0]
+            sid = native['monitored_source_id']
+            state = {'sources': {sid: {'county_slug': slug, 'category': 'Parcels', 'status': 'ok',
+                'checked_at': STAMP, 'feature_count': 42, 'editing_info': {'lastEditDate': 1735689600000}}}}
+            profile = compose(state, research)[slug]
+            self.assertEqual(profile['county_download']['sources'][0]['feature_count'], 42)
+            regional = profile['mngeo_public_repository']['sources'][0]
+            for key in ('monitored_source_id', 'feature_count', 'checked_at', 'provider_updated_at', 'county_acquired_at'):
+                self.assertIsNone(regional[key])
+            self.assertEqual(regional['health'], 'unknown')
 
     def test_research_change_propagates_without_observation_change(self):
         research = load_parcel_access()

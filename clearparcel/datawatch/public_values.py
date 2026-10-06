@@ -88,6 +88,22 @@ def _metadata_date(value: object, *, http: bool = False) -> str | None:
         return None
 
 
+def safe_geometry_type(value: object) -> str | None:
+    """Accept only recognized ArcGIS geometry scalars."""
+    if isinstance(value, str) and value in ('esriGeometryPoint', 'esriGeometryMultipoint',
+            'esriGeometryPolyline', 'esriGeometryPolygon', 'esriGeometryEnvelope'):
+        return value
+    return None
+
+
+def safe_file_type(value: object) -> str | None:
+    """Validate a MIME scalar shared by evidence and live metadata."""
+    mime = _metadata_text(value, 128)
+    if mime and re.fullmatch(r'[A-Za-z0-9!#$&^_.+-]+/[A-Za-z0-9!#$&^_.+-]+(?:;[ A-Za-z0-9=._+-]+)?', mime):
+        return mime
+    return None
+
+
 def sanitize_source_metadata(source: dict) -> dict:
     """Extract typed scalar facts, never copy raw provider dictionaries."""
     normalized = source.get('public_metadata')
@@ -96,8 +112,8 @@ def sanitize_source_metadata(source: dict) -> dict:
     adapter = source.get('adapter', normalized.get('adapter'))
     if adapter in ('arcgis_layer', 'arcgis_service', 'arcgis_image', 'http_file', 'wms', 'wfs', 'sda_query', 'arcgis_county_catalog'):
         public['adapter'] = adapter
-    geometry = source.get('geometry_type', normalized.get('geometry_type'))
-    if isinstance(geometry, str) and geometry in ('esriGeometryPoint', 'esriGeometryMultipoint', 'esriGeometryPolyline', 'esriGeometryPolygon', 'esriGeometryEnvelope'):
+    geometry = safe_geometry_type(source.get('geometry_type', normalized.get('geometry_type')))
+    if geometry:
         public['geometry_type'] = geometry
     editing = source.get('editing_info')
     stamp = provider_edit_timestamp(editing.get('lastEditDate')) if isinstance(editing, dict) else None
@@ -109,8 +125,8 @@ def sanitize_source_metadata(source: dict) -> dict:
     file = normalized.get('file')
     file = file if isinstance(file, dict) else {}
     safe_file = {}
-    mime = _metadata_text(source.get('content_type', file.get('type')), 128)
-    if mime and re.fullmatch(r'[A-Za-z0-9!#$&^_.+-]+/[A-Za-z0-9!#$&^_.+-]+(?:;[ A-Za-z0-9=._+-]+)?', mime):
+    mime = safe_file_type(source.get('content_type', file.get('type')))
+    if mime:
         safe_file['type'] = mime
     size = tracked.get('content_length', file.get('size_bytes'))
     if isinstance(size, str) and re.fullmatch(r'[0-9]{1,19}', size):

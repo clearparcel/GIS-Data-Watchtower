@@ -6,7 +6,7 @@ import copy
 import json
 from pathlib import Path
 from urllib.parse import urlsplit
-from .public_values import safe_public_url, public_access_classification
+from .public_values import safe_public_url, public_access_classification, safe_geometry_type, safe_file_type
 
 DIRECT_CLASSIFICATIONS = {
     "free-parcel-data": "Free parcel data",
@@ -40,6 +40,7 @@ INVENTORY_CATEGORIES = (
 MONITORING_DECISIONS = {"candidate-low-frequency", "hold-for-terms", "not-appropriate", "not-assessed"}
 INVENTORY_FIELDS = {"review_status", "availability", "review_date", "finding", "evidence", "sources"}
 SOURCE_FIELDS = {"inventory_id", "name", "authority", "dataset_type", "layer_id", "approved_public_links", "review_date", "monitoring_decision", "evidence"}
+SOURCE_OPTIONAL_FIELDS = {"monitored_source_id", "geometry_type", "file_type"}
 
 
 def _date(value: object) -> bool:
@@ -83,8 +84,11 @@ def _validate_inventory(record: dict) -> None:
         if not isinstance(sources, list) or (available == "yes" and not sources) or (available != "yes" and sources):
             raise ValueError("Inventory availability must match sources")
         for source in sources:
-            if not isinstance(source, dict) or set(source) not in (SOURCE_FIELDS, SOURCE_FIELDS | {"monitored_source_id"}):
+            if not isinstance(source, dict) or not SOURCE_FIELDS <= set(source) <= SOURCE_FIELDS | SOURCE_OPTIONAL_FIELDS:
                 raise ValueError("Invalid static source fields")
+            for key, validate in (("geometry_type", safe_geometry_type), ("file_type", safe_file_type)):
+                if source.get(key) is not None and validate(source[key]) is None:
+                    raise ValueError("Invalid stable source " + key)
             for key in ("inventory_id", "name", "dataset_type"):
                 if not isinstance(source[key], str) or not source[key].strip():
                     raise ValueError("Source identity, name and type required")

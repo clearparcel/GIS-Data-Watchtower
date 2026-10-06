@@ -27,6 +27,39 @@ def research_fixture():
 
 
 class ParcelAccessSchemaTests(unittest.TestCase):
+    def test_optional_stable_metadata_is_typed_and_old_inventory_compatible(self):
+        path = Path(__file__).parents[1] / 'clearparcel/datawatch/minnesota_county_parcel_access.json'
+        raw = json.loads(path.read_text(encoding='utf-8'))
+        for record in raw['counties']:
+            for category in record['source_inventory'].values():
+                for source in category['sources']:
+                    source.pop('geometry_type', None)
+                    source.pop('file_type', None)
+        validate_parcel_access(raw)
+        source = next(r for r in raw['counties'] if r['county'] == 'Dodge')['source_inventory']['county_download']['sources'][0]
+        source.update(geometry_type='esriGeometryPolygon', file_type='application/zip')
+        validate_parcel_access(raw)
+        for key, bad in (('geometry_type', 'Polygon'), ('geometry_type', ['esriGeometryPolygon']),
+                         ('geometry_type', {'raw': 'esriGeometryPolygon'}), ('geometry_type', 1),
+                         ('file_type', 'ZIP'), ('file_type', 'application/zip\n'),
+                         ('file_type', {'type': 'application/zip'}), ('file_type', ['application/zip'])):
+            with self.subTest(key=key, value=bad):
+                changed = copy.deepcopy(raw)
+                entry = next(r for r in changed['counties'] if r['county'] == 'Dodge')['source_inventory']['county_download']['sources'][0]
+                entry[key] = bad
+                with self.assertRaises(ValueError):
+                    validate_parcel_access(changed)
+        source.update(geometry_type=None, file_type=None)
+        validate_parcel_access(raw)
+        for key in ('feature_count', 'health', 'checked_at', 'last_success_at', 'editing_info',
+                    'tracked_values', 'fingerprint', 'file'):
+            with self.subTest(forbidden=key):
+                changed = copy.deepcopy(raw)
+                entry = next(r for r in changed['counties'] if r['county'] == 'Dodge')['source_inventory']['county_download']['sources'][0]
+                entry[key] = 'runtime-only'
+                with self.assertRaises(ValueError):
+                    validate_parcel_access(changed)
+
     def test_swift_yellow_medicine_fee_exemption_holds_and_products(self):
         records = load_parcel_access()
         names = ('Swift', 'Traverse', 'Wabasha', 'Waseca', 'Washington', 'Wilkin', 'Wright', 'Yellow Medicine')

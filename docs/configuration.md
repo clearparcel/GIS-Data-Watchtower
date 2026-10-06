@@ -132,11 +132,26 @@ broader category review remains pending.
 Each source contains `inventory_id`, `name`, `authority`, `dataset_type`,
 `layer_id` (nullable), `approved_public_links` (`{label, href}` objects),
 `review_date`, `monitoring_decision` and `evidence` references. Optional
+`geometry_type` and `file_type` retain evidenced stable product facts. Geometry uses
+recognized ArcGIS geometry names; file type is a validated MIME scalar for an
+explicitly offered file. Both may be omitted or null. File Geodatabase/Shapefile
+advertisement alone does not establish a MIME type or archive contents. Safe live
+metadata takes precedence, with validated evidence used only when it lacks a value.
+Profile interfaces remain unchanged (`geometry_type` and `file.type`). Optional
 `monitored_source_id` joins an already monitored aggregate source; discovery
 never activates monitoring. Approved links pass the shared offline
 `safe_public_url` check, which rejects credentials, private/local hosts and
 sensitive query parameters. Static category and source fields are allowlisted:
-live counts, health, checks and worker telemetry belong in aggregate state.
+live counts, health, headers, provider edit/check/success dates, fingerprints and
+worker telemetry belong in aggregate state.
+
+Repository acquisition/refresh dates require a safe, exact catalog `data_url`
+match to an evidence-backed approved product reference (a dataset/item, selected
+REST layer or offered archive), unique among that county's repository products.
+Generic county/Hub/search links and ambiguous shared references cannot join dates.
+Unmatched repository dates remain null; county contribution dates for the observed
+statewide source retain their separate county-catalog association. Catalog checks,
+health and counts never become repository dataset observations.
 
 Migration retains all 35 existing direct-access findings and four terms holds.
 The other 52 counties are seeded using existing official county contact URLs,

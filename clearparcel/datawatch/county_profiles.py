@@ -3,11 +3,14 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import re
 from dataclasses import dataclass
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from .parcel_access import INVENTORY_CATEGORIES
-from .public_values import public_access_classification, safe_public_url, provider_edit_timestamp, sanitize_source_metadata
+from .public_values import (public_access_classification, safe_public_url, provider_edit_timestamp,
+                            sanitize_source_metadata, safe_geometry_type, safe_file_type)
 
 
 @dataclass(frozen=True)
@@ -68,13 +71,15 @@ def _source(item, observed, sid, state, now, policy, *, count=None, basis=None, 
         count = None
         basis = None
     catalog = catalog or {}
-    file = metadata.get('file') or {}
+    file = dict(metadata.get('file') or {})
+    if 'type' not in file:
+        file['type'] = safe_file_type(item.get('file_type'))
     return {
         'inventory_id': item.get('inventory_id'), 'monitored_source_id': sid,
         'name': item.get('name') or observed.get('name'), 'authority': item.get('authority'),
         'dataset_type': item.get('dataset_type'), 'layer_id': item.get('layer_id'),
         'approved_public_links': _links(item.get('approved_public_links') or []),
-        'geometry_type': metadata.get('geometry_type'), 'feature_count': count, 'feature_count_basis': basis,
+        'geometry_type': metadata.get('geometry_type') or safe_geometry_type(item.get('geometry_type')), 'feature_count': count, 'feature_count_basis': basis,
         'provider_updated_at': metadata.get('provider_updated_at'),
         'county_acquired_at': provider_edit_timestamp(catalog.get('acqdate')),
         'catalog_refreshed_at': provider_edit_timestamp(catalog.get('rundate')),
@@ -84,6 +89,23 @@ def _source(item, observed, sid, state, now, policy, *, count=None, basis=None, 
         'monitoring_decision': item.get('monitoring_decision'),
         'file': {key: file.get(key) for key in ('type', 'size_bytes', 'etag', 'last_modified')},
     }
+
+
+def _catalog_product_match(item: dict, catalog: dict) -> bool:
+    """Require an exact vetted product reference; county/portal links cannot join dates."""
+    url = safe_public_url(catalog.get('data_url'))
+    if not url or url not in item.get('evidence', []) or not any(
+            link['href'] == url for link in _links(item.get('approved_public_links') or [])):
+        return False
+    path = urlsplit(url).path.rstrip('/')
+    # Deliberately conservative: generic roots, search pages and service roots
+    # identify neither a distinct dataset nor a selected layer.
+    return bool(re.search(r'/rest/services/.+/(?:FeatureServer|MapServer)/[0-9]+$', path)
+        or re.search(r'/sharing/rest/content/items/[a-fA-F0-9]{32}$', path)
+        or re.search(r'/datasets/(?:[a-fA-F0-9]{32}(?:_[0-9]+)?|[^/]+::[^/]+)(?:/about)?$', path)
+        or re.search(r'/maps/[a-fA-F0-9]{32}(?:/about)?$', path)
+        or re.search(r'/dataset/(?!search$)[^/]+$', path)
+        or re.search(r'/[^/]+\.(?:zip|gpkg|fgdb|gdb)$', path, re.IGNORECASE))
 
 
 def compose_county_profiles(state: dict, research: dict[str, dict], *, now: dt.datetime,
@@ -111,12 +133,15 @@ def compose_county_profiles(state: dict, research: dict[str, dict], *, now: dt.d
         for category in INVENTORY_CATEGORIES:
             static = inventory.get(category) or {}
             composed = []
+            catalog = catalog_records.get(name) or {}
+            matched = [item for item in static.get('sources') or []
+                       if category == 'mngeo_public_repository' and _catalog_product_match(item, catalog)]
             for item in static.get('sources') or []:
                 sid = item.get('monitored_source_id') or item.get('inventory_id')
                 observed = direct.get(sid) if category in ('county_arcgis_rest', 'county_download', 'mngeo_public_repository') else None
                 composed.append(_source(item, observed, sid if observed else item.get('monitored_source_id'),
                                         state, now, freshness_policy,
-                                        catalog=catalog_records.get(name) if category == 'mngeo_public_repository' else None))
+                                        catalog=catalog if len(matched) == 1 and item is matched[0] else None))
             categories[category] = {'availability': static.get('availability', 'unknown'),
                                     'review_status': static.get('review_status', 'pending'), 'sources': composed}
         # A missing statewide observation cannot confirm historical membership.
