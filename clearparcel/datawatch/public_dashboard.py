@@ -513,6 +513,14 @@ class _PublicStateCache:
             self._last_refresh = now
 
 
+def _public_request_timeout_seconds() -> int:
+    try:
+        value = int(os.environ.get("WATCHTOWER_PUBLIC_REQUEST_TIMEOUT_SECONDS", "10"))
+    except (TypeError, ValueError):
+        value = 10
+    return max(2, min(value, 60))
+
+
 def serve_public(host: str = "0.0.0.0", port: int = 8080) -> None:
     cache = _PublicStateCache()
     cache.refresh(force=True)
@@ -629,7 +637,7 @@ def serve_public(host: str = "0.0.0.0", port: int = 8080) -> None:
         def log_message(self, format, *args):
             return
 
-    server = _BoundedThreadingHTTPServer((host, port), Handler, max_connections=max_connections)
+    server = _BoundedThreadingHTTPServer((host, port), Handler, max_connections=max_connections, request_timeout=_public_request_timeout_seconds())
     print(f"GIS Data Watchtower public dashboard: http://{host}:{port}")
     try:
         server.serve_forever()

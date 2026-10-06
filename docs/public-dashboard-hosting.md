@@ -88,3 +88,7 @@ The public dashboard refreshes its local aggregate cache on a bounded interval (
 - Keep load-balancer request logging enabled and use the one-minute HTTPS `/healthz` check plus availability/5xx alerting for the public serving path. Each published snapshot carries `public_published_at`; `/healthz` returns 503 when the production snapshot is more than 30 minutes old, so missed publication cycles are externally detectable.
 - Preserve the sanitized-state regression tests before deployment.
 - Treat any addition to the public state schema as a security-sensitive change.
+
+## Public request socket limits
+
+The public server limits concurrent handlers and gives each accepted connection an idle socket timeout plus an absolute socket deadline. `WATCHTOWER_PUBLIC_REQUEST_TIMEOUT_SECONDS` defaults to 10 seconds, is bounded to 2–60 seconds, and falls back to 10 for malformed values. The absolute deadline interrupts incomplete or trickling request headers and blocking response writes, releasing the connection slot after the handler unwinds. Timers are cancelled and joined on completion. This does not cancel application computation; keep load-balancer limits as well. These are repository implementation controls, not a claim that a production service has been redeployed.

@@ -19,6 +19,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 from clearparcel.datawatch.watch import check_sources, load_history, load_state
+from clearparcel.datawatch.transport import RequestDeadline
 from clearparcel.datawatch.aggregate import with_freshness
 from clearparcel.datawatch.parcel_access import access_label, load_parcel_access, statewide_access_label
 from clearparcel.datawatch.county_profile_panel import render_county_profile_panel, render_county_profile_body, percentage_legend, percentage_color_js, profile_time, PERCENT_COLORS, NO_DATA_COLOR
@@ -1805,7 +1806,8 @@ class _BoundedThreadingHTTPServer(ThreadingHTTPServer):
     daemon_threads = True
     request_queue_size = 64
 
-    def __init__(self, server_address, handler_cls, *, max_connections: int = 32):
+    def __init__(self, server_address, handler_cls, *, max_connections: int = 32, request_timeout: float | None = None):
+        self._request_timeout = request_timeout
         self._connection_slots = threading.BoundedSemaphore(max(1, int(max_connections)))
         super().__init__(server_address, handler_cls)
 
@@ -1827,9 +1829,15 @@ class _BoundedThreadingHTTPServer(ThreadingHTTPServer):
             raise
 
     def process_request_thread(self, request, client_address):
+        deadline = None
         try:
+            if self._request_timeout is not None:
+                deadline = RequestDeadline(self._request_timeout)
+                deadline.attach(request)
             super().process_request_thread(request, client_address)
         finally:
+            if deadline is not None:
+                deadline.close()
             self._connection_slots.release()
 
 

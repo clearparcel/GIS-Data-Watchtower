@@ -758,14 +758,14 @@ class DataWatchTests(unittest.TestCase):
             self.assertEqual(report['sources']['good']['status'], 'ok')
 
     def test_security_redirect_policy_rejects_private_and_allows_public(self):
-        with patch.object(datawatch, '_destination_publicity', side_effect=lambda url: False if '127.0.0.1' in url else True):
+        with patch.object(datawatch, 'resolve_addresses', side_effect=lambda host, port, deadline: ((2, 1, 6, '', (host if host == '127.0.0.1' else '93.184.216.34', port)),)):
             with self.assertRaisesRegex(RuntimeError, 'redirect rejected'):
                 datawatch._validated_redirect('https://provider.example/a', 'http://127.0.0.1/admin', 'https://provider.example/a')
             self.assertEqual(
                 datawatch._validated_redirect('https://provider.example/a', 'https://cdn.example/b', 'https://provider.example/a'),
                 'https://cdn.example/b',
             )
-        with patch.dict(os.environ, {'WATCHTOWER_REDIRECT_ALLOW_HOSTS': 'internal.example'}):
+        with patch.dict(os.environ, {'WATCHTOWER_REDIRECT_ALLOW_HOSTS': 'internal.example'}), patch.object(datawatch, 'resolve_addresses', return_value=((2, 1, 6, '', ('127.0.0.1', 443)),)):
             self.assertEqual(
                 datawatch._validated_redirect('https://provider.example/a', 'https://internal.example/b', 'https://provider.example/a'),
                 'https://internal.example/b',
@@ -1009,9 +1009,7 @@ class DataWatchTests(unittest.TestCase):
 
     def test_redirect_policy_rejects_private_and_metadata_destinations(self):
         from unittest.mock import patch
-        def publicity(url):
-            return False if ('127.0.0.1' in url or 'metadata.google.internal' in url) else True
-        with patch.object(datawatch, '_destination_publicity', side_effect=publicity):
+        with patch.object(datawatch, 'resolve_addresses', side_effect=lambda host, port, deadline: ((2, 1, 6, '', ('127.0.0.1' if host in ('127.0.0.1', 'metadata.google.internal') else '93.184.216.34', port)),)):
             with self.assertRaisesRegex(RuntimeError, 'redirect rejected'):
                 datawatch._validated_redirect('https://provider.example/a', 'http://127.0.0.1/admin', 'https://provider.example/a')
             with self.assertRaisesRegex(RuntimeError, 'redirect rejected'):
@@ -1308,7 +1306,7 @@ class DataWatchTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, 'requires CLEARPARCEL_WATCHTOWER_DASHBOARD_PASSWORD'):
                 datawatch_dashboard._dashboard_auth({'public_dashboard': {'internet_exposure': False}}, '0.0.0.0')
 
-    def test_county_status_uses_explicit_slug_not_substring(self):
+    def test_county_status_uses_explicit_slug_not_substring_additional_fixture(self):
         state = {'sources': {'lake': {'name': 'Lake County Parcels', 'category': 'Parcels', 'county_slug': 'lake', 'status': 'ok'}, 'red-lake': {'name': 'Red Lake County Parcels', 'category': 'Parcels', 'county_slug': 'red-lake', 'status': 'ok'}}}
         lake = datawatch_dashboard._county_status({}, {'name': 'Lake', 'slug': 'lake'}, state)
         red = datawatch_dashboard._county_status({}, {'name': 'Red Lake', 'slug': 'red-lake'}, state)

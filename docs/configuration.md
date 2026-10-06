@@ -8,7 +8,7 @@ Start from `config/example_sources.json`. The public example is deliberately pro
 
 | Key | Purpose | Default |
 | --- | --- | --- |
-| `timeout_seconds` | Default timeout for one provider request/check | `20` |
+| `timeout_seconds` | Overall wall-clock budget for one provider HTTP request, including redirects/fallback | `20` |
 | `retries` | Provider-aware source retry count | `1` |
 | `retry_delay_seconds` | Delay between retryable source attempts | `1` |
 | `state_file` | Current saved state | required by normal checks |
@@ -105,7 +105,10 @@ GCS support requires the `gcs` package extra.
 
 - `WATCHTOWER_MAX_RESPONSE_BYTES` — response budget; 16 MiB default, hard-capped at 128 MiB.
 - `WATCHTOWER_MAX_REDIRECTS` — bounded redirect count. Keep at the default unless redirects are operationally required.
-- `WATCHTOWER_REDIRECT_ALLOW_HOSTS` — comma-separated explicit host allowlist for cross-host redirects that would otherwise be rejected.
+- `WATCHTOWER_REDIRECT_ALLOW_HOSTS` — comma-separated explicit host allowlist for any redirected host that would otherwise be rejected, including private same-host hops.
+- `WATCHTOWER_PUBLIC_REQUEST_TIMEOUT_SECONDS` — anonymous public server idle socket timeout and absolute accepted-connection socket deadline; 10 seconds default, bounded to 2–60; malformed values use the default.
+
+Enabled redirects bind urllib/curl connections to captured validated addresses and preserve Host/TLS hostname checks. Effective proxies reject redirected requests before dispatch because the proxy cannot enforce the binding. Initial operator URLs/proxy use remain supported; non-allowlisted redirect destinations must resolve exclusively public. Pinned curl hops ignore local curl configuration. Provider request deadlines also bound DNS caller waits; native DNS calls may continue in up to eight daemon workers, retaining capacity until completion. Resolver saturation fails closed. HTTP 429 stops remaining optional checks and retries for that source.
 
 Do not use the redirect allowlist to bypass provider access controls or to authorize cloud metadata, loopback, link-local, private, or other privileged endpoints without a deliberate network-boundary review.
 
