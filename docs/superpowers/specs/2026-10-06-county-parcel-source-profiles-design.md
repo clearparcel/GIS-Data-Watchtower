@@ -281,6 +281,6 @@ production UI/service/data/configuration unchanged, and authoritative provider
 scheduling disabled. Existing St. Louis optional QA fail-soft behavior remains.
 
 Tasks 1–6 have implemented and reviewed the schema, expanded evidence inventory,
-composition, safe metadata, shared panel and exports. Task 7 validates locally;
-Task 8 preview deployment and independent final review remain pending.
+composition, safe metadata, shared panel and exports. Task 7 passed local acceptance and review;
+Task 8 preview revision `00003-xzg` passed live validation; independent final review and private temporary cleanup remain pending.
 Implementation and research do not grant new provider authorization.

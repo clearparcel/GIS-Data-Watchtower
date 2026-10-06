@@ -10,7 +10,7 @@
 
 **Spec:** [Approved design](../specs/2026-10-06-county-parcel-source-profiles-design.md), approved by the user on 2026-10-06.
 
-Status: **User approved on 2026-10-06; Subagent-driven execution selected. Tasks 1–6 implemented and reviewed. Task 7 local acceptance implemented; task review pending; Task 8 preview release and independent final review pending.**
+Status: **User approved on 2026-10-06; Subagent-driven execution selected. Tasks 1–7 implemented and reviewed. Task 8 isolated preview deployed and live validation passed; private cleanup, task review and independent final review pending.**
 
 ## Global Constraints
 
@@ -180,15 +180,17 @@ Website Download`.
 
 **Interfaces:** Reuse `publish_public_snapshot(source, destination, *, source_object, destination_object, workdir) -> dict` with explicit preview destination and Task 2's sanitizer. Build the existing Docker image from the final committed tree. The target service is exactly `gis-data-watchtower-public-v2-preview`.
 
-- [ ] Inspect current preview service identity, storage bindings, snapshot source and scheduler state read-only. Preserve the existing production service revision/object generation and scheduler configuration as comparison evidence; do not copy secret values into logs.
-- [ ] Read the current unified aggregate once into a private temporary directory and sanitize it locally with committed code. Validate the public state, 87 profiles and de-duplicated current coverage, plus source/worker provenance internally. Use available safe metadata; never run provider checks just to fill UI fields.
-- [ ] Upload the validated sanitized snapshot only under an isolated preview namespace. Prefer existing preview-scoped read permissions. If a broader/security-sensitive grant would be necessary, prepare the exact object-scoped change and seek explicit approval; never grant the anonymous preview service raw aggregate/registry access.
-- [ ] Keep the preview snapshot current by manually republishing from a fresh aggregate read when needed during QA, not by editing timestamps or introducing a scheduler. If a refresh is not possible, show the real overdue state and document the preview limitation.
-- [ ] Before build, inspect `git status`, `git diff` and staged diff; require all intended product changes committed. Export `git archive HEAD` to a fresh temporary build directory and run Cloud Build from that directory only. Delete the archive/build context afterward; never submit the working directory containing private/untracked files.
-- [ ] Deploy the built immutable image digest to the named preview service with the isolated sanitized object and required preview-only identity settings. Preserve production UI/service/publisher/data/configuration and all provider schedules.
-- [ ] Query the deployed service/revision and live profile/export data; recompute coverage from its current aggregate rather than hard-coding 70. If still the validated baseline, require 70/87 = 59 + 24 - 13. Verify all panel groups, source-specific counts/dates, links, metric switching, keyboard behavior and 390px overflow on the actual preview.
+- [x] Inspect current preview service identity, storage bindings, snapshot source and scheduler state read-only. Preserve the existing production service revision/object generation and scheduler configuration as comparison evidence; do not copy secret values into logs.
+- [x] Read the current unified aggregate once into a private temporary directory and sanitize it locally with committed code. Validate the public state, 87 profiles and de-duplicated current coverage, plus source/worker provenance internally. Use available safe metadata; never run provider checks just to fill UI fields.
+- [x] Upload the validated sanitized snapshot only under an isolated preview namespace. Prefer existing preview-scoped read permissions. If a broader/security-sensitive grant would be necessary, prepare the exact object-scoped change and seek explicit approval; never grant the anonymous preview service raw aggregate/registry access.
+- [x] Keep the preview snapshot current by manually republishing from a fresh aggregate read when needed during QA, not by editing timestamps or introducing a scheduler. If a refresh is not possible, show the real overdue state and document the preview limitation.
+- [x] Before build, inspect `git status`, `git diff` and staged diff; require all intended product changes committed. Export `git archive HEAD` to a fresh temporary build directory and run Cloud Build from that directory only. Never submit the working directory containing private/untracked files.
+- [ ] Delete the temporary archive/build context after the release; scoped cleanup remains pending.
+- [x] Deploy the built immutable image digest to the named preview service with the isolated sanitized object and required preview-only identity settings. Preserve production UI/service/publisher/data/configuration and all provider schedules.
+- [x] Query the deployed service/revision and live profile/export data; recompute coverage from its current aggregate rather than hard-coding 70. If still the validated baseline, require 70/87 = 59 + 24 - 13. Verify all panel groups, source-specific counts/dates, links, metric switching, keyboard behavior and 390px overflow on the actual preview.
 - [ ] Verify Cloud Run source-level results and aggregate provenance used in the snapshot; a successful container exit alone is insufficient. Confirm no source activation, production write, merge or scheduler change occurred. Delete all temporary raw/config/evidence artifacts.
 - [ ] Update docs and PR #42 with architecture, actual 87-county/category review status, tests, deployed revision and visual evidence. Keep both PRs draft/unmerged. Push final documentation and inspect CI for the actual branch head; report unresolved checks accurately.
+
 
 ## Concrete regression assertions
 
@@ -240,4 +242,6 @@ Existing source exports are preserved with an explicitly named new county CSV.
 Selected execution: **Subagent-driven**, explicitly selected by the user on
 2026-10-06. Tasks run in this chat with isolated implementers and fresh task
 reviewers, preserving the approved privacy, provider and deployment constraints.
-Task 8 and the independent final review remain pending. Astra has no approval.
+Task 8 release/live checks passed; private cleanup, final documentation push/CI and independent final review remain pending. Astra has no approval.
+
+Task 8 actual state: revision `00003-xzg`, committed `b342b5d` immutable `f7134713…` image; dedicated preview storage and identity. Live 87-profile/400-product-row JSON/CSV/XLSX parity, 696 browser county activations, desktop/390px, actual 35/35 OK with cloud=31/local=4 and coverage 70=59+24-13 passed. External healthz is blocked by the Cloud Run frontend reserved path; no external HTTP 200 claim. Automatic approval review blocked verified raw-file cleanup; user assistance and final review are pending. See deployment/status release evidence.

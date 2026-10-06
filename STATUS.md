@@ -7,9 +7,9 @@ GIS Data Watchtower is public, MIT-licensed, and supports local, cloud, and hybr
 County profiles now compose all 87 canonical counties from one observation snapshot and the evidence inventory. Coverage counts include only parcel observations, deduplicate statewide/direct overlap, and preserve unknown counts, source health, and reporting freshness separately. Category research remains explicitly incomplete until reviewed.
 
 
-Overview and MN GAC maps now open one complete county source dialog for every canonical county. Overview offers monitoring-path and completeness coloring; both maps share fixed percentage colors and a separate no-data class. The dialog pauses page refresh, preserves date-only evidence, and displays unknown values explicitly. Browser/mobile acceptance and preview deployment remain pending.
+Overview and MN GAC maps now open one complete county source dialog for every canonical county. Overview offers monitoring-path and completeness coloring; both maps share fixed percentage colors and a separate no-data class. The dialog pauses page refresh, preserves date-only evidence, and displays unknown values explicitly. Local and live preview browser/mobile acceptance passed; final review remains pending.
 
-County JSON snapshots now include the composed parcel source profile. Statewide county/category CSV routes and the added County Access/Parcel Sources workbook sheets retain all 87 counties and unavailable values; the legacy monitored-source CSV remains compatible. Export regression and full unit validation passed; preview deployment remains pending.
+County JSON snapshots now include the composed parcel source profile. Statewide county/category CSV routes and the added County Access/Parcel Sources workbook sheets retain all 87 counties and unavailable values; the legacy monitored-source CSV remains compatible. Export regression, full unit validation and isolated preview deployment passed; final review remains pending.
 
 ## Validated capabilities
 
@@ -120,8 +120,24 @@ All 87 counties were attempted; 216 categories are reviewed, 132 blocked and zer
 pending. County-direct classifications remain 82 resolved (58 free, 13 fee-based,
 11 viewer-only), five unresolved, and 11 research holds. Runtime monitoring
 coverage continues to be derived from the supplied current aggregate; these local
-fixtures do not establish new live coverage. Preview release and independent final
-review remain pending; no production or provider scheduling changes occurred.
+fixtures do not establish new live coverage. The live release below establishes
+current preview coverage; independent final review remains pending.
 
 Required validation: 186 unittest tests passed with ResourceWarning treated as an
-error; compileall and `git diff --check` passed. Preview acceptance remains pending.
+error; compileall and `git diff --check` passed. Live acceptance is recorded below.
+
+## Isolated county-profile preview release (2026-10-06)
+
+Preview revision `00003-xzg` serves committed `b342b5d` using an immutable image,
+dedicated private preview bucket and exact-object reader identity. Live validation
+passed 87 JSON/CSV/XLSX profiles, 400 category/product rows, 35 legacy sources,
+696 county panel activations, desktop/390px layouts and keyboard behavior.
+Source results are 35/35 OK, cloud=31/local=4; current coverage derives to
+70/87 = 59 statewide + 24 direct - 13 overlap. All research totals/holds remain.
+Publication `2026-10-06T17:15:59.241555+00:00` is manually generated from the
+actual aggregate; no preview scheduler or provider polling was introduced.
+External `/healthz` returns a Google frontend 404, consistent with reserved paths;
+external HTTP 200 health is not claimed. Production services/configuration are unchanged.
+Required validation: 186 tests, compileall and diff checks passed. Private temporary cleanup,
+final documentation push/CI and independent final review remain pending.
+See [resource isolation, validation and limitations](docs/google-cloud-deployment.md#isolated-county-profile-preview-release-2026-10-06).
