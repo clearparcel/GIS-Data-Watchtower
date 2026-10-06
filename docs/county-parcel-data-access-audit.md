@@ -744,3 +744,24 @@ dates retain their separate catalog association. Catalog checks, counts and heal
 are never borrowed as dataset observations. Regression tests cover two products in
 one county, shared generic links, separate native/regional identities, safe live
 precedence and unknown operational facts for unmonitored products.
+
+
+## Local profile/browser acceptance (2026-10-06)
+
+All 87 county profiles were exercised through both maps with actual Chrome
+Browser/CUA keyboard interactions in a sanitized local fixture; representative
+pointer clicks opened Brown and Winona. All summary modes and three representative
+MN GAC field selections retained the full four groups. Desktop and 390px layout,
+long source/evidence values, focus containment/return, internal scrolling and
+refresh pause/resume passed. CSV and decoded Excel cells matched across all county
+and source rows, and all county JSON detail profiles matched the statewide JSON.
+These synthetic observations validate behavior, not new provider observations or
+live coverage. No external county archives or download endpoints were opened.
+
+The dashboard now labels its conservative derived result as 15 complete county
+profiles; 16 inventories have all four category reviews complete, with Aitkin's
+county-direct assessment still unresolved. Publication reporting is independently
+labeled Current/Overdue/Unknown using the publication health threshold; an overdue
+publication fails `/healthz` without removing county profiles or altering source
+check times. Task 8 preview release and final review remain pending. The historical
+Benton unsupported archive-open incident above remains part of the audit.

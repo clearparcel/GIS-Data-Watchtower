@@ -1,6 +1,6 @@
 # Minnesota county parcel-source profiles
 
-Date: 2026-10-06. Status: **User approved on 2026-10-06; implementation-plan review pending.**
+Date: 2026-10-06. Status: **User approved on 2026-10-06; approved plan executing with Subagent-driven method.**
 
 ## Intent and scope
 
@@ -15,7 +15,7 @@ This design defines the requested schema and regression contract before UI work.
 The requested Superpowers architectural workflow requires review of the written
 design and then the implementation plan before product implementation.
 
-## Verified diagnosis
+## Historical preimplementation diagnosis
 
 The authoritative GERTKEN-PC checkout is clean on `feat/parcel-access-audit`
 at `5b6345112505cdd39ef739f412a6b78ec6da3448`, matching its remote-tracking branch.
@@ -280,6 +280,7 @@ validation and preview evidence. PRs #39/#42 remain unmerged, `main` untouched,
 production UI/service/data/configuration unchanged, and authoritative provider
 scheduling disabled. Existing St. Louis optional QA fail-soft behavior remains.
 
-Implementation, expanded research, tests and preview deployment remain pending
-implementation-plan review; this document records no completed
-implementation or new provider authorization.
+Tasks 1–6 have implemented and reviewed the schema, expanded evidence inventory,
+composition, safe metadata, shared panel and exports. Task 7 validates locally;
+Task 8 preview deployment and independent final review remain pending.
+Implementation and research do not grant new provider authorization.

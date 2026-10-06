@@ -194,6 +194,11 @@ def sanitize_public_render_state(state: dict) -> dict:
     return public
 
 
+def _publication_max_age_seconds() -> int:
+    """Use one bounded publication threshold for the view and health endpoint."""
+    return max(60, min(int(os.environ.get("WATCHTOWER_PUBLIC_MAX_PUBLICATION_AGE_SECONDS", "1800")), 86400))
+
+
 def _publication_health(state: dict, *, max_age_seconds: int, now: dt.datetime | None = None) -> tuple[bool, dict]:
     stamp = str(state.get("public_published_at") or "").strip()
     if not stamp:
@@ -261,6 +266,8 @@ def render_public_dashboard(config: dict) -> str:
     issues = int(counts.get("warn") or 0) + int(counts.get("error") or 0)
     changed = sum(1 for source in sources.values() if int(source.get("change_count") or 0) > 0)
     published_at = state.get("public_published_at")
+    publication_healthy, publication_health = _publication_health(state, max_age_seconds=_publication_max_age_seconds())
+    publication_reporting = "Current" if publication_healthy else "Overdue" if publication_health.get("reason") == "publication_too_old" else "Unknown"
     checked_at = state.get("generated_at")
     covered = int((mngac or {}).get("covered_counties") or 0)
     profiles = _county_profiles(config, state, load_parcel_access())
@@ -352,10 +359,10 @@ def render_public_dashboard(config: dict) -> str:
   </div>
 </div>
 
-<div class="card"><h3>Parcel source research</h3><p>{research_count}/{len(profiles)} complete county inventories. Blocked and unresolved evidence remains Research incomplete.</p></div>
+<div class="card"><h3>Parcel source research</h3><p>{research_count}/{len(profiles)} complete county profiles. Blocked and unresolved evidence remains Research incomplete.</p></div>
 <div class="section-head"><div><h2>Latest Watchtower activity</h2><p>Public monitoring results, separated from internal provider diagnostics.</p></div></div>
 <div class="activity-strip">
-  <div class="card"><div class="muted">Latest public publication</div><div class="metric">{_esc(_public_age(published_at))}</div><span class="subtext">{_esc(_public_time(published_at))}</span></div>
+  <div class="card"><div class="muted">Latest public publication</div><div class="metric">{_esc(_public_age(published_at))}</div><span class="subtext">{_esc(_public_time(published_at))}</span><p>Public publication reporting: {_esc(publication_reporting)}</p></div>
   <div class="card"><div class="muted">Latest source observation</div><div class="metric">{_esc(_public_age(checked_at))}</div><span class="subtext">{_esc(_public_time(checked_at))} · {changed} source(s) changed</span></div>
 </div>
 
@@ -519,7 +526,7 @@ def serve_public(host: str = "0.0.0.0", port: int = 8080) -> None:
     cache = _PublicStateCache()
     cache.refresh(force=True)
     max_connections = max(1, min(int(os.environ.get("WATCHTOWER_PUBLIC_MAX_CONNECTIONS", "64")), 256))
-    max_publication_age_seconds = max(60, min(int(os.environ.get("WATCHTOWER_PUBLIC_MAX_PUBLICATION_AGE_SECONDS", "1800")), 86400))
+    max_publication_age_seconds = _publication_max_age_seconds()
 
     class Handler(BaseHTTPRequestHandler):
         def _send(self, status: int, content: str, content_type: str = "text/html; charset=utf-8"):

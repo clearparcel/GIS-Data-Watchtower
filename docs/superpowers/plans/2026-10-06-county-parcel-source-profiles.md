@@ -10,7 +10,7 @@
 
 **Spec:** [Approved design](../specs/2026-10-06-county-parcel-source-profiles-design.md), approved by the user on 2026-10-06.
 
-Status: **Ready for user review; execution method has not been selected.**
+Status: **User approved on 2026-10-06; Subagent-driven execution selected. Tasks 1–6 implemented and reviewed. Task 7 local acceptance implemented; task review pending; Task 8 preview release and independent final review pending.**
 
 ## Global Constraints
 
@@ -66,13 +66,13 @@ identities from `minnesota_counties.json` in the composer; the file contains a
 
 **Interfaces:** Retain `validate_parcel_access(data: dict) -> None` and `load_parcel_access(path: Path | None = None) -> dict[str, dict]`. Add `migrate_parcel_access(data: dict, county_index: list[dict], official_urls: dict[str, str]) -> dict`, `public_access_classification(record: dict | None) -> str`, and `safe_public_url(value: object) -> str | None` in `public_values.py`.
 
-- [ ] Write `test_v3_requires_exactly_87_canonical_counties`: deleting a county, duplicating a canonical name or adding an unknown name raises `ValueError`; valid v3 has exactly 87 entries. Keep sparse v2 test fixtures accepted for compatibility.
-- [ ] Write `test_inventory_categories_are_independent`: one REST entry leaves download/repository availability unknown; a reviewed absence requires review date, finding and official evidence references. Reject volatile count/health/check fields in static inventory.
-- [ ] Write `test_migration_preserves_evidence_without_inventing_reviews`: retain the original 35 counties' fee/terms/evidence and detailed conclusions; add 52 explicitly incomplete records. Preserve legacy `research_complete` as county-direct access review; composed overall completion additionally requires all four inventory reviews.
-- [ ] Write classification/link tests: supported free access becomes `OPEN`, dataset fee becomes `FEE BASED`, viewer-only and incomplete review become `AMBIGUOUS`; username/password, local/private IP hosts, localhost/internal names and credential/token query parameters return no public link.
-- [ ] Run `python -m unittest discover -s tests -p test_parcel_access.py -q`; verify new v3 assertions fail before changing implementation.
-- [ ] Implement `source_inventory` with the four approved keys, each containing `review_status`, `availability`, `review_date`, `evidence` references and `sources`; add `comments`. A source stores inventory ID, name, authority, type, layer ID, approved links, evidence references, monitoring decision and optional existing aggregate source ID. Preserve existing fields; only supported evidence determines migrated category findings.
-- [ ] Run the targeted suite, validate the migrated repository file with `load_parcel_access()`, and commit `Define evidence-backed 87-county parcel inventory schema` after staged privacy/diff inspection.
+- [x] Write `test_v3_requires_exactly_87_canonical_counties`: deleting a county, duplicating a canonical name or adding an unknown name raises `ValueError`; valid v3 has exactly 87 entries. Keep sparse v2 test fixtures accepted for compatibility.
+- [x] Write `test_inventory_categories_are_independent`: one REST entry leaves download/repository availability unknown; a reviewed absence requires review date, finding and official evidence references. Reject volatile count/health/check fields in static inventory.
+- [x] Write `test_migration_preserves_evidence_without_inventing_reviews`: retain the original 35 counties' fee/terms/evidence and detailed conclusions; add 52 explicitly incomplete records. Preserve legacy `research_complete` as county-direct access review; composed overall completion additionally requires all four inventory reviews.
+- [x] Write classification/link tests: supported free access becomes `OPEN`, dataset fee becomes `FEE BASED`, viewer-only and incomplete review become `AMBIGUOUS`; username/password, local/private IP hosts, localhost/internal names and credential/token query parameters return no public link.
+- [x] Run `python -m unittest discover -s tests -p test_parcel_access.py -q`; verify new v3 assertions fail before changing implementation.
+- [x] Implement `source_inventory` with the four approved keys, each containing `review_status`, `availability`, `review_date`, `evidence` references and `sources`; add `comments`. A source stores inventory ID, name, authority, type, layer ID, approved links, evidence references, monitoring decision and optional existing aggregate source ID. Preserve existing fields; only supported evidence determines migrated category findings.
+- [x] Run the targeted suite, validate the migrated repository file with `load_parcel_access()`, and commit `Define evidence-backed 87-county parcel inventory schema` after staged privacy/diff inspection.
 
 ### Task 2: Preserve only safe source metadata through both sanitization passes
 
@@ -80,13 +80,13 @@ identities from `minnesota_counties.json` in the composer; the file contains a
 
 **Interfaces:** Preserve `sanitize_public_render_state(state: dict) -> dict` and `validate_public_state(state: dict) -> None`. Add `sanitize_source_metadata(source: dict) -> dict` in `public_dashboard.py`, producing an explicitly typed `public_metadata` structure with scalar leaves: `adapter`, `geometry_type`, `provider_updated_at` and `file` containing `type`, `size_bytes`, `etag`, `last_modified`. Add `spreadsheet_cell(value: object) -> str` to `public_values.py` for Task 6.
 
-- [ ] Write `test_safe_metadata_is_typed_and_idempotent`: a HEAD file retains valid Content-Length/ETag/Last-Modified in `public_metadata`, ArcGIS retains a validated `editing_info.lastEditDate`, and `sanitize(sanitize(state)) == sanitize(state)`.
-- [ ] Write `test_arcgis_provider_date_uses_existing_metadata_response`: provider `editingInfo.lastEditDate` is retained as typed `editing_info.lastEditDate` from the already fetched layer response; no new request is issued. Missing/invalid edit dates stay unavailable. Preserve the existing unsupported null-geometry QA regression.
-- [ ] Write `test_nested_private_values_never_reach_public_metadata`: arbitrary nested dictionaries, credential-like keys, oversized/control-character headers and invalid timestamps/sizes are omitted. Generic `url`, full provenance and raw tracked values remain forbidden. Existing private-value sentinel tests still pass.
-- [ ] Write `test_unsafe_evidence_links_and_formula_cells`: sanitize catalog links using Task 1's helper; spreadsheet strings beginning with `=`, `+`, `-`, `@`, or control/whitespace-prefixed formulas are emitted as literal text, not formulas.
-- [ ] Run the existing public dashboard/publisher suites and observe the new tests fail.
-- [ ] Retain validated ArcGIS edit timestamps in `_arcgis_layer` and propagate them through `_arcgis_service`'s discovered parcel-layer summary using existing metadata responses. Implement narrow extraction from raw observations and validation of already-normalized metadata; do not allowlist entire `tracked_values` or `editing_info` dictionaries. Keep `change_count` idempotent when a previously sanitized record has no raw `changes`. Existing aggregate observations may lack edit dates until an authorized future check; do not poll to manufacture them.
-- [ ] Run the two targeted suites, prove the forbidden-key guard still rejects operational fields, and commit `Allow safe parcel metadata without exposing operational state`.
+- [x] Write `test_safe_metadata_is_typed_and_idempotent`: a HEAD file retains valid Content-Length/ETag/Last-Modified in `public_metadata`, ArcGIS retains a validated `editing_info.lastEditDate`, and `sanitize(sanitize(state)) == sanitize(state)`.
+- [x] Write `test_arcgis_provider_date_uses_existing_metadata_response`: provider `editingInfo.lastEditDate` is retained as typed `editing_info.lastEditDate` from the already fetched layer response; no new request is issued. Missing/invalid edit dates stay unavailable. Preserve the existing unsupported null-geometry QA regression.
+- [x] Write `test_nested_private_values_never_reach_public_metadata`: arbitrary nested dictionaries, credential-like keys, oversized/control-character headers and invalid timestamps/sizes are omitted. Generic `url`, full provenance and raw tracked values remain forbidden. Existing private-value sentinel tests still pass.
+- [x] Write `test_unsafe_evidence_links_and_formula_cells`: sanitize catalog links using Task 1's helper; spreadsheet strings beginning with `=`, `+`, `-`, `@`, or control/whitespace-prefixed formulas are emitted as literal text, not formulas.
+- [x] Run the existing public dashboard/publisher suites and observe the new tests fail.
+- [x] Retain validated ArcGIS edit timestamps in `_arcgis_layer` and propagate them through `_arcgis_service`'s discovered parcel-layer summary using existing metadata responses. Implement narrow extraction from raw observations and validation of already-normalized metadata; do not allowlist entire `tracked_values` or `editing_info` dictionaries. Keep `change_count` idempotent when a previously sanitized record has no raw `changes`. Existing aggregate observations may lack edit dates until an authorized future check; do not poll to manufacture them.
+- [x] Run the two targeted suites, prove the forbidden-key guard still rejects operational fields, and commit `Allow safe parcel metadata without exposing operational state`.
 
 ### Task 3: Compose all county profiles from one observation snapshot
 
@@ -102,14 +102,14 @@ distinct count. The statewide source carries a nonempty fields map and county
 records so it is recognized by the existing MN GAC contract. Reuse this fixture
 in public integration tests rather than storing deployment observations.
 
-- [ ] Write `test_composes_all_87_profiles_from_empty_state`: canonical slugs/FIPS, four categories present, no invented counts/dates and explicitly incomplete research.
-- [ ] Write `test_current_coverage_overrides_static_membership` and `test_no_observation_means_unknown`: current county membership/counts win; absent statewide observation does not become a historical yes or zero.
-- [ ] Write `test_70_county_union_and_source_identity`: a synthetic 59 statewide + 24 direct fixture with 13 overlapping counties returns active 70; one source listed as REST and download counts once. Use realistic distinct per-source counts; never copy the statewide total into a county record.
-- [ ] Write `test_nonparcel_slug_alias_and_failed_observation`: imagery cannot activate parcel coverage; canonical county joins do not use substring matching; unhealthy/stale source reporting remains separate and retained counts preserve successful-observation time. No-date records have unknown health/freshness rather than assumed healthy.
-- [ ] Write `test_repository_requires_distinct_parcel_evidence`, `test_research_change_propagates_without_observation_change`, and fixed examples for Winona/held/viewer-only counties.
-- [ ] Run `python -m unittest discover -s tests -p test_county_profiles.py -q` and verify failure before implementation.
-- [ ] Implement the approved profile fields. Use category `Parcels` and vetted inventory joins to identify parcel observations. Never join health by county name alone when multiple products exist. Statewide per-county counts join their statewide source's check/health with catalog acquisition dates kept separate. Repository/catalog observation does not imply the parcel dataset itself was checked.
-- [ ] Integrate coverage counts with existing `_county_status` compatibility; retain runtime/research separation. Run composer, public and hybrid suites; commit `Compose current parcel source profiles for all Minnesota counties`.
+- [x] Write `test_composes_all_87_profiles_from_empty_state`: canonical slugs/FIPS, four categories present, no invented counts/dates and explicitly incomplete research.
+- [x] Write `test_current_coverage_overrides_static_membership` and `test_no_observation_means_unknown`: current county membership/counts win; absent statewide observation does not become a historical yes or zero.
+- [x] Write `test_70_county_union_and_source_identity`: a synthetic 59 statewide + 24 direct fixture with 13 overlapping counties returns active 70; one source listed as REST and download counts once. Use realistic distinct per-source counts; never copy the statewide total into a county record.
+- [x] Write `test_nonparcel_slug_alias_and_failed_observation`: imagery cannot activate parcel coverage; canonical county joins do not use substring matching; unhealthy/stale source reporting remains separate and retained counts preserve successful-observation time. No-date records have unknown health/freshness rather than assumed healthy.
+- [x] Write `test_repository_requires_distinct_parcel_evidence`, `test_research_change_propagates_without_observation_change`, and fixed examples for Winona/held/viewer-only counties.
+- [x] Run `python -m unittest discover -s tests -p test_county_profiles.py -q` and verify failure before implementation.
+- [x] Implement the approved profile fields. Use category `Parcels` and vetted inventory joins to identify parcel observations. Never join health by county name alone when multiple products exist. Statewide per-county counts join their statewide source's check/health with catalog acquisition dates kept separate. Repository/catalog observation does not imply the parcel dataset itself was checked.
+- [x] Integrate coverage counts with existing `_county_status` compatibility; retain runtime/research separation. Run composer, public and hybrid suites; commit `Compose current parcel source profiles for all Minnesota counties`.
 
 ### Task 4: Complete the systematic official-source inventory
 
@@ -117,14 +117,14 @@ in public integration tests rather than storing deployment observations.
 
 **Interfaces:** Consume Task 1's schema and Task 3's composer. Produce category-specific official findings for all 87 canonical county records. Use the existing contact catalog only for discovery; no new provider activation or registry writes.
 
-- [ ] Add `test_inventory_completion_requires_all_four_evidence_reviews`: incomplete/blocked categories cannot yield composed `research.complete=True`. Add representative fee/viewer/held source assertions before editing records.
-- [ ] Review existing 35 records alphabetically: statewide membership, distinct MnGeo repository, authorized county REST, official download, then access and comments. Reuse valid evidence, recheck missing categories, and retain the four policy holds.
-- [ ] Review the remaining 52 alphabetically in these work batches: Aitkin–Clay; Clearwater–Houston; Isanti–Mower; Olmsted–Scott; Sherburne–Stevens; Swift–Yellow Medicine. Batch names are iteration boundaries, not assertions that all intermediate county names are missing. Derive each batch's actual names from the canonical index minus the original 35.
-- [ ] For each county store final official pages, parcel-specific finding, source authority, checked date, category review status, public link and monitoring decision. A county REST-backed Hub download may populate both categories but retain one observation identity. A county catalog's generic GIS resources or statewide parcel link cannot establish the distinct repository category.
-- [ ] Check provider policy and fee-product scope for each conclusion; do not treat custom GIS labor, deeds/maps/subscriptions as parcel dataset fees. Use bounded metadata/HEAD queries only where authorized; stop/back off on 429 and record blocked reviews honestly.
-- [ ] After each batch run the research/profile suites and validate all 87 identities; inspect evidence and stage only public research/doc changes, then commit that batch with its actual coverage. Do not mark completion merely because every category key exists.
-- [ ] Generate a category completion tally from stored records and update the audit. If external evidence is blocked, retain an explicit unknown and report it; do not manufacture a negative or complete review.
-- [ ] Recheck Winona, one viewer-only county, one held county, Brown and Dodge; verify policy/count/date joins and all completed findings are backed by official evidence.
+- [x] Add `test_inventory_completion_requires_all_four_evidence_reviews`: incomplete/blocked categories cannot yield composed `research.complete=True`. Add representative fee/viewer/held source assertions before editing records.
+- [x] Review existing 35 records alphabetically: statewide membership, distinct MnGeo repository, authorized county REST, official download, then access and comments. Reuse valid evidence, recheck missing categories, and retain the four policy holds.
+- [x] Review the remaining 52 alphabetically in these work batches: Aitkin–Clay; Clearwater–Houston; Isanti–Mower; Olmsted–Scott; Sherburne–Stevens; Swift–Yellow Medicine. Batch names are iteration boundaries, not assertions that all intermediate county names are missing. Derive each batch's actual names from the canonical index minus the original 35.
+- [x] For each county store final official pages, parcel-specific finding, source authority, checked date, category review status, public link and monitoring decision. A county REST-backed Hub download may populate both categories but retain one observation identity. A county catalog's generic GIS resources or statewide parcel link cannot establish the distinct repository category.
+- [x] Check provider policy and fee-product scope for each conclusion; do not treat custom GIS labor, deeds/maps/subscriptions as parcel dataset fees. Use bounded metadata/HEAD queries only where authorized; stop/back off on 429 and record blocked reviews honestly.
+- [x] After each batch run the research/profile suites and validate all 87 identities; inspect evidence and stage only public research/doc changes, then commit that batch with its actual coverage. Do not mark completion merely because every category key exists.
+- [x] Generate a category completion tally from stored records and update the audit. If external evidence is blocked, retain an explicit unknown and report it; do not manufacture a negative or complete review.
+- [x] Recheck Winona, one viewer-only county, one held county, Brown and Dodge; verify policy/count/date joins and all completed findings are backed by official evidence.
 
 ### Task 5: Build one complete panel and connect both map views
 
@@ -138,13 +138,13 @@ of the selected metric. Labels for the four groups are exactly `MN GAC Public
 Parcels`, `MnGeo Public County Repository`, `County ArcGIS REST`, and `County
 Website Download`.
 
-- [ ] Write `test_both_maps_embed_all_87_complete_profiles` and `test_county_panel_sections_are_metric_independent`: four source sections, summary cards, access/evidence and conditional comments are present even without a statewide count. Preserve all MN GAC metric options and county detail links.
-- [ ] Write `test_labels_keep_dates_and_counts_source_specific` and `test_panel_escapes_payload_and_links`: provider/acquisition/check/success/review/publication dates remain separately labeled; missing values say Not available; valid links have `_blank`/`noopener`; script terminators and hostile names do not inject markup.
-- [ ] Run public and Watchtower suites and confirm new assertions fail.
-- [ ] Implement the shared dialog/body: dark surface, visible close control at upper edge, responsive grids, wrapped long values and vertical scrolling. Use native dialog semantics with focus return and Escape; update content using text or pre-escaped markup, never untrusted HTML.
-- [ ] Integrate canonical-slug click/Enter/Space events on overview and MN GAC maps; color updates do not close or replace the full panel. Add overview monitoring-path/completeness selector, retain MN GAC field selectors, and generate legends from the same fixed breaks/colors used for fills. Keep no-data distinct from zero.
-- [ ] Load research/state once per page composition and reuse profiles for panel and KPI/index/detail views. Suspend any full-page refresh while the dialog is open; Task 7 verifies behavior. Do not refactor unrelated private dashboard layout.
-- [ ] Run targeted suites; commit `Show complete parcel source profiles from every county map click`.
+- [x] Write `test_both_maps_embed_all_87_complete_profiles` and `test_county_panel_sections_are_metric_independent`: four source sections, summary cards, access/evidence and conditional comments are present even without a statewide count. Preserve all MN GAC metric options and county detail links.
+- [x] Write `test_labels_keep_dates_and_counts_source_specific` and `test_panel_escapes_payload_and_links`: provider/acquisition/check/success/review/publication dates remain separately labeled; missing values say Not available; valid links have `_blank`/`noopener`; script terminators and hostile names do not inject markup.
+- [x] Run public and Watchtower suites and confirm new assertions fail.
+- [x] Implement the shared dialog/body: dark surface, visible close control at upper edge, responsive grids, wrapped long values and vertical scrolling. Use native dialog semantics with focus return and Escape; update content using text or pre-escaped markup, never untrusted HTML.
+- [x] Integrate canonical-slug click/Enter/Space events on overview and MN GAC maps; color updates do not close or replace the full panel. Add overview monitoring-path/completeness selector, retain MN GAC field selectors, and generate legends from the same fixed breaks/colors used for fills. Keep no-data distinct from zero.
+- [x] Load research/state once per page composition and reuse profiles for panel and KPI/index/detail views. Suspend any full-page refresh while the dialog is open; Task 7 verifies behavior. Do not refactor unrelated private dashboard layout.
+- [x] Run targeted suites; commit `Show complete parcel source profiles from every county map click`.
 
 ### Task 6: Export the same county and source profiles safely
 
@@ -152,13 +152,13 @@ Website Download`.
 
 **Interfaces:** Define `county_profiles_csv(profiles: dict[str, dict]) -> str`, `parcel_sources_csv(profiles: dict[str, dict]) -> str`, and `county_profile_xlsx_sheets(profiles: dict[str, dict]) -> list[tuple[str, list[list]]]`. Consume Task 2's `spreadsheet_cell`. Existing JSON snapshots append `parcel_source_profile` per county.
 
-- [ ] Write `test_all_87_counties_in_json_csv_and_xlsx`: profile-summary CSV has 87 unique counties; source CSV has at least one placeholder per county/category (348 category rows minimum) and additional rows for multiple sources; XLSX has existing sheets plus `County Access` and `Parcel Sources`.
-- [ ] Write `test_export_counts_dates_and_nulls_agree`: source counts and dates match profile JSON; no manufactured zero; approved evidence links only; all timestamps retain machine-readable semantics. Test formula/control-character payloads as literal cells in both CSV and XLSX.
-- [ ] Write `test_legacy_aggregate_source_csv_still_contains_every_source`: preserve existing `/snapshot.csv` source-row contract and current aggregate source coverage tests.
-- [ ] Run the export/hybrid tests and observe new cases fail.
-- [ ] Implement `/county-profiles.csv` (87-county summary) and `/parcel-sources.csv` (category/source rows), expose them in the existing export menu, and retain legacy `/snapshot.csv`. This explicit compatibility choice supplies the requested statewide county CSV without changing the existing monitored-source CSV contract. Append county detail CSV summary columns; preserve existing JSON/XLSX fields/sheets.
-- [ ] Refactor only snapshot composition so statewide export reads one state/research generation for all 87 county rows; avoid `_county_snapshot` reloading the aggregate on each loop. Add a regression where a changing mocked state loader is called once.
-- [ ] Run export/public/hybrid suites, decode the native XLSX ZIP/XML and verify actual county/source rows; commit `Export county parcel profiles without losing aggregate source exports`.
+- [x] Write `test_all_87_counties_in_json_csv_and_xlsx`: profile-summary CSV has 87 unique counties; source CSV has at least one placeholder per county/category (348 category rows minimum) and additional rows for multiple sources; XLSX has existing sheets plus `County Access` and `Parcel Sources`.
+- [x] Write `test_export_counts_dates_and_nulls_agree`: source counts and dates match profile JSON; no manufactured zero; approved evidence links only; all timestamps retain machine-readable semantics. Test formula/control-character payloads as literal cells in both CSV and XLSX.
+- [x] Write `test_legacy_aggregate_source_csv_still_contains_every_source`: preserve existing `/snapshot.csv` source-row contract and current aggregate source coverage tests.
+- [x] Run the export/hybrid tests and observe new cases fail.
+- [x] Implement `/county-profiles.csv` (87-county summary) and `/parcel-sources.csv` (category/source rows), expose them in the existing export menu, and retain legacy `/snapshot.csv`. This explicit compatibility choice supplies the requested statewide county CSV without changing the existing monitored-source CSV contract. Append county detail CSV summary columns; preserve existing JSON/XLSX fields/sheets.
+- [x] Refactor only snapshot composition so statewide export reads one state/research generation for all 87 county rows; avoid `_county_snapshot` reloading the aggregate on each loop. Add a regression where a changing mocked state loader is called once.
+- [x] Run export/public/hybrid suites, decode the native XLSX ZIP/XML and verify actual county/source rows; commit `Export county parcel profiles without losing aggregate source exports`.
 
 ### Task 7: Validate browser behavior and publish local evidence
 
@@ -166,13 +166,13 @@ Website Download`.
 
 **Interfaces:** Consume shared panel, canonical profiles and export routes. Use the Browser plugin/CUA for actual UI interactions and viewport checks; no new browser automation runtime dependency.
 
-- [ ] Run the required suite: `python -W error::ResourceWarning -m unittest discover -s tests -q`, `python -m compileall -q clearparcel tests`, `git diff --check`. Require zero failures and no ResourceWarning.
-- [ ] Serve a local public-mode sanitized fixture with the new renderer. Check all 87 targets and click each through canonical slug; verify full source groups appear for all map summary modes and representative individual MN GAC fields.
-- [ ] At desktop and 390px widths verify Brown, Winona, viewer-only and held counties; cross-check rendered counts/dates/access and links against the composed JSON. Capture one useful desktop screenshot and one mobile screenshot.
-- [ ] Verify `document.documentElement.scrollWidth <= innerWidth` and dialog content width is bounded at 390px with long URLs, many sources and expanded evidence. Check keyboard open/close, focus containment/return, metric switching, scrolling and refresh while a panel is open.
-- [ ] Reproduce stale source and stale publication fixtures: separate health/reporting labels; overdue publication fails health without hiding the profile or pretending a new provider check occurred. Compare legend swatches to actual fills and confirm zero and no-data classes.
-- [ ] Fetch JSON/CSV/XLSX and county detail JSON via local routes; verify 87 profiles, source identities and safe values across formats. Record actual research completion separately from profile coverage.
-- [ ] Run focused regression tests for any fixes, then the full required suite if code changed. Inspect status/diffs for private material; commit docs and verified fixes and push the feature branch.
+- [x] Run the required suite: `python -W error::ResourceWarning -m unittest discover -s tests -q`, `python -m compileall -q clearparcel tests`, `git diff --check`. Require zero failures and no ResourceWarning.
+- [x] Serve a local public-mode sanitized fixture with the new renderer. Check all 87 targets and activate each through canonical slug with keyboard input; verify representative pointer clicks; verify full source groups appear for all map summary modes and representative individual MN GAC fields.
+- [x] At desktop and 390px widths verify Brown, Winona, viewer-only and held counties; cross-check rendered counts/dates/access and links against the composed JSON. Capture one useful desktop screenshot and one mobile screenshot.
+- [x] Verify `document.documentElement.scrollWidth <= innerWidth` and dialog content width is bounded at 390px with long URLs, many sources and expanded evidence. Check keyboard open/close, focus containment/return, metric switching, scrolling and refresh while a panel is open.
+- [x] Reproduce stale source and stale publication fixtures: separate health/reporting labels; overdue publication fails health without hiding the profile or pretending a new provider check occurred. Compare legend swatches to actual fills and confirm zero and no-data classes.
+- [x] Fetch JSON/CSV/XLSX and county detail JSON via local routes; verify 87 profiles, source identities and safe values across formats. Record actual research completion separately from profile coverage.
+- [x] Run focused regression tests for any fixes, then the full required suite if code changed. Inspect status/diffs for private material; commit docs and verified fixes with branch push handled by the controller after task review.
 
 ### Task 8: Prepare isolated preview data, deploy committed content and verify live
 
@@ -237,13 +237,7 @@ Review Focus cases each have explicit owning tests/checks. Shared function names
 category keys, date fields and source identity rules match the approved design.
 Existing source exports are preserved with an explicitly named new county CSV.
 
-Recommended execution: **Native** in this chat, followed by an independent final
-review using an already permitted reviewer role. Most tasks share schema/profile
-interfaces, so one implementer avoids repeated context setup while research and
-validation remain explicit gates. Do not enable Astra without separate approval.
-If the user chooses subagent-driven execution, invoke its required skill and
-observe the same privacy, provider and deployment constraints.
-
-Implementation starts after the user reviews this plan and selects the execution
-method. This plan does not assert that research, product changes or deployment
-have been completed.
+Selected execution: **Subagent-driven**, explicitly selected by the user on
+2026-10-06. Tasks run in this chat with isolated implementers and fresh task
+reviewers, preserving the approved privacy, provider and deployment constraints.
+Task 8 and the independent final review remain pending. Astra has no approval.

@@ -20,6 +20,8 @@ ClearParcel also operates a read-only public dashboard at **https://gis-watchtow
 - source response and processing history
 - CSV, JSON, and Excel (`.xlsx`) snapshot exports
 - County parcel profiles in `/county-profiles.csv` (all 87 counties) and `/parcel-sources.csv` (each category and source, including empty-category placeholders). JSON county records include `parcel_source_profile`; Excel adds `County Access` and `Parcel Sources` sheets. `/snapshot.csv` retains the monitored-source rows. Unknown counts/dates stay blank in spreadsheets, observed zero stays zero, and date/time fields retain ISO semantics.
+- Both county maps open the same complete profile with click, Enter or Space. Escape closes the dialog and returns focus; overview refresh pauses while reading. Desktop and 390px layouts wrap long source/evidence values. Public publication reporting is Current, Overdue or Unknown using the `/healthz` threshold, separately from provider health and source reporting.
+- Profile coverage includes all 87 counties. The current evidence has 16 fully reviewed category inventories and 15 complete composed profiles; blocked evidence and unresolved county-direct access remain explicit. Monitoring coverage is derived from current observations.
 
 Watchtower is designed for **low-frequency, respectful monitoring**. It is not a bulk downloader or a scraper for human-facing property-search websites.
 
@@ -90,7 +92,7 @@ CI tests Windows and Ubuntu on Python 3.12, 3.13, and 3.14, plus a Linux contain
 - [`docs/data-watchtower-processing-architecture.md`](docs/data-watchtower-processing-architecture.md) — processing/storage/dashboard boundaries
 - [`docs/google-cloud-deployment.md`](docs/google-cloud-deployment.md) — optional Cloud Run/GCS execution deployment
 - [`docs/public-dashboard-hosting.md`](docs/public-dashboard-hosting.md) — public Google Cloud serving architecture and security boundary
-- [`docs/county-parcel-data-access-audit.md`](docs/county-parcel-data-access-audit.md) — parcel-access audit, classifications, evidence methodology, and direct-source findings; offline county profiles cover all 87 counties while pending category research remains explicit
+- [`docs/county-parcel-data-access-audit.md`](docs/county-parcel-data-access-audit.md) — parcel-access audit, classifications, evidence methodology, and direct-source findings; offline county profiles cover all 87 counties; all category reviews have been attempted, while blocked and unresolved evidence remains explicit
 - [`docs/hybrid-execution.md`](docs/hybrid-execution.md) and [`docs/hybrid-aggregation.md`](docs/hybrid-aggregation.md) — hybrid worker model
 - [`docs/mngac-completeness.md`](docs/mngac-completeness.md) — Minnesota GAC field-population methodology, county map, and exports
 - [`docs/data-watchtower-provider-compliance.md`](docs/data-watchtower-provider-compliance.md) — respectful-use methodology and known provider constraints

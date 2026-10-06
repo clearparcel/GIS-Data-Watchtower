@@ -14,6 +14,24 @@ from clearparcel.datawatch.public_dashboard import (
 
 
 class PublicDashboardTests(unittest.TestCase):
+    def test_overview_labels_publication_reporting_separately_from_source_health(self):
+        from unittest.mock import patch
+        state = sanitize_public_render_state(self._state())
+        state['public_published_at'] = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=2)).isoformat()
+        with patch.dict('os.environ', {'WATCHTOWER_PUBLIC_MAX_PUBLICATION_AGE_SECONDS': '1800'}), patch('clearparcel.datawatch.public_dashboard._dashboard_state', return_value=state):
+            page = render_public_dashboard({'_public_mode': True})
+        self.assertIn('Public publication reporting: Overdue', page)
+        self.assertIn('complete county profiles', page)
+        self.assertIn('Healthy', page)
+        self.assertIn('county-profile-data', page)
+        with patch('clearparcel.datawatch.dashboard._dashboard_state', return_value=state):
+            self.assertIn('complete county profiles', render_counties({'_public_mode': True}))
+        with patch.dict('os.environ', {'WATCHTOWER_PUBLIC_MAX_PUBLICATION_AGE_SECONDS': '86400'}), patch('clearparcel.datawatch.public_dashboard._dashboard_state', return_value=state):
+            self.assertIn('Public publication reporting: Current', render_public_dashboard({'_public_mode': True}))
+        state['public_published_at'] = None
+        with patch('clearparcel.datawatch.public_dashboard._dashboard_state', return_value=state):
+            self.assertIn('Public publication reporting: Unknown', render_public_dashboard({'_public_mode': True}))
+
     def test_overview_labels_follow_selected_map_view(self):
         from unittest.mock import patch
         import re

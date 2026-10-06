@@ -41,7 +41,7 @@ The Linux 3.14 matrix leg also smoke-tests the Docker image.
 
 ## County parcel-data access audit
 
-The earlier county-direct classification audit for **35** registry-derived `needs-source` counties is retained; four-category inventory completion remains unresolved. Historical original 35 county-direct results are **12 Free parcel data**, **12 Fee-based parcel data**, and **11 Parcel viewer only**; Blue Earth, Faribault, Kandiyohi, and Lincoln remain `hold-for-terms`. The nine county-direct sources from the earlier staging approval assessment outside current MnGeo coverage are now included in **private staging registry version 7**, all assigned to the cloud profile. The 2026-10-06 hybrid staging cycle used image `473157b`: **31/31 cloud sources OK**, **4/4 local sources OK**, and a generation-protected merge produced a **35/35 OK** aggregate with cloud/local worker provenance intact. Against that aggregate, the county model is **70/87 actively checked** (59 MnGeo, 24 county-direct, 13 overlapping). Both local dashboard rendering and the deployed public v2 preview revision `00002-bn8` were verified to display **70/87**, including the subtext `59 via MnGeo open parcels · 24 via county-direct sources · overlap counted once`. The existing sanitized publisher has propagated the 35-source aggregate to the public data bucket, but the production UI service was not replaced and authoritative GIS-provider scheduling remains disabled. Full evidence and methodology are documented in `docs/county-parcel-data-access-audit.md`.
+The earlier county-direct classification audit for **35** registry-derived `needs-source` counties is retained; all 87 four-category inventory reviews have been attempted, with blocked evidence still incomplete. Historical original 35 county-direct results are **12 Free parcel data**, **12 Fee-based parcel data**, and **11 Parcel viewer only**; Blue Earth, Faribault, Kandiyohi, and Lincoln remain `hold-for-terms`. The nine county-direct sources from the earlier staging approval assessment outside current MnGeo coverage are now included in **private staging registry version 7**, all assigned to the cloud profile. The 2026-10-06 hybrid staging cycle used image `473157b`: **31/31 cloud sources OK**, **4/4 local sources OK**, and a generation-protected merge produced a **35/35 OK** aggregate with cloud/local worker provenance intact. Against that aggregate, the county model is **70/87 actively checked** (59 MnGeo, 24 county-direct, 13 overlapping). Both local dashboard rendering and the deployed public v2 preview revision `00002-bn8` were verified to display **70/87**, including the subtext `59 via MnGeo open parcels · 24 via county-direct sources · overlap counted once`. The existing sanitized publisher has propagated the 35-source aggregate to the public data bucket, but the production UI service was not replaced and authoritative GIS-provider scheduling remains disabled. Full evidence and methodology are documented in `docs/county-parcel-data-access-audit.md`.
 
 ## Hosted public dashboard
 
@@ -120,3 +120,30 @@ as distinct county polygon repository resources, matching the other five metro
 counties; Scott's four-category inventory is now complete. Native observations,
 county-direct classifications and eleven holds are unchanged. No monitoring,
 provider polling, scheduling, runtime configuration or deployment changed.
+
+
+## Local county-profile acceptance (2026-10-06)
+
+Task 7 uses actual Chrome Browser/CUA interactions against an isolated sanitized
+local public fixture. All 87 canonical targets opened the four complete source
+groups in both overview modes and all three MN GAC summaries, plus representative
+Conditional, Mandatory and If Available fields. Desktop and 390px panels,
+keyboard focus containment/return, internal scrolling and pause/resume of the
+30-second overview refresh passed. Long product names/URLs and twelve source
+products stayed within the mobile dialog. Internal HTTP JSON/CSV/XLSX exports
+agreed for all 87 profiles, source identities, dates and unknown/zero values.
+
+Publication reporting now explicitly says Current, Overdue or Unknown using the
+same configured threshold as `/healthz`. A synthetic overdue publication returned
+503 while a source retained health `ok`, reporting `overdue`, its count and its
+actual old check time. Research wording now identifies **15 complete composed
+profiles**, separately from **16 fully reviewed four-category inventories**.
+All 87 counties were attempted; 216 categories are reviewed, 132 blocked and zero
+pending. County-direct classifications remain 82 resolved (58 free, 13 fee-based,
+11 viewer-only), five unresolved, and 11 research holds. Runtime monitoring
+coverage continues to be derived from the supplied current aggregate; these local
+fixtures do not establish new live coverage. Preview release and independent final
+review remain pending; no production or provider scheduling changes occurred.
+
+Required validation: 186 unittest tests passed with ResourceWarning treated as an
+error; compileall and `git diff --check` passed. Preview acceptance remains pending.
