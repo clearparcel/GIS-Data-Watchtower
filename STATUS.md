@@ -33,6 +33,10 @@ The hardened post-security-review build was revalidated end-to-end on 2026-10-05
 
 The same staging architecture also validated the MN GAC completeness feature against MnGeo Plan Parcels Open. The 2026-10-05 observation represented **59 of 87 counties**, **2,710,201 parcel records**, and all **91 standard fields** using **8 bounded grouped-statistics queries**. The other 28 counties are reported as **No data**, not 0%. The observed record-weighted all-field population was **42.92%** and Mandatory-field population was **78.37%**; these are descriptive population statistics, not compliance grades. The full cloud retry after this feature was enabled returned **22/22 OK**, preserving the **26/26** hybrid aggregate.
 
+## County parcel-data access audit
+
+The 35 counties currently shown by the dashboard as `needs-source` are undergoing a parcel-specific access audit. The existing status is registry-derived and does not mean that an exhaustive source search has already failed. The audit now distinguishes free parcel data, fee-based parcel data, parcel-viewer-only access, request/restricted parcel access, statewide parcel coverage only, and a researched no-direct-parcel-dataset result. **Fee-based parcel data** is used only when official evidence shows that the parcel dataset itself carries a fee; charges for staff time, custom GIS services, maps, special exports, or other associated services do not trigger that label. See `docs/county-parcel-data-access-audit.md`.
+
 ## Public dashboard hosting
 
 A separate read-only Cloud Run service serves the shareable dashboard at **https://gis-watchtower.clear-parcel.com** through a Google Cloud external Application Load Balancer. The dashboard now reads only the sanitized production object at `gs://clearparcel-watchtower-dark-bit-503017-j7/production/aggregate-state.json`; its service account no longer has access to the unified staging aggregate, private provider registry, or provider credentials.
