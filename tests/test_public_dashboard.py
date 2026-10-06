@@ -14,6 +14,39 @@ from clearparcel.datawatch.public_dashboard import (
 
 
 class PublicDashboardTests(unittest.TestCase):
+    def test_safe_metadata_is_typed_and_idempotent(self):
+        state = self._state()
+        state['sources']['file'] = {'adapter': 'http_file', 'content_type': 'application/zip', 'tracked_values': {'content_length': '0', 'etag': '"abc"', 'last_modified': 'Wed, 01 Jan 2025 00:00:00 GMT'}}
+        state['sources']['arcgis'] = {'adapter': 'arcgis_layer', 'geometry_type': 'esriGeometryPolygon', 'editing_info': {'lastEditDate': 1735689600000, 'secret': 'PRIVATE'}}
+        public = sanitize_public_render_state(state)
+        self.assertEqual(public['sources']['file']['public_metadata']['file'], {'type': 'application/zip', 'size_bytes': 0, 'etag': '"abc"', 'last_modified': '2025-01-01T00:00:00+00:00'})
+        self.assertEqual(public['sources']['arcgis']['public_metadata']['provider_updated_at'], '2025-01-01T00:00:00+00:00')
+        self.assertEqual(sanitize_public_render_state(public), public)
+
+    def test_nested_private_values_never_reach_public_metadata(self):
+        from clearparcel.datawatch.public_dashboard import sanitize_source_metadata
+        source = {'adapter': {'secret': 'PRIVATE'}, 'geometry_type': 'PRIVATE', 'editing_info': {'lastEditDate': True}, 'content_type': 'x\nPRIVATE', 'tracked_values': {'content_length': '-1', 'etag': 'x' * 513, 'last_modified': 'invalid'}, 'public_metadata': {'file': {'etag': {'secret': 'PRIVATE'}, 'size_bytes': True}, 'provider_updated_at': 'invalid', 'secret': 'PRIVATE'}}
+        self.assertEqual(sanitize_source_metadata(source), {})
+
+    def test_nested_mngac_private_fields_and_links_are_removed(self):
+        state = self._state()
+        mngac = state['sources']['mn-state-parcels']['mngac_completeness']
+        mngac['standard']['source_url'] = 'https://example.com/?token=PRIVATE'
+        mngac['fields']['PIN']['provenance'] = {'secret': 'PRIVATE'}
+        mngac['counties']['Olmsted']['tracked_values'] = {'secret': 'PRIVATE'}
+        public = sanitize_public_render_state(state)
+        self.assertNotIn('PRIVATE', json.dumps(public))
+
+    def test_unsafe_evidence_links_and_formula_cells(self):
+        from clearparcel.datawatch.public_values import spreadsheet_cell
+        state = {'sources': {'mn-parcel-county-catalog': {'county_records': {'A': {'data_url': 'https://example.com/?token=secret', 'viewer_url': 'https://example.com/view'}}}}}
+        record = sanitize_public_render_state(state)['sources']['mn-parcel-county-catalog']['county_records']['A']
+        self.assertNotIn('data_url', record)
+        self.assertEqual(record['viewer_url'], 'https://example.com/view')
+        for value in ('=1', '+1', '-1', '@SUM(A1)', ' \t=1', '\r+1', '\u2003=1'):
+            self.assertEqual(spreadsheet_cell(value), "'" + value)
+        self.assertEqual(spreadsheet_cell('ordinary'), 'ordinary')
+
     def _state(self):
         now = dt.datetime.now(dt.timezone.utc).isoformat()
         return {

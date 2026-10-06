@@ -5,7 +5,7 @@ import json
 import os
 from pathlib import Path
 
-from clearparcel.datawatch.public_dashboard import sanitize_public_render_state
+from clearparcel.datawatch.public_dashboard import sanitize_public_render_state, sanitize_source_metadata
 from clearparcel.datawatch.storage import GCSStorage, StorageBackend
 
 
@@ -47,6 +47,11 @@ def validate_public_state(state: dict) -> None:
     unsafe = _unsafe_paths(state)
     if unsafe:
         raise RuntimeError("public snapshot contains forbidden fields: " + ", ".join(sorted(unsafe)))
+    for source in (state.get('sources') or {}).values():
+        if isinstance(source, dict) and 'public_metadata' in source:
+            metadata = source['public_metadata']
+            if not isinstance(metadata, dict) or sanitize_source_metadata({'public_metadata': metadata}) != metadata:
+                raise RuntimeError('public snapshot contains invalid public_metadata')
 
 
 def publish_public_snapshot(

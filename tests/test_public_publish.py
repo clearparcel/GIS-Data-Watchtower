@@ -11,6 +11,12 @@ from clearparcel.datawatch.storage import LocalStorage
 
 
 class PublicPublishTests(unittest.TestCase):
+    def test_validate_public_metadata_rejects_untyped_leaves(self):
+        validate_public_state({'sources': {'x': {'public_metadata': {'file': {'size_bytes': 0}}}}})
+        for metadata in ({'file': {'etag': {'private': 1}}}, {'unknown': 'private'}, {'provider_updated_at': 'invalid'}):
+            with self.assertRaises(RuntimeError):
+                validate_public_state({'sources': {'x': {'public_metadata': metadata}}})
+
     def test_publish_public_snapshot_sanitizes_before_destination_upload(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)

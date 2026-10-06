@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import re
+from email.utils import parsedate_to_datetime
 import os
 import threading
 import time
@@ -30,6 +32,7 @@ from clearparcel.datawatch.dashboard import (
     render_mngac,
 )
 from clearparcel.datawatch.storage import backend_from_env
+from clearparcel.datawatch.public_values import safe_public_url, provider_edit_timestamp
 
 
 _PUBLIC_SOURCE_FIELDS = (
@@ -89,6 +92,65 @@ def _json_copy(value):
     return json.loads(json.dumps(value))
 
 
+def _metadata_text(value: object, limit: int = 512) -> str | None:
+    if isinstance(value, str) and 0 < len(value) <= limit and all(ord(c) >= 32 and ord(c) != 127 for c in value):
+        return value
+    return None
+
+
+def _metadata_date(value: object, *, http: bool = False) -> str | None:
+    text = _metadata_text(value, 80)
+    if text is None:
+        return None
+    try:
+        stamp = parsedate_to_datetime(text) if http else dt.datetime.fromisoformat(text.replace('Z', '+00:00'))
+        if stamp.tzinfo is None or stamp.year < 1970:
+            return None
+        return stamp.astimezone(dt.timezone.utc).isoformat()
+    except (ValueError, TypeError, OverflowError):
+        return None
+
+
+def sanitize_source_metadata(source: dict) -> dict:
+    """Extract typed scalar facts, never copy raw provider dictionaries."""
+    normalized = source.get('public_metadata')
+    normalized = normalized if isinstance(normalized, dict) else {}
+    public = {}
+    adapter = source.get('adapter', normalized.get('adapter'))
+    if adapter in ('arcgis_layer', 'arcgis_service', 'arcgis_image', 'http_file', 'wms', 'wfs', 'sda_query', 'arcgis_county_catalog'):
+        public['adapter'] = adapter
+    geometry = source.get('geometry_type', normalized.get('geometry_type'))
+    if isinstance(geometry, str) and geometry in ('esriGeometryPoint', 'esriGeometryMultipoint', 'esriGeometryPolyline', 'esriGeometryPolygon', 'esriGeometryEnvelope'):
+        public['geometry_type'] = geometry
+    editing = source.get('editing_info')
+    stamp = provider_edit_timestamp(editing.get('lastEditDate')) if isinstance(editing, dict) else None
+    stamp = stamp or _metadata_date(normalized.get('provider_updated_at'))
+    if stamp:
+        public['provider_updated_at'] = stamp
+    tracked = source.get('tracked_values')
+    tracked = tracked if isinstance(tracked, dict) else {}
+    file = normalized.get('file')
+    file = file if isinstance(file, dict) else {}
+    safe_file = {}
+    mime = _metadata_text(source.get('content_type', file.get('type')), 128)
+    if mime and re.fullmatch(r'[A-Za-z0-9!#$&^_.+-]+/[A-Za-z0-9!#$&^_.+-]+(?:;[ A-Za-z0-9=._+-]+)?', mime):
+        safe_file['type'] = mime
+    size = tracked.get('content_length', file.get('size_bytes'))
+    if isinstance(size, str) and re.fullmatch(r'[0-9]{1,19}', size):
+        size = int(size)
+    if type(size) is int and 0 <= size <= 2**63 - 1:
+        safe_file['size_bytes'] = size
+    etag = _metadata_text(tracked.get('etag', file.get('etag')))
+    if etag and re.fullmatch(r'(?:W/)?"[\x21\x23-\x7e]*"', etag):
+        safe_file['etag'] = etag
+    modified = _metadata_date(tracked.get('last_modified'), http=True) if 'last_modified' in tracked else _metadata_date(file.get('last_modified'))
+    if modified:
+        safe_file['last_modified'] = modified
+    if safe_file:
+        public['file'] = safe_file
+    return public
+
+
 def _sanitize_catalog_records(records: dict | None) -> dict:
     public: dict = {}
     for county, record in (records or {}).items():
@@ -99,17 +161,43 @@ def _sanitize_catalog_records(records: dict | None) -> dict:
             for key in _PUBLIC_CATALOG_FIELDS
             if record.get(key) is not None
         }
+        for key in ('data_url', 'viewer_url'):
+            link = safe_public_url(record.get(key))
+            if link:
+                public[str(county)][key] = link
+            else:
+                public[str(county)].pop(key, None)
     return public
 
 
 def _sanitize_mngac(data: dict | None) -> dict | None:
     if not isinstance(data, dict):
         return None
-    public = {
-        key: _json_copy(data.get(key))
-        for key in _PUBLIC_MNGAC_FIELDS
-        if data.get(key) is not None
-    }
+    def scalars(record, keys):
+        if not isinstance(record, dict):
+            return {}
+        return {key: value for key in keys if (value := record.get(key)) is not None and type(value) in (str, int, float, bool)}
+
+    field_keys = ('label', 'section', 'section_name', 'inclusion', 'data_type', 'present_in_source_schema', 'populated', 'record_count', 'percent', 'counties_with_values', 'counties_covered', 'county_median_percent')
+    county_keys = ('record_count', 'fields_with_values', 'field_count', 'field_population_percent', 'mandatory_population_percent', 'mandatory_fields_full', 'mandatory_field_count')
+    def fields(records):
+        return {str(name): scalars(record, field_keys) for name, record in records.items() if isinstance(record, dict)} if isinstance(records, dict) else {}
+
+    public = scalars(data, tuple(key for key in _PUBLIC_MNGAC_FIELDS if key not in ('standard', 'fields', 'counties', 'source_schema_missing_fields')))
+    standard = data.get('standard')
+    public['standard'] = scalars(standard, ('name', 'version', 'published_at'))
+    link = safe_public_url(standard.get('source_url')) if isinstance(standard, dict) else None
+    if link:
+        public['standard']['source_url'] = link
+    public['fields'] = fields(data.get('fields'))
+    public['counties'] = {}
+    counties = data.get('counties')
+    for county, record in (counties if isinstance(counties, dict) else {}).items():
+        if isinstance(record, dict):
+            public['counties'][str(county)] = {**scalars(record, county_keys), 'fields': fields(record.get('fields'))}
+    missing = data.get('source_schema_missing_fields')
+    if isinstance(missing, list):
+        public['source_schema_missing_fields'] = [name for name in missing if _metadata_text(name, 128)]
     return public if public.get("fields") and public.get("counties") else None
 
 
@@ -144,7 +232,11 @@ def sanitize_public_render_state(state: dict) -> dict:
         }
         summary["id"] = source.get("id") or source_id
         summary["status"] = source.get("status") or "unknown"
-        summary["change_count"] = len(source.get("changes") or [])
+        count = source.get('change_count')
+        summary["change_count"] = len(source.get("changes") or []) if 'changes' in source else (count if type(count) is int and count >= 0 else 0)
+        metadata = sanitize_source_metadata(source)
+        if metadata:
+            summary['public_metadata'] = metadata
 
         if source_id == "mn-parcel-county-catalog":
             summary["county_records"] = _sanitize_catalog_records(source.get("county_records"))

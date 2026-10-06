@@ -51,6 +51,8 @@ Public output may include:
 - MN GAC completeness statistics and the interactive county map;
 - sanitized JSON, CSV, and Excel exports.
 
+Source `public_metadata` contains only validated adapter, geometry type, provider edit timestamp, and file type, size, ETag, and Last-Modified scalars. ArcGIS edit timestamps come from metadata already fetched during authorized checks; older observations may omit them. The publisher and rendering sanitizer preserve this structure and change counts across repeated passes. Catalog and standard links use offline public URL validation, and MN GAC nested records use explicit field allowlists.
+
 The public representation intentionally omits:
 
 - provider connection URLs used by the monitoring engine;

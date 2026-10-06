@@ -2,8 +2,28 @@
 from __future__ import annotations
 
 import ipaddress
+import datetime as dt
 import re
 from urllib.parse import parse_qsl, urlsplit
+
+
+def provider_edit_timestamp(value: object) -> str | None:
+    """Validate ArcGIS epoch milliseconds without coercing strings or booleans."""
+    if type(value) is not int or not 0 <= value <= 253402300799999:
+        return None
+    try:
+        return (dt.datetime(1970, 1, 1, tzinfo=dt.timezone.utc) + dt.timedelta(milliseconds=value)).isoformat()
+    except (OverflowError, ValueError):
+        return None
+
+
+def spreadsheet_cell(value: object) -> str:
+    text = '' if value is None else str(value)
+    start = 0
+    while start < len(text) and (text[start].isspace() or ord(text[start]) < 32 or text[start] == '\ufeff'):
+        start += 1
+    candidate = text[start:]
+    return "'" + text if candidate.startswith(('=', '+', '-', '@')) else text
 
 
 def safe_public_url(value: object) -> str | None:

@@ -18,6 +18,7 @@ import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
 from pathlib import Path
+from clearparcel.datawatch.public_values import provider_edit_timestamp
 
 class ProviderRateLimitError(RuntimeError):
     """Provider explicitly asked the client to slow down."""
@@ -908,6 +909,9 @@ def _arcgis_layer(source: dict, timeout: int) -> dict:
         "schema_hash": _hash_json(schema_basis),
         "spatial_extent": _extent_basis(data),
     }
+    editing = data.get('editingInfo')
+    if isinstance(editing, dict) and provider_edit_timestamp(editing.get('lastEditDate')) is not None:
+        result['editing_info'] = {'lastEditDate': editing['lastEditDate']}
     if source.get("count"):
         result["feature_count"] = _arcgis_count_query(source["url"], "1=1", timeout, prefer_curl=bool(source.get("prefer_curl")))
     if source.get("mngac_completeness"):
@@ -1036,6 +1040,8 @@ def _arcgis_service(source: dict, timeout: int) -> dict:
             "geometry_sample_rings": layer.get("geometry_sample_rings"), "geometry_sample_status": layer.get("geometry_sample_status"),
         })
         result["problems"].extend(layer.get("problems", []))
+        if 'editing_info' in layer:
+            result['editing_info'] = layer['editing_info']
     return result
 
 def _arcgis_image(source: dict, timeout: int) -> dict:

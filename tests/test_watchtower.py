@@ -13,6 +13,23 @@ import clearparcel.datawatch.dashboard as datawatch_dashboard
 from clearparcel.datawatch.watch import _compare, load_config as load_data_config, load_history as load_data_history
 
 class DataWatchTests(unittest.TestCase):
+    def test_arcgis_provider_date_uses_existing_metadata_response(self):
+        for stamp in (1735689600000, None, True, -1, 'private', 10**30):
+            metadata = {'fields': [], 'editingInfo': {'lastEditDate': stamp, 'private': 'hidden'}}
+            with patch.object(datawatch, '_json_request', return_value=(metadata, {'status': 200})) as request:
+                result = datawatch._arcgis_layer({'url': 'https://example.com/FeatureServer/0'}, 1)
+            self.assertEqual(request.call_count, 1)
+            if stamp == 1735689600000:
+                self.assertEqual(result['editing_info'], {'lastEditDate': stamp})
+            else:
+                self.assertNotIn('editing_info', result)
+
+    def test_service_propagates_existing_layer_edit_date(self):
+        responses = [({'layers': [{'id': 0, 'name': 'Parcels'}]}, {'status': 200}), ({'fields': [], 'editingInfo': {'lastEditDate': 1735689600000}}, {'status': 200}), ({'count': 0}, {'status': 200})]
+        with patch.object(datawatch, '_json_request', side_effect=responses) as request:
+            result = datawatch._arcgis_service({'url': 'https://example.com/FeatureServer', 'discover_parcel_layer': True}, 1)
+        self.assertEqual(request.call_count, 3)
+        self.assertEqual(result['editing_info'], {'lastEditDate': 1735689600000})
 
     def test_data_source_registry_loads(self):
         config = load_data_config(TOOLS_ROOT / 'config' / 'example_sources.json')
