@@ -11,3 +11,7 @@ docs
 tests
 .env
 .env.*
+
+# Private agent/review scratch
+.cce-agent/
+.superpowers/

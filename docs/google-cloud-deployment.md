@@ -1,5 +1,7 @@
 # Google Cloud deployment
 
+Operational deployment evidence below is dated. Latest recorded preview `00007-zfh` serves `5aac504`, before the [repository-review fixes](repository-review-2026-10-06.md); no live provider/deployment validation was performed in that review. See [current status](current-status.md).
+
 GIS Data Watchtower can run as a scheduled **Cloud Run Job** while retaining the same CLI and monitoring engine used locally.
 
 ## Architecture
@@ -78,9 +80,9 @@ Run cloud and local processing in parallel before changing production. Compare s
 
 As of 2026-10-05, a private Cloud Run Job deployment in `us-central1` has been validated with Google Cloud Storage persistence and Secret Manager-provided deployment configuration.
 
-The validated cloud profile processes 22 deployment sources with exact status/count/schema parity against the same local observations. Four provider-specific sources remain local-only because they reject or cannot validate requests from the Google Cloud environment. The project intentionally does not bypass those provider controls.
+The historical October 5 cloud profile processed 22 deployment sources with exact status/count/schema parity against the same local observations. Four provider-specific sources remain local-only because they reject or cannot validate requests from the Google Cloud environment. The project intentionally does not bypass those provider controls.
 
-Hybrid aggregation was initially validated with 22 cloud observations plus 4 local observations, producing a 26-source authoritative state while preserving worker provenance. The hardened post-security-review build completed 22/22 cloud checks and 4/4 local checks with a 26/26 OK aggregate and complete JSON/CSV/Excel exports.
+Hybrid aggregation was initially validated with 22 cloud observations plus 4 local observations, producing a 26-source staging aggregate while preserving worker provenance. The hardened post-security-review build completed 22/22 cloud checks and 4/4 local checks with a 26/26 OK aggregate and complete JSON/CSV/Excel exports.
 
 On **2026-10-06**, private staging registry version 7 added nine approved county-direct parcel sources outside the current MnGeo Plan Parcels Open footprint. Staging image `473157b` completed **31/31 cloud checks OK**. The local profile completed **4/4 OK**, and a generation-protected merge produced a **35/35 OK** aggregate with worker provenance `cloud=31` and `local=4`. The resulting county-monitoring model is **70/87 actively checked counties**: 59 via MnGeo, 24 via county-direct sources, and 13 overlapping. The separate public v2 preview was updated to `473157b` and confirmed to render **70/87**. Authoritative provider scheduling remains disabled.
 

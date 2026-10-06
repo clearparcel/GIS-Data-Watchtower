@@ -72,6 +72,6 @@ Aitkin and Morrison provider-use questions remain tracked as **deployment/provid
 
 ## Current deployment posture
 
-A local production schedule remains authoritative while a private hybrid staging deployment is validated over multiple daily cycles. Cloud Run and GCS have passed one-cycle hardened validation; Cloud Scheduler remains intentionally disabled pending the multi-day validation gate.
+A local production schedule remains authoritative while a private hybrid staging deployment is validated over multiple daily cycles. Cloud Run and GCS have passed one-cycle hardened validation; Authoritative GIS-provider scheduling remains disabled pending the multi-day validation gate; the separate sanitized publisher has a recorded 10-minute schedule.
 
 See [current-status.md](current-status.md) and [google-cloud-deployment.md](google-cloud-deployment.md).

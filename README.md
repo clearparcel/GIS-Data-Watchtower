@@ -86,6 +86,7 @@ Do not report security vulnerabilities in public issues. See `SECURITY.md`.
 ```bash
 python -W error::ResourceWarning -m unittest discover -s tests -q
 python -m compileall -q clearparcel tests
+git diff --check
 ```
 
 CI tests Windows and Ubuntu on Python 3.12, 3.13, and 3.14, plus a Linux container smoke test.
@@ -93,7 +94,7 @@ CI tests Windows and Ubuntu on Python 3.12, 3.13, and 3.14, plus a Linux contain
 ## Project documentation
 
 - [`STATUS.md`](STATUS.md) — concise validated project/deployment status
-- [`docs/current-status.md`](docs/current-status.md) — detailed current local/cloud/hybrid state
+- [`docs/current-status.md`](docs/current-status.md) — current recorded local/cloud/hybrid state and historical evidence
 - [`docs/configuration.md`](docs/configuration.md) — supported configuration and environment variables
 - [`docs/data-watchtower-processing-architecture.md`](docs/data-watchtower-processing-architecture.md) — processing/storage/dashboard boundaries
 - [`docs/google-cloud-deployment.md`](docs/google-cloud-deployment.md) — optional Cloud Run/GCS execution deployment
@@ -114,6 +115,8 @@ GIS Data Watchtower is licensed under the **MIT License**. See [`LICENSE`](LICEN
 
 County map selections open a shared parcel-source profile with four independent source categories, source-specific counts and dates, access evidence, and research status. The overview supports monitoring-path and MN GAC completeness views. Unknown values remain unavailable; county research does not activate monitoring.
 
-The isolated county-profile [preview](https://gis-data-watchtower-public-v2-preview-237020802969.us-central1.run.app) now runs committed `5aac504` (revision `00007-zfh`) with dedicated sanitized storage/identity. The previous five-class release served `dfacd72` (`00005-c24`). The final typed-metric and statewide-identity fixes passed review; live all-87 JSON/CSV/XLSX parity and targeted desktop/mobile checks passed. Original Task 8 and Task 10 local folder absence were verified on 2026-10-06; the earlier automatic approval review cleanup denial remains recorded. See [deployment details](docs/google-cloud-deployment.md#four-class-code-only-preview-release-2026-10-06).
+The latest recorded (2026-10-06) isolated county-profile [preview](https://gis-data-watchtower-public-v2-preview-237020802969.us-central1.run.app) served committed `5aac504` (revision `00007-zfh`) with dedicated sanitized storage/identity. The previous five-class release served `dfacd72` (`00005-c24`). The final typed-metric and statewide-identity fixes passed review; live all-87 JSON/CSV/XLSX parity and targeted desktop/mobile checks passed. Original Task 8 and Task 10 local folder absence were verified on 2026-10-06; the earlier automatic approval review cleanup denial remains recorded. See [deployment details](docs/google-cloud-deployment.md#four-class-code-only-preview-release-2026-10-06).
 
-The shared public header is now **Minnesota Open Data Watchtower** in the reviewed Task 9 source change, released to the existing preview by Task 10. The confirmed follow-up source uses <30%, 30% - 50%, 50% - 70%, >70% classes on both completeness maps, summary modes and individual fields, with exactly 30 in the second class, exactly 50 and 70 in the third class, and a separate No data class. This follow-up is deployed to existing preview `00007-zfh` from committed `5aac504`, and rendered acceptance passed; sanitized data and its real publication/source dates were preserved. Monitored entries cover all dataset/service types; parcel coverage counts unique counties across direct and statewide observations. One statewide entry can cover many counties. Internal project identities are unchanged.
+The shared public header is **Minnesota Open Data Watchtower** in the reviewed Task 9 source change, released to the existing preview by Task 10. The confirmed follow-up source uses <30%, 30% - 50%, 50% - 70%, >70% classes on both completeness maps, summary modes and individual fields, with exactly 30 in the second class, exactly 50 and 70 in the third class, and a separate No data class. This follow-up is deployed to existing preview `00007-zfh` from committed `5aac504`, and rendered acceptance passed; sanitized data and its real publication/source dates were preserved. Monitored entries cover all dataset/service types; parcel coverage counts unique counties across direct and statewide observations. One statewide entry can cover many counties. Internal project identities are unchanged.
+
+The [October 6 repository review](docs/repository-review-2026-10-06.md) fixes transport, reporting and publisher cleanup behavior. Those fixes are not deployed to the recorded preview or production. Current recorded deployment facts are maintained in [STATUS.md](STATUS.md).
