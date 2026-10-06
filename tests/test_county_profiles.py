@@ -28,6 +28,39 @@ def compose(state=None, research=None):
 
 
 class CountyProfilesTests(unittest.TestCase):
+    def test_clearwater_houston_inventory_preserves_product_identity_and_policy(self):
+        research = load_parcel_access()
+        names = ('Clearwater', 'Cook', 'Crow Wing', 'Dakota', 'Douglas',
+                 'Fillmore', 'Grant', 'Hennepin', 'Houston')
+        for name in names:
+            record = research[name]
+            self.assertEqual(record['county_direct_classification'], 'free-parcel-data')
+            self.assertTrue(record['research_complete'])
+            self.assertTrue(record['statewide_open_coverage']['available'])
+            self.assertEqual(record['monitoring']['decision'], 'not-assessed')
+            self.assertTrue(all(c['review_status'] != 'pending'
+                                for c in record['source_inventory'].values()))
+        self.assertEqual(research['Clearwater']['source_inventory']['county_arcgis_rest']['availability'], 'unknown')
+        for name in ('Dakota', 'Hennepin', 'Fillmore', 'Houston'):
+            self.assertEqual(research[name]['source_inventory']['mngeo_public_repository']['availability'], 'yes')
+        state = {'sources': {'mn-dakota-parcels-direct': {
+            'id': 'mn-dakota-parcels-direct', 'county_slug': 'dakota', 'category': 'Parcels',
+            'adapter': 'arcgis_layer', 'status': 'ok', 'checked_at': STAMP,
+            'last_success_at': STAMP, 'feature_count': 42}, 'mn-douglas-parcels-direct': {
+            'id': 'mn-douglas-parcels-direct', 'county_slug': 'douglas', 'category': 'Parcels',
+            'adapter': 'arcgis_layer', 'status': 'ok', 'checked_at': STAMP,
+            'last_success_at': STAMP, 'feature_count': 99}}}
+        profiles = compose(state)
+        for category in ('county_arcgis_rest', 'county_download'):
+            source = profiles['dakota'][category]['sources'][0]
+            self.assertEqual(source['feature_count'], 42)
+            self.assertEqual(source['monitored_source_id'], 'mn-dakota-parcels-direct')
+            source = profiles['douglas'][category]['sources'][0]
+            self.assertIsNone(source['feature_count'])
+            self.assertIsNone(source['monitored_source_id'])
+        self.assertTrue(all(s['monitored_source_id'] is None
+                            for s in profiles['dakota']['mngeo_public_repository']['sources']))
+
     def test_aitkin_clay_batch_reviews_keep_policy_and_runtime_independent(self):
         names = ('Aitkin', 'Anoka', 'Becker', 'Beltrami', 'Benton', 'Big Stone',
                  'Carlton', 'Carver', 'Cass', 'Chippewa', 'Chisago', 'Clay')

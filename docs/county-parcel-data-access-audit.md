@@ -99,22 +99,22 @@ This is why Winona is correctly represented as:
 The original 35 counties were reviewed using bounded official county landing pages, parcel
 service metadata, the [official MnGeo parcel source table](https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp),
 the current state-hosted service directory, and county-specific Commons publishing-account
-metadata searches plus all 87 returned official state-organization parcel-search records. Search responses were read; snippets were only discovery. The next 12 previously unreviewed
-counties (Aitkin–Clay, listed below) now have actual category reviews. The remaining 40
+metadata searches plus all 87 returned official state-organization parcel-search records. Search responses were read; snippets were only discovery. The next 21 previously unreviewed
+counties (the exact Aitkin–Clay and Clearwater–Houston batches, listed below) now have actual category reviews. The remaining 31
 records retain pending category reviews.
 
-| Category | Reviewed across 47 county reviews | Blocked / unresolved | Pending remaining 40 |
+| Category | Reviewed across 56 county reviews | Blocked / unresolved | Pending remaining 31 |
 | --- | ---: | ---: | ---: |
-| MnGeo Plan Parcels Open | 47 (20 included, 27 excluded) | 0 | 40 |
-| Distinct MnGeo public repository | 3 available | 44 | 40 |
-| County-authorized parcel REST | 24 available | 23 | 40 |
-| County parcel download | 15 available | 32 | 40 |
+| MnGeo Plan Parcels Open | 56 (29 included, 27 excluded) | 0 | 31 |
+| Distinct MnGeo public repository | 7 available | 49 | 31 |
+| County-authorized parcel REST | 32 available | 24 | 31 |
+| County parcel download | 24 available | 32 | 31 |
 
-These counts are derived from the stored category statuses: **89 reviewed**, **99 blocked**,
-and **160 pending** category assessments across 87 county records. **Three counties have all
-four categories complete** (Aitkin, Anoka, Carver); Aitkin's county-direct pricing/policy
-assessment remains unresolved. The county-direct classification audit is separate from
-this inventory completion measure; creating all four category keys does not finish research.
+These counts are derived from stored category statuses: **119 reviewed**, **105 blocked**,
+and **124 pending** category assessments across 87 county records. **Seven counties have all
+four categories complete** (Aitkin, Anoka, Carver, Dakota, Fillmore, Hennepin, Houston);
+Aitkin's county-direct pricing/policy assessment remains unresolved. County-direct
+classification is separate from inventory completion; category keys alone do not finish research.
 
 The official [Plan Parcels Open item metadata](https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson)
 explicitly lists 59 opted-in counties and supports the nine memberships within the original 35-county batch.
@@ -210,9 +210,57 @@ Exact vetted Aitkin and Beltrami public dataset identities retain monitored IDs 
 REST/Hub/download representations; no other join is inferred from county name or generic
 catalog. Current runtime coverage still overrides dated research membership.
 
-Across all stored records, **44** county-direct classifications are complete: **21 free**,
-**12 fee-based**, **11 viewer-only**. The remaining 43 are unresolved or pending. These research
+Across all stored records, **53** county-direct classifications are complete: **30 free**,
+**12 fee-based**, **11 viewer-only**. The remaining 34 are unresolved or pending. These research
 totals do not change active monitoring coverage.
+
+### Clearwater–Houston inventory batch, 2026-10-06
+
+The exact nine counties are Clearwater, Cook, Crow Wing, Dakota, Douglas, Fillmore,
+Grant, Hennepin and Houston. This batch adds **30 reviewed / 6 blocked** category
+assessments; the other 78 county records are unchanged. All nine county-direct conclusions
+cover a verified public parcel product and are free; publication does not activate polling.
+
+| County | Statewide dated membership | Distinct repository | County REST | County download |
+| --- | --- | --- | --- | --- |
+| Clearwater | Included | Unresolved | Unresolved | County ESRI Shapefile ZIP |
+| Cook | Included | Unresolved | Tax Parcel Layer (Current), layer 0 | County Hub parcel download |
+| Crow Wing | Included | Unresolved | TaxParcels_public, layer 0 | County Hub parcel download |
+| Dakota | Included | County-specific MetroGIS polygon layer 2 | Tax Parcels, layer 71 | CAD / File Geodatabase / Shapefile / GeoPackage advertised |
+| Douglas | Included | Unresolved | Open Data Parcels, layer 0 | County Hub parcel download |
+| Fillmore | Included | Distinct Commons county parcel item | County Parcels, layer 0 | Commons public parcel download |
+| Grant | Included | Unresolved | TaxParcels_public, layer 1 | County Hub parcel download |
+| Hennepin | Included | County-specific MetroGIS polygon layer 3 | County Parcels, layer 1 | County Hub parcel download |
+| Houston | Included | Distinct Commons county parcel item | HoustonParcels, layer 0 | Commons public parcel download |
+
+Final official pages, item identities, checked date and metadata URLs are retained in the
+[research inventory](../clearparcel/datawatch/minnesota_county_parcel_access.json).
+Rendered county Hubs/About pages and Commons catalog results were reviewed; shell HTML
+and catalog discovery were not used as final proof. Cook's July 2026 fee schedule prices
+requested assessor electronic query results, mailing labels and paper outputs; it does not
+establish a fee on the separately advertised public parcel geometry layer. Dakota's current
+policy provides free standard GIS data; its $41.13 half-hour charge covers special services.
+Those fees are not county parcel dataset fees. Fillmore/Houston public county-owned items
+and rendered Commons downloads establish dataset access beyond Beacon viewing.
+
+All eight resolved county REST layers report **esriGeometryPolygon**. Dakota item narrative
+calls its data lines, but exact REST geometry and the existing observation both identify
+polygons; that discrepancy is recorded without changing the product identity. MetroGIS
+county polygon layers remain separate products and cannot borrow county-direct counts.
+Dakota REST/download share only the exact verified `mn-dakota-parcels-direct` observation.
+The newly verified Douglas product did not match its runtime source, so its published
+inventory receives no inferred count or health join.
+
+Clearwater advertises ESRI Shapefile format; its current `Parcel.zip` passed bounded HEAD
+with ZIP type and no body read. The older catalog `Parcel_Clearwater.zip` returned 404.
+Legacy Douglas GIS download navigation and relative Fillmore/Houston departmental links
+returned 404; useful current official About/canonical county routes were resolved separately.
+No parcel features, property-search pages or archive bodies were read. Five scoped rendered
+Commons searches show statewide/derived resources but do not prove repository-wide absence;
+those distinct repository categories remain unknown. Clearwater's published download does
+not establish an authorized REST layer. No runtime registry, configuration, scheduling,
+provider polling, deployment or production writes occurred; all five existing research holds
+remain unchanged. Earlier staging results elsewhere in this document remain historical observations.
 
 ### Historical original 35 county-direct results
 
