@@ -283,7 +283,7 @@ local temporary cleanup was verified complete on 2026-10-06; the controller chec
 
 Final Task 8 release: product `5686013`, revision `00004-sv8`, immutable `bbb526e8…` image; actual 350 category/product rows with 87-profile JSON/CSV/XLSX parity and 59 single official statewide products. No new raw disk copy. Required 193 tests passed. Final targeted browser checks and verified screenshots passed; controller fresh IAB verified refresh pause/resume and viewport reset after the Chrome follow-up timeout. Cloud temporary source removed; manual local cleanup was verified complete on 2026-10-06.
 
-## Task 9 browser feedback (2026-10-06; review/release pending)
+## Task 9 browser feedback (2026-10-06; reviewed and released)
 
 Source now uses the shared public header `Minnesota Open Data Watchtower`. Both maps, summary modes and individual fields share <20%, 20-40%, 40-60%, 60-80%, >80% fill/legend definitions: lower bounds inclusive, upper bounds exclusive except exactly 80 belongs to 60-80. True zero uses the first class; unavailable observations retain No data. Monitoring-path colors remain categorical.
 

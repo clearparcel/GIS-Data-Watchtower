@@ -179,7 +179,7 @@ limitation; Chrome cleanup is not claimed. Product head 5686013 and operational
 docs head c2c97e2 were pushed with both CI runs successful for each. Required manual
 local temporary cleanup was verified complete on 2026-10-06; the controller checks eventual final PR-head CI.
 
-## Task 9 browser feedback (2026-10-06; review/release pending)
+## Task 9 browser feedback (2026-10-06; reviewed and released)
 
 Source now uses the shared public header `Minnesota Open Data Watchtower`. Both maps, summary modes and individual fields share <20%, 20-40%, 40-60%, 60-80%, >80% fill/legend definitions: lower bounds inclusive, upper bounds exclusive except exactly 80 belongs to 60-80. True zero uses the first class; unavailable observations retain No data. Monitoring-path colors remain categorical.
 
