@@ -1119,7 +1119,7 @@ class DataWatchTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, 'CLEARPARCEL_WATCHTOWER_DASHBOARD_PASSWORD'):
                 datawatch_dashboard._dashboard_auth({'public_dashboard': {'internet_exposure': False}}, '0.0.0.0')
     def test_county_status_uses_explicit_slug_not_substring(self):
-        state = {'sources': {'lake-source': {'name': 'Lake of the Woods County Parcels', 'provider': 'County', 'status': 'ok', 'county_slug': 'lake-of-the-woods'}}}
+        state = {'sources': {'lake-source': {'name': 'Lake of the Woods County Parcels', 'provider': 'County', 'category': 'Parcels', 'status': 'ok', 'county_slug': 'lake-of-the-woods'}}}
         lake = datawatch_dashboard._county_status({}, {'name': 'Lake', 'slug': 'lake'}, state)
         woods = datawatch_dashboard._county_status({}, {'name': 'Lake of the Woods', 'slug': 'lake-of-the-woods'}, state)
         self.assertEqual(lake['sources'], [])
@@ -1309,7 +1309,7 @@ class DataWatchTests(unittest.TestCase):
                 datawatch_dashboard._dashboard_auth({'public_dashboard': {'internet_exposure': False}}, '0.0.0.0')
 
     def test_county_status_uses_explicit_slug_not_substring(self):
-        state = {'sources': {'lake': {'name': 'Lake County Parcels', 'county_slug': 'lake', 'status': 'ok'}, 'red-lake': {'name': 'Red Lake County Parcels', 'county_slug': 'red-lake', 'status': 'ok'}}}
+        state = {'sources': {'lake': {'name': 'Lake County Parcels', 'category': 'Parcels', 'county_slug': 'lake', 'status': 'ok'}, 'red-lake': {'name': 'Red Lake County Parcels', 'category': 'Parcels', 'county_slug': 'red-lake', 'status': 'ok'}}}
         lake = datawatch_dashboard._county_status({}, {'name': 'Lake', 'slug': 'lake'}, state)
         red = datawatch_dashboard._county_status({}, {'name': 'Red Lake', 'slug': 'red-lake'}, state)
         self.assertEqual([x['name'] for x in lake['sources']], ['Lake County Parcels'])

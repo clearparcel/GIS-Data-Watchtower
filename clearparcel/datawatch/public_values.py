@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import ipaddress
 import datetime as dt
+from email.utils import parsedate_to_datetime
 import re
 from urllib.parse import parse_qsl, urlsplit
 
@@ -66,3 +67,62 @@ def public_access_classification(record: dict | None) -> str:
     if classification == "free-parcel-data" and record.get("usable_direct_machine_readable_source") is True:
         return "OPEN"
     return "AMBIGUOUS"
+
+
+def _metadata_text(value: object, limit: int = 512) -> str | None:
+    if isinstance(value, str) and 0 < len(value) <= limit and all(ord(c) >= 32 and ord(c) != 127 for c in value):
+        return value
+    return None
+
+
+def _metadata_date(value: object, *, http: bool = False) -> str | None:
+    text = _metadata_text(value, 80)
+    if text is None:
+        return None
+    try:
+        stamp = parsedate_to_datetime(text) if http else dt.datetime.fromisoformat(text.replace('Z', '+00:00'))
+        if stamp.tzinfo is None or stamp.year < 1970:
+            return None
+        return stamp.astimezone(dt.timezone.utc).isoformat()
+    except (ValueError, TypeError, OverflowError):
+        return None
+
+
+def sanitize_source_metadata(source: dict) -> dict:
+    """Extract typed scalar facts, never copy raw provider dictionaries."""
+    normalized = source.get('public_metadata')
+    normalized = normalized if isinstance(normalized, dict) else {}
+    public = {}
+    adapter = source.get('adapter', normalized.get('adapter'))
+    if adapter in ('arcgis_layer', 'arcgis_service', 'arcgis_image', 'http_file', 'wms', 'wfs', 'sda_query', 'arcgis_county_catalog'):
+        public['adapter'] = adapter
+    geometry = source.get('geometry_type', normalized.get('geometry_type'))
+    if isinstance(geometry, str) and geometry in ('esriGeometryPoint', 'esriGeometryMultipoint', 'esriGeometryPolyline', 'esriGeometryPolygon', 'esriGeometryEnvelope'):
+        public['geometry_type'] = geometry
+    editing = source.get('editing_info')
+    stamp = provider_edit_timestamp(editing.get('lastEditDate')) if isinstance(editing, dict) else None
+    stamp = stamp or _metadata_date(normalized.get('provider_updated_at'))
+    if stamp:
+        public['provider_updated_at'] = stamp
+    tracked = source.get('tracked_values')
+    tracked = tracked if isinstance(tracked, dict) else {}
+    file = normalized.get('file')
+    file = file if isinstance(file, dict) else {}
+    safe_file = {}
+    mime = _metadata_text(source.get('content_type', file.get('type')), 128)
+    if mime and re.fullmatch(r'[A-Za-z0-9!#$&^_.+-]+/[A-Za-z0-9!#$&^_.+-]+(?:;[ A-Za-z0-9=._+-]+)?', mime):
+        safe_file['type'] = mime
+    size = tracked.get('content_length', file.get('size_bytes'))
+    if isinstance(size, str) and re.fullmatch(r'[0-9]{1,19}', size):
+        size = int(size)
+    if type(size) is int and 0 <= size <= 2**63 - 1:
+        safe_file['size_bytes'] = size
+    etag = _metadata_text(tracked.get('etag', file.get('etag')))
+    if etag and re.fullmatch(r'(?:W/)?"[\x21\x23-\x7e]*"', etag):
+        safe_file['etag'] = etag
+    modified = _metadata_date(tracked.get('last_modified'), http=True) if 'last_modified' in tracked else _metadata_date(file.get('last_modified'))
+    if modified:
+        safe_file['last_modified'] = modified
+    if safe_file:
+        public['file'] = safe_file
+    return public

@@ -4,6 +4,8 @@ Last validated: **2026-10-06**
 
 GIS Data Watchtower is public, MIT-licensed, and supports local, cloud, and hybrid execution.
 
+County profiles now compose all 87 canonical counties from one observation snapshot and the evidence inventory. Coverage counts include only parcel observations, deduplicate statewide/direct overlap, and preserve unknown counts, source health, and reporting freshness separately. Category research remains explicitly incomplete until reviewed.
+
 ## Validated capabilities
 
 - Windows and Ubuntu CI on Python 3.12, 3.13, and 3.14

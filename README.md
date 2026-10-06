@@ -89,7 +89,7 @@ CI tests Windows and Ubuntu on Python 3.12, 3.13, and 3.14, plus a Linux contain
 - [`docs/data-watchtower-processing-architecture.md`](docs/data-watchtower-processing-architecture.md) — processing/storage/dashboard boundaries
 - [`docs/google-cloud-deployment.md`](docs/google-cloud-deployment.md) — optional Cloud Run/GCS execution deployment
 - [`docs/public-dashboard-hosting.md`](docs/public-dashboard-hosting.md) — public Google Cloud serving architecture and security boundary
-- [`docs/county-parcel-data-access-audit.md`](docs/county-parcel-data-access-audit.md) — completed 35-county parcel-access audit, classifications, evidence methodology, and direct-source findings
+- [`docs/county-parcel-data-access-audit.md`](docs/county-parcel-data-access-audit.md) — parcel-access audit, classifications, evidence methodology, and direct-source findings; offline county profiles cover all 87 counties while pending category research remains explicit
 - [`docs/hybrid-execution.md`](docs/hybrid-execution.md) and [`docs/hybrid-aggregation.md`](docs/hybrid-aggregation.md) — hybrid worker model
 - [`docs/mngac-completeness.md`](docs/mngac-completeness.md) — Minnesota GAC field-population methodology, county map, and exports
 - [`docs/data-watchtower-provider-compliance.md`](docs/data-watchtower-provider-compliance.md) — respectful-use methodology and known provider constraints

@@ -80,6 +80,18 @@ def _fake_gcs_backend():
 
 
 class HybridReadinessTests(unittest.TestCase):
+    def test_profile_coverage_preserves_stale_local_worker(self):
+        from test_county_profiles import coverage_state, NOW
+        from clearparcel.datawatch.county_profiles import compose_county_profiles, county_profile_counts, FreshnessPolicy
+        state = coverage_state()
+        direct_id = next(sid for sid in state['sources'] if sid != 'statewide')
+        state['sources'][direct_id]['worker'] = 'local'
+        state['workers'] = {'local': {'last_report_at': '2026-10-01T00:00:00+00:00'}}
+        profiles = compose_county_profiles(state, {}, now=NOW, freshness_policy=FreshnessPolicy())
+        self.assertEqual(county_profile_counts(profiles)['active'], 70)
+        self.assertEqual(profiles[direct_id]['monitoring']['reporting'], 'overdue')
+        self.assertEqual(profiles[direct_id]['monitoring']['health'], 'ok')
+
     def test_competing_publishers_preserve_both_workers(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)

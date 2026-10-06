@@ -14,6 +14,18 @@ from clearparcel.datawatch.public_dashboard import (
 
 
 class PublicDashboardTests(unittest.TestCase):
+    def test_shared_profile_coverage_kpi_and_public_metadata(self):
+        from test_county_profiles import coverage_state, NOW
+        from clearparcel.datawatch.county_profiles import compose_county_profiles, county_profile_counts, FreshnessPolicy
+        from clearparcel.datawatch.parcel_access import load_parcel_access
+        from clearparcel.datawatch.dashboard import _county_monitoring_counts
+        public = sanitize_public_render_state(coverage_state())
+        profiles = compose_county_profiles(public, load_parcel_access(), now=NOW, freshness_policy=FreshnessPolicy())
+        self.assertEqual(county_profile_counts(profiles)['active'], 70)
+        self.assertEqual(_county_monitoring_counts({}, public)['active'], 70)
+        self.assertEqual(profiles['aitkin']['mngac_public_parcels']['sources'][0]['feature_count'], 1000)
+        self.assertEqual(public, sanitize_public_render_state(public))
+
     def test_safe_metadata_is_typed_and_idempotent(self):
         state = self._state()
         state['sources']['file'] = {'adapter': 'http_file', 'content_type': 'application/zip', 'tracked_values': {'content_length': '0', 'etag': '"abc"', 'last_modified': 'Wed, 01 Jan 2025 00:00:00 GMT'}}

@@ -20,6 +20,7 @@ from pathlib import Path
 from clearparcel.datawatch.watch import check_sources, load_history, load_state
 from clearparcel.datawatch.aggregate import with_freshness
 from clearparcel.datawatch.parcel_access import access_label, load_parcel_access, statewide_access_label
+from clearparcel.datawatch.county_profiles import FreshnessPolicy, compose_county_profiles, county_profile_counts
 
 COUNTIES_FILE = Path(__file__).with_name("minnesota_counties.json")
 COUNTY_CONTACTS_FILE = Path(__file__).with_name("minnesota_county_contacts.json")
@@ -591,20 +592,29 @@ def _load_county_contacts() -> dict:
     return {county: record.get("contacts", []) for county, record in _load_county_contact_records().items()}
 
 
-def _county_status(config: dict, county: dict, state: dict) -> dict:
+def _county_profiles(config: dict, state: dict, research: dict) -> dict:
+    return compose_county_profiles(state, research, now=dt.datetime.now(dt.timezone.utc), freshness_policy=FreshnessPolicy(
+        source_stale_minutes=int(config.get('source_stale_minutes', 1560)),
+        worker_stale_minutes=int(config.get('worker_stale_minutes', 1560))))
+
+
+def _county_status(config: dict, county: dict, state: dict, *, profiles: dict | None = None, research: dict | None = None) -> dict:
+    research = load_parcel_access() if research is None else research
+    profiles = _county_profiles(config, state, research) if profiles is None else profiles
+    profile = profiles[county['slug']]
     name = county["name"]
     matches = []
     for sid, src in (state.get("sources") or {}).items():
         if sid == "mn-parcel-county-catalog":
             continue
-        source_slug = str(src.get("county_slug") or "").strip().lower()
-        if source_slug and source_slug == county["slug"].lower():
+        source_slug = src.get("county_slug")
+        if src.get('category') == 'Parcels' and source_slug == county["slug"]:
             matches.append(src)
 
     statewide_source_id, statewide_source = _mngac_source(state)
     statewide_data = (statewide_source or {}).get("mngac_completeness") or {}
     statewide_record = (statewide_data.get("counties") or {}).get(name)
-    statewide_monitored = isinstance(statewide_record, dict)
+    statewide_monitored = 'mngeo-open' in profile['monitoring']['paths']
 
     catalog = ((state.get("sources") or {}).get("mn-parcel-county-catalog") or {})
     catalog_record = (catalog.get("county_records") or {}).get(name)
@@ -634,7 +644,10 @@ def _county_status(config: dict, county: dict, state: dict) -> dict:
     if statewide_monitored:
         monitoring_paths.append("mngeo-open")
 
-    parcel_access = load_parcel_access().get(name)
+    parcel_access = research.get(name)
+    monitoring_paths = profile['monitoring']['paths']
+    if profile['monitoring']['active']:
+        status = profile['monitoring']['health']
     return {
         "name": name,
         "slug": county["slug"],
@@ -642,6 +655,7 @@ def _county_status(config: dict, county: dict, state: dict) -> dict:
         "sources": matches,
         "catalog": catalog_record,
         "parcel_access": parcel_access,
+        "profile": profile,
         "actively_monitored": bool(monitoring_paths),
         "monitoring_paths": monitoring_paths,
         "statewide_source_id": statewide_source_id,
@@ -664,14 +678,7 @@ def _monitoring_path_label(info: dict) -> str:
 
 
 def _county_monitoring_counts(config: dict, state: dict) -> dict:
-    counties = [_county_status(config, county, state) for county in _load_counties()]
-    return {
-        "total": len(counties),
-        "active": sum(1 for county in counties if county["actively_monitored"]),
-        "county_direct": sum(1 for county in counties if "county-direct" in county["monitoring_paths"]),
-        "mngeo_open": sum(1 for county in counties if "mngeo-open" in county["monitoring_paths"]),
-        "both": sum(1 for county in counties if set(county["monitoring_paths"]) == {"county-direct", "mngeo-open"}),
-    }
+    return county_profile_counts(_county_profiles(config, state, load_parcel_access()))
 
 
 def _format_arcgis_date(value) -> str:
@@ -922,7 +929,9 @@ def render_mngac(config: dict) -> str:
 
 def render_counties(config: dict) -> str:
     state = _dashboard_state(config)
-    counties = [_county_status(config, x, state) for x in _load_counties()]
+    research = load_parcel_access()
+    profiles = _county_profiles(config, state, research)
+    counties = [_county_status(config, x, state, profiles=profiles, research=research) for x in _load_counties()]
     active_count = sum(1 for x in counties if x["actively_monitored"])
     direct_count = sum(1 for x in counties if "county-direct" in x["monitoring_paths"])
     mngeo_count = sum(1 for x in counties if "mngeo-open" in x["monitoring_paths"])
@@ -1126,12 +1135,13 @@ def render_county(config: dict, slug: str) -> str:
     body = f'<p><a href="/counties">← Minnesota counties</a></p>{export_links}<div class="grid"><div class="card"><div class="muted">County</div><h2>{_esc(county["name"])} County</h2></div><div class="card"><div class="muted">Monitoring coverage</div><div class="metric {_esc(info["status"])}">{_esc(_friendly_status(info["status"]).upper())}</div></div><div class="card"><div class="muted">Monitoring path</div><div class="metric" style="font-size:20px">{_esc(_monitoring_path_label(info))}</div></div><div class="card"><div class="muted">County-direct sources</div><div class="metric">{len(info["sources"])}</div></div></div><div class="grid">{source_cards}</div><br>{parcel_access_detail}<br>{mngac_html}<br>{contacts_html}'
     return _layout(f'{county["name"]} County — Watchtower', body, static=bool(config.get("_public_mode")), csrf_token=str(config.get("_csrf_token") or ""))
 
-def _county_snapshot(config: dict, slug: str, *, include_mngac: bool = True) -> dict | None:
-    state = _dashboard_state(config)
+def _county_snapshot(config: dict, slug: str, *, include_mngac: bool = True, state: dict | None = None,
+                     profiles: dict | None = None, research: dict | None = None) -> dict | None:
+    state = _dashboard_state(config) if state is None else state
     county = next((x for x in _load_counties() if x.get("slug") == slug), None)
     if not county:
         return None
-    info = _county_status(config, county, state)
+    info = _county_status(config, county, state, profiles=profiles, research=research)
     catalog = info.get("catalog") or {}
     mngac_data, mngac_county = _mngac_county_record(state, county["name"])
     mngac_payload = None
@@ -1194,9 +1204,11 @@ def _county_snapshot(config: dict, slug: str, *, include_mngac: bool = True) -> 
 
 def _statewide_snapshot(config: dict) -> dict:
     state = _dashboard_state(config)
+    research = load_parcel_access()
+    profiles = _county_profiles(config, state, research)
     counties = []
     for county in _load_counties():
-        item = _county_snapshot(config, county["slug"], include_mngac=False)
+        item = _county_snapshot(config, county["slug"], include_mngac=False, state=state, profiles=profiles, research=research)
         if item:
             counties.append(item)
     aggregate_sources = []
