@@ -14,6 +14,50 @@ from clearparcel.datawatch.public_dashboard import (
 
 
 class PublicDashboardTests(unittest.TestCase):
+    def test_both_maps_embed_all_87_complete_profiles(self):
+        import re
+        from unittest.mock import patch
+        from clearparcel.datawatch.dashboard import render_mngac, _county_profiles
+        from clearparcel.datawatch.parcel_access import load_parcel_access
+        from clearparcel.datawatch.county_profile_panel import GROUPS
+        state = sanitize_public_render_state(self._state())
+        expected = _county_profiles({}, state, load_parcel_access())
+        for renderer in (render_public_dashboard, render_mngac):
+            with patch('clearparcel.datawatch.dashboard._dashboard_state', return_value=state), patch('clearparcel.datawatch.public_dashboard._dashboard_state', return_value=state):
+                page = renderer({'_public_mode': True})
+            data = json.loads(re.search(r'<script type="application/json" id="county-profile-data">(.*?)</script>', page, re.S).group(1))
+            self.assertEqual(data, expected)
+            self.assertEqual(len(data), 87)
+            slugs = re.findall(r'<path class="mngac-county"[^>]*data-slug="([^"]+)"', page)
+            self.assertEqual(set(slugs), set(expected))
+            self.assertEqual(len(slugs), 87)
+            for profile in data.values():
+                for key, label in GROUPS:
+                    self.assertIn(key, profile)
+                    self.assertIn(label, page)
+            self.assertIn('dialog.showModal()', page)
+            self.assertIn("event.key==='Enter'||event.key===' '", page)
+            self.assertNotIn('http-equiv="refresh"', page)
+            self.assertTrue("public publication" in page.lower())
+
+    def test_no_statewide_observation_still_has_all_county_targets(self):
+        import re
+        from unittest.mock import patch
+        from clearparcel.datawatch.dashboard import render_mngac
+        with patch('clearparcel.datawatch.dashboard._dashboard_state', return_value={}):
+            page=render_mngac({'_public_mode':True})
+        self.assertEqual(len(re.findall(r'<path class="mngac-county"',page)),87)
+        self.assertIn('id="county-profile-data"',page)
+        self.assertIn('style="fill:#151d2b"',page)
+
+    def test_county_detail_uses_complete_composed_profile(self):
+        from unittest.mock import patch
+        state = sanitize_public_render_state(self._state())
+        with patch('clearparcel.datawatch.dashboard._dashboard_state', return_value=state):
+            page = render_county({'_public_mode':True}, 'winona')
+        self.assertIn('County Website Download', page)
+        self.assertIn('Research incomplete', page)
+
     def test_shared_profile_coverage_kpi_and_public_metadata(self):
         from test_county_profiles import coverage_state, NOW
         from clearparcel.datawatch.county_profiles import compose_county_profiles, county_profile_counts, FreshnessPolicy

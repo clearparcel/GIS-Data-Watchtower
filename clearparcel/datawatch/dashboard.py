@@ -20,6 +20,7 @@ from pathlib import Path
 from clearparcel.datawatch.watch import check_sources, load_history, load_state
 from clearparcel.datawatch.aggregate import with_freshness
 from clearparcel.datawatch.parcel_access import access_label, load_parcel_access, statewide_access_label
+from clearparcel.datawatch.county_profile_panel import render_county_profile_panel, render_county_profile_body, percentage_legend, percentage_color_js, profile_time, PERCENT_COLORS, NO_DATA_COLOR
 from clearparcel.datawatch.county_profiles import FreshnessPolicy, compose_county_profiles, county_profile_counts
 
 COUNTIES_FILE = Path(__file__).with_name("minnesota_counties.json")
@@ -182,8 +183,20 @@ code{font-size:11px;color:#b9c6d8}.technical summary,.diagnostics summary{cursor
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
 """
 
+def _refresh_script(seconds: int) -> str:
+    """Use a cancellable timer so reading a county dialog prevents page reload."""
+    if not seconds:
+        return ""
+    return """<script>
+(function(){let timer=null;const delay=""" + str(int(seconds)*1000) + """;
+function pause(){clearTimeout(timer);timer=null}
+function resume(){pause();timer=setTimeout(()=>{if(document.getElementById('county-profile-dialog')?.open){resume();return}location.reload()},delay)}
+window.watchtowerRefresh={pause,resume};resume();})();
+</script>"""
+
+
 def _public_layout_v2(title: str, body: str, *, refresh_seconds: int = 30) -> str:
-    refresh_meta = f'<meta http-equiv="refresh" content="{int(refresh_seconds)}">' if int(refresh_seconds or 0) > 0 else ""
+    refresh_meta = _refresh_script(refresh_seconds)
     lower = title.lower()
     active = "mngac" if "gac" in lower else "sources" if "source" in lower else "counties" if "county" in lower or "counties" in lower else "overview"
     tabs = [
@@ -227,7 +240,7 @@ def _layout(title: str, body: str, *, refresh_seconds: int = 30, static: bool = 
     if static:
         return _public_layout_v2(title, body, refresh_seconds=refresh_seconds)
     auto_refresh = int(refresh_seconds or 0) > 0
-    refresh_meta = f'<meta http-equiv="refresh" content="{int(refresh_seconds)}">' if auto_refresh else ""
+    refresh_meta = _refresh_script(refresh_seconds)
     refresh_label = f"Dashboard view refreshes every {int(refresh_seconds)}s" if auto_refresh else "Interactive view · reload for latest saved data"
     refresh_form = "" if static else (
         '<form method="post" action="/refresh" class="refresh-form">'
@@ -705,6 +718,9 @@ def _bar_chart(items: list[tuple[str, float]], *, title: str, suffix: str = "") 
 def render_mngac(config: dict) -> str:
     state = _dashboard_state(config)
     data = _mngac_data(state)
+    profiles = _county_profiles(config, state, load_parcel_access())
+    profile_panel = render_county_profile_panel(profiles)
+    publication = f'<p>Public publication: {_esc(profile_time(state.get("public_published_at")))}</p>'
     schema = _load_mngac_schema()
     standard = schema.get("standard") or {}
     all_counties = _load_counties()
@@ -715,12 +731,14 @@ def render_mngac(config: dict) -> str:
             '<div class="card"><h2>MN GAC completeness data is not available yet</h2>'
             '<p>The statewide parcel source has not published a stored MNGAC completeness observation. '
             'Once the configured MnGeo statewide parcel check records it, this page will show county and field statistics.</p></div>'
+            + _mngac_map_svg().replace('class="mngac-county"', f'class="mngac-county" style="fill:{NO_DATA_COLOR}"') + percentage_legend() + publication + profile_panel
         )
         return _layout("MN GAC Completeness — GIS Data Watchtower", body, refresh_seconds=300, static=bool(config.get("_public_mode")), csrf_token=str(config.get("_csrf_token") or ""))
 
     covered = int(data.get("covered_counties") or 0)
     uncovered = max(0, total_counties - covered)
-    record_count = int(data.get("record_count") or 0)
+    record_count = data.get("record_count")
+    record_count_label = f"{record_count:,}" if isinstance(record_count, int) else "Not available"
     field_count = int(data.get("field_count") or len(schema.get("fields") or []))
     overall_pct = data.get("field_population_percent")
     mandatory_pct = data.get("mandatory_population_percent")
@@ -809,7 +827,7 @@ def render_mngac(config: dict) -> str:
   <div class="card"><div class="muted">Standard fields</div><div class="metric">{field_count}</div><span class="subtext">{_esc(standard.get("name") or "MN GAC Parcel Data Standard")} v{_esc(standard.get("version") or "—")}.</span></div>
   <div class="card"><div class="muted">Counties represented</div><div class="metric">{covered}/{total_counties}</div><span class="subtext">Counties currently represented in MnGeo Plan Parcels Open.</span></div>
   <div class="card"><div class="muted">Not represented</div><div class="metric">{uncovered}</div><span class="subtext">Shown as No data on the map, not as 0% populated.</span></div>
-  <div class="card"><div class="muted">Open parcel records</div><div class="metric">{record_count:,}</div><span class="subtext">Parcel records included in the current MnGeo statewide open layer.</span></div>
+  <div class="card"><div class="muted">Open parcel records</div><div class="metric">{record_count_label}</div><span class="subtext">Parcel records included in the current MnGeo statewide open layer.</span></div>
 </div>
 <div class="activity-strip">
   <div class="card"><div class="muted">All-field population</div><div class="metric">{_esc(f"{overall_pct:.2f}%" if isinstance(overall_pct,(int,float)) else "—")}</div><span class="subtext">Record-weighted populated cells across all 91 standard fields for represented counties. Descriptive only.</span></div>
@@ -823,14 +841,7 @@ def render_mngac(config: dict) -> str:
   </div>
   <div class="mngac-layout">
     <div class="mngac-map-panel">{map_svg}
-      <div class="mngac-legend" aria-label="Map legend">
-        <span><i class="mngac-swatch" style="background:#d5dbe0"></i>No data</span>
-        <span><i class="mngac-swatch" style="background:#edf3f8"></i>0–25%</span>
-        <span><i class="mngac-swatch" style="background:#d7e6f2"></i>25–50%</span>
-        <span><i class="mngac-swatch" style="background:#a9c9df"></i>50–75%</span>
-        <span><i class="mngac-swatch" style="background:#6f9fbe"></i>75–90%</span>
-        <span><i class="mngac-swatch" style="background:#2f668f"></i>90–100%</span>
-      </div>
+      {percentage_legend()}
     </div>
     <div class="card mngac-detail" id="mngac-detail" aria-live="polite">
       <div class="muted">Selected county</div><h3 id="mngac-county-name">Select a county</h3>
@@ -861,7 +872,6 @@ def render_mngac(config: dict) -> str:
   const paths=[...root.querySelectorAll('.mngac-county')];
   const q=root.getElementById('mngac-q'),inc=root.getElementById('mngac-inclusion');
   let selected=null;
-  const colors={json.dumps(['#1b2b40','#263d59','#315373','#3c708f','#4c9b7b']) if config.get('_public_mode') else json.dumps(['#edf3f8','#d7e6f2','#a9c9df','#6f9fbe','#2f668f'])};
   function metricMeta(key){{
     if(key==='__overall__')return {{label:'All 91 fields — row population rate',inclusion:'Descriptive'}};
     if(key==='__mandatory__')return {{label:'Mandatory fields — row population rate',inclusion:'Mandatory'}};
@@ -872,13 +882,11 @@ def render_mngac(config: dict) -> str:
     const c=data.counties[name]; if(!c||c.available===false)return null;
     if(key==='__overall__')return c.field_population_percent;
     if(key==='__mandatory__')return c.mandatory_population_percent;
-    if(key==='__fields_with_values__')return c.field_count?Math.round((c.fields_with_values/c.field_count)*10000)/100:null;
+    if(key==='__fields_with_values__')return typeof c.fields_with_values==='number'&&c.field_count?Math.round((c.fields_with_values/c.field_count)*10000)/100:null;
     const f=(c.fields||{{}})[key]; return f&&typeof f.percent==='number'?f.percent:null;
   }}
-  function color(v){{
-    if(typeof v!=='number')return {repr('#151d2b' if config.get('_public_mode') else '#d5dbe0')};
-    if(v<25)return colors[0]; if(v<50)return colors[1]; if(v<75)return colors[2]; if(v<90)return colors[3]; return colors[4];
-  }}
+  {percentage_color_js()}
+  const color=percentageColor;
   function updateMap(){{
     const key=metric.value,meta=metricMeta(key);
     paths.forEach(p=>{{
@@ -897,14 +905,14 @@ def render_mngac(config: dict) -> str:
     if(!c||c.available===false){{
       detail.textContent='This county is not represented in the current MnGeo Plan Parcels Open layer. No 0% value is inferred.';
     }}else if(key==='__fields_with_values__'){{
-      detail.textContent=c.fields_with_values+' of '+c.field_count+' standard fields contain at least one value across '+Number(c.record_count||0).toLocaleString()+' parcel records.';
+      detail.textContent=c.fields_with_values+' of '+c.field_count+' standard fields contain at least one value across '+(c.record_count==null?'Not available':Number(c.record_count).toLocaleString())+' parcel records.';
     }}else if(key==='__overall__'){{
-      detail.textContent='Average populated cells across all 91 standard fields and '+Number(c.record_count||0).toLocaleString()+' parcel records. Conditional and optional blanks may be valid.';
+      detail.textContent='Average populated cells across all 91 standard fields and '+(c.record_count==null?'Not available':Number(c.record_count).toLocaleString())+' parcel records. Conditional and optional blanks may be valid.';
     }}else if(key==='__mandatory__'){{
-      detail.textContent='Population across the standard’s Mandatory fields for '+Number(c.record_count||0).toLocaleString()+' parcel records. This is not a full compliance determination.';
+      detail.textContent='Population across the standard’s Mandatory fields for '+(c.record_count==null?'Not available':Number(c.record_count).toLocaleString())+' parcel records. This is not a full compliance determination.';
     }}else{{
       const f=(c.fields||{{}})[key]||{{}};
-      detail.textContent=Number(f.populated||0).toLocaleString()+' of '+Number(f.record_count||c.record_count||0).toLocaleString()+' parcel records contain a value.';
+      detail.textContent=(f.populated==null?'Not available':Number(f.populated).toLocaleString())+' of '+(f.record_count==null?'Not available':Number(f.record_count).toLocaleString())+' parcel records contain a value.';
     }}
     const link=root.getElementById('mngac-county-link');
     if(c&&c.slug){{link.href='/county?slug='+encodeURIComponent(c.slug);link.style.display='inline'}} else link.style.display='none';
@@ -923,6 +931,8 @@ def render_mngac(config: dict) -> str:
   updateMap();
 }})();
 </script>
+{publication}
+{profile_panel}
 """
     return _layout("MN GAC Completeness — GIS Data Watchtower", body, refresh_seconds=0, static=bool(config.get("_public_mode")), csrf_token=str(config.get("_csrf_token") or ""))
 
@@ -932,6 +942,7 @@ def render_counties(config: dict) -> str:
     research = load_parcel_access()
     profiles = _county_profiles(config, state, research)
     counties = [_county_status(config, x, state, profiles=profiles, research=research) for x in _load_counties()]
+    research_count = sum(p["research"]["complete"] for p in profiles.values())
     active_count = sum(1 for x in counties if x["actively_monitored"])
     direct_count = sum(1 for x in counties if "county-direct" in x["monitoring_paths"])
     mngeo_count = sum(1 for x in counties if "mngeo-open" in x["monitoring_paths"])
@@ -971,6 +982,7 @@ def render_counties(config: dict) -> str:
         '<div class="filters"><input id="cq" placeholder="Filter counties…" oninput="filterCounties()"><select id="cs" onchange="filterCounties()"><option value="">All coverage types</option><option value="ok">Actively checked</option><option value="catalog">MnGeo catalog only</option><option value="needs-source">No active parcel monitoring</option><option value="not-configured">No source information yet</option><option value="warn">Needs attention</option><option value="error">Check failed</option></select></div>' \
         f'<table id="counties"><thead><tr><th>County</th><th>Monitoring coverage<br><span class="subtext">Health and active monitoring path</span></th><th>County-direct access<br><span class="subtext">Evidence-backed county access</span></th><th>Statewide open access<br><span class="subtext">Current MnGeo Plan Parcels Open coverage</span></th><th>County-direct sources<br><span class="subtext">County-specific sources actively checked</span></th></tr></thead><tbody>{rows}</tbody></table></div>' \
         "<script>function filterCounties(){const q=document.getElementById('cq').value.toLowerCase(),s=document.getElementById('cs').value;document.querySelectorAll('#counties tbody tr').forEach(r=>r.style.display=(!q||r.dataset.name.includes(q))&&(!s||r.dataset.status===s)?'':'none')}</script>"
+    body += f'<div class="card"><h2>Parcel source research</h2><p>{research_count}/{len(profiles)} complete county inventories. Blocked and unresolved evidence remains Research incomplete.</p></div>'
     return _layout("Minnesota Counties — GIS Data Watchtower", '<p><a href="/">← Watchtower overview</a></p>'+body, static=bool(config.get("_public_mode")), csrf_token=str(config.get("_csrf_token") or ""))
 
 
@@ -1033,7 +1045,10 @@ def render_county(config: dict, slug: str) -> str:
     county = next((x for x in _load_counties() if x.get("slug") == slug), None)
     if not county:
         return _layout("County not found", '<p><a href="/counties">← Minnesota counties</a></p><div class="card">County not found.</div>', static=bool(config.get("_public_mode")), csrf_token=str(config.get("_csrf_token") or ""))
-    info = _county_status(config, county, state)
+    research = load_parcel_access()
+    profiles = _county_profiles(config, state, research)
+    info = _county_status(config, county, state, profiles=profiles, research=research)
+    complete_profile = render_county_profile_body(profiles[slug])
     mngac_html = _render_county_mngac(state, county)
     parcel_access = info.get("parcel_access")
     direct_access_label = access_label(parcel_access)
@@ -1132,7 +1147,7 @@ def render_county(config: dict, slug: str) -> str:
     verified_text = f' Verified {_esc(contact_record.get("verified"))}.' if contact_record.get("verified") else ""
     contacts_html = f'<div class="card"><h2>County GIS contacts</h2><p class="muted"><strong>Contact source:</strong> {contact_source}. {contact_source_note}{verified_text}</p><table class="contacts-table"><thead><tr><th>Name</th><th>Title</th><th>Department</th><th>Phone</th><th>Email</th></tr></thead><tbody>{contact_rows}</tbody></table></div>'
     export_links = f'<p><a href="/county-snapshot.csv?slug={urllib.parse.quote(slug)}">Download county snapshot (CSV)</a> · <a href="/county-snapshot.xlsx?slug={urllib.parse.quote(slug)}">Download county snapshot (Excel)</a> · <a href="/county-snapshot.json?slug={urllib.parse.quote(slug)}">Download county snapshot (JSON)</a></p>'
-    body = f'<p><a href="/counties">← Minnesota counties</a></p>{export_links}<div class="grid"><div class="card"><div class="muted">County</div><h2>{_esc(county["name"])} County</h2></div><div class="card"><div class="muted">Monitoring coverage</div><div class="metric {_esc(info["status"])}">{_esc(_friendly_status(info["status"]).upper())}</div></div><div class="card"><div class="muted">Monitoring path</div><div class="metric" style="font-size:20px">{_esc(_monitoring_path_label(info))}</div></div><div class="card"><div class="muted">County-direct sources</div><div class="metric">{len(info["sources"])}</div></div></div><div class="grid">{source_cards}</div><br>{parcel_access_detail}<br>{mngac_html}<br>{contacts_html}'
+    body = f'<p><a href="/counties">← Minnesota counties</a></p>{export_links}<div class="grid"><div class="card"><div class="muted">County</div><h2>{_esc(county["name"])} County</h2></div><div class="card"><div class="muted">Monitoring coverage</div><div class="metric {_esc(info["status"])}">{_esc(_friendly_status(info["status"]).upper())}</div></div><div class="card"><div class="muted">Monitoring path</div><div class="metric" style="font-size:20px">{_esc(_monitoring_path_label(info))}</div></div><div class="card"><div class="muted">County-direct sources</div><div class="metric">{len(info["sources"])}</div></div></div><div class="grid">{source_cards}</div><br>{parcel_access_detail}<br>{mngac_html}<br><div class="card">{complete_profile}</div><br>{contacts_html}'
     return _layout(f'{county["name"]} County — Watchtower', body, static=bool(config.get("_public_mode")), csrf_token=str(config.get("_csrf_token") or ""))
 
 def _county_snapshot(config: dict, slug: str, *, include_mngac: bool = True, state: dict | None = None,

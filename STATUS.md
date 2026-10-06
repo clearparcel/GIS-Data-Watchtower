@@ -6,6 +6,9 @@ GIS Data Watchtower is public, MIT-licensed, and supports local, cloud, and hybr
 
 County profiles now compose all 87 canonical counties from one observation snapshot and the evidence inventory. Coverage counts include only parcel observations, deduplicate statewide/direct overlap, and preserve unknown counts, source health, and reporting freshness separately. Category research remains explicitly incomplete until reviewed.
 
+
+Overview and MN GAC maps now open one complete county source dialog for every canonical county. Overview offers monitoring-path and completeness coloring; both maps share fixed percentage colors and a separate no-data class. The dialog pauses page refresh, preserves date-only evidence, and displays unknown values explicitly. Browser/mobile acceptance and preview deployment remain pending.
+
 ## Validated capabilities
 
 - Windows and Ubuntu CI on Python 3.12, 3.13, and 3.14

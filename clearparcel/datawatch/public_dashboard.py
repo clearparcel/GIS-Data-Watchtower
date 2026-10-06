@@ -14,6 +14,7 @@ from clearparcel.datawatch.dashboard import (
     _BoundedThreadingHTTPServer,
     _county_snapshot,
     _county_monitoring_counts,
+    _county_profiles,
     _dashboard_state,
     _esc,
     _health_status,
@@ -29,6 +30,9 @@ from clearparcel.datawatch.dashboard import (
     render_county,
     render_mngac,
 )
+from clearparcel.datawatch.parcel_access import load_parcel_access
+from clearparcel.datawatch.county_profiles import county_profile_counts
+from clearparcel.datawatch.county_profile_panel import render_county_profile_panel, percentage_legend, percentage_color_js
 from clearparcel.datawatch.storage import backend_from_env
 from clearparcel.datawatch.public_values import safe_public_url, sanitize_source_metadata, _metadata_text
 
@@ -213,9 +217,11 @@ def _public_time(value) -> str:
     if not value:
         return "—"
     try:
+        if len(str(value)) == 10:
+            return dt.date.fromisoformat(str(value)).isoformat()
         parsed = dt.datetime.fromisoformat(str(value).replace("Z", "+00:00"))
         if parsed.tzinfo is None:
-            parsed = parsed.replace(tzinfo=dt.timezone.utc)
+            return str(value)
         local = parsed.astimezone(ZoneInfo("America/Chicago"))
         time_text = local.strftime("%I:%M %p").lstrip("0")
         return f"{local.strftime('%b')} {local.day}, {local.year} · {time_text} {local.tzname()}"
@@ -256,10 +262,12 @@ def render_public_dashboard(config: dict) -> str:
     published_at = state.get("public_published_at")
     checked_at = state.get("generated_at")
     covered = int((mngac or {}).get("covered_counties") or 0)
-    monitoring = _county_monitoring_counts(config, state)
+    profiles = _county_profiles(config, state, load_parcel_access())
+    monitoring = county_profile_counts(profiles)
     all_field = (mngac or {}).get("field_population_percent")
     mandatory = (mngac or {}).get("mandatory_population_percent")
-    parcel_records = int((mngac or {}).get("record_count") or 0)
+    parcel_records = (mngac or {}).get("record_count")
+    parcel_records_label = f"{parcel_records:,}" if isinstance(parcel_records, int) else "Not available"
 
     rows = []
     for source_id, source in sorted(
@@ -306,6 +314,9 @@ def render_public_dashboard(config: dict) -> str:
         }
     map_json = json.dumps(map_data, ensure_ascii=False).replace("</", "<\\/")
     map_svg = _mngac_map_svg(width=620, height=560)
+    profile_panel = render_county_profile_panel(profiles)
+    research_count = sum(p["research"]["complete"] for p in profiles.values())
+    monitoring_json = json.dumps({slug: p["monitoring"]["paths"] for slug, p in profiles.items()})
 
     body = f"""
 <div class="summary-v2">
@@ -317,10 +328,11 @@ def render_public_dashboard(config: dict) -> str:
   <div class="card"><div class="muted">Mandatory-field population</div><div class="metric">{_esc(f"{mandatory:.2f}%" if isinstance(mandatory,(int,float)) else "—")}</div><span class="subtext">Record-weighted statewide rate</span></div>
 </div>
 
-<div class="section-head"><div><h2>Explore Minnesota GIS data</h2><p>Select a county to see its statewide MN GAC context, then open the full county profile.</p></div><a href="/counties">All 87 counties →</a></div>
+<div class="section-head"><div><h2>Explore Minnesota GIS data</h2><p>Select any county to inspect its complete parcel source profile.</p></div><a href="/counties">All 87 counties →</a></div>
 <div class="hero-panel">
   <div class="card">
-    <div class="mngac-map-panel">{map_svg}</div>
+    <label>Map view<select id="overview-metric"><option value="monitoring">Monitoring paths</option><option value="completeness">MN GAC completeness</option></select></label>
+    <div class="mngac-map-panel">{map_svg}<div id="overview-legend"></div></div>
   </div>
   <div class="card hero-copy">
     <div class="muted">Selected county</div>
@@ -330,7 +342,7 @@ def render_public_dashboard(config: dict) -> str:
       <div><small>Field population</small><b id="home-county-rate">—</b></div>
       <div><small>Parcel records</small><b id="home-county-records">—</b></div>
       <div><small>Fields with values</small><b id="home-county-fields">—</b></div>
-      <div><small>Statewide parcels</small><b>{parcel_records:,}</b></div>
+      <div><small>Statewide parcels</small><b>{parcel_records_label}</b></div>
     </div>
     <div class="hero-actions" style="margin-top:16px">
       <a id="home-county-link" class="primary" href="/counties">Open county profile</a>
@@ -339,6 +351,7 @@ def render_public_dashboard(config: dict) -> str:
   </div>
 </div>
 
+<div class="card"><h3>Parcel source research</h3><p>{research_count}/{len(profiles)} complete county inventories. Blocked and unresolved evidence remains Research incomplete.</p></div>
 <div class="section-head"><div><h2>Latest Watchtower activity</h2><p>Public monitoring results, separated from internal provider diagnostics.</p></div></div>
 <div class="activity-strip">
   <div class="card"><div class="muted">Latest public publication</div><div class="metric">{_esc(_public_age(published_at))}</div><span class="subtext">{_esc(_public_time(published_at))}</span></div>
@@ -359,15 +372,16 @@ def render_public_dashboard(config: dict) -> str:
 (function(){{
   const countyData={map_json};
   const root=document;
-  function fill(pct){{
-    if(pct===null||pct===undefined)return '#151d2b';
-    const n=Number(pct);
-    if(n>=75)return '#4c9b7b';
-    if(n>=55)return '#3c708f';
-    if(n>=35)return '#315373';
-    if(n>=15)return '#263d59';
-    return '#1b2b40';
+  const monitoringPaths={monitoring_json};
+  const selector=root.getElementById("overview-metric");
+  function updateOverview(){{
+    const monitoring=selector.value==="monitoring";
+    root.querySelectorAll(".mngac-county").forEach(p=>{{const paths=monitoringPaths[p.dataset.slug]||[];const d=countyData[p.dataset.county];p.style.fill=monitoring?(paths.length===2?"#4c9b7b":paths.includes("county-direct")?"#3c708f":paths.includes("mngeo-open")?"#315373":"#151d2b"):fill(d&&d.pct)}});
+    root.getElementById("overview-legend").innerHTML=monitoring?'<div class="mngac-legend"><span><i class="mngac-swatch" style="background:#4c9b7b"></i>Both paths</span><span><i class="mngac-swatch" style="background:#3c708f"></i>County-direct</span><span><i class="mngac-swatch" style="background:#315373"></i>MnGeo open</span><span><i class="mngac-swatch" style="background:#151d2b"></i>No active parcel path</span></div>':{json.dumps(percentage_legend())};
   }}
+  selector.addEventListener("change",updateOverview);
+  {percentage_color_js()}
+  const fill=percentageColor;
   function show(name,path){{
     const d=countyData[name];
     root.querySelectorAll('.mngac-county').forEach(p=>p.classList.toggle('selected',p===path));
@@ -378,7 +392,7 @@ def render_public_dashboard(config: dict) -> str:
       root.getElementById('home-county-detail').textContent='This county is not represented in the current MnGeo Plan Parcels Open observation. Watchtower does not infer 0%.';
     }}else{{
       rate.textContent=d.pct==null?'—':Number(d.pct).toFixed(2)+'%';
-      rec.textContent=Number(d.records||0).toLocaleString();
+      rec.textContent=d.records==null?"Not available":Number(d.records).toLocaleString();
       fields.textContent=(d.fields==null?'—':d.fields)+' / '+(d.field_count||91);
       root.getElementById('home-county-detail').textContent='Current record-weighted population across the standard parcel-transfer fields for this county.';
     }}
@@ -393,12 +407,14 @@ def render_public_dashboard(config: dict) -> str:
     p.addEventListener('click',()=>show(p.dataset.county,p));
     p.addEventListener('keydown',e=>{{if(e.key==='Enter'||e.key===' '){{e.preventDefault();show(p.dataset.county,p)}}}});
   }});
+  updateOverview();
 }})();
 function filterRows(){{
   const q=document.getElementById('q').value.toLowerCase(),h=document.getElementById('health').value;
   document.querySelectorAll('#datasets tbody tr').forEach(r=>r.style.display=(!q||r.dataset.name.includes(q))&&(!h||r.dataset.status===h)?'':'none');
 }}
 </script>
+{profile_panel}
 """
     return _layout("GIS Data Watchtower", body, refresh_seconds=30, static=True)
 
