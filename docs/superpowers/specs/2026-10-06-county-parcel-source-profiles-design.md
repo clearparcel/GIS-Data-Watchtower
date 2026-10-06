@@ -282,7 +282,7 @@ scheduling disabled. Existing St. Louis optional QA fail-soft behavior remains.
 
 Tasks 1–6 have implemented and reviewed the schema, expanded evidence inventory,
 composition, safe metadata, shared panel and exports. Task 7 passed local acceptance and review;
-Task 8 final preview revision `00004-sv8` (product `5686013`) passed live validation and scoped final review. The user deleted the original temporary folder; root verified its absence on 2026-10-06. Task 9 applies later direct browser feedback; independent review and a separate preview release remain pending.
+Task 8 final preview revision `00004-sv8` (product `5686013`) passed live validation and scoped final review. The user deleted the original temporary folder; root verified its absence on 2026-10-06. Task 9 applied later direct browser feedback and passed independent review; Task 10 released that reviewed source to preview revision `00005-c24` (product `dfacd72`) and passed live acceptance. This describes the previous five-class release; the confirmed four-class follow-up below is pending its separate preview release.
 Implementation and research do not grant new provider authorization.
 
 ## Confirmed four-class percentage follow-up (2026-10-06)
