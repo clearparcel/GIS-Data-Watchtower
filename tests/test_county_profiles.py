@@ -28,6 +28,45 @@ def compose(state=None, research=None):
 
 
 class CountyProfilesTests(unittest.TestCase):
+    def test_isanti_mower_inventory_preserves_delegation_terms_and_identity(self):
+        research = load_parcel_access()
+        names = ('Isanti', 'Itasca', 'Koochiching', 'Lake', 'Lyon', 'McLeod',
+                 'Mille Lacs', 'Morrison', 'Mower')
+        for name in names:
+            self.assertTrue(research[name]['statewide_open_coverage']['available'])
+            self.assertTrue(all(c['review_status'] != 'pending'
+                                for c in research[name]['source_inventory'].values()))
+        for name in ('Lake', 'Lyon', 'McLeod'):
+            self.assertEqual(research[name]['county_direct_classification'], 'free-parcel-data')
+            self.assertEqual(research[name]['monitoring']['decision'], 'hold-for-terms')
+            self.assertTrue(research[name]['monitoring']['terms_urls'])
+        for name in ('Itasca', 'Lake', 'Morrison'):
+            self.assertEqual(research[name]['source_inventory']['mngeo_public_repository']['availability'], 'yes')
+        self.assertEqual(research['Koochiching']['source_inventory']['county_download']['availability'], 'unknown')
+        self.assertEqual(research['McLeod']['source_inventory']['county_arcgis_rest']['availability'], 'unknown')
+        mille = research['Mille Lacs']['source_inventory']
+        self.assertIsNone(mille['county_download']['sources'][0]['layer_id'])
+        self.assertEqual(mille['county_download']['sources'][0]['dataset_type'], 'File Geodatabase parcel download')
+        self.assertEqual(mille['county_arcgis_rest']['sources'][0]['layer_id'], 3)
+        state = {'sources': {'mn-morrison-parcels-direct': {
+            'id': 'mn-morrison-parcels-direct', 'county_slug': 'morrison', 'category': 'Parcels',
+            'adapter': 'arcgis_service', 'status': 'ok', 'checked_at': STAMP,
+            'last_success_at': STAMP, 'feature_count': 42}, 'mn-koochiching-parcels-direct': {
+            'id': 'mn-koochiching-parcels-direct', 'county_slug': 'koochiching', 'category': 'Parcels',
+            'adapter': 'arcgis_layer', 'status': 'ok', 'checked_at': STAMP,
+            'last_success_at': STAMP, 'feature_count': 99}}}
+        profiles = compose(state)
+        for category in ('mngeo_public_repository', 'county_arcgis_rest', 'county_download'):
+            source = profiles['morrison'][category]['sources'][0]
+            self.assertEqual(source['monitored_source_id'], 'mn-morrison-parcels-direct')
+            self.assertEqual(source['feature_count'], 42)
+        source = profiles['koochiching']['county_arcgis_rest']['sources'][0]
+        self.assertIsNone(source['monitored_source_id'])
+        self.assertIsNone(source['feature_count'])
+        for category in ('mngeo_public_repository', 'county_arcgis_rest', 'county_download'):
+            self.assertTrue(all(s['monitored_source_id'] is None
+                                for s in profiles['itasca'][category]['sources']))
+
     def test_clearwater_houston_inventory_preserves_product_identity_and_policy(self):
         research = load_parcel_access()
         names = ('Clearwater', 'Cook', 'Crow Wing', 'Dakota', 'Douglas',

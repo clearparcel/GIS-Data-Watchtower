@@ -99,20 +99,20 @@ This is why Winona is correctly represented as:
 The original 35 counties were reviewed using bounded official county landing pages, parcel
 service metadata, the [official MnGeo parcel source table](https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp),
 the current state-hosted service directory, and county-specific Commons publishing-account
-metadata searches plus all 87 returned official state-organization parcel-search records. Search responses were read; snippets were only discovery. The next 21 previously unreviewed
-counties (the exact Aitkin–Clay and Clearwater–Houston batches, listed below) now have actual category reviews. The remaining 31
+metadata searches plus all 87 returned official state-organization parcel-search records. Search responses were read; snippets were only discovery. The next 30 previously unreviewed
+counties (the exact Aitkin–Clay, Clearwater–Houston and Isanti–Mower batches, listed below) now have actual category reviews. The remaining 22
 records retain pending category reviews.
 
-| Category | Reviewed across 56 county reviews | Blocked / unresolved | Pending remaining 31 |
+| Category | Reviewed across 65 county reviews | Blocked / unresolved | Pending remaining 22 |
 | --- | ---: | ---: | ---: |
-| MnGeo Plan Parcels Open | 56 (29 included, 27 excluded) | 0 | 31 |
-| Distinct MnGeo public repository | 7 available | 49 | 31 |
-| County-authorized parcel REST | 32 available | 24 | 31 |
-| County parcel download | 24 available | 32 | 31 |
+| MnGeo Plan Parcels Open | 65 (38 included, 27 excluded) | 0 | 22 |
+| Distinct MnGeo public repository | 10 available | 55 | 22 |
+| County-authorized parcel REST | 40 available | 25 | 22 |
+| County parcel download | 32 available | 33 | 22 |
 
-These counts are derived from stored category statuses: **119 reviewed**, **105 blocked**,
-and **124 pending** category assessments across 87 county records. **Seven counties have all
-four categories complete** (Aitkin, Anoka, Carver, Dakota, Fillmore, Hennepin, Houston);
+These counts are derived from stored category statuses: **147 reviewed**, **113 blocked**,
+and **88 pending** category assessments across 87 county records. **Ten counties have all
+four categories complete** (Aitkin, Anoka, Carver, Dakota, Fillmore, Hennepin, Houston, Itasca, Lake, Morrison);
 Aitkin's county-direct pricing/policy assessment remains unresolved. County-direct
 classification is separate from inventory completion; category keys alone do not finish research.
 
@@ -210,7 +210,7 @@ Exact vetted Aitkin and Beltrami public dataset identities retain monitored IDs 
 REST/Hub/download representations; no other join is inferred from county name or generic
 catalog. Current runtime coverage still overrides dated research membership.
 
-Across all stored records, **53** county-direct classifications are complete: **30 free**,
+Across all stored records, **61** county-direct classifications are complete: **38 free**,
 **12 fee-based**, **11 viewer-only**. The remaining 34 are unresolved or pending. These research
 totals do not change active monitoring coverage.
 
@@ -461,3 +461,61 @@ For records without a completed county-direct assessment, the neutral research l
 
 That statement is deliberately separate from whether Watchtower is already monitoring the county
 through MnGeo.
+
+
+### Isanti–Mower inventory batch, 2026-10-06
+
+Exact counties: Isanti, Itasca, Koochiching, Lake, Lyon, McLeod, Mille Lacs,
+Morrison and Mower. Actual official reviews add **28 reviewed / 8 blocked**
+category assessments; all nine have dated statewide inclusion evidence. Other 78
+county records are unchanged. Eight county-direct classifications are complete;
+Koochiching's current download/product-policy scope remains unresolved.
+
+| County | Distinct Commons repository | County-authorized REST | Published parcel download |
+| --- | --- | --- | --- |
+| Isanti | Unknown | TaxParcels_Public/0 polygon | County Hub product |
+| Itasca | Tax Parcels county product | ParcelModel/8 polygon | Delegated Commons GeoPackage and ZIP |
+| Koochiching | Unknown | Tax_Parcels/0 polygon; unmatched observation | Unknown; old ZIP is discovery only |
+| Lake | Tax Parcels county product | Delegated county-specific state service/0 polygon | Commons GeoPackage and ZIP |
+| Lyon | Unknown | Parcels/0 polygon | County Hub product |
+| McLeod | Unknown | Unknown | Advertised parcel Shapefile; terms gate untouched |
+| Mille Lacs | Unknown | AGO_Parcels_and_Lots/3 polygon | County File Geodatabase item |
+| Morrison | Tax Parcels county product | MorrisonParcelsQ2/0 polygon | County-linked Commons product |
+| Mower | Unknown | Open_Data/4 polygon | Current county Hub product |
+
+[Itasca's adopted resolution 2015-74](https://metrogis.org/media/ttvdxaqg/itascacountyresolution_2015_12_09.pdf)
+authorizes electronic county GIS distribution without charge or licensure and directs
+county/Commons distribution. The current county Maps page corroborates that route;
+the older signed-license/fee document is retained as superseded historical practice.
+County-hosted ParcelModel and the delegated Commons parcel product remain distinct.
+
+[Lake's county GIS Data policy](https://www.co.lake.mn.us/gis/gis-data/) advertises
+free transmission and explicitly delegates public GIS data to Commons, but its
+disclaimer and the parcel item's license restrict third-party use. [McLeod's GIS Data
+page](https://www.mcleodcountymn.gov/departments/public_works/gis_(mapping___surveying)/gis_data.php)
+advertises parcel Shapefiles with internal-purpose and third-party disclosure/use
+restrictions. Lyon's published parcel item says reference use only, no redistribution.
+These three new research-only **hold-for-terms** decisions retain free product
+availability separately. Lyon's conservative hold reflects licensing uncertainty,
+not a claim that its terms expressly prohibit bounded metadata monitoring. Brown and
+the original four holds remain unchanged; runtime configuration is untouched.
+
+[Morrison's GIS Fees page](https://morrisoncountymn.gov/292/GIS-Fees) labels its
+parcel map layer open; Tax/CAMA data, imagery, Beacon subscriptions, labels and
+labor fees describe separate outputs. Its Commons/REST/download share the vetted
+existing observation identity. Koochiching's newly found service is unmatched and
+borrows no count or health. Mille Lacs' File Geodatabase download is not presumed
+identical to its separate REST layer. Mower's current published parcel item replaces
+an inaccessible old catalog lead.
+
+Six distinct-repository categories, McLeod REST and Koochiching download remain
+unknown after actual county/MnGeo/Commons reviews. Scoped searches cannot prove
+repository-wide absence. Isanti and Lyon county-home/GIS requests returned 403;
+MnGeo-linked official county Hubs supplied final metadata instead. No property search or viewer data/table interaction was
+performed; no terms gate was accepted. Dataset About metadata,
+public item and layer metadata were read; no external parcel archives were opened,
+clicked or retrieved. Advertised downloads establish product publication, not body
+integrity or unattended authority. GeoPackage, Shapefile and File Geodatabase facts
+are retained only where official publication states them; ZIP interior formats and
+REST export formats are not inferred. Typed static geometry/format projection is
+deferred to Task 4c.

@@ -114,7 +114,10 @@ class ParcelAccessSchemaTests(unittest.TestCase):
         self.assertEqual(len(legacy["counties"]), sum(r['research_complete'] for r in load_parcel_access().values()))
         for original in legacy["counties"]:
             self.assertEqual({k: migrated[original["county"]][k] for k in RECORD_FIELDS}, original)
-        self.assertEqual({name for name, r in migrated.items() if r["monitoring"]["decision"] == "hold-for-terms"}, {"Blue Earth", "Brown", "Faribault", "Kandiyohi", "Lincoln"})
+        self.assertEqual(
+            {name for name, r in migrated.items() if r["monitoring"]["decision"] == "hold-for-terms"},
+            {r["county"] for r in legacy["counties"] if r["monitoring"]["decision"] == "hold-for-terms"},
+        )
         for r in result["counties"]:
             for category in r["source_inventory"].values():
                 self.assertEqual(category["review_status"], "pending")
@@ -233,10 +236,9 @@ class ParcelAccessSchemaTests(unittest.TestCase):
         records = load_parcel_access()
         held = {"Blue Earth", "Brown", "Faribault", "Kandiyohi", "Lincoln"}
 
-        self.assertEqual(
-            {name for name, record in records.items() if record["monitoring"]["decision"] == "hold-for-terms"},
-            held,
-        )
+        self.assertTrue(held.issubset(
+            {name for name, record in records.items() if record["monitoring"]["decision"] == "hold-for-terms"}
+        ))
         for name in held:
             record = records[name]
             self.assertEqual(record["county_direct_classification"], "fee-based-parcel-data")
@@ -250,7 +252,10 @@ class ParcelAccessSchemaTests(unittest.TestCase):
         direct = [r for r in records.values() if r["usable_direct_machine_readable_source"]]
         self.assertTrue(direct)
         self.assertTrue(all(r["county_direct_classification"] == "free-parcel-data" for r in direct))
-        self.assertTrue(all(r["monitoring"]["decision"] in {"candidate-low-frequency", "not-assessed"} for r in direct))
+        self.assertTrue(all(r["monitoring"]["decision"] in {"candidate-low-frequency", "not-assessed", "hold-for-terms"} for r in direct))
+        for record in direct:
+            if record["monitoring"]["decision"] == "hold-for-terms":
+                self.assertTrue(record["monitoring"]["terms_urls"])
         fee_records = [r for r in records.values() if r["county_direct_classification"] == "fee-based-parcel-data"]
         self.assertTrue(fee_records)
         self.assertTrue(all(r["fee_policy_url"] and r["parcel_dataset_fee"] and r["fee_product"] for r in fee_records))
