@@ -2,7 +2,7 @@
 
 Last validated: **2026-10-06**
 
-The confirmed follow-up source now uses four percentage classes on both maps, all summary modes and individual fields: <30%, 30% - 50%, 50% - 70%, >70%. Intervals are p<30, 30<=p<50, 50<=p<=70, p>70; legend and county fills share #1b2b40, #315373, #3c708f, #4c9b7b. Observed zero remains the first class; unknown/nonfinite values remain No data. Monitoring-path colors, the public title and metric wording are unchanged. This code-only follow-up is pending preview deployment and rendered acceptance; the last validated preview remains `00005-c24` serving `dfacd72`.
+The confirmed follow-up source now uses four percentage classes on both maps, all summary modes and individual fields: <30%, 30% - 50%, 50% - 70%, >70%. Intervals are p<30, 30<=p<50, 50<=p<=70, p>70; legend and county fills share #1b2b40, #315373, #3c708f, #4c9b7b. Observed zero remains the first class; unknown/nonfinite values remain No data. Monitoring-path colors, the public title and metric wording are unchanged. The code-only follow-up is deployed to existing preview `00007-zfh`, serving committed `5aac504`; rendered acceptance passed. Existing sanitized data and its actual publication/source dates remain unchanged.
 
 The offline county-profile composer derives all 87 county profiles and parcel coverage counts from current observations and evidence inventory. Explicit source identity joins preserve source-specific facts; catalog discovery and imagery cannot activate parcel monitoring. Unavailable statewide observations remain unknown, and pending category reviews remain incomplete.
 
@@ -255,3 +255,48 @@ The original Task 8 folder was previously verified absent. Production stays publ
 `00011-t4l`, bucket IAM etag `CAQ=`, sole existing publisher scheduler unchanged.
 No production, provider scheduling, IAM expansion, main, merge or Astra action.
 No CI claim is made for the forthcoming documentation head.
+
+## Four-class code-only preview release (2026-10-06)
+
+Reviewed committed `5aac504` was built from a public-only Git archive by Cloud
+Build `ad255f2b-30e3-4950-9b64-dea7f29786ac` (SUCCESS, 52.4 seconds).
+Existing preview `00007-zfh` serves 100% traffic, with Ready,
+ConfigurationsReady and RoutesReady true, pinned to
+`sha256:cfe2b3daf8147e51378b7818e8bdb459bd7f6472ec776bc11db5d56cb7017513`.
+The explicit `watchtower public-dashboard --host 0.0.0.0 --port 8080` command,
+existing identity, environment and sanitized storage object are preserved.
+First candidate `00006-kmn` failed because PowerShell combined unquoted comma
+arguments into one string; the CLI rejected it before command execution.
+Corrected argument quoting produced `00007-zfh`; no default cloud-job ran.
+
+This release did not read the raw aggregate or republish data. The existing
+sanitized object generation `1791311397132173` remains unchanged, with actual
+publication `2026-10-06T18:29:46.124951+00:00` and source generation
+`2026-10-06T11:11:40.540673+00:00`. Public source state matched before/after:
+35/35 OK, cloud=31/local=4, matching worker summaries and source check/success
+facts. Coverage remains 70 = 59 statewide + 24 direct - 13 overlaps. MNGAC
+contains 2,710,201 records, 91 fields and 59 covered counties. Internal exports
+passed 87 county CSV rows, 350 source-category rows, 35 legacy rows, all 87
+individual JSON profiles matching statewide profiles, and the expected eight
+workbook sheets. No provider links were requested. Publication is correctly
+overdue once the unchanged timestamp exceeds 30 minutes; source health is
+reported separately.
+
+Root browser acceptance passed the exact four-class legend plus No data.
+Overview completeness checked all 87 fills with zero mismatches (42/8/9/0
+across the four classes, 28 No data). MNGAC overall, mandatory, fields with
+values and ANUMBERPRE each checked all 87 fills with zero mismatches; mandatory
+had 24 above 70%, and fields with values had seven. ANUMBERPRE retained 45
+true zeros and 28 distinct No data counties. At 390px, page width was 375/375,
+legend 299/299 and Aitkin dialog 349/349; Enter opened the dialog and Escape
+restored focus to Aitkin. Normal viewport reset was verified at 1047/1047.
+
+Owned Cloud Build source upload was removed with exact generation-match
+`1791312835856766`; follow-up returned 404. The intended image and preview
+resources remain. Root will consolidate local public-only plan-workspace
+cleanup after review/CI; this operational child did not attempt local deletion.
+Production remains public `00006-82c`/private `00011-t4l`, production bucket IAM
+etag `CAQ=`, and the existing publisher scheduler configuration unchanged.
+No production, main, merge, provider, scheduling, IAM expansion or Astra action.
+Task 1's 196 strict tests and compileall passed; this documentation-only release
+record did not repeat them. Final documentation-head review/CI remain pending.
