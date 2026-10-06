@@ -156,15 +156,16 @@ publisher scheduler remains enabled at `3,13,23,33,43,53 * * * *`, and provider
 scheduling remains disabled. Production publication can independently advance its
 object. No production write, provider check, activation, main push or merge
 occurred. PRs #39/#42 remain draft and unmerged. Scoped final review and validated product/docs CI heads are recorded below;
-manual temporary cleanup remains pending. Required validation: 186 tests
+manual temporary cleanup was verified complete on 2026-10-06. Required validation: 186 tests
 passed with ResourceWarning as error (5.315s), compileall and diff checks passed.
 
 The dedicated preview bucket/object/identity and retained image are intended
 preview resources; storage, Cloud Build/image retention and preview requests may
 incur usage charges. Remove them only when the preview is retired; do not remove
 production resources. Automatic approval review blocked even individual verified
-raw temporary-file deletion. Private temporary cleanup remains pending user
-assistance; release completion is not claimed until cleanup is verified.
+raw temporary-file deletion at that historical stage. Cleanup then awaited user
+assistance; the user subsequently deleted the original folder and root verified
+its absence on 2026-10-06. The denial remains historical evidence.
 
 
 ## Final review product fixes and deployed preview

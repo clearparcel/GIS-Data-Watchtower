@@ -242,7 +242,7 @@ Existing source exports are preserved with an explicitly named new county CSV.
 Selected execution: **Subagent-driven**, explicitly selected by the user on
 2026-10-06. Tasks run in this chat with isolated implementers and fresh task
 reviewers, preserving the approved privacy, provider and deployment constraints.
-Task 8 release/live checks and scoped final review passed; validated CI heads are recorded below. Manual cleanup remains pending. Astra has no approval.
+Task 8 release/live checks and scoped final review passed; validated CI heads are recorded below. Manual cleanup was verified complete on 2026-10-06. Astra has no approval.
 
 Task 8 historical initial state: revision `00003-xzg`, committed `b342b5d` immutable `f7134713…` image; dedicated preview storage and identity. Live 87-profile/400-product-row JSON/CSV/XLSX parity, 696 browser county activations, desktop/390px, actual 35/35 OK with cloud=31/local=4 and coverage 70=59+24-13 passed. External healthz is blocked by the Cloud Run frontend reserved path; no external HTTP 200 claim. At that historical stage automatic approval review blocked verified raw-file cleanup and user assistance/final review were pending; both were resolved as recorded in the Task 9 cleanup reconciliation below. See deployment/status release evidence.
 
