@@ -27,6 +27,27 @@ def research_fixture():
 
 
 class ParcelAccessSchemaTests(unittest.TestCase):
+    def test_original_inventory_reviews_have_evidence_and_honest_blockers(self):
+        from clearparcel.datawatch.parcel_access import INVENTORY_CATEGORIES
+        records = load_parcel_access()
+        original = [r for r in records.values() if r['research_complete']]
+        self.assertEqual(len(original), 35)
+        for record in original:
+            urls = {e['url'] for e in record['evidence']}
+            for key in INVENTORY_CATEGORIES:
+                category = record['source_inventory'][key]
+                with self.subTest(county=record['county'], category=key):
+                    self.assertNotEqual(category['review_status'], 'pending')
+                    self.assertEqual(category['review_date'], '2026-10-06')
+                    self.assertTrue(category['evidence'])
+                    self.assertTrue(set(category['evidence']) <= urls)
+                    if category['review_status'] == 'blocked':
+                        self.assertEqual(category['availability'], 'unknown')
+                        self.assertEqual(category['sources'], [])
+        self.assertTrue(all(c['review_status'] == 'pending'
+            for r in records.values() if not r['research_complete']
+            for c in r['source_inventory'].values()))
+
     def migrated(self):
         from clearparcel.datawatch.parcel_access import migrate_parcel_access
         root = Path(__file__).parents[1] / "clearparcel/datawatch"
@@ -91,7 +112,7 @@ class ParcelAccessSchemaTests(unittest.TestCase):
         self.assertEqual(len(legacy["counties"]), 35)
         for original in legacy["counties"]:
             self.assertEqual({k: migrated[original["county"]][k] for k in RECORD_FIELDS}, original)
-        self.assertEqual({name for name, r in migrated.items() if r["monitoring"]["decision"] == "hold-for-terms"}, {"Blue Earth", "Faribault", "Kandiyohi", "Lincoln"})
+        self.assertEqual({name for name, r in migrated.items() if r["monitoring"]["decision"] == "hold-for-terms"}, {"Blue Earth", "Brown", "Faribault", "Kandiyohi", "Lincoln"})
         for r in result["counties"]:
             for category in r["source_inventory"].values():
                 self.assertEqual(category["review_status"], "pending")
@@ -204,8 +225,8 @@ class ParcelAccessSchemaTests(unittest.TestCase):
             key = record["county_direct_classification"]
             counts[key] = counts.get(key, 0) + 1
         self.assertEqual(counts, {
-            "free-parcel-data": 13,
-            "fee-based-parcel-data": 11,
+            "free-parcel-data": 12,
+            "fee-based-parcel-data": 12,
             "parcel-viewer-only": 11,
         })
         statewide = [r for r in records.values() if r["statewide_open_coverage"]["available"]]
@@ -218,7 +239,8 @@ class ParcelAccessSchemaTests(unittest.TestCase):
 
     def test_policy_conflict_endpoints_are_held_for_terms(self):
         records = load_parcel_access()
-        held = {"Blue Earth", "Faribault", "Kandiyohi", "Lincoln"}
+        held = {"Blue Earth", "Brown", "Faribault", "Kandiyohi", "Lincoln"}
+
         self.assertEqual(
             {name for name, record in records.items() if record["monitoring"]["decision"] == "hold-for-terms"},
             held,
@@ -234,11 +256,11 @@ class ParcelAccessSchemaTests(unittest.TestCase):
     def test_direct_sources_and_fee_records_remain_distinct(self):
         records = load_parcel_access()
         direct = [r for r in records.values() if r["usable_direct_machine_readable_source"]]
-        self.assertEqual(len(direct), 13)
+        self.assertEqual(len(direct), 12)
         self.assertTrue(all(r["county_direct_classification"] == "free-parcel-data" for r in direct))
         self.assertTrue(all(r["monitoring"]["decision"] == "candidate-low-frequency" for r in direct))
         fee_records = [r for r in records.values() if r["county_direct_classification"] == "fee-based-parcel-data"]
-        self.assertEqual(len(fee_records), 11)
+        self.assertEqual(len(fee_records), 12)
         self.assertTrue(all(r["fee_policy_url"] and r["parcel_dataset_fee"] and r["fee_product"] for r in fee_records))
         self.assertTrue(all(not r["usable_direct_machine_readable_source"] for r in fee_records))
 

@@ -28,6 +28,60 @@ def compose(state=None, research=None):
 
 
 class CountyProfilesTests(unittest.TestCase):
+    def test_inventory_completion_requires_all_four_evidence_reviews(self):
+        research = load_parcel_access()
+        record = research['Brown']
+        for category in INVENTORY_CATEGORIES:
+            record['source_inventory'][category]['review_status'] = 'reviewed'
+        self.assertTrue(compose(research=research)['brown']['research']['complete'])
+        for category in INVENTORY_CATEGORIES:
+            for status in ('pending', 'blocked'):
+                with self.subTest(category=category, status=status):
+                    record['source_inventory'][category]['review_status'] = status
+                    self.assertFalse(compose(research=research)['brown']['research']['complete'])
+                    record['source_inventory'][category]['review_status'] = 'reviewed'
+
+    def test_original_inventory_batch_preserves_fee_viewer_and_holds(self):
+        research = load_parcel_access()
+        self.assertEqual(research['Winona']['county_direct_classification'], 'fee-based-parcel-data')
+        self.assertEqual(research['Cottonwood']['county_direct_classification'], 'parcel-viewer-only')
+        brown = research['Brown']
+        self.assertEqual(brown['county_direct_classification'], 'fee-based-parcel-data')
+        self.assertEqual(brown['parcel_dataset_fee'], '$697')
+        self.assertEqual(brown['monitoring']['decision'], 'hold-for-terms')
+        self.assertIn('shapefile', brown['fee_product'].lower())
+        for name in ('Blue Earth', 'Faribault', 'Kandiyohi', 'Lincoln'):
+            self.assertEqual(research[name]['monitoring']['decision'], 'hold-for-terms')
+        for name in ('Brown', 'Dodge'):
+            for category in INVENTORY_CATEGORIES:
+                self.assertNotEqual(research[name]['source_inventory'][category]['review_status'], 'pending')
+
+    def test_brown_fee_hold_retains_exact_observed_source_join(self):
+        source_id = 'mn-brown-parcels-direct'
+        state = {'sources': {source_id: {'id': source_id, 'county_slug': 'brown',
+            'category': 'Parcels', 'adapter': 'arcgis_layer', 'status': 'ok',
+            'checked_at': STAMP, 'last_success_at': STAMP, 'feature_count': 42}}}
+        profile = compose(state)['brown']
+        source = profile['county_arcgis_rest']['sources'][0]
+        self.assertEqual(profile['access']['public_classification'], 'FEE BASED')
+        self.assertEqual(profile['access']['monitoring_decision'], 'hold-for-terms')
+        self.assertEqual(source['monitored_source_id'], source_id)
+        self.assertEqual(source['feature_count'], 42)
+        self.assertTrue(profile['monitoring']['active'])
+        self.assertFalse(profile['research']['complete'])
+
+    def test_hub_download_and_rest_share_one_observation(self):
+        source_id = 'mn-hubbard-parcels-direct'
+        state = {'sources': {source_id: {'id': source_id, 'county_slug': 'hubbard',
+            'category': 'Parcels', 'adapter': 'arcgis_layer', 'status': 'ok',
+            'checked_at': STAMP, 'last_success_at': STAMP, 'feature_count': 42}}}
+        profile = compose(state)['hubbard']
+        self.assertEqual(profile['county_download']['availability'], 'yes')
+        self.assertEqual(profile['county_download']['sources'][0]['feature_count'], 42)
+        self.assertEqual(profile['county_arcgis_rest']['sources'][0]['feature_count'], 42)
+        self.assertEqual(profile['monitoring']['active_parcel_source_count'], 1)
+
+
     def test_composes_all_87_profiles_from_empty_state(self):
         profiles = compose(research={})
         self.assertEqual(list(profiles), [c['slug'] for c in COUNTIES])

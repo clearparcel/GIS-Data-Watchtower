@@ -94,22 +94,68 @@ This is why Winona is correctly represented as:
 
 ## Audit results
 
+### Four-category inventory review, 2026-10-06
+
+The original 35 counties were reviewed using bounded official county landing pages, parcel
+service metadata, the [official MnGeo parcel source table](https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp),
+the current state-hosted service directory, and county-specific Commons publishing-account
+metadata searches plus all 87 returned official state-organization parcel-search records. Search responses were read; snippets were only discovery. The other 52
+records are unchanged and their category reviews remain pending.
+
+| Category | Reviewed original 35 | Blocked / unresolved original 35 | Pending remaining 52 |
+| --- | ---: | ---: | ---: |
+| MnGeo Plan Parcels Open | 35 (9 included, 26 excluded) | 0 | 52 |
+| Distinct MnGeo public repository | 0 | 35 | 52 |
+| County-authorized parcel REST | 16 available | 19 | 52 |
+| County parcel download | 4 available (Dodge, Hubbard, Lac qui Parle, Meeker) | 31 | 52 |
+
+These counts are derived from the stored category statuses: **55 reviewed**, **85 blocked**,
+and **208 pending** category assessments across 87 county records. **Zero counties have all
+four categories complete.** The earlier county-direct classification audit is separate from
+this inventory completion measure; creating all four category keys does not finish research.
+
+The official [Plan Parcels Open item metadata](https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson)
+explicitly lists 59 opted-in counties and supports the nine memberships within this batch.
+Current aggregate observations take precedence over this dated membership in composition.
+The state service directory, organization-wide and account-scoped searches did not establish a distinct county
+dataset for this batch, but do not prove repository-wide absence. These findings remain
+**unknown**, rather than negative. Generic county catalog links and statewide parcels were
+not counted as distinct repository evidence.
+
+HTTP 403 blocked Blue Earth county policy pages and Nobles' county page; Faribault's fee PDF
+also denied a subsequent policy-document read. Those denials were not bypassed. Initial linked Hub HTML was an application shell. Follow-up rendered official catalog pages
+and county/ArcGIS item metadata verified downloadable parcels for Hubbard, Lac qui Parle
+and Meeker, alongside Dodge. Brown, Sibley, Faribault and Goodhue catalogs were also read;
+unresolved parcel-download permission/product scope remains blocked rather than absent.
+Viewer/property-search data and parcel features were not retrieved; Dodge's ZIP was checked
+with HEAD only. Dated access evidence remains retained when current category review is blocked.
+
+Brown's [2025-effective fee schedule](https://www.browncountymn.gov/DocumentCenter/View/502/Fee-Schedule-PDF)
+explicitly prices the requested **complete parcel Shapefile dataset at $697** and requires a
+signed data disclosure. This is a dataset product charge, separate from labor. Its
+[Maps & GIS page](https://www.browncountymn.gov/383/Maps-GIS) also advertises Open-Source GIS
+Data Hub, and parcel REST metadata remains public. The requested product is therefore fee-based;
+the fee does not prove every access route costs money. Brown is now held in the **research
+assessment** pending route-specific permission reconciliation. No runtime registry, scheduling,
+service or configuration changed, and observed monitoring coverage remains independent.
+
 County-direct results for the 35 audited counties:
 
-- **13 Free parcel data**
-- **11 Fee-based parcel data**
+- **12 Free parcel data**
+- **12 Fee-based parcel data**
 - **11 Parcel viewer only**
 - **0 Parcel data by request / restricted**
 - **0 No direct parcel dataset verified**
 
-The review identified **13 county-direct machine-readable parcel sources**. One bounded
-validation request from GERTKEN-PC returned HTTP 200 for all 13 sources. This confirms
+The earlier review identified **13 county-direct machine-readable parcel candidates**. Its bounded
+validation request from GERTKEN-PC returned HTTP 200 for all 13 candidates. After the Brown
+product-policy correction, **12** retain a usable direct-source research assessment. This confirms
 reachability only; it does not add those candidate sources to the deployment registry or enable
 additional provider polling.
 
 ## Current Watchtower monitoring interpretation
 
-The current production observation contains:
+The earlier production observation documented before the staging expansion contained:
 
 - **59 counties** represented in MnGeo Plan Parcels Open;
 - **15 counties** with county-specific monitored sources;
@@ -129,10 +175,11 @@ separate metric.
 After separating county-direct policy from technical endpoint reachability, the 13 discovered parcel
 endpoints outside the current MnGeo Plan Parcels Open footprint resolve as follows.
 
-### Approved for bounded Watchtower monitoring
+### Historical staging evaluation
 
-The following **9 counties** have county-direct sources that are consistent with the current
-provider-compliance rules and passed a bounded local Watchtower-engine probe on 2026-10-06:
+The following **9 counties** passed a bounded local Watchtower-engine probe on 2026-10-06
+and were accepted in the earlier staging evaluation. Brown's subsequent research policy hold
+supersedes that earlier approval assessment; technical probe results remain historical evidence:
 
 - Brown
 - Dodge
@@ -160,11 +207,13 @@ type without retrieving the archive body.
 
 ### Hold for terms clarification
 
-The following **4 counties** expose technically reachable parcel services but are **not** approved
+The following **5 counties** expose technically reachable parcel services but are **not** approved
 for unattended Watchtower monitoring under the current evidence:
 
 - **Blue Earth** — official county pages state property-tax GIS data are available for purchase;
   request terms say use may be restricted by a license agreement.
+- **Brown** — requested complete parcel Shapefile product costs $697 with signed disclosure;
+  reconcile its separately advertised Open-Source GIS Data Hub/public REST permission scope.
 - **Faribault** — the July 1, 2026 county fee schedule explicitly distinguishes no-charge online
   viewers from parcel GIS data requiring a request and payment.
 - **Kandiyohi** — the county authorization/release form requires agreement and payment, restricts
@@ -172,11 +221,11 @@ for unattended Watchtower monitoring under the current evidence:
 - **Lincoln** — the county geospatial pricing schedule states that some data require a license
   agreement and prices parcel boundaries/attributes per parcel.
 
-These four remain hold-for-terms even though their viewer/application services are publicly
+The original four holds remain, and Brown is additionally held in research even though services are publicly
 reachable. Public technical reachability is not treated as permission to automate a county data
 product that the county separately licenses or sells.
 
-The nine approved outside-MnGeo candidates were added to **private staging registry version 7**
+The nine candidates from the earlier evaluation were added to **private staging registry version 7**
 on 2026-10-06, all assigned to the cloud execution profile. Staging image `473157b` completed
 **31/31 cloud checks OK** and the local profile completed **4/4 OK**. A generation-matched merge
 produced a **35/35 OK** hybrid aggregate with worker provenance `cloud=31` and `local=4`.
@@ -184,8 +233,9 @@ produced a **35/35 OK** hybrid aggregate with worker provenance `cloud=31` and `
 Against that aggregate, the county model resolves to **70/87 actively checked counties**:
 59 through MnGeo Plan Parcels Open, 24 through county-direct sources, and 13 through both paths.
 The separate public v2 preview revision `00002-bn8` was queried directly and confirmed to render
-the KPI **70/87** with those component counts. The four held counties could raise the ceiling to
-74/87 only after terms are clarified.
+the KPI **70/87** with those component counts. This observed coverage is separate from the
+research policy holds. Brown's runtime observation remains represented; the four previously
+unmonitored held counties require terms clarification before activation.
 
 This staging activation does not enable authoritative provider scheduling. No GIS-provider Cloud
 Scheduler job was created or enabled, and the production UI service was not replaced.
@@ -195,7 +245,7 @@ Scheduler job was created or enabled, and the production UI service was not repl
 | County | County-direct access | MnGeo open coverage | Direct machine-readable source | County parcel dataset fee |
 | --- | --- | --- | --- | --- |
 | Blue Earth | Fee-based parcel data | No | No | $30 Basic Bundle for for-profit use; qualifying nonprofit 10%; qualifying government may receive at no cost |
-| Brown | Free parcel data | No | Yes | — |
+| Brown | Fee-based parcel data (requested Shapefile product; open-route scope unresolved) | No | No (held; REST metadata available) | $697 complete parcel dataset; signed disclosure; 2025-effective schedule |
 | Cottonwood | Parcel viewer only | No | No | — |
 | Dodge | Free parcel data | No | Yes | — |
 | Faribault | Fee-based parcel data | No | No | $500 entire county or $100 per township |
