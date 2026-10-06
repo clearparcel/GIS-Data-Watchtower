@@ -6,6 +6,7 @@ import os
 import threading
 import time
 import urllib.parse
+from zoneinfo import ZoneInfo
 from http.server import BaseHTTPRequestHandler
 from pathlib import Path
 
@@ -17,6 +18,7 @@ from clearparcel.datawatch.dashboard import (
     _health_status,
     _mngac_csv,
     _mngac_data,
+    _mngac_map_svg,
     _snapshot_csv,
     _snapshot_xlsx,
     _statewide_snapshot,
@@ -175,13 +177,75 @@ def _publication_health(state: dict, *, max_age_seconds: int, now: dt.datetime |
     return True, payload
 
 
+def _public_time(value) -> str:
+    if not value:
+        return "—"
+    try:
+        parsed = dt.datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=dt.timezone.utc)
+        local = parsed.astimezone(ZoneInfo("America/Chicago"))
+        time_text = local.strftime("%I:%M %p").lstrip("0")
+        return f"{local.strftime('%b')} {local.day}, {local.year} · {time_text} {local.tzname()}"
+    except (ValueError, TypeError):
+        return str(value)
+
+
+def _public_age(value) -> str:
+    if not value:
+        return "Unavailable"
+    try:
+        parsed = dt.datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=dt.timezone.utc)
+        seconds = max(0, int((dt.datetime.now(dt.timezone.utc) - parsed.astimezone(dt.timezone.utc)).total_seconds()))
+    except (ValueError, TypeError):
+        return "Unavailable"
+    if seconds < 60:
+        return "Just now"
+    minutes = seconds // 60
+    if minutes < 60:
+        return f"{minutes} min ago"
+    hours = minutes // 60
+    if hours < 48:
+        return f"{hours} hr ago"
+    return f"{hours // 24} days ago"
+
+
 def render_public_dashboard(config: dict) -> str:
     state = _dashboard_state(config)
     sources = state.get("sources") or {}
     counts = state.get("counts") or {}
     workers = state.get("workers") or {}
     mngac = _mngac_data(state)
+    healthy = int(counts.get("ok") or 0)
+    issues = int(counts.get("warn") or 0) + int(counts.get("error") or 0)
     changed = sum(1 for source in sources.values() if int(source.get("change_count") or 0) > 0)
+    published_at = state.get("public_published_at")
+    checked_at = state.get("generated_at")
+    covered = int((mngac or {}).get("covered_counties") or 0)
+    all_field = (mngac or {}).get("field_population_percent")
+    mandatory = (mngac or {}).get("mandatory_population_percent")
+    parcel_records = int((mngac or {}).get("record_count") or 0)
+
+    rows = []
+    for source_id, source in sorted(
+        sources.items(),
+        key=lambda item: str((item[1] or {}).get("name") or item[0]).lower(),
+    ):
+        name = source.get("name") or source_id
+        status = source.get("status") or "unknown"
+        rows.append(
+            f'<tr data-name="{_esc(str(name).lower())}" data-status="{_esc(status)}">'
+            f'<td><a href="/source?{urllib.parse.urlencode({"id": source_id})}"><strong>{_esc(name)}</strong></a>'
+            f'<br><span class="subtext">{_esc(source.get("category") or "Other")}</span></td>'
+            f'<td>{_esc(source.get("provider") or "—")}</td>'
+            f'<td><span class="pill {_status_class(status)}">{_esc(_health_status(status))}</span></td>'
+            f'<td>{_esc(f"{source.get("feature_count"):,}" if isinstance(source.get("feature_count"), int) else source.get("feature_count") or "—")}</td>'
+            f'<td>{_esc(source.get("change_count") or 0)}</td>'
+            f'<td>{_esc(_public_time(source.get("last_success_at") or source.get("checked_at")))}</td>'
+            '</tr>'
+        )
 
     worker_cards = []
     for name in sorted(workers):
@@ -190,75 +254,120 @@ def render_public_dashboard(config: dict) -> str:
         reporting = "Reporting overdue" if worker.get("stale") else "Reporting on time"
         worker_cards.append(
             '<div class="card worker-card">'
-            f'<div><h3><span class="status-dot {_status_class(status)}"></span>{_esc(name.title())} worker</h3>'
+            f'<div><h3><span class="status-dot {_status_class(status)}"></span>{_esc(name.title())} monitoring path</h3>'
             f'<span class="subtext">{_esc(_health_status(status))} · {_esc(reporting)}</span></div>'
             '<div class="worker-meta">'
             f'<div><span class="muted">Sources</span><strong>{_esc(worker.get("source_count", "—"))}</strong></div>'
-            f'<div><span class="muted">Last success</span><strong style="font-size:13px">{_esc(worker.get("last_success_at") or worker.get("checked_at") or "—")}</strong></div>'
+            f'<div><span class="muted">Last success</span><strong>{_esc(_public_time(worker.get("last_success_at") or worker.get("checked_at")))}</strong></div>'
             '</div></div>'
         )
 
-    rows = []
-    for source_id, source in sorted(
-        sources.items(),
-        key=lambda item: str((item[1] or {}).get("name") or item[0]).lower(),
-    ):
-        name = source.get("name") or source_id
-        rows.append(
-            f'<tr data-name="{_esc(str(name).lower())}" '
-            f'data-category="{_esc(source.get("category") or "Other")}" '
-            f'data-status="{_esc(source.get("status") or "unknown")}">'
-            f'<td><a href="/source?{urllib.parse.urlencode({"id": source_id})}"><strong>{_esc(name)}</strong></a></td>'
-            f'<td>{_esc(source.get("provider") or "—")}<br><span class="muted">{_esc(source.get("category") or "Other")}</span></td>'
-            f'<td><span class="pill {_status_class(source.get("status") or "unknown")}">{_esc(_health_status(source.get("status") or "unknown"))}</span>'
-            f'<br><span class="muted">{_esc(source.get("reporting") or "current")} reporting</span></td>'
-            f'<td>{_esc(f"{source.get("feature_count"):,}" if isinstance(source.get("feature_count"), int) else source.get("feature_count") or "—")}</td>'
-            f'<td>{_esc(source.get("change_count") or 0)}</td>'
-            f'<td>{_esc(source.get("last_success_at") or source.get("checked_at") or "—")}</td>'
-            '</tr>'
-        )
+    map_data = {}
+    for county_name, county in ((mngac or {}).get("counties") or {}).items():
+        map_data[county_name] = {
+            "pct": county.get("field_population_percent"),
+            "records": county.get("record_count"),
+            "fields": county.get("fields_with_values"),
+            "field_count": county.get("field_count"),
+            "slug": county.get("slug"),
+        }
+    map_json = json.dumps(map_data, ensure_ascii=False).replace("</", "<\\/")
+    map_svg = _mngac_map_svg(width=620, height=560)
 
-    mngac_card = (
-        f'<div class="card"><div class="muted">MN GAC counties represented</div>'
-        f'<div class="metric">{_esc(mngac.get("covered_counties") or 0)}/87</div>'
-        f'<span class="subtext"><a href="/mngac">Explore field completeness and the interactive map →</a></span></div>'
-        if mngac
-        else '<div class="card"><div class="muted">MN GAC completeness</div><div class="metric">—</div>'
-             '<span class="subtext">No statewide completeness observation is available yet.</span></div>'
-    )
+    body = f"""
+<div class="summary-v2">
+  <div class="card"><div class="muted">Sources monitored</div><div class="metric">{len(sources)}</div><span class="subtext">Cloud + provider-restricted local observations</span></div>
+  <div class="card"><div class="muted">Sources healthy</div><div class="metric ok">{healthy}</div><span class="subtext">{issues} currently need attention</span></div>
+  <div class="card"><div class="muted">Minnesota counties</div><div class="metric">87</div><span class="subtext">Statewide county profile index</span></div>
+  <div class="card"><div class="muted">MN GAC represented</div><div class="metric">{covered}/87</div><span class="subtext">Counties in Plan Parcels Open</span></div>
+  <div class="card"><div class="muted">All-field population</div><div class="metric">{_esc(f"{all_field:.2f}%" if isinstance(all_field,(int,float)) else "—")}</div><span class="subtext">Across all 91 standard fields</span></div>
+  <div class="card"><div class="muted">Mandatory-field population</div><div class="metric">{_esc(f"{mandatory:.2f}%" if isinstance(mandatory,(int,float)) else "—")}</div><span class="subtext">Record-weighted statewide rate</span></div>
+</div>
 
-    body = (
-        '<div class="grid primary-grid">'
-        f'<div class="card"><div class="muted">Overall health</div><div class="metric {_status_class(state.get("overall") or "unknown")}">{_esc(_health_status(state.get("overall") or "unknown"))}</div>'
-        '<span class="subtext">Latest published health across the shared Watchtower aggregate.</span></div>'
-        f'<div class="card"><div class="muted">Monitored sources</div><div class="metric">{len(sources)}</div>'
-        '<span class="subtext">Cloud and provider-restricted local observations combined.</span></div>'
-        f'<div class="card"><div class="muted">Source issues</div><div class="metric">{int(counts.get("warn") or 0) + int(counts.get("error") or 0)}</div>'
-        '<span class="subtext">Sources whose latest observation reported a warning or error.</span></div>'
-        f'{mngac_card}</div>'
-        '<div class="section-head"><div><h2>Coverage</h2><p>Public-facing summary of statewide monitoring coverage.</p></div></div>'
-        '<div class="activity-strip">'
-        f'<div class="card" id="changes"><div class="muted">Sources changed in latest observation</div><div class="metric">{changed}</div>'
-        '<span class="subtext">Change details remain private; this shows only the source-level count.</span></div>'
-        f'<div class="card"><div class="muted">Last aggregate update</div><strong>{_esc(state.get("generated_at") or "No saved observation")}</strong>'
-        '<span class="subtext"><a href="/counties">Browse all 87 Minnesota county dashboards →</a></span></div></div>'
-        '<div class="section-head"><div><h2>Workers</h2><p>Freshness of the cloud and provider-restricted local observations.</p></div></div>'
-        f'<div class="grid worker-grid">{"".join(worker_cards) or "<div class=\"card muted\">Worker metadata is unavailable.</div>"}</div>'
-        '<div class="card" id="alerts"><h2>Public data boundary</h2>'
-        '<p>This site publishes derived monitoring results and standardized completeness metrics. '
-        'Provider connection URLs, internal fingerprints, raw change payloads, and operational controls are not exposed.</p></div><br>'
-        '<div class="card" id="sources"><h2>Data being watched</h2>'
-        '<div class="filters"><input id="q" placeholder="Filter datasets…" oninput="filterRows()">'
-        '<select id="health" onchange="filterRows()"><option value="">All statuses</option>'
-        '<option>ok</option><option>warn</option><option>error</option></select></div>'
-        '<table id="datasets"><thead><tr><th>Data source</th><th>Provided by / type</th><th>Status</th>'
-        '<th>Records</th><th>Changes found</th><th>Last successful check</th></tr></thead>'
-        f'<tbody>{"".join(rows)}</tbody></table></div>'
-        '<script>function filterRows(){const q=document.getElementById("q").value.toLowerCase(),h=document.getElementById("health").value;'
-        'document.querySelectorAll("#datasets tbody tr").forEach(r=>{r.style.display=(!q||r.dataset.name.includes(q))&&(!h||r.dataset.status===h)?"":"none"})}</script>'
-    )
+<div class="section-head"><div><h2>Explore Minnesota GIS data</h2><p>Select a county to see its statewide MN GAC context, then open the full county profile.</p></div><a href="/counties">All 87 counties →</a></div>
+<div class="hero-panel">
+  <div class="card">
+    <div class="mngac-map-panel">{map_svg}</div>
+  </div>
+  <div class="card hero-copy">
+    <div class="muted">Selected county</div>
+    <h2 id="home-county-name">Choose a county</h2>
+    <p id="home-county-detail">The map shows record-weighted population across all 91 Minnesota GAC parcel-transfer fields. Counties without a statewide open-layer observation remain distinct from 0%.</p>
+    <div class="hero-stat">
+      <div><small>Field population</small><b id="home-county-rate">—</b></div>
+      <div><small>Parcel records</small><b id="home-county-records">—</b></div>
+      <div><small>Fields with values</small><b id="home-county-fields">—</b></div>
+      <div><small>Statewide parcels</small><b>{parcel_records:,}</b></div>
+    </div>
+    <div class="hero-actions" style="margin-top:16px">
+      <a id="home-county-link" class="primary" href="/counties">Open county profile</a>
+      <a href="/mngac">Explore all 91 MN GAC fields</a>
+    </div>
+  </div>
+</div>
+
+<div class="section-head"><div><h2>Latest Watchtower activity</h2><p>Public monitoring results, separated from internal provider diagnostics.</p></div></div>
+<div class="activity-strip">
+  <div class="card"><div class="muted">Latest public publication</div><div class="metric">{_esc(_public_age(published_at))}</div><span class="subtext">{_esc(_public_time(published_at))}</span></div>
+  <div class="card"><div class="muted">Latest source observation</div><div class="metric">{_esc(_public_age(checked_at))}</div><span class="subtext">{_esc(_public_time(checked_at))} · {changed} source(s) changed</span></div>
+</div>
+
+<div class="section-head"><div><h2>Data sources</h2><p>Availability and high-level public monitoring status.</p></div><span>{len(sources)} monitored sources</span></div>
+<div class="card" id="datasets">
+  <div class="filters"><input id="q" placeholder="Search data sources…" oninput="filterRows()"><select id="health" onchange="filterRows()"><option value="">All statuses</option><option>ok</option><option>warn</option><option>error</option></select></div>
+  <table><thead><tr><th>Data source</th><th>Provided by</th><th>Status</th><th>Records</th><th>Changes</th><th>Last success</th></tr></thead><tbody>{"".join(rows)}</tbody></table>
+</div>
+
+<div class="section-head"><div><h2>System status</h2><p>Technical monitoring paths are secondary to the public data view.</p></div></div>
+<div class="grid worker-grid">{"".join(worker_cards) or '<div class="card muted">System metadata is unavailable.</div>'}</div>
+<div class="card" id="alerts"><h3>Public data boundary</h3><p class="subtext">This site exposes derived monitoring results and standardized completeness metrics. Provider connection URLs, internal fingerprints, raw change payloads, credentials, and operational controls remain private.</p></div>
+
+<script>
+(function(){{
+  const countyData={map_json};
+  const root=document;
+  function fill(pct){{
+    if(pct===null||pct===undefined)return '#151d2b';
+    const n=Number(pct);
+    if(n>=75)return '#4c9b7b';
+    if(n>=55)return '#3c708f';
+    if(n>=35)return '#315373';
+    if(n>=15)return '#263d59';
+    return '#1b2b40';
+  }}
+  function show(name,path){{
+    const d=countyData[name];
+    root.querySelectorAll('.mngac-county').forEach(p=>p.classList.toggle('selected',p===path));
+    root.getElementById('home-county-name').textContent=name+' County';
+    const rate=root.getElementById('home-county-rate'), rec=root.getElementById('home-county-records'), fields=root.getElementById('home-county-fields'), link=root.getElementById('home-county-link');
+    if(!d){{
+      rate.textContent='No data';rec.textContent='—';fields.textContent='—';
+      root.getElementById('home-county-detail').textContent='This county is not represented in the current MnGeo Plan Parcels Open observation. Watchtower does not infer 0%.';
+    }}else{{
+      rate.textContent=d.pct==null?'—':Number(d.pct).toFixed(2)+'%';
+      rec.textContent=Number(d.records||0).toLocaleString();
+      fields.textContent=(d.fields==null?'—':d.fields)+' / '+(d.field_count||91);
+      root.getElementById('home-county-detail').textContent='Current record-weighted population across the standard parcel-transfer fields for this county.';
+    }}
+    const slug=(d&&d.slug)||path.dataset.slug||'';
+    link.href=slug?'/county?slug='+encodeURIComponent(slug):'/counties';
+  }}
+  root.querySelectorAll('.mngac-county').forEach(p=>{{
+    const d=countyData[p.dataset.county];
+    p.style.fill=fill(d&&d.pct);
+    const label=p.dataset.county+' County'+(d&&d.pct!=null?', '+Number(d.pct).toFixed(2)+'% field population':', no MN GAC data');
+    p.setAttribute('aria-label',label);
+    p.addEventListener('click',()=>show(p.dataset.county,p));
+    p.addEventListener('keydown',e=>{{if(e.key==='Enter'||e.key===' '){{e.preventDefault();show(p.dataset.county,p)}}}});
+  }});
+}})();
+function filterRows(){{
+  const q=document.getElementById('q').value.toLowerCase(),h=document.getElementById('health').value;
+  document.querySelectorAll('#datasets tbody tr').forEach(r=>r.style.display=(!q||r.dataset.name.includes(q))&&(!h||r.dataset.status===h)?'':'none');
+}}
+</script>
+"""
     return _layout("GIS Data Watchtower", body, refresh_seconds=30, static=True)
-
 
 def render_public_source(config: dict, source_id: str) -> str:
     source = (_dashboard_state(config).get("sources") or {}).get(source_id)
@@ -280,7 +389,7 @@ def render_public_source(config: dict, source_id: str) -> str:
         '<div class="card"><h2>Public monitoring summary</h2><dl class="definition-list">'
         f'<dt>Provided by</dt><dd>{_esc(source.get("provider") or "—")}</dd>'
         f'<dt>Data type</dt><dd>{_esc(source.get("category") or "—")}</dd>'
-        f'<dt>Latest successful check</dt><dd>{_esc(source.get("last_success_at") or source.get("checked_at") or "—")}</dd>'
+        f'<dt>Latest successful check</dt><dd>{_esc(_public_time(source.get("last_success_at") or source.get("checked_at")))}</dd>'
         f'<dt>Reporting</dt><dd>{_esc(source.get("reporting") or "current")}</dd>'
         f'<dt>Changes found</dt><dd>{_esc(source.get("change_count") or 0)}</dd>'
         f'<dt>Information fields</dt><dd>{_esc(source.get("field_count") or "—")}</dd>'
@@ -290,7 +399,7 @@ def render_public_source(config: dict, source_id: str) -> str:
         '</dl></div>'
     )
     return _layout(
-        f'{source.get("name") or source_id} — GIS Data Watchtower',
+        f'Data Source — {source.get("name") or source_id} — GIS Data Watchtower',
         body,
         refresh_seconds=30,
         static=True,
