@@ -32,6 +32,10 @@ The project is tested on:
 
 The Linux 3.14 matrix leg also smoke-tests the Docker image.
 
+## County parcel-data access audit
+
+The current production county classification has **35 counties** in the registry-derived `needs-source` state. That state means Watchtower has no county-specific parcel source configured for direct monitoring; it is not evidence that a thorough source search has been completed. A county-by-county parcel-data access audit is now in progress. Final parcel-specific classifications are: Free parcel data; Fee-based parcel data; Parcel viewer only; Parcel data by request / restricted; Statewide parcel coverage only; and No direct parcel dataset verified. Fee-based classification requires official evidence that the parcel dataset itself is sold or supplied for a fee, rather than merely showing fees for related services or custom GIS work. The methodology and 35-county audit population are documented in `docs/county-parcel-data-access-audit.md`.
+
 ## Hosted public dashboard
 
 The shareable read-only dashboard is hosted at **https://gis-watchtower.clear-parcel.com**. Public traffic terminates on a Google Cloud external Application Load Balancer and is routed through a serverless NEG to the dedicated `gis-data-watchtower-public` Cloud Run service. The service reads only the sanitized production object at `gs://clearparcel-watchtower-dark-bit-503017-j7/production/aggregate-state.json`; its service account has no read access to the unified staging aggregate.
