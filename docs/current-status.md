@@ -1,6 +1,6 @@
 # Current project status
 
-Last validated: **2026-10-05**
+Last validated: **2026-10-06**
 
 ## Release status
 
@@ -34,7 +34,7 @@ The Linux 3.14 matrix leg also smoke-tests the Docker image.
 
 ## County parcel-data access audit
 
-The parcel-specific access audit for all **35** registry-derived `needs-source` counties is complete. Results are **17 Free parcel data**, **7 Fee-based parcel data**, and **11 Parcel viewer only**. The structured research dataset lives at `clearparcel/datawatch/minnesota_county_parcel_access.json` and is deliberately separate from monitoring health/status observations. Seventeen county-direct machine-readable parcel sources were identified and each returned HTTP 200 in one bounded validation pass from the authoritative workstation; they are monitoring candidates only and have not been added to scheduled provider polling. Public v2 renders the evidence-backed access classification independently from monitoring coverage. Fee-based classification requires official evidence that the parcel dataset itself is sold or supplied for a fee. Full evidence and methodology are documented in `docs/county-parcel-data-access-audit.md`.
+The parcel-specific access audit for all **35** registry-derived `needs-source` counties is complete. After reconciling reachable endpoints with official county parcel-data policies, county-direct results are **13 Free parcel data**, **11 Fee-based parcel data**, and **11 Parcel viewer only**. Schema v2 records county-direct access and MnGeo Plan Parcels Open coverage separately; **9 of the 35 audited counties** are currently represented in MnGeo, including Winona. Public v2 treats a county as actively checked when Watchtower observes it through a county-specific source, MnGeo Plan Parcels Open, or both. The current production snapshot yields **61/87 actively checked counties**. The 13 responsibly usable direct sources include **9 counties outside MnGeo coverage**. All nine passed a bounded local Watchtower-engine probe and isolated Cloud Run compatibility validation. The eight ArcGIS sources returned **8 OK / 0 warnings / 0 errors** through the staging image/service account/network path; Dodge succeeded in a separate HEAD-only Cloud Run probe. All nine are suitable for the cloud execution profile and have not been added to the active registry. Blue Earth, Faribault, Kandiyohi, and Lincoln remain `hold-for-terms` because official county fee/licensing policies conflict with treating their public application endpoints as authorized free data channels. No new scheduled provider polling has been enabled. Full evidence and methodology are documented in `docs/county-parcel-data-access-audit.md`.
 
 ## Hosted public dashboard
 

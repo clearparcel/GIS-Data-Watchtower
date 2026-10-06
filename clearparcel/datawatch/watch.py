@@ -409,6 +409,72 @@ def _request(url: str, timeout: int, *, prefer_curl: bool = False) -> tuple[byte
     raise RuntimeError(f"provider redirect limit exceeded ({max_redirects})")
 
 
+def _head_request(url: str, timeout: int) -> dict:
+    """Perform a redirect-guarded HEAD request without downloading the response body."""
+    _url_host(url)
+    current = url
+    max_redirects = _max_redirects()
+    opener = urllib.request.build_opener(_NoRedirectHandler)
+    for hop in range(max_redirects + 1):
+        req = urllib.request.Request(
+            current,
+            headers={"User-Agent": USER_AGENT},
+            method="HEAD",
+        )
+        try:
+            with opener.open(req, timeout=timeout) as response:
+                status = int(response.status)
+                headers = {k.lower(): v for k, v in response.headers.items()}
+                if status < 200 or status >= 300:
+                    raise RuntimeError(f"provider returned HTTP {status}")
+                return {
+                    "status": status,
+                    "headers": headers,
+                    "final_url": current,
+                    "transport": "urllib-head",
+                }
+        except urllib.error.HTTPError as exc:
+            retry_after = exc.headers.get("Retry-After") if exc.headers else None
+            if exc.code == 429:
+                raise ProviderRateLimitError(retry_after) from exc
+            if exc.code in _REDIRECT_CODES:
+                location = exc.headers.get("Location") if exc.headers else None
+                if not location:
+                    raise RuntimeError(f"provider returned redirect HTTP {exc.code} without Location") from exc
+                if hop >= max_redirects:
+                    raise RuntimeError(f"provider redirect limit exceeded ({max_redirects})") from exc
+                current = _validated_redirect(current, str(location), url)
+                continue
+            raise RuntimeError(f"provider returned HTTP {exc.code}") from exc
+    raise RuntimeError(f"provider redirect limit exceeded ({max_redirects})")
+
+
+def _http_file(source: dict, timeout: int) -> dict:
+    meta = _head_request(source["url"], timeout)
+    headers = meta.get("headers") or {}
+    tracked = {
+        "etag": headers.get("etag"),
+        "last_modified": headers.get("last-modified"),
+        "content_length": headers.get("content-length"),
+    }
+    tracked = {k: v for k, v in tracked.items() if v not in (None, "")}
+    content_type = headers.get("content-type")
+    problems = []
+    expected = source.get("expected_content_type")
+    if expected and content_type and str(expected).lower() not in str(content_type).lower():
+        problems.append(f"content type changed: expected {expected}, got {content_type}")
+    if not tracked:
+        problems.append("provider returned no ETag, Last-Modified, or Content-Length freshness metadata")
+    return {
+        "http_status": meta["status"],
+        "transport": meta.get("transport"),
+        "content_type": content_type,
+        "tracked_values": tracked,
+        "schema_hash": _hash_json({"content_type": content_type}),
+        "problems": problems,
+    }
+
+
 def _json_request(url: str, timeout: int, *, prefer_curl: bool = False) -> tuple[dict, dict]:
     body, meta = _request(url, timeout, prefer_curl=prefer_curl)
     data = json.loads(body.decode("utf-8-sig"))
@@ -1139,6 +1205,7 @@ def _adapter_name(source: dict) -> str:
         "arcgis-map-service": "arcgis_service",
         "arcgis-image-service": "arcgis_image",
         "soil-data-access": "sda_query",
+        "http-file": "http_file",
     }
     return aliases.get(str(raw).strip().lower(), str(raw).strip().lower().replace("-", "_"))
 
@@ -1169,6 +1236,8 @@ def _source_check(source: dict, timeout: int) -> dict:
         return _wfs(source, timeout)
     if kind == "sda_query":
         return _sda_query(source, timeout)
+    if kind == "http_file":
+        return _http_file(source, timeout)
     raise ValueError(f"Unsupported source adapter: {kind}")
 def _compare(previous: dict | None, current: dict, source: dict | None = None) -> list[dict]:
     changes = []

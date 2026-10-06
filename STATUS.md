@@ -1,6 +1,6 @@
 # Project status
 
-Last validated: **2026-10-05**
+Last validated: **2026-10-06**
 
 GIS Data Watchtower is public, MIT-licensed, and supports local, cloud, and hybrid execution.
 
@@ -35,7 +35,7 @@ The same staging architecture also validated the MN GAC completeness feature aga
 
 ## County parcel-data access audit
 
-The 35-county parcel-specific access audit is complete. Results are **17 Free parcel data**, **7 Fee-based parcel data**, and **11 Parcel viewer only**. All 35 records are stored separately from monitoring observations in `clearparcel/datawatch/minnesota_county_parcel_access.json`, with parcel-specific evidence and completed review logs. The audit identified **17 county-direct machine-readable parcel sources**; each returned HTTP 200 in a single bounded validation pass and is marked only as a low-frequency monitoring candidate. No new provider polling or scheduler was enabled. **Fee-based parcel data** is used only when official evidence shows that the parcel dataset itself carries a fee. See `docs/county-parcel-data-access-audit.md`.
+The 35-county parcel-specific access audit is complete. After reconciling public technical endpoints against official county distribution/fee policies, county-direct results are **13 Free parcel data**, **11 Fee-based parcel data**, and **11 Parcel viewer only**. Blue Earth, Faribault, Kandiyohi, and Lincoln are explicitly held for terms clarification despite reachable parcel services. The schema tracks MnGeo Plan Parcels Open separately: **9 of the 35 audited counties** are currently represented there, including Winona. Current production monitoring remains **61/87 actively checked counties** (59 via MnGeo, 15 via county-specific monitored sources, 13 overlapping). Of the 13 responsibly usable county-direct sources, **9 are outside current MnGeo coverage**. All nine passed a bounded local Watchtower probe and cloud compatibility validation; the eight ArcGIS sources returned 8 OK / 0 warnings / 0 errors from the isolated staging container, and Dodge passed a separate HEAD-only Cloud Run check. All nine are suitable for the cloud execution profile. They have not been added to the active registry. No new scheduled provider polling was enabled. See `docs/county-parcel-data-access-audit.md`.
 
 ## Public dashboard hosting
 

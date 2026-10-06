@@ -59,16 +59,19 @@ class PublicDashboardTests(unittest.TestCase):
                     "mngac_completeness": {
                         "standard": {"name": "MN GAC", "version": "1", "source_url": "https://example.invalid/standard"},
                         "method": "grouped statistics",
-                        "record_count": 10,
+                        "record_count": 20,
                         "field_count": 1,
-                        "covered_counties": 1,
+                        "covered_counties": 2,
                         "field_population_percent": 80.0,
                         "mandatory_field_count": 1,
                         "mandatory_population_percent": 100.0,
                         "source_schema_missing_fields": [],
                         "statistics_queries": [{"url": "https://secret.invalid/query"}],
                         "fields": {"PIN": {"percent": 100.0}},
-                        "counties": {"Olmsted": {"record_count": 10, "fields": {"PIN": {"percent": 100.0}}}},
+                        "counties": {
+                            "Olmsted": {"record_count": 10, "fields": {"PIN": {"percent": 100.0}}},
+                            "Winona": {"record_count": 10, "fields": {"PIN": {"percent": 100.0}}},
+                        },
                     },
                 },
             },
@@ -138,6 +141,10 @@ class PublicDashboardTests(unittest.TestCase):
             self.assertIn("Minnesota GIS Data Watchtower", page)
             self.assertIn("summary-v2", page)
             self.assertIn("Explore Minnesota GIS data", page)
+            self.assertIn("Counties actively checked", page)
+            self.assertIn("2/87", page)
+            self.assertIn("2 via MnGeo open parcels", page)
+            self.assertIn("1 via county-direct sources", page)
             self.assertIn('id="mngac-map"', page)
             self.assertIn("PUBLIC · LIVE", page)
             self.assertNotIn('class="sidebar"', page)
@@ -228,9 +235,10 @@ class PublicDashboardTests(unittest.TestCase):
             page = render_counties(config)
             self.assertIn("Minnesota county dashboards", page)
             self.assertIn("Monitoring coverage", page)
-            self.assertIn("Parcel data access", page)
+            self.assertIn("County-direct access", page)
+            self.assertIn("Statewide open access", page)
             self.assertIn("Fee-based parcel data", page)
-            self.assertIn("Free parcel data", page)
+            self.assertIn("Available free through MnGeo Plan Parcels Open", page)
             self.assertNotIn('<form method="post" action="/refresh"', page)
 
     def test_county_detail_separates_monitoring_from_parcel_access_research(self):
@@ -250,11 +258,15 @@ class PublicDashboardTests(unittest.TestCase):
             }
             page = render_county(config, "winona")
             self.assertIn("Monitoring coverage", page)
+            self.assertIn("Monitoring path", page)
+            self.assertIn("MnGeo Plan Parcels Open", page)
             self.assertIn("Parcel dataset access", page)
+            self.assertIn("County-direct access:", page)
             self.assertIn("Fee-based parcel data", page)
-            self.assertIn("Parcel dataset fee:", page)
+            self.assertIn("Statewide open access:", page)
+            self.assertIn("Available free through MnGeo Plan Parcels Open", page)
+            self.assertIn("County parcel dataset fee:", page)
             self.assertIn("GIS Data Set - Parcels", page)
-            self.assertIn("No direct county parcel source currently monitored", page)
 
 
 if __name__ == "__main__":

@@ -6,14 +6,15 @@ import json
 from pathlib import Path
 from urllib.parse import urlsplit
 
-CLASSIFICATIONS = {
+DIRECT_CLASSIFICATIONS = {
     "free-parcel-data": "Free parcel data",
     "fee-based-parcel-data": "Fee-based parcel data",
     "parcel-viewer-only": "Parcel viewer only",
     "request-restricted": "Parcel data by request / restricted",
-    "statewide-only": "Statewide parcel coverage only",
     "no-direct-dataset-verified": "No direct parcel dataset verified",
 }
+CLASSIFICATIONS = DIRECT_CLASSIFICATIONS
+STATEWIDE_OPEN_LABEL = "Available free through MnGeo Plan Parcels Open"
 REVIEW_AREAS = (
     "county_site", "gis_assessor_land_records", "downloads_open_data",
     "arcgis_services", "data_policy", "fee_schedule", "request_forms",
@@ -24,12 +25,12 @@ URL_FIELDS = (
     "viewer_url", "fee_policy_url",
 )
 RECORD_FIELDS = {
-    "county", "review_date", "classification", "research_complete",
+    "county", "review_date", "county_direct_classification", "research_complete",
     *URL_FIELDS, "parcel_dataset_fee", "fee_product", "evidence_note",
     "source_authority", "usable_direct_machine_readable_source",
-    "monitoring", "review_log", "evidence",
+    "statewide_open_coverage", "monitoring", "review_log", "evidence",
 }
-INTERIM_LABEL = "No direct county parcel source currently monitored"
+INTERIM_LABEL = "County-direct parcel access not yet researched"
 
 
 def _url(value: object) -> bool:
@@ -41,7 +42,7 @@ def _url(value: object) -> bool:
 
 def validate_parcel_access(data: dict) -> None:
     """Reject ambiguous/unsupported published research; no network access."""
-    if set(data) != {"schema_version", "scope", "counties"} or data["schema_version"] != 1:
+    if set(data) != {"schema_version", "scope", "counties"} or data["schema_version"] != 2:
         raise ValueError("Unsupported parcel-access schema")
     if not isinstance(data["scope"], str) or not data["scope"].strip():
         raise ValueError("Research scope required")
@@ -58,9 +59,9 @@ def validate_parcel_access(data: dict) -> None:
         if type(record["research_complete"]) is not bool:
             raise ValueError("research_complete must be boolean")
         complete = record["research_complete"]
-        classification = record["classification"]
-        if classification not in CLASSIFICATIONS and classification is not None:
-            raise ValueError("Unknown classification")
+        classification = record["county_direct_classification"]
+        if classification not in DIRECT_CLASSIFICATIONS and classification is not None:
+            raise ValueError("Unknown county-direct classification")
         if complete != (classification is not None):
             raise ValueError("Only completed research may carry a public classification")
         if record["review_date"] is not None:
@@ -76,6 +77,19 @@ def validate_parcel_access(data: dict) -> None:
                 raise ValueError(f"Invalid evidence URL: {key}")
         if not _url(record["official_county_url"]):
             raise ValueError("Official county URL required")
+        statewide = record["statewide_open_coverage"]
+        if not isinstance(statewide, dict) or set(statewide) != {"available", "source", "source_url", "verified_date"}:
+            raise ValueError("Invalid statewide open-coverage record")
+        if type(statewide["available"]) is not bool:
+            raise ValueError("statewide open coverage must be boolean")
+        if not isinstance(statewide["source"], str) or not statewide["source"].strip():
+            raise ValueError("Statewide source name required")
+        if not _url(statewide["source_url"]):
+            raise ValueError("Statewide source URL required")
+        try:
+            dt.date.fromisoformat(statewide["verified_date"])
+        except (ValueError, TypeError) as exc:
+            raise ValueError("Invalid statewide coverage verification date") from exc
         if record["source_authority"] not in {"county", "county-authorized-provider", "statewide", "unverified"}:
             raise ValueError("Invalid source authority")
         direct = record["usable_direct_machine_readable_source"]
@@ -136,5 +150,16 @@ def load_parcel_access(path: Path | None = None) -> dict[str, dict]:
 
 def access_label(record: dict | None, *, monitored: bool = False) -> str:
     if record and record.get("research_complete") is True:
-        return CLASSIFICATIONS[record["classification"]]
+        return DIRECT_CLASSIFICATIONS[record["county_direct_classification"]]
     return "Parcel-access research pending" if monitored else INTERIM_LABEL
+
+
+def statewide_access_label(record: dict | None, *, live_available: bool | None = None) -> str:
+    if live_available is True:
+        return STATEWIDE_OPEN_LABEL
+    if live_available is False:
+        return "Not represented in the current MnGeo Plan Parcels Open observation"
+    coverage = (record or {}).get("statewide_open_coverage") or {}
+    if coverage.get("available") is True:
+        return STATEWIDE_OPEN_LABEL
+    return "No MnGeo open parcel coverage verified in the audit"

@@ -13,6 +13,7 @@ from pathlib import Path
 from clearparcel.datawatch.dashboard import (
     _BoundedThreadingHTTPServer,
     _county_snapshot,
+    _county_monitoring_counts,
     _dashboard_state,
     _esc,
     _health_status,
@@ -224,6 +225,7 @@ def render_public_dashboard(config: dict) -> str:
     published_at = state.get("public_published_at")
     checked_at = state.get("generated_at")
     covered = int((mngac or {}).get("covered_counties") or 0)
+    monitoring = _county_monitoring_counts(config, state)
     all_field = (mngac or {}).get("field_population_percent")
     mandatory = (mngac or {}).get("mandatory_population_percent")
     parcel_records = int((mngac or {}).get("record_count") or 0)
@@ -279,7 +281,7 @@ def render_public_dashboard(config: dict) -> str:
   <div class="card"><div class="muted">Sources monitored</div><div class="metric">{len(sources)}</div><span class="subtext">Cloud + provider-restricted local observations</span></div>
   <div class="card"><div class="muted">Sources healthy</div><div class="metric ok">{healthy}</div><span class="subtext">{issues} currently need attention</span></div>
   <div class="card"><div class="muted">Minnesota counties</div><div class="metric">87</div><span class="subtext">Statewide county profile index</span></div>
-  <div class="card"><div class="muted">MN GAC represented</div><div class="metric">{covered}/87</div><span class="subtext">Counties in Plan Parcels Open</span></div>
+  <div class="card"><div class="muted">Counties actively checked</div><div class="metric">{monitoring["active"]}/87</div><span class="subtext">{monitoring["mngeo_open"]} via MnGeo open parcels · {monitoring["county_direct"]} via county-direct sources · overlap counted once</span></div>
   <div class="card"><div class="muted">All-field population</div><div class="metric">{_esc(f"{all_field:.2f}%" if isinstance(all_field,(int,float)) else "—")}</div><span class="subtext">Across all 91 standard fields</span></div>
   <div class="card"><div class="muted">Mandatory-field population</div><div class="metric">{_esc(f"{mandatory:.2f}%" if isinstance(mandatory,(int,float)) else "—")}</div><span class="subtext">Record-weighted statewide rate</span></div>
 </div>

@@ -73,6 +73,45 @@ class DataWatchTests(unittest.TestCase):
                 loaded = load_data_config(config_path)
             self.assertEqual(Path(loaded['aggregate_state_file']), override)
 
+    def test_http_file_adapter_tracks_metadata_without_downloading_body(self):
+        source = {
+            "id": "dodge-parcels-zip",
+            "kind": "http_file",
+            "url": "https://example.invalid/parcels.zip",
+            "expected_content_type": "zip",
+        }
+        meta = {
+            "status": 200,
+            "transport": "urllib-head",
+            "headers": {
+                "etag": '"abc"',
+                "last-modified": "Tue, 08 Sep 2026 15:26:32 GMT",
+                "content-length": "4221438",
+                "content-type": "application/x-zip-compressed",
+            },
+        }
+        with patch.object(datawatch, "_head_request", return_value=meta) as head:
+            result = datawatch._source_check(source, 20)
+        head.assert_called_once_with(source["url"], 20)
+        self.assertEqual(result["http_status"], 200)
+        self.assertEqual(result["tracked_values"]["etag"], '"abc"')
+        self.assertEqual(result["tracked_values"]["content_length"], "4221438")
+        self.assertEqual(result["problems"], [])
+
+    def test_http_file_adapter_reports_missing_freshness_metadata(self):
+        source = {
+            "id": "file",
+            "adapter": "http-file",
+            "url": "https://example.invalid/file.zip",
+        }
+        with patch.object(datawatch, "_head_request", return_value={
+            "status": 200,
+            "transport": "urllib-head",
+            "headers": {"content-type": "application/zip"},
+        }):
+            result = datawatch._source_check(source, 20)
+        self.assertTrue(any("freshness metadata" in x for x in result["problems"]))
+
     def test_mngac_population_expressions_respect_standard_no_data_rules(self):
         self.assertEqual(
             datawatch._mngac_population_expression({'field': 'OWNER_NAME', 'data_type': 'Text'}, 'OWNER_NAME'),
@@ -366,10 +405,11 @@ class DataWatchTests(unittest.TestCase):
             self.assertEqual(len(datawatch_dashboard._load_counties()), 87)
             self.assertIn('Wabasha County', counties)
             self.assertIn('Yellow Medicine County', counties)
-            self.assertIn('Direct sources', counties)
-            self.assertIn('Directly monitored', counties)
-            self.assertIn('What Watchtower currently checks or catalogs', counties)
-            self.assertIn('Parcel data access', counties)
+            self.assertIn('County-direct sources', counties)
+            self.assertIn('Actively checked', counties)
+            self.assertIn('Health and active monitoring path', counties)
+            self.assertIn('County-direct access', counties)
+            self.assertIn('Statewide open access', counties)
             self.assertIn('County-specific sources actively checked', counties)
             self.assertIn('Monitoring coverage', counties)
             self.assertNotIn('Live data checks', counties)
@@ -623,7 +663,7 @@ class DataWatchTests(unittest.TestCase):
             self.assertIn('No active alerts.', overview)
             self.assertIn('Data being watched', overview)
             self.assertIn('Healthy', overview)
-            self.assertNotIn('>Directly monitored</span><br><span class="muted">current reporting', overview)
+            self.assertNotIn('>Actively checked</span><br><span class="muted">current reporting', overview)
             self.assertIn('Records / change', overview)
             self.assertIn('Recent reliability', overview)
             self.assertIn('<details class="technical">', detail)

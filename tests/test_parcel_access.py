@@ -3,20 +3,21 @@ import unittest
 
 from clearparcel.datawatch.parcel_access import (
     CLASSIFICATIONS, INTERIM_LABEL, REVIEW_AREAS, access_label,
-    load_parcel_access, validate_parcel_access,
+    load_parcel_access, statewide_access_label, validate_parcel_access,
 )
 
 
 def research_fixture():
     url = "https://county.example/gis"
-    return {"schema_version": 1, "scope": "Parcel datasets", "counties": [{
+    return {"schema_version": 2, "scope": "Parcel datasets", "counties": [{
         "county": "Example", "review_date": "2026-10-05",
-        "classification": "free-parcel-data", "research_complete": True,
+        "county_direct_classification": "free-parcel-data", "research_complete": True,
         "official_county_url": url, "parcel_page_url": url,
         "download_or_service_url": url + "/FeatureServer/0", "viewer_url": None,
         "fee_policy_url": None, "parcel_dataset_fee": None, "fee_product": None,
         "evidence_note": "County publishes parcel polygons for public download.",
         "source_authority": "county", "usable_direct_machine_readable_source": True,
+        "statewide_open_coverage": {"available": True, "source": "MnGeo Plan Parcels Open", "source_url": "https://gisdata.mn.gov/dataset/plan-parcels-open", "verified_date": "2026-10-05"},
         "monitoring": {"decision": "candidate-low-frequency", "reason": "Published open GIS API; bounded daily reads only.", "terms_urls": [url]},
         "evidence": [{"url": url, "authority": "county", "finding": "Public parcel download."}],
         "review_log": {area: {"status": "reviewed", "note": "Reviewed official source.", "urls": [url]} for area in REVIEW_AREAS},
@@ -41,7 +42,7 @@ class ParcelAccessSchemaTests(unittest.TestCase):
     def test_dataset_fee_requires_official_policy_product_and_fee(self):
         data = research_fixture()
         record = data["counties"][0]
-        record.update(classification="fee-based-parcel-data", fee_policy_url="https://county.example/fees", fee_product="Parcel shapefile", parcel_dataset_fee="$30")
+        record.update(county_direct_classification="fee-based-parcel-data", fee_policy_url="https://county.example/fees", fee_product="Parcel shapefile", parcel_dataset_fee="$30")
         with self.assertRaises(ValueError):
             validate_parcel_access(data)
         record["evidence"].append({"url": record["fee_policy_url"], "authority": "county", "finding": "Parcel shapefile costs $30."})
@@ -62,9 +63,23 @@ class ParcelAccessSchemaTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             validate_parcel_access(data)
 
+    def test_statewide_open_coverage_has_independent_typed_evidence(self):
+        data = research_fixture()
+        data["counties"][0]["statewide_open_coverage"]["available"] = "yes"
+        with self.assertRaises(ValueError):
+            validate_parcel_access(data)
+        data = research_fixture()
+        data["counties"][0]["statewide_open_coverage"]["verified_date"] = "not-a-date"
+        with self.assertRaises(ValueError):
+            validate_parcel_access(data)
+        data = research_fixture()
+        data["counties"][0]["statewide_open_coverage"]["source_url"] = "javascript:bad"
+        with self.assertRaises(ValueError):
+            validate_parcel_access(data)
+
     def test_no_direct_conclusion_requires_completed_review(self):
         data = research_fixture()
-        data["counties"][0].update(classification="no-direct-dataset-verified", research_complete=False)
+        data["counties"][0].update(county_direct_classification="no-direct-dataset-verified", research_complete=False)
         with self.assertRaises(ValueError):
             validate_parcel_access(data)
 
@@ -72,7 +87,11 @@ class ParcelAccessSchemaTests(unittest.TestCase):
         self.assertEqual(access_label(None), INTERIM_LABEL)
         self.assertEqual(access_label({"research_complete": False}), INTERIM_LABEL)
         for key, label in CLASSIFICATIONS.items():
-            self.assertEqual(access_label({"classification": key, "research_complete": True}), label)
+            self.assertEqual(access_label({"county_direct_classification": key, "research_complete": True}), label)
+        self.assertEqual(
+            statewide_access_label({"statewide_open_coverage": {"available": True}}),
+            "Available free through MnGeo Plan Parcels Open",
+        )
 
     def test_minnesota_audit_contains_35_completed_evidence_backed_records(self):
         records = load_parcel_access()
@@ -85,21 +104,44 @@ class ParcelAccessSchemaTests(unittest.TestCase):
         ))
         counts = {}
         for record in records.values():
-            counts[record["classification"]] = counts.get(record["classification"], 0) + 1
+            key = record["county_direct_classification"]
+            counts[key] = counts.get(key, 0) + 1
         self.assertEqual(counts, {
-            "free-parcel-data": 17,
-            "fee-based-parcel-data": 7,
+            "free-parcel-data": 13,
+            "fee-based-parcel-data": 11,
             "parcel-viewer-only": 11,
         })
+        statewide = [r for r in records.values() if r["statewide_open_coverage"]["available"]]
+        self.assertEqual(len(statewide), 9)
+        self.assertTrue(records["Winona"]["statewide_open_coverage"]["available"])
+        self.assertEqual(
+            records["Winona"]["county_direct_classification"],
+            "fee-based-parcel-data",
+        )
+
+    def test_policy_conflict_endpoints_are_held_for_terms(self):
+        records = load_parcel_access()
+        held = {"Blue Earth", "Faribault", "Kandiyohi", "Lincoln"}
+        self.assertEqual(
+            {name for name, record in records.items() if record["monitoring"]["decision"] == "hold-for-terms"},
+            held,
+        )
+        for name in held:
+            record = records[name]
+            self.assertEqual(record["county_direct_classification"], "fee-based-parcel-data")
+            self.assertFalse(record["usable_direct_machine_readable_source"])
+            self.assertTrue(record["download_or_service_url"])
+            self.assertTrue(record["fee_policy_url"])
+            self.assertTrue(record["parcel_dataset_fee"])
 
     def test_direct_sources_and_fee_records_remain_distinct(self):
         records = load_parcel_access()
         direct = [r for r in records.values() if r["usable_direct_machine_readable_source"]]
-        self.assertEqual(len(direct), 17)
-        self.assertTrue(all(r["classification"] == "free-parcel-data" for r in direct))
+        self.assertEqual(len(direct), 13)
+        self.assertTrue(all(r["county_direct_classification"] == "free-parcel-data" for r in direct))
         self.assertTrue(all(r["monitoring"]["decision"] == "candidate-low-frequency" for r in direct))
-        fee_records = [r for r in records.values() if r["classification"] == "fee-based-parcel-data"]
-        self.assertEqual(len(fee_records), 7)
+        fee_records = [r for r in records.values() if r["county_direct_classification"] == "fee-based-parcel-data"]
+        self.assertEqual(len(fee_records), 11)
         self.assertTrue(all(r["fee_policy_url"] and r["parcel_dataset_fee"] and r["fee_product"] for r in fee_records))
         self.assertTrue(all(not r["usable_direct_machine_readable_source"] for r in fee_records))
 

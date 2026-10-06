@@ -15,7 +15,7 @@ ClearParcel also operates a read-only public dashboard at **https://gis-watchtow
 - record-count and schema changes
 - parcel-ID and attribute completeness signals
 - Minnesota GAC parcel-field population statistics and interactive county comparison
-- evidence-backed Minnesota county parcel-data access research kept separate from monitoring health
+- evidence-backed Minnesota county-direct parcel access plus separate MnGeo statewide open coverage and active-monitoring paths
 - bounded geometry samples
 - source response and processing history
 - CSV, JSON, and Excel (`.xlsx`) snapshot exports

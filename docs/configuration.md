@@ -68,7 +68,7 @@ For a layer that follows the Minnesota GAC parcel-transfer schema, `mngac_comple
 
 The source must expose `CO_NAME`, `CO_CODE`, an object-id field, and GAC field names. Watchtower batches the standard fields into bounded grouped-statistics requests; the current 91-field MnGeo layer uses eight requests at the default batch size. See [`mngac-completeness.md`](mngac-completeness.md) for methodology and interpretation.
 
-Adapter-specific keys include `expected_layers` for WMS, `expected_feature_types`/`version` for WFS, and `query`/`expected_columns`/`tracked_values` for Soil Data Access.
+Adapter-specific keys include `expected_layers` for WMS, `expected_feature_types`/`version` for WFS, `query`/`expected_columns`/`tracked_values` for Soil Data Access, and `expected_content_type` for `http_file`. The `http_file` adapter performs a HEAD-only check and tracks ETag, Last-Modified, Content-Length, and content type without downloading the file body.
 
 ## Path environment overrides
 
