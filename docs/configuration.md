@@ -148,7 +148,10 @@ worker telemetry belong in aggregate state.
 Repository acquisition/refresh dates require a safe, exact catalog `data_url`
 match to an evidence-backed approved product reference (a dataset/item, selected
 REST layer or offered archive), unique among that county's repository products.
-Generic county/Hub/search links and ambiguous shared references cannot join dates.
+When `layer_id` is present, the exact reference must select that same REST layer
+or carry the matching dataset layer suffix. Unqualified maps/items, service roots
+and archives cannot identify a selected county subdataset. Generic county/Hub/search
+links and ambiguous shared references cannot join dates.
 Unmatched repository dates remain null; county contribution dates for the observed
 statewide source retain their separate county-catalog association. Catalog checks,
 health and counts never become repository dataset observations.

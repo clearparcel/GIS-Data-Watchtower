@@ -470,6 +470,50 @@ class CountyProfilesTests(unittest.TestCase):
         for source in compose(state, research)['aitkin']['mngeo_public_repository']['sources']:
             self.assertIsNone(source['county_acquired_at'])
 
+    def test_repository_dates_reject_shared_regional_item_and_require_selected_layer(self):
+        research = load_parcel_access()
+        shared = 'https://gis.data.mn.gov/maps/136b28bd0d874076b702ca55b9aafffc/about'
+        item_url = 'https://www.arcgis.com/sharing/rest/content/items/136b28bd0d874076b702ca55b9aafffc?f=pjson'
+        service = 'https://arcgis.metc.state.mn.us/data1/rest/services/parcels/Parcels/FeatureServer/'
+        state = {'sources': {'statewide': {'category': 'Parcels', 'mngac_completeness': {
+            'fields': {'PIN': {}}, 'counties': {'Ramsey': {'record_count': 20}, 'Scott': {'record_count': 30}}}},
+            'mn-parcel-county-catalog': {'county_records': {
+                name: {'data_url': shared, 'acqdate': 1735689600000, 'rundate': 1735776000000}
+                for name in ('Ramsey', 'Scott')}}}}
+        # Actual inventory sources both approve the same regional About reference.
+        for source in (compose(state, research)['ramsey']['mngeo_public_repository']['sources'][0],
+                       compose(state, research)['scott']['mngeo_public_repository']['sources'][0]):
+            self.assertIsNone(source['county_acquired_at'])
+            self.assertIsNone(source['catalog_refreshed_at'])
+        for name, layer in (('Ramsey', 4), ('Scott', 5)):
+            source = research[name]['source_inventory']['mngeo_public_repository']['sources'][0]
+            catalog = state['sources']['mn-parcel-county-catalog']['county_records'][name]
+            for url, qualifies in ((item_url, False), (service + str(layer), True),
+                                   (service + str(layer + 1), False),
+                                   ('https://gis.data.mn.gov/datasets/136b28bd0d874076b702ca55b9aafffc_' + str(layer) + '/about', True),
+                                   ('https://gis.data.mn.gov/datasets/136b28bd0d874076b702ca55b9aafffc/about', False)):
+                with self.subTest(county=name, reference=url):
+                    source['approved_public_links'] = [{'label': 'Vetted reference', 'href': url}]
+                    source['evidence'] = [url]
+                    catalog['data_url'] = url
+                    profile = compose(state, research)[name.lower()]
+                    projected = profile['mngeo_public_repository']['sources'][0]
+                    self.assertEqual(projected['county_acquired_at'], '2025-01-01T00:00:00+00:00' if qualifies else None)
+                    self.assertEqual(projected['catalog_refreshed_at'], '2025-01-02T00:00:00+00:00' if qualifies else None)
+                    self.assertIsNone(projected['feature_count'])
+                    self.assertEqual(projected['health'], 'unknown')
+                    statewide = next(s for s in profile['mngac_public_parcels']['sources'] if s['monitored_source_id'] == 'statewide')
+                    self.assertEqual(statewide['county_acquired_at'], '2025-01-01T00:00:00+00:00')
+                    self.assertEqual(statewide['catalog_refreshed_at'], '2025-01-02T00:00:00+00:00')
+        # A product without a selected layer still supports exact file/dataset matches.
+        source['layer_id'] = None
+        for url in ('https://county.example/data/scott-parcels.zip',
+                    'https://gis.data.mn.gov/dataset/scott-parcels'):
+            source.update(evidence=[url], approved_public_links=[{'label': 'Product', 'href': url}])
+            catalog['data_url'] = url
+            self.assertEqual(compose(state, research)['scott']['mngeo_public_repository']['sources'][0]['county_acquired_at'],
+                             '2025-01-01T00:00:00+00:00')
+
     def test_seven_metro_county_repository_layers_remain_distinct_from_native(self):
         research = load_parcel_access()
         for name, layer in (('Anoka', 0), ('Carver', 1), ('Dakota', 2), ('Hennepin', 3),

@@ -98,6 +98,12 @@ def _catalog_product_match(item: dict, catalog: dict) -> bool:
             link['href'] == url for link in _links(item.get('approved_public_links') or [])):
         return False
     path = urlsplit(url).path.rstrip('/')
+    if item.get('layer_id') is not None:
+        # A service/item/map or archive reference cannot identify a selected
+        # county sublayer. Require the layer in the exact vetted resource URL.
+        selected = re.search(r'/rest/services/.+/(?:FeatureServer|MapServer)/([0-9]+)$', path)
+        selected = selected or re.search(r'/datasets/[a-fA-F0-9]{32}_([0-9]+)(?:/about)?$', path)
+        return bool(selected and selected.group(1) == str(item['layer_id']))
     # Deliberately conservative: generic roots, search pages and service roots
     # identify neither a distinct dataset nor a selected layer.
     return bool(re.search(r'/rest/services/.+/(?:FeatureServer|MapServer)/[0-9]+$', path)

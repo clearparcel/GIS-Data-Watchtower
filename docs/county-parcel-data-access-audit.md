@@ -736,7 +736,9 @@ categories reviewed; Ramsey's native REST category remains unresolved.
 
 Repository county acquisition and catalog refresh dates require a unique, exact
 catalog data reference to an evidence-backed approved dataset/item, selected layer
-or offered file. County/Hub/search landing links cannot join dataset dates. Unmatched
+or offered file. Sources with a selected layer require that same layer in the vetted
+REST URL or dataset layer suffix; shared regional maps/items and unqualified archives
+cannot supply county subdataset dates. County/Hub/search landing links cannot join dataset dates. Unmatched
 or ambiguous repository products retain null dates. Statewide county contribution
 dates retain their separate catalog association. Catalog checks, counts and health
 are never borrowed as dataset observations. Regression tests cover two products in
