@@ -99,9 +99,11 @@ This guidance prevents normal provisioning latency from being mistaken for a Wat
 
 Authoritative GIS-provider scheduling remains disabled. Only the sanitized public publisher scheduler is enabled, as verified below. See `current-status.md`.
 
-## Isolated county-profile preview release (2026-10-06)
+<a id="isolated-county-profile-preview-release-2026-10-06"></a>
 
-The approved preview release now serves committed product tree `b342b5d` on
+## Initial isolated county-profile preview release (2026-10-06)
+
+The initial approved preview release served committed product tree `b342b5d` on
 `gis-data-watchtower-public-v2-preview-00003-xzg` (100% traffic), built by Cloud
 Build `6a855dbe-f3f0-44d3-bfc3-f7d05b4b1bc3` from `git archive HEAD`.
 Its immutable image digest is
@@ -165,7 +167,7 @@ raw temporary-file deletion. Private temporary cleanup remains pending user
 assistance; release completion is not claimed until cleanup is verified.
 
 
-## Final review product fixes (pending preview release)
+## Final review product fixes and deployed preview
 
 Public sanitation now projects typed source, worker, count, catalog and MN GAC
 leaves and completeness metrics. Raw completeness errors and unknown nested
@@ -176,12 +178,49 @@ linked inventories now retain their stable inventory IDs and approved links on
 the row receiving that county's current observed count. Historical membership
 cannot supply a missing observation or count; other products remain separate.
 
-Offline composition produces 87 profiles and 348 category/product rows both
-without observations and with a synthetic 59-member statewide observation.
-For the unchanged aggregate used by old preview `00003-xzg`, removing its 50
-duplicate rows projects 350 rows (400 minus 50). This is an offline projection,
-not fresh live acceptance or a fixed row-count requirement. The deployed
-`b342b5d` preview still has the previously measured 400 rows until a new committed
-build, isolated redeploy and actual live validation. The product fixes pass 193
-ResourceWarning-strict unittest tests, compileall and diff checks. Independent
-fix review and required manual private temporary cleanup remain pending.
+Both product findings passed scoped independent rereview without new breakage.
+The final committed product `5686013` is now deployed as preview `00004-sv8`.
+Actual live validation derives 87 profiles, 350 category/product rows and 35 legacy
+sources; JSON/CSV/decoded XLSX agree, including all 87 individual county JSON
+profiles. All 59 represented statewide county products retain one stable identity,
+approved links and their own observed counts. Typed metrics retain 91 fields,
+2,710,201 statewide records, 42.92% all-field and 78.37% mandatory population.
+Coverage remains derived 70 = 59 statewide + 24 direct - 13 overlap.
+
+The 193-test ResourceWarning-strict suite passed (5.417s); compileall and diff
+checks passed. Final targeted browser checks passed 16 desktop overview cases
+and 48 mobile MN GAC cases across eight representative counties, with mobile
+keyboard focus, Escape/Space and internal scrolling. Final screenshot artifacts
+were separately captured, locally viewed and dimension-verified. A later browser
+follow-up batch and reconnect timed out, so final repeat refresh-retention and
+viewport-reset checks are not claimed; prior release/local acceptance is retained
+as historical evidence. Required manual local temporary cleanup remains open,
+as do operational-document review/push and actual new documentation-head CI.
+
+
+## Final committed preview release (2026-10-06)
+
+Cloud Build `4a4003e0-8dc4-436b-99fc-f59cf8653225` built only a fresh
+`git archive` of `5686013`. Preview `00004-sv8` serves 100% of traffic using
+`sha256:bbb526e8d82f6669e2194bbfc1268e6eb6e189ab18174dc0d6dc2276436ba8b1`.
+The existing dedicated preview bucket/object/identity and explicit public-dashboard
+command are retained; no IAM, production service, provider or scheduling changes.
+A fresh aggregate read stayed in process memory; only the committed sanitizer's
+validated public projection was written. Actual publication time is
+`2026-10-06T17:47:57.515129+00:00`; aggregate generation remains
+`2026-10-06T11:11:40.540673+00:00`. No raw disk copy, date filling or provider polling.
+Actual source/worker validation remains 35/35 OK, cloud=31/local=4 with two matching
+worker summaries and private provenance. Live observed export total is 350 rows,
+not a fixed constant. Aitkin's single official statewide product retains 43,024
+records separately from its 42,996 direct-source records; approved links stay on
+the stable inventory product. Final desktop/mobile screenshots were inspected.
+
+The exact owned Cloud Build source upload was removed with its verified generation
+precondition; follow-up returned not found. The original local Task8 temporary
+folder remains pending user deletion because automatic approval review blocked
+local cleanup. No new raw file was created for this release. The preview still
+requires manual fresh republication after 30 minutes; external healthz remains a
+Cloud Run frontend reserved-path limitation. Final browser follow-up availability
+is limited as described above. Production revisions remain 00006-82c/00011-t4l,
+production bucket IAM etag CAQ= and only existing publisher scheduler unchanged.
+Final operational-document review/push and new-head CI are controller gates.

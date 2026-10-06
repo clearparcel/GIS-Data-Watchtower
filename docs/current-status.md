@@ -148,9 +148,11 @@ current preview coverage; independent final review remains pending.
 Required validation: 186 unittest tests passed with ResourceWarning treated as an
 error; compileall and `git diff --check` passed. Live acceptance is recorded below.
 
-## Isolated county-profile preview release (2026-10-06)
+<a id="isolated-county-profile-preview-release-2026-10-06"></a>
 
-Preview revision `00003-xzg` serves committed `b342b5d` using an immutable image,
+## Initial isolated county-profile preview release (2026-10-06)
+
+Initial preview revision `00003-xzg` served committed `b342b5d` using an immutable image,
 dedicated private preview bucket and exact-object reader identity. Live validation
 passed 87 JSON/CSV/XLSX profiles, 400 category/product rows, 35 legacy sources,
 696 county panel activations, desktop/390px layouts and keyboard behavior.
@@ -162,10 +164,10 @@ External `/healthz` returns a Google frontend 404, consistent with reserved path
 external HTTP 200 health is not claimed. Production services/configuration are unchanged.
 Required validation: 186 tests, compileall and diff checks passed. Private temporary cleanup,
 final documentation push/CI and independent final review remain pending.
-See [resource isolation, validation and limitations](google-cloud-deployment.md#isolated-county-profile-preview-release-2026-10-06).
+See [resource isolation, validation and limitations](google-cloud-deployment.md#final-committed-preview-release-2026-10-06).
 
 
-## Final review product fixes (pending preview release)
+## Final review product fixes and deployed preview
 
 Public sanitation now projects typed source, worker, count, catalog and MN GAC
 leaves and completeness metrics. Raw completeness errors and unknown nested
@@ -176,12 +178,21 @@ linked inventories now retain their stable inventory IDs and approved links on
 the row receiving that county's current observed count. Historical membership
 cannot supply a missing observation or count; other products remain separate.
 
-Offline composition produces 87 profiles and 348 category/product rows both
-without observations and with a synthetic 59-member statewide observation.
-For the unchanged aggregate used by old preview `00003-xzg`, removing its 50
-duplicate rows projects 350 rows (400 minus 50). This is an offline projection,
-not fresh live acceptance or a fixed row-count requirement. The deployed
-`b342b5d` preview still has the previously measured 400 rows until a new committed
-build, isolated redeploy and actual live validation. The product fixes pass 193
-ResourceWarning-strict unittest tests, compileall and diff checks. Independent
-fix review and required manual private temporary cleanup remain pending.
+Both product findings passed scoped independent rereview without new breakage.
+The final committed product `5686013` is now deployed as preview `00004-sv8`.
+Actual live validation derives 87 profiles, 350 category/product rows and 35 legacy
+sources; JSON/CSV/decoded XLSX agree, including all 87 individual county JSON
+profiles. All 59 represented statewide county products retain one stable identity,
+approved links and their own observed counts. Typed metrics retain 91 fields,
+2,710,201 statewide records, 42.92% all-field and 78.37% mandatory population.
+Coverage remains derived 70 = 59 statewide + 24 direct - 13 overlap.
+
+The 193-test ResourceWarning-strict suite passed (5.417s); compileall and diff
+checks passed. Final targeted browser checks passed 16 desktop overview cases
+and 48 mobile MN GAC cases across eight representative counties, with mobile
+keyboard focus, Escape/Space and internal scrolling. Final screenshot artifacts
+were separately captured, locally viewed and dimension-verified. A later browser
+follow-up batch and reconnect timed out, so final repeat refresh-retention and
+viewport-reset checks are not claimed; prior release/local acceptance is retained
+as historical evidence. Required manual local temporary cleanup remains open,
+as do operational-document review/push and actual new documentation-head CI.
