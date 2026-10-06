@@ -283,6 +283,28 @@ def _hash_json(value) -> str:
     raw = json.dumps(value, sort_keys=True, separators=(",", ":")).encode("utf-8")
     return hashlib.sha256(raw).hexdigest()
 
+def _curl_response_metadata(output: bytes | str | None, headers_path: Path) -> tuple[int | None, str | None, str | None]:
+    """Read the final observed status before considering transfer/body failures."""
+    metadata = output.decode("utf-8", errors="replace") if isinstance(output, bytes) else (output or "")
+    statuses = re.findall(r"(?m)^__CP_HTTP__([0-9]{3})\r?$", metadata)
+    status = int(statuses[-1]) if statuses else None
+    if status is not None and not 100 <= status <= 599:
+        status = None
+    redirects = re.findall(r"(?m)^__CP_REDIRECT__([^\r\n]*)\r?$", metadata)
+    location = (redirects[-1].strip() if redirects else "") or None
+    retry_after = None
+    try:
+        if headers_path.is_file() and headers_path.stat().st_size <= 256 * 1024:
+            header_text = headers_path.read_text(encoding="iso-8859-1", errors="replace")
+            # Proxy/1xx header blocks can precede the provider's final response.
+            final_headers = re.split(r"(?m)^HTTP/[^\r\n]+\r?\n", header_text)[-1]
+            match = re.search(r"(?im)^Retry-After:[ \t]*([^\r\n]+)", final_headers)
+            retry_after = match.group(1).strip() if match else None
+    except OSError:
+        pass  # Missing optional headers must not discard an observed backoff signal.
+    return status, location, retry_after
+
+
 def _curl_request_once(
     url: str,
     timeout: int,
@@ -308,6 +330,7 @@ def _curl_request_once(
         headers_path = Path(td) / "headers.txt"
         command = [
             curl_exe,
+            "--disable",
             "--connect-timeout", str(min(timeout, 15)),
             "--max-time", str(timeout),
             "--max-filesize", str(limit),
@@ -323,12 +346,12 @@ def _curl_request_once(
             port = parsed.port or (443 if parsed.scheme == "https" else 80)
             ips = list(dict.fromkeys(info[4][0] for info in pinned))
             ips = [f"[{ip}]" if ":" in ip else ip for ip in ips]
-            binding = ["--disable", "--noproxy", "*"]
+            binding = ["--noproxy", "*"]
             try:
                 ipaddress.ip_address(parsed.hostname)
             except ValueError:
                 binding.extend(["--resolve", f"{parsed.hostname}:{port}:{','.join(ips)}"])
-            command[1:1] = binding
+            command[2:2] = binding
         if data is not None:
             command.extend(["-H", f"Content-Type: {content_type or 'application/octet-stream'}", "--data-binary", "@-"])
         command.append(url)
@@ -340,28 +363,22 @@ def _curl_request_once(
                 stderr=subprocess.PIPE,
                 timeout=deadline.remaining(),
             )
-        except subprocess.TimeoutExpired:
+        except subprocess.TimeoutExpired as exc:
+            status, _, retry_after = _curl_response_metadata(exc.output, headers_path)
+            if status == 429:
+                raise ProviderRateLimitError(retry_after) from None
             raise TimeoutError("provider request wall-clock deadline exceeded") from None
+        status, location, retry_after = _curl_response_metadata(cp.stdout, headers_path)
+        if status == 429:
+            raise ProviderRateLimitError(retry_after)
         deadline.remaining()
         if cp.returncode == 63:
             raise ProviderResponseTooLargeError(f"provider response exceeded {limit} bytes")
         if cp.returncode != 0:
             detail = _safe_diagnostic(cp.stderr.decode("utf-8", errors="replace"))
             raise RuntimeError(f"curl failed ({cp.returncode}: {detail})")
-        metadata = cp.stdout.decode("utf-8", errors="replace")
-        status_match = re.search(r"__CP_HTTP__(\d{3})", metadata)
-        redirect_match = re.search(r"__CP_REDIRECT__(.*?)(?:\r?\n|$)", metadata)
-        if not status_match:
+        if status is None:
             raise RuntimeError("curl returned no HTTP status marker")
-        status = int(status_match.group(1))
-        location = (redirect_match.group(1).strip() if redirect_match else "") or None
-        retry_after = None
-        if headers_path.is_file() and headers_path.stat().st_size <= 256 * 1024:
-            header_text = headers_path.read_text(encoding="iso-8859-1", errors="replace")
-            match = re.search(r"(?im)^Retry-After:\s*([^\r\n]+)", header_text)
-            retry_after = match.group(1).strip() if match else None
-        if status == 429:
-            raise ProviderRateLimitError(retry_after)
         if body_path.is_file() and body_path.stat().st_size > limit:
             raise ProviderResponseTooLargeError(f"provider response exceeded {limit} bytes")
         body = body_path.read_bytes() if body_path.is_file() else b""

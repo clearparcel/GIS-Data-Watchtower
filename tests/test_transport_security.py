@@ -351,3 +351,98 @@ class TransportSecurityTests(unittest.TestCase):
             with self.assertRaises(TimeoutError) as failure:
                 watch._curl_request_once('https://example.invalid/?token=PRIVATE', 1, transport='curl')
         self.assertNotIn('PRIVATE', str(failure.exception))
+
+class CurlReviewRegressionTests(unittest.TestCase):
+    def _run_result(self, status, exit_code, body=b'{}'):
+        from pathlib import Path
+        from types import SimpleNamespace
+        def run(command, **kwargs):
+            Path(command[command.index('-o') + 1]).write_bytes(body)
+            Path(command[command.index('-D') + 1]).write_text(f'HTTP/1.1 {status} result\nRetry-After: 60\n\n', encoding='utf-8')
+            return SimpleNamespace(returncode=exit_code, stdout=f'\n__CP_HTTP__{status}\n__CP_REDIRECT__\n'.encode(), stderr=b'transfer aborted')
+        return run
+
+    def test_initial_curl_commands_disable_configuration_without_disabling_proxy(self):
+        invokes = (lambda: watch._request('https://provider.example/', 1, prefer_curl=True),
+                   lambda: watch._request('https://provider.example/', 1),
+                   lambda: watch._post_json('https://provider.example/', {}, 1))
+        for invoke in invokes:
+            with self.subTest(invoke=invoke), patch.object(watch.shutil, 'which', return_value='curl'), patch.object(watch.subprocess, 'run', side_effect=self._run_result(200, 0)) as run, patch.object(watch, '_urllib_request_once', side_effect=urllib.error.URLError('network')):
+                invoke()
+                command = run.call_args.args[0]
+                self.assertEqual(command[1], '--disable')
+                self.assertNotIn('--noproxy', command)
+                self.assertNotIn('--location', command)
+                self.assertNotIn('--insecure', command)
+
+    def test_observed_429_overrides_nonzero_curl_transfer_exit(self):
+        invokes = (lambda: watch._request('https://provider.example/', 1, prefer_curl=True),
+                   lambda: watch._request('https://provider.example/', 1),
+                   lambda: watch._post_json('https://provider.example/', {}, 1))
+        for code in (63, 18, 28):
+            for invoke in invokes:
+                with self.subTest(code=code, invoke=invoke), patch.object(watch.shutil, 'which', return_value='curl'), patch.object(watch.subprocess, 'run', side_effect=self._run_result(429, code)), patch.object(watch, '_urllib_request_once', side_effect=urllib.error.URLError('network')):
+                    with self.assertRaises(watch.ProviderRateLimitError) as failure:
+                        invoke()
+                    self.assertEqual(failure.exception.retry_after, '60')
+
+    def test_429_body_failure_stops_optional_checks_and_source_retries(self):
+        from pathlib import Path
+        import json
+        layer = {'fields': [{'name': 'PARCEL_ID', 'type': 'esriFieldTypeString'}], 'geometryType': 'esriGeometryPolygon'}
+        def run(command, **kwargs):
+            if '/query' in command[-1]:
+                return self._run_result(429, 63)(command, **kwargs)
+            return self._run_result(200, 0, json.dumps(layer).encode())(command, **kwargs)
+        config = {'state_file': 'unused-state.json', 'history_file': 'unused-history.jsonl', 'retries': 3,
+                  'sources': [{'id': 'rate', 'name': 'Rate', 'kind': 'arcgis_layer', 'url': 'https://provider.example/0', 'prefer_curl': True, 'parcel_quality': True}]}
+        with patch.object(watch, 'load_state', return_value={'sources': {}}), patch.object(watch.shutil, 'which', return_value='curl'), patch.object(watch.subprocess, 'run', side_effect=run) as requests, patch.object(watch.time, 'sleep'), patch.object(watch, '_arcgis_duplicate_id_summary') as duplicates:
+            result = watch.check_sources(config, save=False)
+        self.assertEqual(requests.call_count, 2)
+        self.assertEqual(result['sources']['rate']['attempts'], 1)
+        duplicates.assert_not_called()
+
+    def test_partial_timeout_output_with_429_preserves_rate_limit(self):
+        import subprocess
+        from pathlib import Path
+        def run(command, **kwargs):
+            Path(command[command.index('-D') + 1]).write_text('HTTP/1.1 429 rate\nRetry-After: 60\n\n', encoding='utf-8')
+            raise subprocess.TimeoutExpired(command, 1, output=b'\n__CP_HTTP__429\n')
+        with patch.object(watch.shutil, 'which', return_value='curl'), patch.object(watch.subprocess, 'run', side_effect=run):
+            with self.assertRaises(watch.ProviderRateLimitError) as failure:
+                watch._curl_request_once('https://provider.example/', 1, transport='curl')
+            self.assertEqual(failure.exception.retry_after, '60')
+
+    def test_non429_transfer_errors_and_invalid_markers_keep_original_errors(self):
+        from types import SimpleNamespace
+        for code, output, error in ((63, b'__CP_HTTP__200\n', watch.ProviderResponseTooLargeError),
+                                     (18, b'__CP_HTTP__200\n', RuntimeError),
+                                     (0, b'', RuntimeError),
+                                     (0, b'__CP_HTTP__429junk\n', RuntimeError),
+                                     (0, b'__CP_HTTP__000\n', RuntimeError)):
+            with self.subTest(code=code, output=output), patch.object(watch.shutil, 'which', return_value='curl'), patch.object(watch.subprocess, 'run', return_value=SimpleNamespace(returncode=code, stdout=output, stderr=b'failed')):
+                with self.assertRaises(error) as failure:
+                    watch._curl_request_once('https://provider.example/', 1, transport='curl')
+                self.assertNotIsInstance(failure.exception, watch.ProviderRateLimitError)
+
+    def test_only_final_status_and_final_retry_after_are_used(self):
+        from pathlib import Path
+        from types import SimpleNamespace
+        def run(command, **kwargs):
+            Path(command[command.index('-D') + 1]).write_text('HTTP/1.1 200 proxy\r\nRetry-After: wrong\r\n\r\nHTTP/1.1 429 provider\r\nRetry-After: 60\r\n\r\n', encoding='utf-8')
+            return SimpleNamespace(returncode=18, stdout=b'__CP_HTTP__200\n__CP_HTTP__429\n', stderr=b'failed')
+        with patch.object(watch.shutil, 'which', return_value='curl'), patch.object(watch.subprocess, 'run', side_effect=run):
+            with self.assertRaises(watch.ProviderRateLimitError) as failure:
+                watch._curl_request_once('https://provider.example/', 1, transport='curl')
+        self.assertEqual(failure.exception.retry_after, '60')
+        with patch.object(watch.shutil, 'which', return_value='curl'), patch.object(watch.subprocess, 'run', return_value=SimpleNamespace(returncode=18, stdout=b'__CP_HTTP__429\n__CP_HTTP__200\n', stderr=b'failed')):
+            with self.assertRaises(RuntimeError) as failure:
+                watch._curl_request_once('https://provider.example/', 1, transport='curl')
+            self.assertNotIsInstance(failure.exception, watch.ProviderRateLimitError)
+
+    def test_observed_429_survives_unavailable_retry_after_file(self):
+        from pathlib import Path
+        with patch.object(watch.shutil, 'which', return_value='curl'), patch.object(watch.subprocess, 'run', side_effect=self._run_result(429, 63)), patch.object(Path, 'read_text', side_effect=OSError('header file unavailable')):
+            with self.assertRaises(watch.ProviderRateLimitError) as failure:
+                watch._curl_request_once('https://provider.example/', 1, transport='curl')
+        self.assertIsNone(failure.exception.retry_after)
