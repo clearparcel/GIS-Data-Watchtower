@@ -285,7 +285,7 @@ Final Task 8 release: product `5686013`, revision `00004-sv8`, immutable `bbb526
 
 ## Task 9 browser feedback (2026-10-06; reviewed and released)
 
-Source now uses the shared public header `Minnesota Open Data Watchtower`. Both maps, summary modes and individual fields share <20%, 20-40%, 40-60%, 60-80%, >80% fill/legend definitions: lower bounds inclusive, upper bounds exclusive except exactly 80 belongs to 60-80. True zero uses the first class; unavailable observations retain No data. Monitoring-path colors remain categorical.
+The previously validated Task 9 source used the shared public header `Minnesota Open Data Watchtower`. At that release, both maps, summary modes and individual fields shared <20%, 20-40%, 40-60%, 60-80%, >80% fill/legend definitions: lower bounds inclusive, upper bounds exclusive except exactly 80 belongs to 60-80. True zero uses the first class; unavailable observations retain No data. Monitoring-path colors remain categorical.
 
 Overview helpers distinguish all-type monitored dataset/service entries from unique counties with parcel observations. One statewide entry can cover many counties; overlapping paths count each county once. Derived counts, all 87 profiles, source identities, privacy, export contracts and provider holds are preserved.
 
@@ -306,3 +306,7 @@ Root verified the user's deletion of `C:/Users/sgert/AppData/Local/Temp/watchtow
 - [x] Complete scoped operational review and heading fix; no Critical/Important findings.
 
 Task 10 complete. Controller verifies actual final documentation-head CI separately; no future CI success is claimed.
+
+## Confirmed four-class percentage follow-up (2026-10-06)
+
+The user subsequently confirmed >70% as the final class. This supersedes the earlier five-class feedback for current source: <30%, 30% - 50%, 50% - 70%, >70%, with intervals p<30, 30<=p<50, 50<=p<=70, p>70. Both maps share the four colors and classifier for fills and legends across summary and field modes. Zero and No data remain separate; monitoring categories and metric/title wording remain unchanged. Earlier Task 9/10 validation and release facts above describe the previous release. See [the approved follow-up plan](../plans/2026-10-06-four-class-percentage-feedback.md); its preview release is pending.

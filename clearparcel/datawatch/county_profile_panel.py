@@ -7,12 +7,11 @@ from zoneinfo import ZoneInfo
 from .public_values import safe_public_url
 
 GROUPS = (("mngac_public_parcels", "MN GAC Public Parcels"), ("mngeo_public_repository", "MnGeo Public County Repository"), ("county_arcgis_rest", "County ArcGIS REST"), ("county_download", "County Website Download"))
-PERCENT_COLORS = ["#1b2b40", "#263d59", "#315373", "#3c708f", "#4c9b7b"]
+PERCENT_COLORS = ["#1b2b40", "#315373", "#3c708f", "#4c9b7b"]
 NO_DATA_COLOR = "#151d2b"
-# Fixed classes shared by both map fills and legends; exactly 80 stays in 60-80.
-PERCENT_BINS = (("<20%", 20, False), ("20-40%", 40, False),
-                ("40-60%", 60, False), ("60-80%", 80, True),
-                (">80%", None, False))
+# Fixed classes shared by both map fills and legends; exactly 70 stays in 50-70.
+PERCENT_BINS = (("<30%", 30, False), ("30% - 50%", 50, False),
+                ("50% - 70%", 70, True), (">70%", None, False))
 
 def profile_time(value: object) -> str:
     """Preserve calendar dates and convert only aware instants to Central."""

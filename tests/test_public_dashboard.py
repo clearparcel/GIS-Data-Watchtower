@@ -420,6 +420,8 @@ class PublicDashboardTests(unittest.TestCase):
         self.assertIn(percentage_legend(), mngac)
         self.assertIn("const fill=percentageColor", overview)
         self.assertIn("const color=percentageColor", mngac)
+        self.assertIn(":fill(d&&d.pct)", overview)
+        self.assertIn("const v=valueFor(p.dataset.county,key); p.style.fill=color(v)", mngac)
         for key in ("__overall__", "__mandatory__", "__fields_with_values__"):
             self.assertIn("if(key==='" + key + "')", mngac)
         self.assertIn("const f=(c.fields||{})[key]", mngac)

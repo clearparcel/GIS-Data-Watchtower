@@ -2,6 +2,8 @@
 
 Last validated: **2026-10-06**
 
+The confirmed follow-up source now uses four percentage classes on both maps, all summary modes and individual fields: <30%, 30% - 50%, 50% - 70%, >70%. Intervals are p<30, 30<=p<50, 50<=p<=70, p>70; legend and county fills share #1b2b40, #315373, #3c708f, #4c9b7b. Observed zero remains the first class; unknown/nonfinite values remain No data. Monitoring-path colors, the public title and metric wording are unchanged. This code-only follow-up is pending preview deployment and rendered acceptance; the last validated preview remains `00005-c24` serving `dfacd72`.
+
 The offline county-profile composer derives all 87 county profiles and parcel coverage counts from current observations and evidence inventory. Explicit source identity joins preserve source-specific facts; catalog discovery and imagery cannot activate parcel monitoring. Unavailable statewide observations remain unknown, and pending category reviews remain incomplete.
 
 
@@ -203,7 +205,7 @@ local temporary cleanup was verified complete on 2026-10-06; the controller chec
 
 ## Task 9 browser feedback (2026-10-06; reviewed and released)
 
-Source now uses the shared public header `Minnesota Open Data Watchtower`. Both maps, summary modes and individual fields share <20%, 20-40%, 40-60%, 60-80%, >80% fill/legend definitions: lower bounds inclusive, upper bounds exclusive except exactly 80 belongs to 60-80. True zero uses the first class; unavailable observations retain No data. Monitoring-path colors remain categorical.
+The previously validated Task 9 source used the shared public header `Minnesota Open Data Watchtower`. At that release, both maps, summary modes and individual fields shared <20%, 20-40%, 40-60%, 60-80%, >80% fill/legend definitions: lower bounds inclusive, upper bounds exclusive except exactly 80 belongs to 60-80. True zero uses the first class; unavailable observations retain No data. Monitoring-path colors remain categorical.
 
 Overview helpers distinguish all-type monitored dataset/service entries from unique counties with parcel observations. One statewide entry can cover many counties; overlapping paths count each county once. Derived counts, all 87 profiles, source identities, privacy, export contracts and provider holds are preserved.
 

@@ -284,3 +284,7 @@ Tasks 1–6 have implemented and reviewed the schema, expanded evidence inventor
 composition, safe metadata, shared panel and exports. Task 7 passed local acceptance and review;
 Task 8 final preview revision `00004-sv8` (product `5686013`) passed live validation and scoped final review. The user deleted the original temporary folder; root verified its absence on 2026-10-06. Task 9 applies later direct browser feedback; independent review and a separate preview release remain pending.
 Implementation and research do not grant new provider authorization.
+
+## Confirmed four-class percentage follow-up (2026-10-06)
+
+The user subsequently confirmed >70% as the final class. This supersedes the earlier five-class feedback for current source: <30%, 30% - 50%, 50% - 70%, >70%, with intervals p<30, 30<=p<50, 50<=p<=70, p>70. Both maps share the four colors and classifier for fills and legends across summary and field modes. Zero and No data remain separate; monitoring categories and metric/title wording remain unchanged. Earlier Task 9/10 validation and release facts above describe the previous release. See [the approved follow-up plan](../plans/2026-10-06-four-class-percentage-feedback.md); its preview release is pending.
