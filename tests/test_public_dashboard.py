@@ -14,6 +14,15 @@ from clearparcel.datawatch.public_dashboard import (
 
 
 class PublicDashboardTests(unittest.TestCase):
+    def test_public_source_distinguishes_zero_counts_from_unknown(self):
+        from unittest.mock import patch
+        for value, expected in ((0, '0'), (None, '—')):
+            with self.subTest(value=value), patch('clearparcel.datawatch.public_dashboard._dashboard_state',
+                    return_value={'sources': {'x': {'name': 'X', 'feature_count': value, 'field_count': value}}}):
+                page = render_public_source({}, 'x')
+                self.assertIn('Records</div><div class="metric">' + expected + '</div>', page)
+                self.assertIn('Information fields</dt><dd>' + expected + '</dd>', page)
+
     def test_overview_labels_publication_reporting_separately_from_source_health(self):
         from unittest.mock import patch
         state = sanitize_public_render_state(self._state())

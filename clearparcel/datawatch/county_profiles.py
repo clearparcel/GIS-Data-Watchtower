@@ -48,7 +48,7 @@ def _health(source, state, now, policy):
     checked = _timestamp(source.get('checked_at'))
     success = _timestamp(source.get('last_success_at'))
     health = source.get('status') if checked and source.get('status') in {'ok', 'warn', 'error'} else 'unknown'
-    observed = success or checked
+    observed = _timestamp(source.get('last_report_at')) or checked or success
     reporting = 'unknown' if observed is None else 'overdue' if now - observed > dt.timedelta(minutes=policy.source_stale_minutes) else 'current'
     worker = (state.get('workers') or {}).get(source.get('worker'))
     if isinstance(worker, dict):

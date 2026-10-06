@@ -388,9 +388,13 @@ class CountyProfilesTests(unittest.TestCase):
         self.assertFalse(p['lake']['monitoring']['active'])
         source = next(s for s in p['anoka']['county_arcgis_rest']['sources'] if s['monitored_source_id'] == 'parcel')
         self.assertEqual(source['health'], 'error')
-        self.assertEqual(source['reporting'], 'overdue')
+        self.assertEqual(source['reporting'], 'current')
         self.assertEqual(source['feature_count'], 42)
         self.assertEqual(source['last_success_at'], '2026-10-01T00:00:00+00:00')
+        state['sources']['parcel'].update(checked_at='2026-10-01T00:00:00+00:00', last_report_at=STAMP)
+        self.assertEqual(compose(state)['anoka']['monitoring']['reporting'], 'current')
+        state['sources']['parcel']['last_report_at'] = '2026-10-01T00:00:00+00:00'
+        self.assertEqual(compose(state)['anoka']['monitoring']['reporting'], 'overdue')
         self.assertEqual(p['becker']['monitoring']['health'], 'unknown')
         self.assertEqual(p['becker']['monitoring']['reporting'], 'unknown')
 

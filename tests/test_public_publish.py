@@ -1,6 +1,9 @@
 import json
 import tempfile
 import unittest
+from unittest.mock import patch
+from concurrent.futures import ThreadPoolExecutor
+import threading
 from pathlib import Path
 
 from clearparcel.datawatch.public_publish import (
@@ -61,6 +64,7 @@ class PublicPublishTests(unittest.TestCase):
                 workdir=workdir,
             )
 
+            self.assertEqual(list(workdir.iterdir()), [])
             self.assertTrue(result["published"])
             self.assertTrue(result["public_published_at"])
             self.assertEqual(result["source_count"], 1)
@@ -76,6 +80,43 @@ class PublicPublishTests(unittest.TestCase):
             self.assertNotIn("observation_fingerprint", source)
             self.assertNotIn("tracked_values", source)
             self.assertNotIn("telemetry", public["workers"]["cloud"])
+
+    def test_publisher_cleans_scratch_on_validation_or_upload_failure(self):
+        for failure in ('validation', 'upload'):
+            with self.subTest(failure=failure), tempfile.TemporaryDirectory() as td:
+                root = Path(td)
+                source_root = root / 'source'
+                source = LocalStorage(source_root)
+                source_root.mkdir()
+                (source_root / 'aggregate-state.json').write_text('{}', encoding='utf-8')
+                destination = LocalStorage(root / 'destination')
+                workdir = root / 'work'
+                target = ('clearparcel.datawatch.public_publish.validate_public_state' if failure == 'validation'
+                          else 'clearparcel.datawatch.storage.LocalStorage.upload')
+                with patch(target, side_effect=RuntimeError('injected failure')):
+                    with self.assertRaisesRegex(RuntimeError, 'injected failure'):
+                        publish_public_snapshot(source, destination, workdir=workdir)
+                self.assertEqual(list(workdir.iterdir()), [])
+
+    def test_concurrent_publications_have_isolated_scratch(self):
+        barrier = threading.Barrier(2)
+        class Source:
+            def __init__(self, name):
+                self.name = name
+            def download(self, name, path):
+                path.write_text(json.dumps({'sources': {self.name: {'name': self.name}}}), encoding='utf-8')
+                barrier.wait(timeout=10)
+                return True
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            def run(name):
+                return publish_public_snapshot(Source(name), LocalStorage(root / name), workdir=root / 'work')
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                list(pool.map(run, ('first', 'second')))
+            for name in ('first', 'second'):
+                public = json.loads((root / name / 'aggregate-state.json').read_text(encoding='utf-8'))
+                self.assertEqual(set(public['sources']), {name})
+            self.assertEqual(list((root / 'work').iterdir()), [])
 
     def test_validate_public_state_fails_closed_on_forbidden_nested_key(self):
         with self.assertRaisesRegex(RuntimeError, "forbidden fields"):

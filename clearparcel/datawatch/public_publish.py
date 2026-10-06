@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime as dt
 import json
 import os
+import tempfile
 from pathlib import Path
 
 from clearparcel.datawatch.public_dashboard import sanitize_public_render_state, sanitize_source_metadata
@@ -65,35 +66,40 @@ def publish_public_snapshot(
     """Read the unified aggregate, sanitize it, and publish only the public representation."""
     root = Path(workdir)
     root.mkdir(parents=True, exist_ok=True)
-    raw_path = root / "aggregate-source.json"
-    public_path = root / "aggregate-public.json"
+    with tempfile.TemporaryDirectory(prefix="watchtower-public-", dir=root) as scratch:
+        scratch_root = Path(scratch)
+        raw_path = scratch_root / "aggregate-source.json"
+        public_path = scratch_root / "aggregate-public.json"
 
-    if not source.download(source_object, raw_path):
-        raise FileNotFoundError(f"source aggregate not found: {source_object}")
+        if not source.download(source_object, raw_path):
+            raise FileNotFoundError(f"source aggregate not found: {source_object}")
 
-    raw = json.loads(raw_path.read_text(encoding="utf-8"))
-    public = sanitize_public_render_state(raw)
-    public["public_published_at"] = dt.datetime.now(dt.timezone.utc).isoformat()
-    validate_public_state(public)
+        raw = json.loads(raw_path.read_text(encoding="utf-8"))
+        public = sanitize_public_render_state(raw)
+        public["public_published_at"] = dt.datetime.now(dt.timezone.utc).isoformat()
+        validate_public_state(public)
 
-    temp = public_path.with_suffix(".tmp")
-    temp.write_text(json.dumps(public, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    temp.replace(public_path)
-    destination.upload(destination_object, public_path)
+        temp = public_path.with_suffix(".tmp")
+        temp.write_text(json.dumps(public, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        temp.replace(public_path)
+        destination.upload(destination_object, public_path)
 
-    return {
-        "published": True,
-        "public_published_at": public.get("public_published_at"),
-        "generated_at": public.get("generated_at"),
-        "overall": public.get("overall"),
-        "source_count": len(public.get("sources") or {}),
-        "worker_count": len(public.get("workers") or {}),
-        "destination_object": destination_object,
-    }
+        return {
+            "published": True,
+            "public_published_at": public.get("public_published_at"),
+            "generated_at": public.get("generated_at"),
+            "overall": public.get("overall"),
+            "source_count": len(public.get("sources") or {}),
+            "worker_count": len(public.get("workers") or {}),
+            "destination_object": destination_object,
+        }
 
 
 def publish_public_snapshot_from_env() -> dict:
-    """Publish the public snapshot using separate source/destination GCS identities."""
+    """Publish with two GCS clients sharing this process's application default credentials.
+
+    Distinct service identities are a deployment configuration responsibility.
+    """
     source = GCSStorage(
         _required_env("WATCHTOWER_PUBLIC_SOURCE_BUCKET"),
         os.environ.get("WATCHTOWER_PUBLIC_SOURCE_PREFIX", "").strip("/"),

@@ -306,6 +306,19 @@ class HybridReadinessTests(unittest.TestCase):
         self.assertFalse(result["workers"]["local"]["stale"])
         self.assertFalse(result["sources"]["a"]["stale"])
 
+    def test_recent_failed_report_preserves_old_success_and_current_reporting(self):
+        now = dt.datetime(2026, 10, 6, 20, 0, tzinfo=dt.timezone.utc)
+        old = "2026-10-01T00:00:00+00:00"
+        recent = "2026-10-06T19:30:00+00:00"
+        state = {"workers": {"local": {"last_success_at": old, "last_report_at": recent}},
+                 "sources": {"a": {"status": "error", "worker": "local", "last_success_at": old,
+                                    "last_report_at": recent, "checked_at": old}}}
+        result = with_freshness(state, now=now)
+        self.assertFalse(result["workers"]["local"]["stale"])
+        self.assertEqual(result["sources"]["a"]["reporting"], "current")
+        self.assertEqual(result["sources"]["a"]["health"], "unhealthy")
+        self.assertEqual(result["sources"]["a"]["last_success_at"], old)
+
     def test_freshness_is_separate_from_source_health(self):
         now = dt.datetime(2026, 10, 4, 20, 0, tzinfo=dt.timezone.utc)
         state = {"workers": {"local": {"last_success_at": "2026-10-04T10:00:00+00:00"}},
