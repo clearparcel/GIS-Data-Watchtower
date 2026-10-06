@@ -117,10 +117,10 @@ assessment remains unresolved. The county-direct classification audit is separat
 this inventory completion measure; creating all four category keys does not finish research.
 
 The official [Plan Parcels Open item metadata](https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson)
-explicitly lists 59 opted-in counties and supports the nine memberships within this batch.
+explicitly lists 59 opted-in counties and supports the nine memberships within the original 35-county batch.
 Current aggregate observations take precedence over this dated membership in composition.
 The state service directory, organization-wide and account-scoped searches did not establish a distinct county
-dataset for this batch, but do not prove repository-wide absence. These findings remain
+dataset for the original 35-county batch, but do not prove repository-wide absence. Those original-batch findings remain
 **unknown**, rather than negative. Generic county catalog links and statewide parcels were
 not counted as distinct repository evidence.
 
@@ -148,6 +148,15 @@ records are unchanged by this batch. Evidence comes from actual official county 
 rendered county-linked Hub catalog/About pages, item metadata, bounded REST metadata and
 file HEAD checks. All new source monitoring decisions are **not-assessed**. Published
 products and public links do not activate monitoring.
+
+Archive verification must use HEAD only. Do not click or open parcel archive/download
+links with web or browser tools; inspect the official landing-page advertisement and use
+bounded HEAD metadata instead. During this batch, an unintended web-tool click on Benton's
+Parcels ZIP link attempted archive retrieval and violated that constraint. The tool returned
+an unsupported-content-type error; no archive body or file was delivered or retained.
+Whether the tool fetched bytes internally before rejecting the content type is unknown.
+Subsequent archive checks used HEAD only. This records the failed attempt and containment,
+without asserting that no request occurred.
 
 | County | Dated statewide membership | Distinct repository | County REST | County download | County-direct classification |
 | --- | --- | --- | --- | --- | --- |
