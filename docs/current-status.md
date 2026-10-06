@@ -244,9 +244,11 @@ viewport reset was verified and the deliverable tab retained.
 196 strict ResourceWarning-error unittests passed in 5.629s; compileall and diff
 checks passed. Owned Cloud Build source upload was removed with exact generation
 precondition `1791311349964872`; follow-up returned 404. Scoped local public-only
-archive/build/sanitized/log cleanup was rejected by automatic approval review
-with reason "blocked by policy". No bypass or retry occurred; folder
-`.cce-agent/task10-feedback-preview-dfacd72` remains pending user cleanup.
+archive/build/sanitized/log cleanup was initially rejected by automatic approval
+review with reason "blocked by policy"; no bypass or retry occurred. Later root
+and implementer read-only `Test-Path` checks returned False for exact folder
+`.cce-agent/task10-feedback-preview-dfacd72`. The user confirmed manual deletion, and
+absence is verified on 2026-10-06. Task 10 release and cleanup are complete.
 The original Task 8 folder was previously verified absent. Production stays public `00006-82c`/private
 `00011-t4l`, bucket IAM etag `CAQ=`, sole existing publisher scheduler unchanged.
 No production, provider scheduling, IAM expansion, main, merge or Astra action.

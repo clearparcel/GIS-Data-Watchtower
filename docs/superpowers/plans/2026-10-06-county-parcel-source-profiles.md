@@ -289,10 +289,20 @@ Source now uses the shared public header `Minnesota Open Data Watchtower`. Both 
 
 Overview helpers distinguish all-type monitored dataset/service entries from unique counties with parcel observations. One statewide entry can cover many counties; overlapping paths count each county once. Derived counts, all 87 profiles, source identities, privacy, export contracts and provider holds are preserved.
 
-Root verified the user's deletion of `C:/Users/sgert/AppData/Local/Temp/watchtower-task8-b342b5d` with Test-Path returning False. The cloud temporary build object was already verified deleted. Historical automatic-review denials and the Benton archive incident remain recorded; old Chrome cleanup remains unverified, while root IAB viewport reset was verified. The active parent workflow continues this feedback task. Task 9 review passed after its documentation fix. Task 10 separately released committed `dfacd72` to existing preview `00005-c24`; no provider action occurred. See docs/google-cloud-deployment.md feedback preview release record; Task 10 local public-only build cleanup awaits manual deletion after automatic approval review denial.
+Root verified the user's deletion of `C:/Users/sgert/AppData/Local/Temp/watchtower-task8-b342b5d` with Test-Path returning False. The cloud temporary build object was already verified deleted. Historical automatic-review denials and the Benton archive incident remain recorded; old Chrome cleanup remains unverified, while root IAB viewport reset was verified. The active parent workflow continues this feedback task. Task 9 review passed after its documentation fix. Task 10 separately released committed `dfacd72` to existing preview `00005-c24`; no provider action occurred. See docs/google-cloud-deployment.md feedback preview release record; Task 10 local public-only build folder absence was subsequently verified by root and implementer read-only checks; the historical automatic approval review denial remains recorded.
 
 - [x] Apply approved title, shared percentage classes and entry/county metric explanations.
 - [x] Reconcile verified Task 8 local/cloud cleanup while preserving historical denials.
 - [x] Run focused regressions and required validation: 196 tests, compileall, diff check passed.
 - [x] Complete independent Task 9 review after documentation fix.
 - [x] Build committed content and release separately to the existing preview: Task 10 `dfacd72` / `00005-c24`, with internal export and root desktop/mobile acceptance.
+
+
+## Task 10 feedback preview completion
+
+- [x] Release committed `dfacd72` to existing preview `00005-c24`; internal exports and root desktop/mobile acceptance passed.
+- [x] Verify owned Cloud Build source generation-bound removal and follow-up 404.
+- [x] Verify exact local Task 10 folder absence with read-only Test-Path False on 2026-10-06; Task 8 folder also absent. User confirmed manual deletion. Historical automatic approval review denial retained; no retry/bypass.
+- [x] Complete scoped operational review and heading fix; no Critical/Important findings.
+
+Task 10 complete. Controller verifies actual final documentation-head CI separately; no future CI success is claimed.
