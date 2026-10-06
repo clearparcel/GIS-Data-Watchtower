@@ -271,10 +271,16 @@ restored focus to Aitkin. Normal viewport reset was verified at 1047/1047.
 
 Owned Cloud Build source upload was removed with exact generation-match
 `1791312835856766`; follow-up returned 404. The intended image and preview
-resources remain. Root will consolidate local public-only plan-workspace
-cleanup after review/CI; this operational child did not attempt local deletion.
+resources remain. Automatic approval review rejected root's native scoped
+local workspace deletion with "blocked by policy"; the command did not run and
+no bypass occurred. The user manually deleted the one public-only build/review
+workspace; root verified its absence on 2026-10-06. Review records and screenshots
+were preserved outside that temporary workspace.
 Production remains public `00006-82c`/private `00011-t4l`, production bucket IAM
 etag `CAQ=`, and the existing publisher scheduler configuration unchanged.
 No production, main, merge, provider, scheduling, IAM expansion or Astra action.
 Task 1's 196 strict tests and compileall passed; this documentation-only release
-record did not repeat them. Final documentation-head review/CI remain pending.
+record did not repeat them. The capability-authorized bounded final review
+passed with no substantiated findings. Reviewed head `7490135` passed CI runs
+`37517186843` and `37517178118`; the controller checks the final PR head after
+this cleanup-record update. No legacy CCE workflow is claimed by selector alone.

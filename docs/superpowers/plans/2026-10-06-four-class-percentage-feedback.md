@@ -13,4 +13,4 @@ Required validation: python -W error::ResourceWarning -m unittest discover -s te
 
 Cleanup: temporary Git archives/build files remain public-only. Prefer one scoped temporary workspace for build/review artifacts; native PowerShell exact-resolved scope verification before cleanup. Automatic cleanup denials in prior tasks must not be bypassed or retried through alternate tools. Record any denial accurately and ask manual cleanup only after concrete release/validation work is complete.
 
-Task 2 release and root rendered acceptance passed at preview 00007-zfh from committed 5aac504. Existing sanitized data/dates were preserved. Root final review, documentation-head CI and consolidated local workspace cleanup remain pending; see the four-class release record in STATUS.md.
+Task 2 release and root rendered acceptance passed at preview 00007-zfh from committed 5aac504. Existing sanitized data/dates were preserved. Capability-authorized final review passed, reviewed head7490135 CI passed, and user manual workspace deletion was verified absent. The controller checks the eventual final PR head after the cleanup-record update; see STATUS.md.
