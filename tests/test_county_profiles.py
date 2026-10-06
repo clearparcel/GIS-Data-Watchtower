@@ -28,6 +28,30 @@ def compose(state=None, research=None):
 
 
 class CountyProfilesTests(unittest.TestCase):
+    def test_final_inventory_batch_preserves_policy_and_exact_observation_identity(self):
+        research = load_parcel_access()
+        empty = compose(research=research)
+        self.assertEqual(empty['swift']['access']['public_classification'], 'FEE BASED')
+        self.assertEqual(empty['wilkin']['access']['public_classification'], 'OPEN')
+        for slug in ('swift', 'wilkin'):
+            self.assertEqual(empty[slug]['access']['monitoring_decision'], 'hold-for-terms')
+            self.assertFalse(empty[slug]['monitoring']['active'])
+        self.assertFalse(empty['swift']['research']['complete'])
+        self.assertFalse(empty['traverse']['research']['complete'])
+        self.assertTrue(empty['washington']['research']['complete'])
+        ids = {'wabasha': 'mn-wabasha-parcels', 'waseca': 'mn-waseca-parcels-direct', 'swift': 'mn-swift-parcels-direct'}
+        state = {'sources': {source_id: {'id': source_id, 'county_slug': slug, 'category': 'Parcels',
+            'adapter': 'arcgis_layer', 'status': 'ok', 'checked_at': STAMP, 'feature_count': 17}
+            for slug, source_id in ids.items()}}
+        profiles = compose(state, research)
+        for slug, source_id in ids.items():
+            self.assertEqual(profiles[slug]['county_arcgis_rest']['sources'][0]['monitored_source_id'], source_id)
+            self.assertEqual(profiles[slug]['county_arcgis_rest']['sources'][0]['feature_count'], 17)
+            self.assertEqual(profiles[slug]['monitoring']['active_parcel_source_count'], 1)
+        for category in ('mngeo_public_repository', 'county_download'):
+            self.assertEqual(profiles['wabasha'][category]['sources'][0]['feature_count'], 17)
+        self.assertIsNone(profiles['washington']['county_arcgis_rest']['sources'][0]['feature_count'])
+
     def test_st_louis_native_product_identity_and_inventory_completion(self):
         research = load_parcel_access()
         profiles = compose(research=research)

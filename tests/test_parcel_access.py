@@ -27,6 +27,26 @@ def research_fixture():
 
 
 class ParcelAccessSchemaTests(unittest.TestCase):
+    def test_swift_yellow_medicine_fee_exemption_holds_and_products(self):
+        records = load_parcel_access()
+        names = ('Swift', 'Traverse', 'Wabasha', 'Waseca', 'Washington', 'Wilkin', 'Wright', 'Yellow Medicine')
+        for name in names:
+            record = records[name]
+            self.assertEqual(record['review_date'], '2026-10-06')
+            self.assertTrue(all(c['review_status'] != 'pending' for c in record['source_inventory'].values()))
+        self.assertEqual(records['Swift']['county_direct_classification'], 'fee-based-parcel-data')
+        self.assertIn('450', records['Swift']['parcel_dataset_fee'])
+        self.assertEqual(records['Wilkin']['county_direct_classification'], 'free-parcel-data')
+        self.assertIsNone(records['Wilkin']['parcel_dataset_fee'])
+        self.assertIn('self-service', records['Wilkin']['comments'])
+        for name in ('Swift', 'Wilkin'):
+            self.assertEqual(records[name]['monitoring']['decision'], 'hold-for-terms')
+        for name in names[1:]:
+            self.assertEqual(records[name]['source_inventory']['county_download']['availability'], 'yes')
+        for name in ('Wabasha', 'Waseca', 'Washington', 'Wright'):
+            self.assertEqual(records[name]['source_inventory']['mngeo_public_repository']['availability'], 'yes')
+        self.assertEqual(records['Washington']['source_inventory']['county_arcgis_rest']['sources'][0]['layer_id'], 6)
+
     def test_sherburne_stevens_batch_records_official_products_and_blockers(self):
         records = load_parcel_access()
         for name in ('Sherburne', 'St. Louis', 'Stearns', 'Steele', 'Stevens'):
@@ -61,7 +81,7 @@ class ParcelAccessSchemaTests(unittest.TestCase):
         held = {name for name, record in records.items()
                 if record['monitoring']['decision'] == 'hold-for-terms'}
         self.assertEqual(held, {'Blue Earth', 'Brown', 'Faribault', 'Kandiyohi', 'Lincoln',
-                               'Lake', 'Lyon', 'McLeod', 'Stevens'})
+                               'Lake', 'Lyon', 'McLeod', 'Stevens', 'Swift', 'Wilkin'})
 
     def test_inventory_reviews_have_evidence_and_honest_blockers(self):
         from clearparcel.datawatch.parcel_access import INVENTORY_CATEGORIES

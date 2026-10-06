@@ -17987,115 +17987,220 @@
     },
     {
       "county": "Swift",
-      "review_date": null,
-      "research_complete": false,
+      "review_date": "2026-10-06",
+      "research_complete": true,
       "official_county_url": "https://swiftcounty.gov",
-      "parcel_page_url": null,
-      "download_or_service_url": null,
+      "parcel_page_url": "https://swiftcounty.gov/gis",
+      "download_or_service_url": "https://services3.arcgis.com/D3VRNSq5Pf3sYZAp/arcgis/rest/services/Swift_Parcels/FeatureServer/0",
       "viewer_url": null,
-      "fee_policy_url": null,
-      "parcel_dataset_fee": null,
-      "fee_product": null,
-      "evidence_note": "County-direct parcel access has not yet been reviewed.",
-      "source_authority": "unverified",
+      "fee_policy_url": "https://swiftcounty.gov/uploads/dm/48672/2026_Licenses_Fees_and_Service_Charges",
+      "parcel_dataset_fee": "$0.03 per parcel without tax information; $0.04 with tax information; $450 full parcel layer with tax information; government agencies exempt.",
+      "fee_product": "GIS Parcel Data",
+      "evidence_note": "Current county GIS/Interactive Maps pages describe parcel mapping and free viewing. The 2026 GIS Parcel Data schedule explicitly prices the dataset separately: $0.03 per parcel without tax information, $0.04 with tax information, $450 full parcel layer with tax information; government agencies exempt. Public Swift_Parcels item belongs to the named county GIS coordinator and exact polygon layer metadata is reachable (esriGeometryPolygon); this does not establish free delivery or unattended permission. No advertised downloadable parcel product verified. Fee/public-service scope requires clarification, without asserting a metadata monitoring ban.",
+      "source_authority": "county-authorized-provider",
       "usable_direct_machine_readable_source": false,
       "monitoring": {
-        "decision": "not-assessed",
-        "reason": "Discovery does not authorize monitoring.",
-        "terms_urls": []
+        "decision": "hold-for-terms",
+        "reason": "Clarify actual parcel dataset fee/public-service permission scope; no explicit metadata ban established.",
+        "terms_urls": [
+          "https://swiftcounty.gov/uploads/dm/48672/2026_Licenses_Fees_and_Service_Charges"
+        ]
       },
-      "evidence": [],
+      "evidence": [
+        {
+          "url": "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson",
+          "authority": "statewide",
+          "finding": "Swift is excluded from dated official opt-in statewide publication; current runtime membership remains independent."
+        },
+        {
+          "url": "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
+          "authority": "statewide",
+          "finding": "Official county parcel distribution table reviewed; linked county products are distinct from statewide inclusion."
+        },
+        {
+          "url": "https://swiftcounty.gov/gis",
+          "authority": "county",
+          "finding": "Current county GIS/Interactive Maps pages describe parcel mapping and free viewing. The 2026 GIS Parcel Data schedule explicitly prices the dataset separately: $0.03 per parcel without tax information, $0.04 with tax information, $450 full parcel layer with tax information; government agencies exempt. Public Swift_Parcels item belongs to the named county GIS coordinator and exact polygon layer metadata is reachable (esriGeometryPolygon); this does not establish free delivery or unattended permission. No advertised downloadable parcel product verified. Fee/public-service scope requires clarification, without asserting a metadata monitoring ban."
+        },
+        {
+          "url": "https://services3.arcgis.com/D3VRNSq5Pf3sYZAp/arcgis/rest/services/Swift_Parcels/FeatureServer/0?f=pjson",
+          "authority": "county-authorized-provider",
+          "finding": "Current county GIS/Interactive Maps pages describe parcel mapping and free viewing. The 2026 GIS Parcel Data schedule explicitly prices the dataset separately: $0.03 per parcel without tax information, $0.04 with tax information, $450 full parcel layer with tax information; government agencies exempt. Public Swift_Parcels item belongs to the named county GIS coordinator and exact polygon layer metadata is reachable (esriGeometryPolygon); this does not establish free delivery or unattended permission. No advertised downloadable parcel product verified. Fee/public-service scope requires clarification, without asserting a metadata monitoring ban."
+        },
+        {
+          "url": "https://www.arcgis.com/sharing/rest/content/items/d2cbcd51e955466a85c0307d714c65e3?f=pjson",
+          "authority": "county-authorized-provider",
+          "finding": "Current county GIS/Interactive Maps pages describe parcel mapping and free viewing. The 2026 GIS Parcel Data schedule explicitly prices the dataset separately: $0.03 per parcel without tax information, $0.04 with tax information, $450 full parcel layer with tax information; government agencies exempt. Public Swift_Parcels item belongs to the named county GIS coordinator and exact polygon layer metadata is reachable (esriGeometryPolygon); this does not establish free delivery or unattended permission. No advertised downloadable parcel product verified. Fee/public-service scope requires clarification, without asserting a metadata monitoring ban."
+        },
+        {
+          "url": "https://swiftcounty.gov/uploads/dm/48672/2026_Licenses_Fees_and_Service_Charges",
+          "authority": "county",
+          "finding": "Current county GIS/Interactive Maps pages describe parcel mapping and free viewing. The 2026 GIS Parcel Data schedule explicitly prices the dataset separately: $0.03 per parcel without tax information, $0.04 with tax information, $450 full parcel layer with tax information; government agencies exempt. Public Swift_Parcels item belongs to the named county GIS coordinator and exact polygon layer metadata is reachable (esriGeometryPolygon); this does not establish free delivery or unattended permission. No advertised downloadable parcel product verified. Fee/public-service scope requires clarification, without asserting a metadata monitoring ban."
+        },
+        {
+          "url": "https://swiftcounty.gov/?SEC=EBFFF20B-8538-4698-B2F8-5B310B8644E7",
+          "authority": "county",
+          "finding": "County authorizes free interactive parcel viewing; downloadable delivery not verified."
+        },
+        {
+          "url": "https://gis.data.mn.gov/search?q=Swift%20parcels",
+          "authority": "statewide",
+          "finding": "Rendered scoped Commons catalog reviewed: no results returned; no distinct county parcel repository product established. Bounded search does not prove absence."
+        }
+      ],
       "review_log": {
         "county_site": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed official distribution/product evidence and published item disclaimer within bounded scope. Independent category blockers remain explicit; no absence or polling permission inferred.",
+          "urls": [
+            "https://swiftcounty.gov/gis",
+            "https://www.arcgis.com/sharing/rest/content/items/d2cbcd51e955466a85c0307d714c65e3?f=pjson"
+          ]
         },
         "gis_assessor_land_records": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed official distribution/product evidence and published item disclaimer within bounded scope. Independent category blockers remain explicit; no absence or polling permission inferred.",
+          "urls": [
+            "https://swiftcounty.gov/gis",
+            "https://www.arcgis.com/sharing/rest/content/items/d2cbcd51e955466a85c0307d714c65e3?f=pjson"
+          ]
         },
         "downloads_open_data": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Official parcel-specific GIS/viewing and actual dataset fee routes reviewed; no downloadable product permission established. Inventory download remains blocked/unknown.",
+          "urls": [
+            "https://swiftcounty.gov/gis",
+            "https://swiftcounty.gov/uploads/dm/48672/2026_Licenses_Fees_and_Service_Charges"
+          ]
         },
         "arcgis_services": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed official distribution/product evidence and published item disclaimer within bounded scope. Independent category blockers remain explicit; no absence or polling permission inferred.",
+          "urls": [
+            "https://swiftcounty.gov/gis",
+            "https://www.arcgis.com/sharing/rest/content/items/d2cbcd51e955466a85c0307d714c65e3?f=pjson"
+          ]
         },
         "data_policy": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed official distribution/product evidence and published item disclaimer within bounded scope. Independent category blockers remain explicit; no absence or polling permission inferred.",
+          "urls": [
+            "https://swiftcounty.gov/gis",
+            "https://www.arcgis.com/sharing/rest/content/items/d2cbcd51e955466a85c0307d714c65e3?f=pjson"
+          ]
         },
         "fee_schedule": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Current county GIS/Interactive Maps pages describe parcel mapping and free viewing. The 2026 GIS Parcel Data schedule explicitly prices the dataset separately: $0.03 per parcel without tax information, $0.04 with tax information, $450 full parcel layer with tax information; government agencies exempt. Public Swift_Parcels item belongs to the named county GIS coordinator and exact polygon layer metadata is reachable (esriGeometryPolygon); this does not establish free delivery or unattended permission. No advertised downloadable parcel product verified. Fee/public-service scope requires clarification, without asserting a metadata monitoring ban.",
+          "urls": [
+            "https://swiftcounty.gov/uploads/dm/48672/2026_Licenses_Fees_and_Service_Charges",
+            "https://www.arcgis.com/sharing/rest/content/items/d2cbcd51e955466a85c0307d714c65e3?f=pjson"
+          ]
         },
         "request_forms": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "not-applicable",
+          "note": "No request or resolution was needed or submitted to inspect published parcel distribution and metadata. Adoption of an open-data resolution is not asserted; advertised/current product evidence is used.",
+          "urls": [
+            "https://swiftcounty.gov/gis"
+          ]
         },
         "resolutions_ordinances": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "not-applicable",
+          "note": "No request or resolution was needed or submitted to inspect published parcel distribution and metadata. Adoption of an open-data resolution is not asserted; advertised/current product evidence is used.",
+          "urls": [
+            "https://swiftcounty.gov/gis"
+          ]
         },
         "authorized_portals": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed official distribution/product evidence and published item disclaimer within bounded scope. Independent category blockers remain explicit; no absence or polling permission inferred.",
+          "urls": [
+            "https://swiftcounty.gov/gis",
+            "https://www.arcgis.com/sharing/rest/content/items/d2cbcd51e955466a85c0307d714c65e3?f=pjson"
+          ]
         },
         "statewide_context": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Dated official statewide item membership reviewed; live coverage remains independent.",
+          "urls": [
+            "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
+          ]
         }
       },
-      "county_direct_classification": null,
+      "county_direct_classification": "fee-based-parcel-data",
       "statewide_open_coverage": {
-        "available": null,
+        "available": false,
         "source": "MnGeo Plan Parcels Open",
-        "source_url": "https://gisdata.mn.gov/dataset/plan-parcels-open",
-        "verified_date": null
+        "source_url": "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson",
+        "verified_date": "2026-10-06"
       },
-      "comments": "",
+      "comments": "Current county GIS/Interactive Maps pages describe parcel mapping and free viewing. The 2026 GIS Parcel Data schedule explicitly prices the dataset separately: $0.03 per parcel without tax information, $0.04 with tax information, $450 full parcel layer with tax information; government agencies exempt. Public Swift_Parcels item belongs to the named county GIS coordinator and exact polygon layer metadata is reachable (esriGeometryPolygon); this does not establish free delivery or unattended permission. No advertised downloadable parcel product verified. Fee/public-service scope requires clarification, without asserting a metadata monitoring ban.",
       "source_inventory": {
         "mngac_public_parcels": {
-          "review_status": "pending",
-          "availability": "unknown",
-          "review_date": null,
-          "finding": "Category not yet reviewed.",
-          "evidence": [],
+          "review_status": "reviewed",
+          "availability": "no",
+          "review_date": "2026-10-06",
+          "finding": "Swift is excluded from dated official opt-in statewide publication; current runtime membership remains independent.",
+          "evidence": [
+            "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
+          ],
           "sources": []
         },
         "mngeo_public_repository": {
-          "review_status": "pending",
+          "review_status": "blocked",
           "availability": "unknown",
-          "review_date": null,
-          "finding": "Category not yet reviewed.",
-          "evidence": [],
+          "review_date": "2026-10-06",
+          "finding": "Rendered scoped Commons catalog reviewed: no results returned; no distinct county parcel repository product established. Bounded search does not prove absence.",
+          "evidence": [
+            "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
+            "https://gis.data.mn.gov/search?q=Swift%20parcels"
+          ],
           "sources": []
         },
         "county_arcgis_rest": {
-          "review_status": "pending",
-          "availability": "unknown",
-          "review_date": null,
-          "finding": "Category not yet reviewed.",
-          "evidence": [],
-          "sources": []
+          "review_status": "reviewed",
+          "availability": "yes",
+          "review_date": "2026-10-06",
+          "finding": "Current county GIS/Interactive Maps pages describe parcel mapping and free viewing. The 2026 GIS Parcel Data schedule explicitly prices the dataset separately: $0.03 per parcel without tax information, $0.04 with tax information, $450 full parcel layer with tax information; government agencies exempt. Public Swift_Parcels item belongs to the named county GIS coordinator and exact polygon layer metadata is reachable (esriGeometryPolygon); this does not establish free delivery or unattended permission. No advertised downloadable parcel product verified. Fee/public-service scope requires clarification, without asserting a metadata monitoring ban.",
+          "evidence": [
+            "https://swiftcounty.gov/gis",
+            "https://services3.arcgis.com/D3VRNSq5Pf3sYZAp/arcgis/rest/services/Swift_Parcels/FeatureServer/0?f=pjson",
+            "https://www.arcgis.com/sharing/rest/content/items/d2cbcd51e955466a85c0307d714c65e3?f=pjson"
+          ],
+          "sources": [
+            {
+              "inventory_id": "swift:county_arcgis_rest:1",
+              "name": "Swift parcel dataset",
+              "authority": "county-authorized-provider",
+              "dataset_type": "Parcel polygon REST layer",
+              "layer_id": 0,
+              "approved_public_links": [
+                {
+                  "label": "Official parcel source",
+                  "href": "https://services3.arcgis.com/D3VRNSq5Pf3sYZAp/arcgis/rest/services/Swift_Parcels/FeatureServer/0?f=pjson"
+                }
+              ],
+              "review_date": "2026-10-06",
+              "monitoring_decision": "hold-for-terms",
+              "evidence": [
+                "https://swiftcounty.gov/gis",
+                "https://services3.arcgis.com/D3VRNSq5Pf3sYZAp/arcgis/rest/services/Swift_Parcels/FeatureServer/0?f=pjson",
+                "https://www.arcgis.com/sharing/rest/content/items/d2cbcd51e955466a85c0307d714c65e3?f=pjson"
+              ],
+              "monitored_source_id": "mn-swift-parcels-direct"
+            }
+          ]
         },
         "county_download": {
-          "review_status": "pending",
+          "review_status": "blocked",
           "availability": "unknown",
-          "review_date": null,
-          "finding": "Category not yet reviewed.",
-          "evidence": [],
+          "review_date": "2026-10-06",
+          "finding": "Current county GIS/Interactive Maps pages describe parcel mapping and free viewing. The 2026 GIS Parcel Data schedule explicitly prices the dataset separately: $0.03 per parcel without tax information, $0.04 with tax information, $450 full parcel layer with tax information; government agencies exempt. Public Swift_Parcels item belongs to the named county GIS coordinator and exact polygon layer metadata is reachable (esriGeometryPolygon); this does not establish free delivery or unattended permission. No advertised downloadable parcel product verified. Fee/public-service scope requires clarification, without asserting a metadata monitoring ban.",
+          "evidence": [
+            "https://swiftcounty.gov/gis",
+            "https://swiftcounty.gov/uploads/dm/48672/2026_Licenses_Fees_and_Service_Charges",
+            "https://www.arcgis.com/sharing/rest/content/items/d2cbcd51e955466a85c0307d714c65e3?f=pjson"
+          ],
           "sources": []
         }
       }
@@ -18314,231 +18419,529 @@
     },
     {
       "county": "Traverse",
-      "review_date": null,
-      "research_complete": false,
+      "review_date": "2026-10-06",
+      "research_complete": true,
       "official_county_url": "https://traversecountymn.gov/",
-      "parcel_page_url": null,
-      "download_or_service_url": null,
+      "parcel_page_url": "https://data-traversecountymn.opendata.arcgis.com/",
+      "download_or_service_url": "https://gis.co.traverse.mn.us/arcgis/rest/services/Assessor/TaxParcels/FeatureServer/0",
       "viewer_url": null,
       "fee_policy_url": null,
       "parcel_dataset_fee": null,
       "fee_product": null,
-      "evidence_note": "County-direct parcel access has not yet been reviewed.",
-      "source_authority": "unverified",
-      "usable_direct_machine_readable_source": false,
+      "evidence_note": "Official MnGeo parcel table delegates county downloads to Traverse Open Data. Rendered county landing explicitly offers authoritative datasets at no cost; Tax Parcels About advertises Download and exact county FeatureServer/0. Polygon metadata reports esriGeometryPolygon. Item terms are as-is/no-warranty and liability limitations, including jurisdiction caveat; generic Hub request-permission label alone does not establish a monitoring prohibition. No archive or feature body retrieved.",
+      "source_authority": "county-authorized-provider",
+      "usable_direct_machine_readable_source": true,
       "monitoring": {
         "decision": "not-assessed",
-        "reason": "Discovery does not authorize monitoring.",
-        "terms_urls": []
+        "reason": "Published product availability is separate from unattended monitoring permission; discovery does not activate polling.",
+        "terms_urls": [
+          "https://www.arcgis.com/sharing/rest/content/items/19c002d05d2349ebbf712a4da0b9db78?f=pjson"
+        ]
       },
-      "evidence": [],
+      "evidence": [
+        {
+          "url": "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson",
+          "authority": "statewide",
+          "finding": "Traverse is included in dated official opt-in statewide publication; current runtime membership remains independent."
+        },
+        {
+          "url": "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
+          "authority": "statewide",
+          "finding": "Official county parcel distribution table reviewed; linked county products are distinct from statewide inclusion."
+        },
+        {
+          "url": "https://data-traversecountymn.opendata.arcgis.com/",
+          "authority": "county-authorized-provider",
+          "finding": "Official MnGeo parcel table delegates county downloads to Traverse Open Data. Rendered county landing explicitly offers authoritative datasets at no cost; Tax Parcels About advertises Download and exact county FeatureServer/0. Polygon metadata reports esriGeometryPolygon. Item terms are as-is/no-warranty and liability limitations, including jurisdiction caveat; generic Hub request-permission label alone does not establish a monitoring prohibition. No archive or feature body retrieved."
+        },
+        {
+          "url": "https://gis.co.traverse.mn.us/arcgis/rest/services/Assessor/TaxParcels/FeatureServer/0?f=pjson",
+          "authority": "county-authorized-provider",
+          "finding": "Official MnGeo parcel table delegates county downloads to Traverse Open Data. Rendered county landing explicitly offers authoritative datasets at no cost; Tax Parcels About advertises Download and exact county FeatureServer/0. Polygon metadata reports esriGeometryPolygon. Item terms are as-is/no-warranty and liability limitations, including jurisdiction caveat; generic Hub request-permission label alone does not establish a monitoring prohibition. No archive or feature body retrieved."
+        },
+        {
+          "url": "https://www.arcgis.com/sharing/rest/content/items/19c002d05d2349ebbf712a4da0b9db78?f=pjson",
+          "authority": "county-authorized-provider",
+          "finding": "Official MnGeo parcel table delegates county downloads to Traverse Open Data. Rendered county landing explicitly offers authoritative datasets at no cost; Tax Parcels About advertises Download and exact county FeatureServer/0. Polygon metadata reports esriGeometryPolygon. Item terms are as-is/no-warranty and liability limitations, including jurisdiction caveat; generic Hub request-permission label alone does not establish a monitoring prohibition. No archive or feature body retrieved."
+        },
+        {
+          "url": "https://data-traversecountymn.opendata.arcgis.com/datasets/TraverseCountyMN::tax-parcels-1/about",
+          "authority": "county-authorized-provider",
+          "finding": "Official MnGeo parcel table delegates county downloads to Traverse Open Data. Rendered county landing explicitly offers authoritative datasets at no cost; Tax Parcels About advertises Download and exact county FeatureServer/0. Polygon metadata reports esriGeometryPolygon. Item terms are as-is/no-warranty and liability limitations, including jurisdiction caveat; generic Hub request-permission label alone does not establish a monitoring prohibition. No archive or feature body retrieved."
+        },
+        {
+          "url": "https://gis.data.mn.gov/search?q=Traverse%20parcels",
+          "authority": "statewide",
+          "finding": "Rendered scoped Commons catalog reviewed: statewide/derived compilation results returned; no distinct county parcel repository product established. Bounded search does not prove absence."
+        }
+      ],
       "review_log": {
         "county_site": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed official distribution/product evidence and published item disclaimer within bounded scope. Independent category blockers remain explicit; no absence or polling permission inferred.",
+          "urls": [
+            "https://data-traversecountymn.opendata.arcgis.com/",
+            "https://www.arcgis.com/sharing/rest/content/items/19c002d05d2349ebbf712a4da0b9db78?f=pjson"
+          ]
         },
         "gis_assessor_land_records": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed official distribution/product evidence and published item disclaimer within bounded scope. Independent category blockers remain explicit; no absence or polling permission inferred.",
+          "urls": [
+            "https://data-traversecountymn.opendata.arcgis.com/",
+            "https://www.arcgis.com/sharing/rest/content/items/19c002d05d2349ebbf712a4da0b9db78?f=pjson"
+          ]
         },
         "downloads_open_data": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed official distribution/product evidence and published item disclaimer within bounded scope. Independent category blockers remain explicit; no absence or polling permission inferred.",
+          "urls": [
+            "https://data-traversecountymn.opendata.arcgis.com/",
+            "https://www.arcgis.com/sharing/rest/content/items/19c002d05d2349ebbf712a4da0b9db78?f=pjson"
+          ]
         },
         "arcgis_services": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed official distribution/product evidence and published item disclaimer within bounded scope. Independent category blockers remain explicit; no absence or polling permission inferred.",
+          "urls": [
+            "https://data-traversecountymn.opendata.arcgis.com/",
+            "https://www.arcgis.com/sharing/rest/content/items/19c002d05d2349ebbf712a4da0b9db78?f=pjson"
+          ]
         },
         "data_policy": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed official distribution/product evidence and published item disclaimer within bounded scope. Independent category blockers remain explicit; no absence or polling permission inferred.",
+          "urls": [
+            "https://data-traversecountymn.opendata.arcgis.com/",
+            "https://www.arcgis.com/sharing/rest/content/items/19c002d05d2349ebbf712a4da0b9db78?f=pjson"
+          ]
         },
         "fee_schedule": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Public downloadable parcel product verified through official distribution/metadata. No parcel fee inferred from unrelated viewing, maps, deeds or labor products; absence of fees not asserted exhaustively.",
+          "urls": [
+            "https://data-traversecountymn.opendata.arcgis.com/",
+            "https://www.arcgis.com/sharing/rest/content/items/19c002d05d2349ebbf712a4da0b9db78?f=pjson"
+          ]
         },
         "request_forms": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "not-applicable",
+          "note": "No request or resolution was needed or submitted to inspect published parcel distribution and metadata. Adoption of an open-data resolution is not asserted; advertised/current product evidence is used.",
+          "urls": [
+            "https://data-traversecountymn.opendata.arcgis.com/"
+          ]
         },
         "resolutions_ordinances": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "not-applicable",
+          "note": "No request or resolution was needed or submitted to inspect published parcel distribution and metadata. Adoption of an open-data resolution is not asserted; advertised/current product evidence is used.",
+          "urls": [
+            "https://data-traversecountymn.opendata.arcgis.com/"
+          ]
         },
         "authorized_portals": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed official distribution/product evidence and published item disclaimer within bounded scope. Independent category blockers remain explicit; no absence or polling permission inferred.",
+          "urls": [
+            "https://data-traversecountymn.opendata.arcgis.com/",
+            "https://www.arcgis.com/sharing/rest/content/items/19c002d05d2349ebbf712a4da0b9db78?f=pjson"
+          ]
         },
         "statewide_context": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Dated official statewide item membership reviewed; live coverage remains independent.",
+          "urls": [
+            "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
+          ]
         }
       },
-      "county_direct_classification": null,
+      "county_direct_classification": "free-parcel-data",
       "statewide_open_coverage": {
-        "available": null,
+        "available": true,
         "source": "MnGeo Plan Parcels Open",
-        "source_url": "https://gisdata.mn.gov/dataset/plan-parcels-open",
-        "verified_date": null
+        "source_url": "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson",
+        "verified_date": "2026-10-06"
       },
-      "comments": "",
+      "comments": "Official MnGeo parcel table delegates county downloads to Traverse Open Data. Rendered county landing explicitly offers authoritative datasets at no cost; Tax Parcels About advertises Download and exact county FeatureServer/0. Polygon metadata reports esriGeometryPolygon. Item terms are as-is/no-warranty and liability limitations, including jurisdiction caveat; generic Hub request-permission label alone does not establish a monitoring prohibition. No archive or feature body retrieved.",
       "source_inventory": {
         "mngac_public_parcels": {
-          "review_status": "pending",
-          "availability": "unknown",
-          "review_date": null,
-          "finding": "Category not yet reviewed.",
-          "evidence": [],
-          "sources": []
+          "review_status": "reviewed",
+          "availability": "yes",
+          "review_date": "2026-10-06",
+          "finding": "Traverse is included in dated official opt-in statewide publication; current runtime membership remains independent.",
+          "evidence": [
+            "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
+          ],
+          "sources": [
+            {
+              "inventory_id": "traverse:mngac_public_parcels:1",
+              "name": "Traverse parcel dataset",
+              "authority": "statewide",
+              "dataset_type": "Statewide parcel compilation",
+              "layer_id": null,
+              "approved_public_links": [
+                {
+                  "label": "Official parcel source",
+                  "href": "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
+                }
+              ],
+              "review_date": "2026-10-06",
+              "monitoring_decision": "not-assessed",
+              "evidence": [
+                "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
+              ]
+            }
+          ]
         },
         "mngeo_public_repository": {
-          "review_status": "pending",
+          "review_status": "blocked",
           "availability": "unknown",
-          "review_date": null,
-          "finding": "Category not yet reviewed.",
-          "evidence": [],
+          "review_date": "2026-10-06",
+          "finding": "Rendered scoped Commons catalog reviewed: statewide/derived compilation results returned; no distinct county parcel repository product established. Bounded search does not prove absence.",
+          "evidence": [
+            "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
+            "https://gis.data.mn.gov/search?q=Traverse%20parcels"
+          ],
           "sources": []
         },
         "county_arcgis_rest": {
-          "review_status": "pending",
-          "availability": "unknown",
-          "review_date": null,
-          "finding": "Category not yet reviewed.",
-          "evidence": [],
-          "sources": []
+          "review_status": "reviewed",
+          "availability": "yes",
+          "review_date": "2026-10-06",
+          "finding": "Official MnGeo parcel table delegates county downloads to Traverse Open Data. Rendered county landing explicitly offers authoritative datasets at no cost; Tax Parcels About advertises Download and exact county FeatureServer/0. Polygon metadata reports esriGeometryPolygon. Item terms are as-is/no-warranty and liability limitations, including jurisdiction caveat; generic Hub request-permission label alone does not establish a monitoring prohibition. No archive or feature body retrieved.",
+          "evidence": [
+            "https://data-traversecountymn.opendata.arcgis.com/",
+            "https://gis.co.traverse.mn.us/arcgis/rest/services/Assessor/TaxParcels/FeatureServer/0?f=pjson",
+            "https://www.arcgis.com/sharing/rest/content/items/19c002d05d2349ebbf712a4da0b9db78?f=pjson"
+          ],
+          "sources": [
+            {
+              "inventory_id": "traverse:county_arcgis_rest:1",
+              "name": "Traverse parcel dataset",
+              "authority": "county-authorized-provider",
+              "dataset_type": "Parcel polygon REST layer",
+              "layer_id": 0,
+              "approved_public_links": [
+                {
+                  "label": "Official parcel source",
+                  "href": "https://gis.co.traverse.mn.us/arcgis/rest/services/Assessor/TaxParcels/FeatureServer/0?f=pjson"
+                }
+              ],
+              "review_date": "2026-10-06",
+              "monitoring_decision": "not-assessed",
+              "evidence": [
+                "https://data-traversecountymn.opendata.arcgis.com/",
+                "https://gis.co.traverse.mn.us/arcgis/rest/services/Assessor/TaxParcels/FeatureServer/0?f=pjson",
+                "https://www.arcgis.com/sharing/rest/content/items/19c002d05d2349ebbf712a4da0b9db78?f=pjson"
+              ]
+            }
+          ]
         },
         "county_download": {
-          "review_status": "pending",
-          "availability": "unknown",
-          "review_date": null,
-          "finding": "Category not yet reviewed.",
-          "evidence": [],
-          "sources": []
+          "review_status": "reviewed",
+          "availability": "yes",
+          "review_date": "2026-10-06",
+          "finding": "Official MnGeo parcel table delegates county downloads to Traverse Open Data. Rendered county landing explicitly offers authoritative datasets at no cost; Tax Parcels About advertises Download and exact county FeatureServer/0. Polygon metadata reports esriGeometryPolygon. Item terms are as-is/no-warranty and liability limitations, including jurisdiction caveat; generic Hub request-permission label alone does not establish a monitoring prohibition. No archive or feature body retrieved.",
+          "evidence": [
+            "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
+            "https://data-traversecountymn.opendata.arcgis.com/datasets/TraverseCountyMN::tax-parcels-1/about",
+            "https://www.arcgis.com/sharing/rest/content/items/19c002d05d2349ebbf712a4da0b9db78?f=pjson"
+          ],
+          "sources": [
+            {
+              "inventory_id": "traverse:county_download:1",
+              "name": "Traverse parcel dataset",
+              "authority": "county-authorized-provider",
+              "dataset_type": "Parcel polygon Hub download",
+              "layer_id": 0,
+              "approved_public_links": [
+                {
+                  "label": "Official parcel source",
+                  "href": "https://data-traversecountymn.opendata.arcgis.com/datasets/TraverseCountyMN::tax-parcels-1/about"
+                }
+              ],
+              "review_date": "2026-10-06",
+              "monitoring_decision": "not-assessed",
+              "evidence": [
+                "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
+                "https://data-traversecountymn.opendata.arcgis.com/datasets/TraverseCountyMN::tax-parcels-1/about",
+                "https://www.arcgis.com/sharing/rest/content/items/19c002d05d2349ebbf712a4da0b9db78?f=pjson"
+              ]
+            }
+          ]
         }
       }
     },
     {
       "county": "Wabasha",
-      "review_date": null,
-      "research_complete": false,
+      "review_date": "2026-10-06",
+      "research_complete": true,
       "official_county_url": "https://www.co.wabasha.mn.us/",
-      "parcel_page_url": null,
-      "download_or_service_url": null,
+      "parcel_page_url": "https://www.arcgis.com/sharing/rest/content/items/bf8ef9d0b3f1455c9af61ef6b60329e2/info/metadata/metadata.xml?format=default&output=html",
+      "download_or_service_url": "https://enterprise.gisdata.mn.gov/aghost/rest/services/us_mn_co_wabasha/plan_parcelspolygon/FeatureServer/0",
       "viewer_url": null,
       "fee_policy_url": null,
       "parcel_dataset_fee": null,
       "fee_product": null,
-      "evidence_note": "County-direct parcel access has not yet been reviewed.",
-      "source_authority": "unverified",
-      "usable_direct_machine_readable_source": false,
+      "evidence_note": "Official Commons Tax Parcels metadata identifies Wabasha County as publisher and county GIS contact, countywide parcel polygons, no access/use restrictions beyond source/currentness verification. Rendered About advertises GeoPackage and separate ZIP data product; exact state-hosted county-specific FeatureServer/0 reports esriGeometryPolygon. This distinct county product is separate from statewide compilation. County GIS landing returned 503; authoritative published product metadata supplies distribution evidence.",
+      "source_authority": "county-authorized-provider",
+      "usable_direct_machine_readable_source": true,
       "monitoring": {
         "decision": "not-assessed",
-        "reason": "Discovery does not authorize monitoring.",
-        "terms_urls": []
+        "reason": "Published product availability is separate from unattended monitoring permission; discovery does not activate polling.",
+        "terms_urls": [
+          "https://www.arcgis.com/sharing/rest/content/items/bf8ef9d0b3f1455c9af61ef6b60329e2?f=pjson"
+        ]
       },
-      "evidence": [],
+      "evidence": [
+        {
+          "url": "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson",
+          "authority": "statewide",
+          "finding": "Wabasha is included in dated official opt-in statewide publication; current runtime membership remains independent."
+        },
+        {
+          "url": "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
+          "authority": "statewide",
+          "finding": "Official county parcel distribution table reviewed; linked county products are distinct from statewide inclusion."
+        },
+        {
+          "url": "https://www.arcgis.com/sharing/rest/content/items/bf8ef9d0b3f1455c9af61ef6b60329e2/info/metadata/metadata.xml?format=default&output=html",
+          "authority": "county-authorized-provider",
+          "finding": "Official Commons Tax Parcels metadata identifies Wabasha County as publisher and county GIS contact, countywide parcel polygons, no access/use restrictions beyond source/currentness verification. Rendered About advertises GeoPackage and separate ZIP data product; exact state-hosted county-specific FeatureServer/0 reports esriGeometryPolygon. This distinct county product is separate from statewide compilation. County GIS landing returned 503; authoritative published product metadata supplies distribution evidence."
+        },
+        {
+          "url": "https://enterprise.gisdata.mn.gov/aghost/rest/services/us_mn_co_wabasha/plan_parcelspolygon/FeatureServer/0?f=pjson",
+          "authority": "county-authorized-provider",
+          "finding": "Official Commons Tax Parcels metadata identifies Wabasha County as publisher and county GIS contact, countywide parcel polygons, no access/use restrictions beyond source/currentness verification. Rendered About advertises GeoPackage and separate ZIP data product; exact state-hosted county-specific FeatureServer/0 reports esriGeometryPolygon. This distinct county product is separate from statewide compilation. County GIS landing returned 503; authoritative published product metadata supplies distribution evidence."
+        },
+        {
+          "url": "https://www.arcgis.com/sharing/rest/content/items/bf8ef9d0b3f1455c9af61ef6b60329e2?f=pjson",
+          "authority": "county-authorized-provider",
+          "finding": "Official Commons Tax Parcels metadata identifies Wabasha County as publisher and county GIS contact, countywide parcel polygons, no access/use restrictions beyond source/currentness verification. Rendered About advertises GeoPackage and separate ZIP data product; exact state-hosted county-specific FeatureServer/0 reports esriGeometryPolygon. This distinct county product is separate from statewide compilation. County GIS landing returned 503; authoritative published product metadata supplies distribution evidence."
+        },
+        {
+          "url": "https://gis.data.mn.gov/datasets/bf8ef9d0b3f1455c9af61ef6b60329e2_0/about",
+          "authority": "county-authorized-provider",
+          "finding": "Official Commons Tax Parcels metadata identifies Wabasha County as publisher and county GIS contact, countywide parcel polygons, no access/use restrictions beyond source/currentness verification. Rendered About advertises GeoPackage and separate ZIP data product; exact state-hosted county-specific FeatureServer/0 reports esriGeometryPolygon. This distinct county product is separate from statewide compilation. County GIS landing returned 503; authoritative published product metadata supplies distribution evidence."
+        }
+      ],
       "review_log": {
         "county_site": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed official distribution/product evidence and published item disclaimer within bounded scope. Independent category blockers remain explicit; no absence or polling permission inferred.",
+          "urls": [
+            "https://www.arcgis.com/sharing/rest/content/items/bf8ef9d0b3f1455c9af61ef6b60329e2/info/metadata/metadata.xml?format=default&output=html",
+            "https://www.arcgis.com/sharing/rest/content/items/bf8ef9d0b3f1455c9af61ef6b60329e2?f=pjson"
+          ]
         },
         "gis_assessor_land_records": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed official distribution/product evidence and published item disclaimer within bounded scope. Independent category blockers remain explicit; no absence or polling permission inferred.",
+          "urls": [
+            "https://www.arcgis.com/sharing/rest/content/items/bf8ef9d0b3f1455c9af61ef6b60329e2/info/metadata/metadata.xml?format=default&output=html",
+            "https://www.arcgis.com/sharing/rest/content/items/bf8ef9d0b3f1455c9af61ef6b60329e2?f=pjson"
+          ]
         },
         "downloads_open_data": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed official distribution/product evidence and published item disclaimer within bounded scope. Independent category blockers remain explicit; no absence or polling permission inferred.",
+          "urls": [
+            "https://www.arcgis.com/sharing/rest/content/items/bf8ef9d0b3f1455c9af61ef6b60329e2/info/metadata/metadata.xml?format=default&output=html",
+            "https://www.arcgis.com/sharing/rest/content/items/bf8ef9d0b3f1455c9af61ef6b60329e2?f=pjson"
+          ]
         },
         "arcgis_services": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed official distribution/product evidence and published item disclaimer within bounded scope. Independent category blockers remain explicit; no absence or polling permission inferred.",
+          "urls": [
+            "https://www.arcgis.com/sharing/rest/content/items/bf8ef9d0b3f1455c9af61ef6b60329e2/info/metadata/metadata.xml?format=default&output=html",
+            "https://www.arcgis.com/sharing/rest/content/items/bf8ef9d0b3f1455c9af61ef6b60329e2?f=pjson"
+          ]
         },
         "data_policy": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed official distribution/product evidence and published item disclaimer within bounded scope. Independent category blockers remain explicit; no absence or polling permission inferred.",
+          "urls": [
+            "https://www.arcgis.com/sharing/rest/content/items/bf8ef9d0b3f1455c9af61ef6b60329e2/info/metadata/metadata.xml?format=default&output=html",
+            "https://www.arcgis.com/sharing/rest/content/items/bf8ef9d0b3f1455c9af61ef6b60329e2?f=pjson"
+          ]
         },
         "fee_schedule": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Public downloadable parcel product verified through official distribution/metadata. No parcel fee inferred from unrelated viewing, maps, deeds or labor products; absence of fees not asserted exhaustively.",
+          "urls": [
+            "https://www.arcgis.com/sharing/rest/content/items/bf8ef9d0b3f1455c9af61ef6b60329e2/info/metadata/metadata.xml?format=default&output=html",
+            "https://www.arcgis.com/sharing/rest/content/items/bf8ef9d0b3f1455c9af61ef6b60329e2?f=pjson"
+          ]
         },
         "request_forms": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "not-applicable",
+          "note": "No request or resolution was needed or submitted to inspect published parcel distribution and metadata. Adoption of an open-data resolution is not asserted; advertised/current product evidence is used.",
+          "urls": [
+            "https://www.arcgis.com/sharing/rest/content/items/bf8ef9d0b3f1455c9af61ef6b60329e2/info/metadata/metadata.xml?format=default&output=html"
+          ]
         },
         "resolutions_ordinances": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "not-applicable",
+          "note": "No request or resolution was needed or submitted to inspect published parcel distribution and metadata. Adoption of an open-data resolution is not asserted; advertised/current product evidence is used.",
+          "urls": [
+            "https://www.arcgis.com/sharing/rest/content/items/bf8ef9d0b3f1455c9af61ef6b60329e2/info/metadata/metadata.xml?format=default&output=html"
+          ]
         },
         "authorized_portals": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed official distribution/product evidence and published item disclaimer within bounded scope. Independent category blockers remain explicit; no absence or polling permission inferred.",
+          "urls": [
+            "https://www.arcgis.com/sharing/rest/content/items/bf8ef9d0b3f1455c9af61ef6b60329e2/info/metadata/metadata.xml?format=default&output=html",
+            "https://www.arcgis.com/sharing/rest/content/items/bf8ef9d0b3f1455c9af61ef6b60329e2?f=pjson"
+          ]
         },
         "statewide_context": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Dated official statewide item membership reviewed; live coverage remains independent.",
+          "urls": [
+            "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
+          ]
         }
       },
-      "county_direct_classification": null,
+      "county_direct_classification": "free-parcel-data",
       "statewide_open_coverage": {
-        "available": null,
+        "available": true,
         "source": "MnGeo Plan Parcels Open",
-        "source_url": "https://gisdata.mn.gov/dataset/plan-parcels-open",
-        "verified_date": null
+        "source_url": "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson",
+        "verified_date": "2026-10-06"
       },
-      "comments": "",
+      "comments": "Official Commons Tax Parcels metadata identifies Wabasha County as publisher and county GIS contact, countywide parcel polygons, no access/use restrictions beyond source/currentness verification. Rendered About advertises GeoPackage and separate ZIP data product; exact state-hosted county-specific FeatureServer/0 reports esriGeometryPolygon. This distinct county product is separate from statewide compilation. County GIS landing returned 503; authoritative published product metadata supplies distribution evidence.",
       "source_inventory": {
         "mngac_public_parcels": {
-          "review_status": "pending",
-          "availability": "unknown",
-          "review_date": null,
-          "finding": "Category not yet reviewed.",
-          "evidence": [],
-          "sources": []
+          "review_status": "reviewed",
+          "availability": "yes",
+          "review_date": "2026-10-06",
+          "finding": "Wabasha is included in dated official opt-in statewide publication; current runtime membership remains independent.",
+          "evidence": [
+            "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
+          ],
+          "sources": [
+            {
+              "inventory_id": "wabasha:mngac_public_parcels:1",
+              "name": "Wabasha parcel dataset",
+              "authority": "statewide",
+              "dataset_type": "Statewide parcel compilation",
+              "layer_id": null,
+              "approved_public_links": [
+                {
+                  "label": "Official parcel source",
+                  "href": "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
+                }
+              ],
+              "review_date": "2026-10-06",
+              "monitoring_decision": "not-assessed",
+              "evidence": [
+                "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
+              ]
+            }
+          ]
         },
         "mngeo_public_repository": {
-          "review_status": "pending",
-          "availability": "unknown",
-          "review_date": null,
-          "finding": "Category not yet reviewed.",
-          "evidence": [],
-          "sources": []
+          "review_status": "reviewed",
+          "availability": "yes",
+          "review_date": "2026-10-06",
+          "finding": "Official Commons Tax Parcels metadata identifies Wabasha County as publisher and county GIS contact, countywide parcel polygons, no access/use restrictions beyond source/currentness verification. Rendered About advertises GeoPackage and separate ZIP data product; exact state-hosted county-specific FeatureServer/0 reports esriGeometryPolygon. This distinct county product is separate from statewide compilation. County GIS landing returned 503; authoritative published product metadata supplies distribution evidence.",
+          "evidence": [
+            "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
+            "https://gis.data.mn.gov/datasets/bf8ef9d0b3f1455c9af61ef6b60329e2_0/about",
+            "https://www.arcgis.com/sharing/rest/content/items/bf8ef9d0b3f1455c9af61ef6b60329e2?f=pjson"
+          ],
+          "sources": [
+            {
+              "inventory_id": "wabasha:mngeo_public_repository:1",
+              "name": "Wabasha parcel dataset",
+              "authority": "statewide",
+              "dataset_type": "Distinct county parcel repository subdataset",
+              "layer_id": 0,
+              "approved_public_links": [
+                {
+                  "label": "Official parcel source",
+                  "href": "https://gis.data.mn.gov/datasets/bf8ef9d0b3f1455c9af61ef6b60329e2_0/about"
+                }
+              ],
+              "review_date": "2026-10-06",
+              "monitoring_decision": "not-assessed",
+              "evidence": [
+                "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
+                "https://gis.data.mn.gov/datasets/bf8ef9d0b3f1455c9af61ef6b60329e2_0/about",
+                "https://www.arcgis.com/sharing/rest/content/items/bf8ef9d0b3f1455c9af61ef6b60329e2?f=pjson"
+              ],
+              "monitored_source_id": "mn-wabasha-parcels"
+            }
+          ]
         },
         "county_arcgis_rest": {
-          "review_status": "pending",
-          "availability": "unknown",
-          "review_date": null,
-          "finding": "Category not yet reviewed.",
-          "evidence": [],
-          "sources": []
+          "review_status": "reviewed",
+          "availability": "yes",
+          "review_date": "2026-10-06",
+          "finding": "Official Commons Tax Parcels metadata identifies Wabasha County as publisher and county GIS contact, countywide parcel polygons, no access/use restrictions beyond source/currentness verification. Rendered About advertises GeoPackage and separate ZIP data product; exact state-hosted county-specific FeatureServer/0 reports esriGeometryPolygon. This distinct county product is separate from statewide compilation. County GIS landing returned 503; authoritative published product metadata supplies distribution evidence.",
+          "evidence": [
+            "https://www.arcgis.com/sharing/rest/content/items/bf8ef9d0b3f1455c9af61ef6b60329e2/info/metadata/metadata.xml?format=default&output=html",
+            "https://enterprise.gisdata.mn.gov/aghost/rest/services/us_mn_co_wabasha/plan_parcelspolygon/FeatureServer/0?f=pjson",
+            "https://www.arcgis.com/sharing/rest/content/items/bf8ef9d0b3f1455c9af61ef6b60329e2?f=pjson"
+          ],
+          "sources": [
+            {
+              "inventory_id": "wabasha:county_arcgis_rest:1",
+              "name": "Wabasha parcel dataset",
+              "authority": "county-authorized-provider",
+              "dataset_type": "Parcel polygon REST layer",
+              "layer_id": 0,
+              "approved_public_links": [
+                {
+                  "label": "Official parcel source",
+                  "href": "https://enterprise.gisdata.mn.gov/aghost/rest/services/us_mn_co_wabasha/plan_parcelspolygon/FeatureServer/0?f=pjson"
+                }
+              ],
+              "review_date": "2026-10-06",
+              "monitoring_decision": "not-assessed",
+              "evidence": [
+                "https://www.arcgis.com/sharing/rest/content/items/bf8ef9d0b3f1455c9af61ef6b60329e2/info/metadata/metadata.xml?format=default&output=html",
+                "https://enterprise.gisdata.mn.gov/aghost/rest/services/us_mn_co_wabasha/plan_parcelspolygon/FeatureServer/0?f=pjson",
+                "https://www.arcgis.com/sharing/rest/content/items/bf8ef9d0b3f1455c9af61ef6b60329e2?f=pjson"
+              ],
+              "monitored_source_id": "mn-wabasha-parcels"
+            }
+          ]
         },
         "county_download": {
-          "review_status": "pending",
-          "availability": "unknown",
-          "review_date": null,
-          "finding": "Category not yet reviewed.",
-          "evidence": [],
-          "sources": []
+          "review_status": "reviewed",
+          "availability": "yes",
+          "review_date": "2026-10-06",
+          "finding": "Official Commons Tax Parcels metadata identifies Wabasha County as publisher and county GIS contact, countywide parcel polygons, no access/use restrictions beyond source/currentness verification. Rendered About advertises GeoPackage and separate ZIP data product; exact state-hosted county-specific FeatureServer/0 reports esriGeometryPolygon. This distinct county product is separate from statewide compilation. County GIS landing returned 503; authoritative published product metadata supplies distribution evidence.",
+          "evidence": [
+            "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
+            "https://gis.data.mn.gov/datasets/bf8ef9d0b3f1455c9af61ef6b60329e2_0/about",
+            "https://www.arcgis.com/sharing/rest/content/items/bf8ef9d0b3f1455c9af61ef6b60329e2?f=pjson"
+          ],
+          "sources": [
+            {
+              "inventory_id": "wabasha:county_download:1",
+              "name": "Wabasha parcel dataset",
+              "authority": "county-authorized-provider",
+              "dataset_type": "Parcel polygon Hub download",
+              "layer_id": 0,
+              "approved_public_links": [
+                {
+                  "label": "Official parcel source",
+                  "href": "https://gis.data.mn.gov/datasets/bf8ef9d0b3f1455c9af61ef6b60329e2_0/about"
+                }
+              ],
+              "review_date": "2026-10-06",
+              "monitoring_decision": "not-assessed",
+              "evidence": [
+                "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
+                "https://gis.data.mn.gov/datasets/bf8ef9d0b3f1455c9af61ef6b60329e2_0/about",
+                "https://www.arcgis.com/sharing/rest/content/items/bf8ef9d0b3f1455c9af61ef6b60329e2?f=pjson"
+              ],
+              "monitored_source_id": "mn-wabasha-parcels"
+            }
+          ]
         }
       }
     },
@@ -18754,231 +19157,546 @@
     },
     {
       "county": "Waseca",
-      "review_date": null,
-      "research_complete": false,
+      "review_date": "2026-10-06",
+      "research_complete": true,
       "official_county_url": "https://www.wasecacounty.gov",
-      "parcel_page_url": null,
-      "download_or_service_url": null,
+      "parcel_page_url": "https://www.wasecacounty.gov/511/Property-Information",
+      "download_or_service_url": "https://gis.wasecacounty.gov/arcgis/rest/services/Public/Cadastral/FeatureServer/0",
       "viewer_url": null,
       "fee_policy_url": null,
       "parcel_dataset_fee": null,
       "fee_product": null,
-      "evidence_note": "County-direct parcel access has not yet been reviewed.",
-      "source_authority": "unverified",
-      "usable_direct_machine_readable_source": false,
+      "evidence_note": "MnGeo parcel table delegates Waseca downloads to a distinct county-owned Commons parcel product. Rendered About explicitly describes parcel polygon data shared to Minnesota Geospatial Commons, public access and Download, exact county Cadastral FeatureServer/0 reports esriGeometryPolygon. Public-information-resource terms require appropriate use and distinguish legal surveys/official records. County property page provides separate Beacon viewing and tax portal; no viewer scraping occurred.",
+      "source_authority": "county-authorized-provider",
+      "usable_direct_machine_readable_source": true,
       "monitoring": {
         "decision": "not-assessed",
-        "reason": "Discovery does not authorize monitoring.",
-        "terms_urls": []
+        "reason": "Published product availability is separate from unattended monitoring permission; discovery does not activate polling.",
+        "terms_urls": [
+          "https://www.arcgis.com/sharing/rest/content/items/7165bef203de488bb45a6fc233e3ded8?f=pjson"
+        ]
       },
-      "evidence": [],
+      "evidence": [
+        {
+          "url": "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson",
+          "authority": "statewide",
+          "finding": "Waseca is included in dated official opt-in statewide publication; current runtime membership remains independent."
+        },
+        {
+          "url": "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
+          "authority": "statewide",
+          "finding": "Official county parcel distribution table reviewed; linked county products are distinct from statewide inclusion."
+        },
+        {
+          "url": "https://www.wasecacounty.gov/511/Property-Information",
+          "authority": "county",
+          "finding": "MnGeo parcel table delegates Waseca downloads to a distinct county-owned Commons parcel product. Rendered About explicitly describes parcel polygon data shared to Minnesota Geospatial Commons, public access and Download, exact county Cadastral FeatureServer/0 reports esriGeometryPolygon. Public-information-resource terms require appropriate use and distinguish legal surveys/official records. County property page provides separate Beacon viewing and tax portal; no viewer scraping occurred."
+        },
+        {
+          "url": "https://gis.wasecacounty.gov/arcgis/rest/services/Public/Cadastral/FeatureServer/0?f=pjson",
+          "authority": "county-authorized-provider",
+          "finding": "MnGeo parcel table delegates Waseca downloads to a distinct county-owned Commons parcel product. Rendered About explicitly describes parcel polygon data shared to Minnesota Geospatial Commons, public access and Download, exact county Cadastral FeatureServer/0 reports esriGeometryPolygon. Public-information-resource terms require appropriate use and distinguish legal surveys/official records. County property page provides separate Beacon viewing and tax portal; no viewer scraping occurred."
+        },
+        {
+          "url": "https://www.arcgis.com/sharing/rest/content/items/7165bef203de488bb45a6fc233e3ded8?f=pjson",
+          "authority": "county-authorized-provider",
+          "finding": "MnGeo parcel table delegates Waseca downloads to a distinct county-owned Commons parcel product. Rendered About explicitly describes parcel polygon data shared to Minnesota Geospatial Commons, public access and Download, exact county Cadastral FeatureServer/0 reports esriGeometryPolygon. Public-information-resource terms require appropriate use and distinguish legal surveys/official records. County property page provides separate Beacon viewing and tax portal; no viewer scraping occurred."
+        },
+        {
+          "url": "https://gis.data.mn.gov/datasets/7165bef203de488bb45a6fc233e3ded8_0/about",
+          "authority": "county-authorized-provider",
+          "finding": "MnGeo parcel table delegates Waseca downloads to a distinct county-owned Commons parcel product. Rendered About explicitly describes parcel polygon data shared to Minnesota Geospatial Commons, public access and Download, exact county Cadastral FeatureServer/0 reports esriGeometryPolygon. Public-information-resource terms require appropriate use and distinguish legal surveys/official records. County property page provides separate Beacon viewing and tax portal; no viewer scraping occurred."
+        }
+      ],
       "review_log": {
         "county_site": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed official distribution/product evidence and published item disclaimer within bounded scope. Independent category blockers remain explicit; no absence or polling permission inferred.",
+          "urls": [
+            "https://www.wasecacounty.gov/511/Property-Information",
+            "https://www.arcgis.com/sharing/rest/content/items/7165bef203de488bb45a6fc233e3ded8?f=pjson"
+          ]
         },
         "gis_assessor_land_records": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed official distribution/product evidence and published item disclaimer within bounded scope. Independent category blockers remain explicit; no absence or polling permission inferred.",
+          "urls": [
+            "https://www.wasecacounty.gov/511/Property-Information",
+            "https://www.arcgis.com/sharing/rest/content/items/7165bef203de488bb45a6fc233e3ded8?f=pjson"
+          ]
         },
         "downloads_open_data": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed official distribution/product evidence and published item disclaimer within bounded scope. Independent category blockers remain explicit; no absence or polling permission inferred.",
+          "urls": [
+            "https://www.wasecacounty.gov/511/Property-Information",
+            "https://www.arcgis.com/sharing/rest/content/items/7165bef203de488bb45a6fc233e3ded8?f=pjson"
+          ]
         },
         "arcgis_services": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed official distribution/product evidence and published item disclaimer within bounded scope. Independent category blockers remain explicit; no absence or polling permission inferred.",
+          "urls": [
+            "https://www.wasecacounty.gov/511/Property-Information",
+            "https://www.arcgis.com/sharing/rest/content/items/7165bef203de488bb45a6fc233e3ded8?f=pjson"
+          ]
         },
         "data_policy": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed official distribution/product evidence and published item disclaimer within bounded scope. Independent category blockers remain explicit; no absence or polling permission inferred.",
+          "urls": [
+            "https://www.wasecacounty.gov/511/Property-Information",
+            "https://www.arcgis.com/sharing/rest/content/items/7165bef203de488bb45a6fc233e3ded8?f=pjson"
+          ]
         },
         "fee_schedule": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Public downloadable parcel product verified through official distribution/metadata. No parcel fee inferred from unrelated viewing, maps, deeds or labor products; absence of fees not asserted exhaustively.",
+          "urls": [
+            "https://www.wasecacounty.gov/511/Property-Information",
+            "https://www.arcgis.com/sharing/rest/content/items/7165bef203de488bb45a6fc233e3ded8?f=pjson"
+          ]
         },
         "request_forms": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "not-applicable",
+          "note": "No request or resolution was needed or submitted to inspect published parcel distribution and metadata. Adoption of an open-data resolution is not asserted; advertised/current product evidence is used.",
+          "urls": [
+            "https://www.wasecacounty.gov/511/Property-Information"
+          ]
         },
         "resolutions_ordinances": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "not-applicable",
+          "note": "No request or resolution was needed or submitted to inspect published parcel distribution and metadata. Adoption of an open-data resolution is not asserted; advertised/current product evidence is used.",
+          "urls": [
+            "https://www.wasecacounty.gov/511/Property-Information"
+          ]
         },
         "authorized_portals": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed official distribution/product evidence and published item disclaimer within bounded scope. Independent category blockers remain explicit; no absence or polling permission inferred.",
+          "urls": [
+            "https://www.wasecacounty.gov/511/Property-Information",
+            "https://www.arcgis.com/sharing/rest/content/items/7165bef203de488bb45a6fc233e3ded8?f=pjson"
+          ]
         },
         "statewide_context": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Dated official statewide item membership reviewed; live coverage remains independent.",
+          "urls": [
+            "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
+          ]
         }
       },
-      "county_direct_classification": null,
+      "county_direct_classification": "free-parcel-data",
       "statewide_open_coverage": {
-        "available": null,
+        "available": true,
         "source": "MnGeo Plan Parcels Open",
-        "source_url": "https://gisdata.mn.gov/dataset/plan-parcels-open",
-        "verified_date": null
+        "source_url": "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson",
+        "verified_date": "2026-10-06"
       },
-      "comments": "",
+      "comments": "MnGeo parcel table delegates Waseca downloads to a distinct county-owned Commons parcel product. Rendered About explicitly describes parcel polygon data shared to Minnesota Geospatial Commons, public access and Download, exact county Cadastral FeatureServer/0 reports esriGeometryPolygon. Public-information-resource terms require appropriate use and distinguish legal surveys/official records. County property page provides separate Beacon viewing and tax portal; no viewer scraping occurred.",
       "source_inventory": {
         "mngac_public_parcels": {
-          "review_status": "pending",
-          "availability": "unknown",
-          "review_date": null,
-          "finding": "Category not yet reviewed.",
-          "evidence": [],
-          "sources": []
+          "review_status": "reviewed",
+          "availability": "yes",
+          "review_date": "2026-10-06",
+          "finding": "Waseca is included in dated official opt-in statewide publication; current runtime membership remains independent.",
+          "evidence": [
+            "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
+          ],
+          "sources": [
+            {
+              "inventory_id": "waseca:mngac_public_parcels:1",
+              "name": "Waseca parcel dataset",
+              "authority": "statewide",
+              "dataset_type": "Statewide parcel compilation",
+              "layer_id": null,
+              "approved_public_links": [
+                {
+                  "label": "Official parcel source",
+                  "href": "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
+                }
+              ],
+              "review_date": "2026-10-06",
+              "monitoring_decision": "not-assessed",
+              "evidence": [
+                "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
+              ]
+            }
+          ]
         },
         "mngeo_public_repository": {
-          "review_status": "pending",
-          "availability": "unknown",
-          "review_date": null,
-          "finding": "Category not yet reviewed.",
-          "evidence": [],
-          "sources": []
+          "review_status": "reviewed",
+          "availability": "yes",
+          "review_date": "2026-10-06",
+          "finding": "MnGeo parcel table delegates Waseca downloads to a distinct county-owned Commons parcel product. Rendered About explicitly describes parcel polygon data shared to Minnesota Geospatial Commons, public access and Download, exact county Cadastral FeatureServer/0 reports esriGeometryPolygon. Public-information-resource terms require appropriate use and distinguish legal surveys/official records. County property page provides separate Beacon viewing and tax portal; no viewer scraping occurred.",
+          "evidence": [
+            "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
+            "https://gis.data.mn.gov/datasets/7165bef203de488bb45a6fc233e3ded8_0/about",
+            "https://www.arcgis.com/sharing/rest/content/items/7165bef203de488bb45a6fc233e3ded8?f=pjson"
+          ],
+          "sources": [
+            {
+              "inventory_id": "waseca:mngeo_public_repository:1",
+              "name": "Waseca parcel dataset",
+              "authority": "statewide",
+              "dataset_type": "Distinct county parcel repository subdataset",
+              "layer_id": 0,
+              "approved_public_links": [
+                {
+                  "label": "Official parcel source",
+                  "href": "https://gis.data.mn.gov/datasets/7165bef203de488bb45a6fc233e3ded8_0/about"
+                }
+              ],
+              "review_date": "2026-10-06",
+              "monitoring_decision": "not-assessed",
+              "evidence": [
+                "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
+                "https://gis.data.mn.gov/datasets/7165bef203de488bb45a6fc233e3ded8_0/about",
+                "https://www.arcgis.com/sharing/rest/content/items/7165bef203de488bb45a6fc233e3ded8?f=pjson"
+              ],
+              "monitored_source_id": "mn-waseca-parcels-direct"
+            }
+          ]
         },
         "county_arcgis_rest": {
-          "review_status": "pending",
-          "availability": "unknown",
-          "review_date": null,
-          "finding": "Category not yet reviewed.",
-          "evidence": [],
-          "sources": []
+          "review_status": "reviewed",
+          "availability": "yes",
+          "review_date": "2026-10-06",
+          "finding": "MnGeo parcel table delegates Waseca downloads to a distinct county-owned Commons parcel product. Rendered About explicitly describes parcel polygon data shared to Minnesota Geospatial Commons, public access and Download, exact county Cadastral FeatureServer/0 reports esriGeometryPolygon. Public-information-resource terms require appropriate use and distinguish legal surveys/official records. County property page provides separate Beacon viewing and tax portal; no viewer scraping occurred.",
+          "evidence": [
+            "https://www.wasecacounty.gov/511/Property-Information",
+            "https://gis.wasecacounty.gov/arcgis/rest/services/Public/Cadastral/FeatureServer/0?f=pjson",
+            "https://www.arcgis.com/sharing/rest/content/items/7165bef203de488bb45a6fc233e3ded8?f=pjson"
+          ],
+          "sources": [
+            {
+              "inventory_id": "waseca:county_arcgis_rest:1",
+              "name": "Waseca parcel dataset",
+              "authority": "county-authorized-provider",
+              "dataset_type": "Parcel polygon REST layer",
+              "layer_id": 0,
+              "approved_public_links": [
+                {
+                  "label": "Official parcel source",
+                  "href": "https://gis.wasecacounty.gov/arcgis/rest/services/Public/Cadastral/FeatureServer/0?f=pjson"
+                }
+              ],
+              "review_date": "2026-10-06",
+              "monitoring_decision": "not-assessed",
+              "evidence": [
+                "https://www.wasecacounty.gov/511/Property-Information",
+                "https://gis.wasecacounty.gov/arcgis/rest/services/Public/Cadastral/FeatureServer/0?f=pjson",
+                "https://www.arcgis.com/sharing/rest/content/items/7165bef203de488bb45a6fc233e3ded8?f=pjson"
+              ],
+              "monitored_source_id": "mn-waseca-parcels-direct"
+            }
+          ]
         },
         "county_download": {
-          "review_status": "pending",
-          "availability": "unknown",
-          "review_date": null,
-          "finding": "Category not yet reviewed.",
-          "evidence": [],
-          "sources": []
+          "review_status": "reviewed",
+          "availability": "yes",
+          "review_date": "2026-10-06",
+          "finding": "MnGeo parcel table delegates Waseca downloads to a distinct county-owned Commons parcel product. Rendered About explicitly describes parcel polygon data shared to Minnesota Geospatial Commons, public access and Download, exact county Cadastral FeatureServer/0 reports esriGeometryPolygon. Public-information-resource terms require appropriate use and distinguish legal surveys/official records. County property page provides separate Beacon viewing and tax portal; no viewer scraping occurred.",
+          "evidence": [
+            "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
+            "https://gis.data.mn.gov/datasets/7165bef203de488bb45a6fc233e3ded8_0/about",
+            "https://www.arcgis.com/sharing/rest/content/items/7165bef203de488bb45a6fc233e3ded8?f=pjson"
+          ],
+          "sources": [
+            {
+              "inventory_id": "waseca:county_download:1",
+              "name": "Waseca parcel dataset",
+              "authority": "county-authorized-provider",
+              "dataset_type": "Parcel polygon Hub download",
+              "layer_id": 0,
+              "approved_public_links": [
+                {
+                  "label": "Official parcel source",
+                  "href": "https://gis.data.mn.gov/datasets/7165bef203de488bb45a6fc233e3ded8_0/about"
+                }
+              ],
+              "review_date": "2026-10-06",
+              "monitoring_decision": "not-assessed",
+              "evidence": [
+                "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
+                "https://gis.data.mn.gov/datasets/7165bef203de488bb45a6fc233e3ded8_0/about",
+                "https://www.arcgis.com/sharing/rest/content/items/7165bef203de488bb45a6fc233e3ded8?f=pjson"
+              ],
+              "monitored_source_id": "mn-waseca-parcels-direct"
+            }
+          ]
         }
       }
     },
     {
       "county": "Washington",
-      "review_date": null,
-      "research_complete": false,
+      "review_date": "2026-10-06",
+      "research_complete": true,
       "official_county_url": "https://www.washingtoncountymn.gov/",
-      "parcel_page_url": null,
-      "download_or_service_url": null,
+      "parcel_page_url": "https://www.co.washington.mn.us/surveyor",
+      "download_or_service_url": "https://arcgis.metc.state.mn.us/data1/rest/services/parcels/Parcels/FeatureServer/6",
       "viewer_url": null,
       "fee_policy_url": null,
       "parcel_dataset_fee": null,
       "fee_product": null,
-      "evidence_note": "County-direct parcel access has not yet been reviewed.",
-      "source_authority": "unverified",
-      "usable_direct_machine_readable_source": false,
+      "evidence_note": "County Maps page and Survey Division explicitly provide free county tax-parcel data via GeoCommons/Metro Regional Parcel Dataset. Official Commons Metropolitan 7-County Parcel Polygons item explicitly publishes individual county polygon sublayers free without license or fees, public domain under Chapter13. Exact Washington County Parcels FeatureServer/6 reports esriGeometryPolygon. Distinct county subdataset qualifies separately from statewide inclusion; advertised regional FGDB download contains all7 counties and is not a native Washington-only product. No counts/dates borrowed from regional compilation.",
+      "source_authority": "county-authorized-provider",
+      "usable_direct_machine_readable_source": true,
       "monitoring": {
         "decision": "not-assessed",
-        "reason": "Discovery does not authorize monitoring.",
-        "terms_urls": []
+        "reason": "Published product availability is separate from unattended monitoring permission; discovery does not activate polling.",
+        "terms_urls": [
+          "https://www.arcgis.com/sharing/rest/content/items/136b28bd0d874076b702ca55b9aafffc?f=pjson"
+        ]
       },
-      "evidence": [],
+      "evidence": [
+        {
+          "url": "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson",
+          "authority": "statewide",
+          "finding": "Washington is included in dated official opt-in statewide publication; current runtime membership remains independent."
+        },
+        {
+          "url": "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
+          "authority": "statewide",
+          "finding": "Official county parcel distribution table reviewed; linked county products are distinct from statewide inclusion."
+        },
+        {
+          "url": "https://www.co.washington.mn.us/surveyor",
+          "authority": "county",
+          "finding": "County Maps page and Survey Division explicitly provide free county tax-parcel data via GeoCommons/Metro Regional Parcel Dataset. Official Commons Metropolitan 7-County Parcel Polygons item explicitly publishes individual county polygon sublayers free without license or fees, public domain under Chapter13. Exact Washington County Parcels FeatureServer/6 reports esriGeometryPolygon. Distinct county subdataset qualifies separately from statewide inclusion; advertised regional FGDB download contains all7 counties and is not a native Washington-only product. No counts/dates borrowed from regional compilation."
+        },
+        {
+          "url": "https://arcgis.metc.state.mn.us/data1/rest/services/parcels/Parcels/FeatureServer/6?f=pjson",
+          "authority": "county-authorized-provider",
+          "finding": "County Maps page and Survey Division explicitly provide free county tax-parcel data via GeoCommons/Metro Regional Parcel Dataset. Official Commons Metropolitan 7-County Parcel Polygons item explicitly publishes individual county polygon sublayers free without license or fees, public domain under Chapter13. Exact Washington County Parcels FeatureServer/6 reports esriGeometryPolygon. Distinct county subdataset qualifies separately from statewide inclusion; advertised regional FGDB download contains all7 counties and is not a native Washington-only product. No counts/dates borrowed from regional compilation."
+        },
+        {
+          "url": "https://www.arcgis.com/sharing/rest/content/items/136b28bd0d874076b702ca55b9aafffc?f=pjson",
+          "authority": "county-authorized-provider",
+          "finding": "County Maps page and Survey Division explicitly provide free county tax-parcel data via GeoCommons/Metro Regional Parcel Dataset. Official Commons Metropolitan 7-County Parcel Polygons item explicitly publishes individual county polygon sublayers free without license or fees, public domain under Chapter13. Exact Washington County Parcels FeatureServer/6 reports esriGeometryPolygon. Distinct county subdataset qualifies separately from statewide inclusion; advertised regional FGDB download contains all7 counties and is not a native Washington-only product. No counts/dates borrowed from regional compilation."
+        },
+        {
+          "url": "https://gis.data.mn.gov/maps/136b28bd0d874076b702ca55b9aafffc/about",
+          "authority": "county-authorized-provider",
+          "finding": "County Maps page and Survey Division explicitly provide free county tax-parcel data via GeoCommons/Metro Regional Parcel Dataset. Official Commons Metropolitan 7-County Parcel Polygons item explicitly publishes individual county polygon sublayers free without license or fees, public domain under Chapter13. Exact Washington County Parcels FeatureServer/6 reports esriGeometryPolygon. Distinct county subdataset qualifies separately from statewide inclusion; advertised regional FGDB download contains all7 counties and is not a native Washington-only product. No counts/dates borrowed from regional compilation."
+        }
+      ],
       "review_log": {
         "county_site": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed official distribution/product evidence and published item disclaimer within bounded scope. Independent category blockers remain explicit; no absence or polling permission inferred.",
+          "urls": [
+            "https://www.co.washington.mn.us/surveyor",
+            "https://www.arcgis.com/sharing/rest/content/items/136b28bd0d874076b702ca55b9aafffc?f=pjson"
+          ]
         },
         "gis_assessor_land_records": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed official distribution/product evidence and published item disclaimer within bounded scope. Independent category blockers remain explicit; no absence or polling permission inferred.",
+          "urls": [
+            "https://www.co.washington.mn.us/surveyor",
+            "https://www.arcgis.com/sharing/rest/content/items/136b28bd0d874076b702ca55b9aafffc?f=pjson"
+          ]
         },
         "downloads_open_data": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed official distribution/product evidence and published item disclaimer within bounded scope. Independent category blockers remain explicit; no absence or polling permission inferred.",
+          "urls": [
+            "https://www.co.washington.mn.us/surveyor",
+            "https://www.arcgis.com/sharing/rest/content/items/136b28bd0d874076b702ca55b9aafffc?f=pjson"
+          ]
         },
         "arcgis_services": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed official distribution/product evidence and published item disclaimer within bounded scope. Independent category blockers remain explicit; no absence or polling permission inferred.",
+          "urls": [
+            "https://www.co.washington.mn.us/surveyor",
+            "https://www.arcgis.com/sharing/rest/content/items/136b28bd0d874076b702ca55b9aafffc?f=pjson"
+          ]
         },
         "data_policy": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed official distribution/product evidence and published item disclaimer within bounded scope. Independent category blockers remain explicit; no absence or polling permission inferred.",
+          "urls": [
+            "https://www.co.washington.mn.us/surveyor",
+            "https://www.arcgis.com/sharing/rest/content/items/136b28bd0d874076b702ca55b9aafffc?f=pjson"
+          ]
         },
         "fee_schedule": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Public downloadable parcel product verified through official distribution/metadata. No parcel fee inferred from unrelated viewing, maps, deeds or labor products; absence of fees not asserted exhaustively.",
+          "urls": [
+            "https://www.co.washington.mn.us/surveyor",
+            "https://www.arcgis.com/sharing/rest/content/items/136b28bd0d874076b702ca55b9aafffc?f=pjson"
+          ]
         },
         "request_forms": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "not-applicable",
+          "note": "No request or resolution was needed or submitted to inspect published parcel distribution and metadata. Adoption of an open-data resolution is not asserted; advertised/current product evidence is used.",
+          "urls": [
+            "https://www.co.washington.mn.us/surveyor"
+          ]
         },
         "resolutions_ordinances": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "not-applicable",
+          "note": "No request or resolution was needed or submitted to inspect published parcel distribution and metadata. Adoption of an open-data resolution is not asserted; advertised/current product evidence is used.",
+          "urls": [
+            "https://www.co.washington.mn.us/surveyor"
+          ]
         },
         "authorized_portals": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed official distribution/product evidence and published item disclaimer within bounded scope. Independent category blockers remain explicit; no absence or polling permission inferred.",
+          "urls": [
+            "https://www.co.washington.mn.us/surveyor",
+            "https://www.arcgis.com/sharing/rest/content/items/136b28bd0d874076b702ca55b9aafffc?f=pjson"
+          ]
         },
         "statewide_context": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Dated official statewide item membership reviewed; live coverage remains independent.",
+          "urls": [
+            "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
+          ]
         }
       },
-      "county_direct_classification": null,
+      "county_direct_classification": "free-parcel-data",
       "statewide_open_coverage": {
-        "available": null,
+        "available": true,
         "source": "MnGeo Plan Parcels Open",
-        "source_url": "https://gisdata.mn.gov/dataset/plan-parcels-open",
-        "verified_date": null
+        "source_url": "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson",
+        "verified_date": "2026-10-06"
       },
-      "comments": "",
+      "comments": "County Maps page and Survey Division explicitly provide free county tax-parcel data via GeoCommons/Metro Regional Parcel Dataset. Official Commons Metropolitan 7-County Parcel Polygons item explicitly publishes individual county polygon sublayers free without license or fees, public domain under Chapter13. Exact Washington County Parcels FeatureServer/6 reports esriGeometryPolygon. Distinct county subdataset qualifies separately from statewide inclusion; advertised regional FGDB download contains all7 counties and is not a native Washington-only product. No counts/dates borrowed from regional compilation.",
       "source_inventory": {
         "mngac_public_parcels": {
-          "review_status": "pending",
-          "availability": "unknown",
-          "review_date": null,
-          "finding": "Category not yet reviewed.",
-          "evidence": [],
-          "sources": []
+          "review_status": "reviewed",
+          "availability": "yes",
+          "review_date": "2026-10-06",
+          "finding": "Washington is included in dated official opt-in statewide publication; current runtime membership remains independent.",
+          "evidence": [
+            "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
+          ],
+          "sources": [
+            {
+              "inventory_id": "washington:mngac_public_parcels:1",
+              "name": "Washington parcel dataset",
+              "authority": "statewide",
+              "dataset_type": "Statewide parcel compilation",
+              "layer_id": null,
+              "approved_public_links": [
+                {
+                  "label": "Official parcel source",
+                  "href": "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
+                }
+              ],
+              "review_date": "2026-10-06",
+              "monitoring_decision": "not-assessed",
+              "evidence": [
+                "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
+              ]
+            }
+          ]
         },
         "mngeo_public_repository": {
-          "review_status": "pending",
-          "availability": "unknown",
-          "review_date": null,
-          "finding": "Category not yet reviewed.",
-          "evidence": [],
-          "sources": []
+          "review_status": "reviewed",
+          "availability": "yes",
+          "review_date": "2026-10-06",
+          "finding": "County Maps page and Survey Division explicitly provide free county tax-parcel data via GeoCommons/Metro Regional Parcel Dataset. Official Commons Metropolitan 7-County Parcel Polygons item explicitly publishes individual county polygon sublayers free without license or fees, public domain under Chapter13. Exact Washington County Parcels FeatureServer/6 reports esriGeometryPolygon. Distinct county subdataset qualifies separately from statewide inclusion; advertised regional FGDB download contains all7 counties and is not a native Washington-only product. No counts/dates borrowed from regional compilation.",
+          "evidence": [
+            "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
+            "https://gis.data.mn.gov/maps/136b28bd0d874076b702ca55b9aafffc/about",
+            "https://www.arcgis.com/sharing/rest/content/items/136b28bd0d874076b702ca55b9aafffc?f=pjson"
+          ],
+          "sources": [
+            {
+              "inventory_id": "washington:mngeo_public_repository:1",
+              "name": "Washington parcel dataset",
+              "authority": "statewide",
+              "dataset_type": "Distinct county parcel repository subdataset",
+              "layer_id": 6,
+              "approved_public_links": [
+                {
+                  "label": "Official parcel source",
+                  "href": "https://gis.data.mn.gov/maps/136b28bd0d874076b702ca55b9aafffc/about"
+                }
+              ],
+              "review_date": "2026-10-06",
+              "monitoring_decision": "not-assessed",
+              "evidence": [
+                "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
+                "https://gis.data.mn.gov/maps/136b28bd0d874076b702ca55b9aafffc/about",
+                "https://www.arcgis.com/sharing/rest/content/items/136b28bd0d874076b702ca55b9aafffc?f=pjson"
+              ]
+            }
+          ]
         },
         "county_arcgis_rest": {
-          "review_status": "pending",
-          "availability": "unknown",
-          "review_date": null,
-          "finding": "Category not yet reviewed.",
-          "evidence": [],
-          "sources": []
+          "review_status": "reviewed",
+          "availability": "yes",
+          "review_date": "2026-10-06",
+          "finding": "County Maps page and Survey Division explicitly provide free county tax-parcel data via GeoCommons/Metro Regional Parcel Dataset. Official Commons Metropolitan 7-County Parcel Polygons item explicitly publishes individual county polygon sublayers free without license or fees, public domain under Chapter13. Exact Washington County Parcels FeatureServer/6 reports esriGeometryPolygon. Distinct county subdataset qualifies separately from statewide inclusion; advertised regional FGDB download contains all7 counties and is not a native Washington-only product. No counts/dates borrowed from regional compilation.",
+          "evidence": [
+            "https://www.co.washington.mn.us/surveyor",
+            "https://arcgis.metc.state.mn.us/data1/rest/services/parcels/Parcels/FeatureServer/6?f=pjson",
+            "https://www.arcgis.com/sharing/rest/content/items/136b28bd0d874076b702ca55b9aafffc?f=pjson"
+          ],
+          "sources": [
+            {
+              "inventory_id": "washington:county_arcgis_rest:1",
+              "name": "Washington parcel dataset",
+              "authority": "county-authorized-provider",
+              "dataset_type": "Parcel polygon REST layer",
+              "layer_id": 6,
+              "approved_public_links": [
+                {
+                  "label": "Official parcel source",
+                  "href": "https://arcgis.metc.state.mn.us/data1/rest/services/parcels/Parcels/FeatureServer/6?f=pjson"
+                }
+              ],
+              "review_date": "2026-10-06",
+              "monitoring_decision": "not-assessed",
+              "evidence": [
+                "https://www.co.washington.mn.us/surveyor",
+                "https://arcgis.metc.state.mn.us/data1/rest/services/parcels/Parcels/FeatureServer/6?f=pjson",
+                "https://www.arcgis.com/sharing/rest/content/items/136b28bd0d874076b702ca55b9aafffc?f=pjson"
+              ]
+            }
+          ]
         },
         "county_download": {
-          "review_status": "pending",
-          "availability": "unknown",
-          "review_date": null,
-          "finding": "Category not yet reviewed.",
-          "evidence": [],
-          "sources": []
+          "review_status": "reviewed",
+          "availability": "yes",
+          "review_date": "2026-10-06",
+          "finding": "County Maps page and Survey Division explicitly provide free county tax-parcel data via GeoCommons/Metro Regional Parcel Dataset. Official Commons Metropolitan 7-County Parcel Polygons item explicitly publishes individual county polygon sublayers free without license or fees, public domain under Chapter13. Exact Washington County Parcels FeatureServer/6 reports esriGeometryPolygon. Distinct county subdataset qualifies separately from statewide inclusion; advertised regional FGDB download contains all7 counties and is not a native Washington-only product. No counts/dates borrowed from regional compilation.",
+          "evidence": [
+            "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
+            "https://gis.data.mn.gov/maps/136b28bd0d874076b702ca55b9aafffc/about",
+            "https://www.arcgis.com/sharing/rest/content/items/136b28bd0d874076b702ca55b9aafffc?f=pjson"
+          ],
+          "sources": [
+            {
+              "inventory_id": "washington:county_download:1",
+              "name": "Washington parcel dataset",
+              "authority": "county-authorized-provider",
+              "dataset_type": "Regional FGDB parcel package including county subdataset",
+              "layer_id": 6,
+              "approved_public_links": [
+                {
+                  "label": "Official parcel source",
+                  "href": "https://gis.data.mn.gov/maps/136b28bd0d874076b702ca55b9aafffc/about"
+                }
+              ],
+              "review_date": "2026-10-06",
+              "monitoring_decision": "not-assessed",
+              "evidence": [
+                "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
+                "https://gis.data.mn.gov/maps/136b28bd0d874076b702ca55b9aafffc/about",
+                "https://www.arcgis.com/sharing/rest/content/items/136b28bd0d874076b702ca55b9aafffc?f=pjson"
+              ]
+            }
+          ]
         }
       }
     },
@@ -19169,116 +19887,260 @@
     },
     {
       "county": "Wilkin",
-      "review_date": null,
-      "research_complete": false,
+      "review_date": "2026-10-06",
+      "research_complete": true,
       "official_county_url": "https://wilkincounty.gov",
-      "parcel_page_url": null,
-      "download_or_service_url": null,
+      "parcel_page_url": "https://share-open-data-wilkinco.hub.arcgis.com/",
+      "download_or_service_url": "https://gisweb.co.wilkin.mn.us/arcgis/rest/services/Assessor/TaxParcels_public/FeatureServer/1",
       "viewer_url": null,
       "fee_policy_url": null,
       "parcel_dataset_fee": null,
       "fee_product": null,
-      "evidence_note": "County-direct parcel access has not yet been reviewed.",
-      "source_authority": "unverified",
-      "usable_direct_machine_readable_source": false,
+      "evidence_note": "MnGeo delegates Wilkin downloads to county Share Open Data. Rendered Tax Parcels About advertises public Download and exact county TaxParcels_public FeatureServer/1 (esriGeometryPolygon). County policy explicitly exempts self-service open portal users from fees, so free public availability remains verified. Separately requested countywide GIS/Tax Parcel package costs $3,000 plus contractor fees, individual tax parcels $0.50 each/minimum $20 plus contractor fee; requested delivery advertised as Shapefile or geodatabase. Required signed waiver/release and distribution-liability statement applicability to self-service product remains unclear; research hold pending clarification, no claimed metadata ban.",
+      "source_authority": "county-authorized-provider",
+      "usable_direct_machine_readable_source": true,
       "monitoring": {
-        "decision": "not-assessed",
-        "reason": "Discovery does not authorize monitoring.",
-        "terms_urls": []
+        "decision": "hold-for-terms",
+        "reason": "Clarify signed waiver applicability to fee-exempt self-service product; public availability retained; no explicit metadata ban established.",
+        "terms_urls": [
+          "https://wilkincounty.gov/vertical/sites/%7B6E7AB7CB-4769-4357-B6C8-90E546FFE488%7D/uploads/GIS_data_policy_12-17-19.pdf"
+        ]
       },
-      "evidence": [],
+      "evidence": [
+        {
+          "url": "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson",
+          "authority": "statewide",
+          "finding": "Wilkin is included in dated official opt-in statewide publication; current runtime membership remains independent."
+        },
+        {
+          "url": "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
+          "authority": "statewide",
+          "finding": "Official county parcel distribution table reviewed; linked county products are distinct from statewide inclusion."
+        },
+        {
+          "url": "https://share-open-data-wilkinco.hub.arcgis.com/",
+          "authority": "county-authorized-provider",
+          "finding": "MnGeo delegates Wilkin downloads to county Share Open Data. Rendered Tax Parcels About advertises public Download and exact county TaxParcels_public FeatureServer/1 (esriGeometryPolygon). County policy explicitly exempts self-service open portal users from fees, so free public availability remains verified. Separately requested countywide GIS/Tax Parcel package costs $3,000 plus contractor fees, individual tax parcels $0.50 each/minimum $20 plus contractor fee; requested delivery advertised as Shapefile or geodatabase. Required signed waiver/release and distribution-liability statement applicability to self-service product remains unclear; research hold pending clarification, no claimed metadata ban."
+        },
+        {
+          "url": "https://gisweb.co.wilkin.mn.us/arcgis/rest/services/Assessor/TaxParcels_public/FeatureServer/1?f=pjson",
+          "authority": "county-authorized-provider",
+          "finding": "MnGeo delegates Wilkin downloads to county Share Open Data. Rendered Tax Parcels About advertises public Download and exact county TaxParcels_public FeatureServer/1 (esriGeometryPolygon). County policy explicitly exempts self-service open portal users from fees, so free public availability remains verified. Separately requested countywide GIS/Tax Parcel package costs $3,000 plus contractor fees, individual tax parcels $0.50 each/minimum $20 plus contractor fee; requested delivery advertised as Shapefile or geodatabase. Required signed waiver/release and distribution-liability statement applicability to self-service product remains unclear; research hold pending clarification, no claimed metadata ban."
+        },
+        {
+          "url": "https://www.arcgis.com/sharing/rest/content/items/e96c2d9e3a83456487057615a8fae615?f=pjson",
+          "authority": "county-authorized-provider",
+          "finding": "MnGeo delegates Wilkin downloads to county Share Open Data. Rendered Tax Parcels About advertises public Download and exact county TaxParcels_public FeatureServer/1 (esriGeometryPolygon). County policy explicitly exempts self-service open portal users from fees, so free public availability remains verified. Separately requested countywide GIS/Tax Parcel package costs $3,000 plus contractor fees, individual tax parcels $0.50 each/minimum $20 plus contractor fee; requested delivery advertised as Shapefile or geodatabase. Required signed waiver/release and distribution-liability statement applicability to self-service product remains unclear; research hold pending clarification, no claimed metadata ban."
+        },
+        {
+          "url": "https://share-open-data-wilkinco.hub.arcgis.com/datasets/e96c2d9e3a83456487057615a8fae615_1/about",
+          "authority": "county-authorized-provider",
+          "finding": "MnGeo delegates Wilkin downloads to county Share Open Data. Rendered Tax Parcels About advertises public Download and exact county TaxParcels_public FeatureServer/1 (esriGeometryPolygon). County policy explicitly exempts self-service open portal users from fees, so free public availability remains verified. Separately requested countywide GIS/Tax Parcel package costs $3,000 plus contractor fees, individual tax parcels $0.50 each/minimum $20 plus contractor fee; requested delivery advertised as Shapefile or geodatabase. Required signed waiver/release and distribution-liability statement applicability to self-service product remains unclear; research hold pending clarification, no claimed metadata ban."
+        },
+        {
+          "url": "https://wilkincounty.gov/vertical/sites/%7B6E7AB7CB-4769-4357-B6C8-90E546FFE488%7D/uploads/GIS_data_policy_12-17-19.pdf",
+          "authority": "county",
+          "finding": "MnGeo delegates Wilkin downloads to county Share Open Data. Rendered Tax Parcels About advertises public Download and exact county TaxParcels_public FeatureServer/1 (esriGeometryPolygon). County policy explicitly exempts self-service open portal users from fees, so free public availability remains verified. Separately requested countywide GIS/Tax Parcel package costs $3,000 plus contractor fees, individual tax parcels $0.50 each/minimum $20 plus contractor fee; requested delivery advertised as Shapefile or geodatabase. Required signed waiver/release and distribution-liability statement applicability to self-service product remains unclear; research hold pending clarification, no claimed metadata ban."
+        },
+        {
+          "url": "https://gis.data.mn.gov/search?q=Wilkin%20parcels",
+          "authority": "statewide",
+          "finding": "Rendered scoped Commons catalog reviewed: statewide/derived compilation results returned; no distinct county parcel repository product established. Bounded search does not prove absence."
+        }
+      ],
       "review_log": {
         "county_site": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed official distribution/product evidence and published item disclaimer within bounded scope. Independent category blockers remain explicit; no absence or polling permission inferred.",
+          "urls": [
+            "https://share-open-data-wilkinco.hub.arcgis.com/",
+            "https://www.arcgis.com/sharing/rest/content/items/e96c2d9e3a83456487057615a8fae615?f=pjson"
+          ]
         },
         "gis_assessor_land_records": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed official distribution/product evidence and published item disclaimer within bounded scope. Independent category blockers remain explicit; no absence or polling permission inferred.",
+          "urls": [
+            "https://share-open-data-wilkinco.hub.arcgis.com/",
+            "https://www.arcgis.com/sharing/rest/content/items/e96c2d9e3a83456487057615a8fae615?f=pjson"
+          ]
         },
         "downloads_open_data": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed official distribution/product evidence and published item disclaimer within bounded scope. Independent category blockers remain explicit; no absence or polling permission inferred.",
+          "urls": [
+            "https://share-open-data-wilkinco.hub.arcgis.com/",
+            "https://www.arcgis.com/sharing/rest/content/items/e96c2d9e3a83456487057615a8fae615?f=pjson"
+          ]
         },
         "arcgis_services": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed official distribution/product evidence and published item disclaimer within bounded scope. Independent category blockers remain explicit; no absence or polling permission inferred.",
+          "urls": [
+            "https://share-open-data-wilkinco.hub.arcgis.com/",
+            "https://www.arcgis.com/sharing/rest/content/items/e96c2d9e3a83456487057615a8fae615?f=pjson"
+          ]
         },
         "data_policy": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed official distribution/product evidence and published item disclaimer within bounded scope. Independent category blockers remain explicit; no absence or polling permission inferred.",
+          "urls": [
+            "https://share-open-data-wilkinco.hub.arcgis.com/",
+            "https://www.arcgis.com/sharing/rest/content/items/e96c2d9e3a83456487057615a8fae615?f=pjson"
+          ]
         },
         "fee_schedule": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "MnGeo delegates Wilkin downloads to county Share Open Data. Rendered Tax Parcels About advertises public Download and exact county TaxParcels_public FeatureServer/1 (esriGeometryPolygon). County policy explicitly exempts self-service open portal users from fees, so free public availability remains verified. Separately requested countywide GIS/Tax Parcel package costs $3,000 plus contractor fees, individual tax parcels $0.50 each/minimum $20 plus contractor fee; requested delivery advertised as Shapefile or geodatabase. Required signed waiver/release and distribution-liability statement applicability to self-service product remains unclear; research hold pending clarification, no claimed metadata ban.",
+          "urls": [
+            "https://wilkincounty.gov/vertical/sites/%7B6E7AB7CB-4769-4357-B6C8-90E546FFE488%7D/uploads/GIS_data_policy_12-17-19.pdf",
+            "https://www.arcgis.com/sharing/rest/content/items/e96c2d9e3a83456487057615a8fae615?f=pjson"
+          ]
         },
         "request_forms": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "not-applicable",
+          "note": "No request or resolution was needed or submitted to inspect published parcel product metadata. Adoption of an open-data resolution is not asserted. Wilkin signed-waiver scope remains unresolved in monitoring assessment.",
+          "urls": [
+            "https://share-open-data-wilkinco.hub.arcgis.com/"
+          ]
         },
         "resolutions_ordinances": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "not-applicable",
+          "note": "No request or resolution was needed or submitted to inspect published parcel product metadata. Adoption of an open-data resolution is not asserted. Wilkin signed-waiver scope remains unresolved in monitoring assessment.",
+          "urls": [
+            "https://share-open-data-wilkinco.hub.arcgis.com/"
+          ]
         },
         "authorized_portals": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed official distribution/product evidence and published item disclaimer within bounded scope. Independent category blockers remain explicit; no absence or polling permission inferred.",
+          "urls": [
+            "https://share-open-data-wilkinco.hub.arcgis.com/",
+            "https://www.arcgis.com/sharing/rest/content/items/e96c2d9e3a83456487057615a8fae615?f=pjson"
+          ]
         },
         "statewide_context": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Dated official statewide item membership reviewed; live coverage remains independent.",
+          "urls": [
+            "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
+          ]
         }
       },
-      "county_direct_classification": null,
+      "county_direct_classification": "free-parcel-data",
       "statewide_open_coverage": {
-        "available": null,
+        "available": true,
         "source": "MnGeo Plan Parcels Open",
-        "source_url": "https://gisdata.mn.gov/dataset/plan-parcels-open",
-        "verified_date": null
+        "source_url": "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson",
+        "verified_date": "2026-10-06"
       },
-      "comments": "",
+      "comments": "MnGeo delegates Wilkin downloads to county Share Open Data. Rendered Tax Parcels About advertises public Download and exact county TaxParcels_public FeatureServer/1 (esriGeometryPolygon). County policy explicitly exempts self-service open portal users from fees, so free public availability remains verified. Separately requested countywide GIS/Tax Parcel package costs $3,000 plus contractor fees, individual tax parcels $0.50 each/minimum $20 plus contractor fee; requested delivery advertised as Shapefile or geodatabase. Required signed waiver/release and distribution-liability statement applicability to self-service product remains unclear; research hold pending clarification, no claimed metadata ban.",
       "source_inventory": {
         "mngac_public_parcels": {
-          "review_status": "pending",
-          "availability": "unknown",
-          "review_date": null,
-          "finding": "Category not yet reviewed.",
-          "evidence": [],
-          "sources": []
+          "review_status": "reviewed",
+          "availability": "yes",
+          "review_date": "2026-10-06",
+          "finding": "Wilkin is included in dated official opt-in statewide publication; current runtime membership remains independent.",
+          "evidence": [
+            "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
+          ],
+          "sources": [
+            {
+              "inventory_id": "wilkin:mngac_public_parcels:1",
+              "name": "Wilkin parcel dataset",
+              "authority": "statewide",
+              "dataset_type": "Statewide parcel compilation",
+              "layer_id": null,
+              "approved_public_links": [
+                {
+                  "label": "Official parcel source",
+                  "href": "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
+                }
+              ],
+              "review_date": "2026-10-06",
+              "monitoring_decision": "not-assessed",
+              "evidence": [
+                "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
+              ]
+            }
+          ]
         },
         "mngeo_public_repository": {
-          "review_status": "pending",
+          "review_status": "blocked",
           "availability": "unknown",
-          "review_date": null,
-          "finding": "Category not yet reviewed.",
-          "evidence": [],
+          "review_date": "2026-10-06",
+          "finding": "Rendered scoped Commons catalog reviewed: statewide/derived compilation results returned; no distinct county parcel repository product established. Bounded search does not prove absence.",
+          "evidence": [
+            "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
+            "https://gis.data.mn.gov/search?q=Wilkin%20parcels"
+          ],
           "sources": []
         },
         "county_arcgis_rest": {
-          "review_status": "pending",
-          "availability": "unknown",
-          "review_date": null,
-          "finding": "Category not yet reviewed.",
-          "evidence": [],
-          "sources": []
+          "review_status": "reviewed",
+          "availability": "yes",
+          "review_date": "2026-10-06",
+          "finding": "MnGeo delegates Wilkin downloads to county Share Open Data. Rendered Tax Parcels About advertises public Download and exact county TaxParcels_public FeatureServer/1 (esriGeometryPolygon). County policy explicitly exempts self-service open portal users from fees, so free public availability remains verified. Separately requested countywide GIS/Tax Parcel package costs $3,000 plus contractor fees, individual tax parcels $0.50 each/minimum $20 plus contractor fee; requested delivery advertised as Shapefile or geodatabase. Required signed waiver/release and distribution-liability statement applicability to self-service product remains unclear; research hold pending clarification, no claimed metadata ban.",
+          "evidence": [
+            "https://share-open-data-wilkinco.hub.arcgis.com/",
+            "https://gisweb.co.wilkin.mn.us/arcgis/rest/services/Assessor/TaxParcels_public/FeatureServer/1?f=pjson",
+            "https://www.arcgis.com/sharing/rest/content/items/e96c2d9e3a83456487057615a8fae615?f=pjson"
+          ],
+          "sources": [
+            {
+              "inventory_id": "wilkin:county_arcgis_rest:1",
+              "name": "Wilkin parcel dataset",
+              "authority": "county-authorized-provider",
+              "dataset_type": "Parcel polygon REST layer",
+              "layer_id": 1,
+              "approved_public_links": [
+                {
+                  "label": "Official parcel source",
+                  "href": "https://gisweb.co.wilkin.mn.us/arcgis/rest/services/Assessor/TaxParcels_public/FeatureServer/1?f=pjson"
+                }
+              ],
+              "review_date": "2026-10-06",
+              "monitoring_decision": "hold-for-terms",
+              "evidence": [
+                "https://share-open-data-wilkinco.hub.arcgis.com/",
+                "https://gisweb.co.wilkin.mn.us/arcgis/rest/services/Assessor/TaxParcels_public/FeatureServer/1?f=pjson",
+                "https://www.arcgis.com/sharing/rest/content/items/e96c2d9e3a83456487057615a8fae615?f=pjson"
+              ]
+            }
+          ]
         },
         "county_download": {
-          "review_status": "pending",
-          "availability": "unknown",
-          "review_date": null,
-          "finding": "Category not yet reviewed.",
-          "evidence": [],
-          "sources": []
+          "review_status": "reviewed",
+          "availability": "yes",
+          "review_date": "2026-10-06",
+          "finding": "MnGeo delegates Wilkin downloads to county Share Open Data. Rendered Tax Parcels About advertises public Download and exact county TaxParcels_public FeatureServer/1 (esriGeometryPolygon). County policy explicitly exempts self-service open portal users from fees, so free public availability remains verified. Separately requested countywide GIS/Tax Parcel package costs $3,000 plus contractor fees, individual tax parcels $0.50 each/minimum $20 plus contractor fee; requested delivery advertised as Shapefile or geodatabase. Required signed waiver/release and distribution-liability statement applicability to self-service product remains unclear; research hold pending clarification, no claimed metadata ban.",
+          "evidence": [
+            "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
+            "https://share-open-data-wilkinco.hub.arcgis.com/datasets/e96c2d9e3a83456487057615a8fae615_1/about",
+            "https://www.arcgis.com/sharing/rest/content/items/e96c2d9e3a83456487057615a8fae615?f=pjson"
+          ],
+          "sources": [
+            {
+              "inventory_id": "wilkin:county_download:1",
+              "name": "Wilkin parcel dataset",
+              "authority": "county-authorized-provider",
+              "dataset_type": "Parcel polygon Hub download",
+              "layer_id": 1,
+              "approved_public_links": [
+                {
+                  "label": "Official parcel source",
+                  "href": "https://share-open-data-wilkinco.hub.arcgis.com/datasets/e96c2d9e3a83456487057615a8fae615_1/about"
+                }
+              ],
+              "review_date": "2026-10-06",
+              "monitoring_decision": "hold-for-terms",
+              "evidence": [
+                "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
+                "https://share-open-data-wilkinco.hub.arcgis.com/datasets/e96c2d9e3a83456487057615a8fae615_1/about",
+                "https://www.arcgis.com/sharing/rest/content/items/e96c2d9e3a83456487057615a8fae615?f=pjson"
+              ]
+            }
+          ]
         }
       }
     },
@@ -19508,231 +20370,536 @@
     },
     {
       "county": "Wright",
-      "review_date": null,
-      "research_complete": false,
+      "review_date": "2026-10-06",
+      "research_complete": true,
       "official_county_url": "https://www.wrightcountymn.gov",
-      "parcel_page_url": null,
-      "download_or_service_url": null,
+      "parcel_page_url": "https://www.wrightcountymn.gov/215/GIS-Mapping/QuickLinks",
+      "download_or_service_url": "https://services2.arcgis.com/CiQCvRGImIxsaFnM/arcgis/rest/services/Parcels_Wright_County/FeatureServer/0",
       "viewer_url": null,
       "fee_policy_url": null,
       "parcel_dataset_fee": null,
       "fee_product": null,
-      "evidence_note": "County-direct parcel access has not yet been reviewed.",
-      "source_authority": "unverified",
-      "usable_direct_machine_readable_source": false,
+      "evidence_note": "MnGeo downloads link county Parcels Wright County Hub About; rendered public Download and exact FeatureServer/0, esriGeometryPolygon. The same distinct county-owned product is rendered in Commons. Item purpose supports planning/property analysis/public reference; terms caution against legal-survey and precision uses, with no-warranty/liability language. County GIS landing reviewed; 2025 official project-administration memo explicitly lists parcels among free open-data downloads but is a proposed resolution, not proof of adoption.",
+      "source_authority": "county-authorized-provider",
+      "usable_direct_machine_readable_source": true,
       "monitoring": {
         "decision": "not-assessed",
-        "reason": "Discovery does not authorize monitoring.",
-        "terms_urls": []
+        "reason": "Published product availability is separate from unattended monitoring permission; discovery does not activate polling.",
+        "terms_urls": [
+          "https://www.arcgis.com/sharing/rest/content/items/6bae27646e664fad990aa6018c60cb91?f=pjson"
+        ]
       },
-      "evidence": [],
+      "evidence": [
+        {
+          "url": "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson",
+          "authority": "statewide",
+          "finding": "Wright is included in dated official opt-in statewide publication; current runtime membership remains independent."
+        },
+        {
+          "url": "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
+          "authority": "statewide",
+          "finding": "Official county parcel distribution table reviewed; linked county products are distinct from statewide inclusion."
+        },
+        {
+          "url": "https://www.wrightcountymn.gov/215/GIS-Mapping/QuickLinks",
+          "authority": "county",
+          "finding": "MnGeo downloads link county Parcels Wright County Hub About; rendered public Download and exact FeatureServer/0, esriGeometryPolygon. The same distinct county-owned product is rendered in Commons. Item purpose supports planning/property analysis/public reference; terms caution against legal-survey and precision uses, with no-warranty/liability language. County GIS landing reviewed; 2025 official project-administration memo explicitly lists parcels among free open-data downloads but is a proposed resolution, not proof of adoption."
+        },
+        {
+          "url": "https://services2.arcgis.com/CiQCvRGImIxsaFnM/arcgis/rest/services/Parcels_Wright_County/FeatureServer/0?f=pjson",
+          "authority": "county-authorized-provider",
+          "finding": "MnGeo downloads link county Parcels Wright County Hub About; rendered public Download and exact FeatureServer/0, esriGeometryPolygon. The same distinct county-owned product is rendered in Commons. Item purpose supports planning/property analysis/public reference; terms caution against legal-survey and precision uses, with no-warranty/liability language. County GIS landing reviewed; 2025 official project-administration memo explicitly lists parcels among free open-data downloads but is a proposed resolution, not proof of adoption."
+        },
+        {
+          "url": "https://www.arcgis.com/sharing/rest/content/items/6bae27646e664fad990aa6018c60cb91?f=pjson",
+          "authority": "county-authorized-provider",
+          "finding": "MnGeo downloads link county Parcels Wright County Hub About; rendered public Download and exact FeatureServer/0, esriGeometryPolygon. The same distinct county-owned product is rendered in Commons. Item purpose supports planning/property analysis/public reference; terms caution against legal-survey and precision uses, with no-warranty/liability language. County GIS landing reviewed; 2025 official project-administration memo explicitly lists parcels among free open-data downloads but is a proposed resolution, not proof of adoption."
+        },
+        {
+          "url": "https://wright-county-gis-wrightgis.hub.arcgis.com/datasets/6bae27646e664fad990aa6018c60cb91_0/about",
+          "authority": "county-authorized-provider",
+          "finding": "MnGeo downloads link county Parcels Wright County Hub About; rendered public Download and exact FeatureServer/0, esriGeometryPolygon. The same distinct county-owned product is rendered in Commons. Item purpose supports planning/property analysis/public reference; terms caution against legal-survey and precision uses, with no-warranty/liability language. County GIS landing reviewed; 2025 official project-administration memo explicitly lists parcels among free open-data downloads but is a proposed resolution, not proof of adoption."
+        },
+        {
+          "url": "https://gis.data.mn.gov/datasets/6bae27646e664fad990aa6018c60cb91_0/about",
+          "authority": "statewide",
+          "finding": "MnGeo downloads link county Parcels Wright County Hub About; rendered public Download and exact FeatureServer/0, esriGeometryPolygon. The same distinct county-owned product is rendered in Commons. Item purpose supports planning/property analysis/public reference; terms caution against legal-survey and precision uses, with no-warranty/liability language. County GIS landing reviewed; 2025 official project-administration memo explicitly lists parcels among free open-data downloads but is a proposed resolution, not proof of adoption."
+        },
+        {
+          "url": "https://www.wrightcountymn.gov/AgendaCenter/ViewFile/Item/11878?fileID=27370",
+          "authority": "county",
+          "finding": "Official project-administration memo advertises existing free open-data parcels; proposed resolution does not prove adoption."
+        }
+      ],
       "review_log": {
         "county_site": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed official distribution/product evidence and published item disclaimer within bounded scope. Independent category blockers remain explicit; no absence or polling permission inferred.",
+          "urls": [
+            "https://www.wrightcountymn.gov/215/GIS-Mapping/QuickLinks",
+            "https://www.arcgis.com/sharing/rest/content/items/6bae27646e664fad990aa6018c60cb91?f=pjson"
+          ]
         },
         "gis_assessor_land_records": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed official distribution/product evidence and published item disclaimer within bounded scope. Independent category blockers remain explicit; no absence or polling permission inferred.",
+          "urls": [
+            "https://www.wrightcountymn.gov/215/GIS-Mapping/QuickLinks",
+            "https://www.arcgis.com/sharing/rest/content/items/6bae27646e664fad990aa6018c60cb91?f=pjson"
+          ]
         },
         "downloads_open_data": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed official distribution/product evidence and published item disclaimer within bounded scope. Independent category blockers remain explicit; no absence or polling permission inferred.",
+          "urls": [
+            "https://www.wrightcountymn.gov/215/GIS-Mapping/QuickLinks",
+            "https://www.arcgis.com/sharing/rest/content/items/6bae27646e664fad990aa6018c60cb91?f=pjson"
+          ]
         },
         "arcgis_services": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed official distribution/product evidence and published item disclaimer within bounded scope. Independent category blockers remain explicit; no absence or polling permission inferred.",
+          "urls": [
+            "https://www.wrightcountymn.gov/215/GIS-Mapping/QuickLinks",
+            "https://www.arcgis.com/sharing/rest/content/items/6bae27646e664fad990aa6018c60cb91?f=pjson"
+          ]
         },
         "data_policy": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed official distribution/product evidence and published item disclaimer within bounded scope. Independent category blockers remain explicit; no absence or polling permission inferred.",
+          "urls": [
+            "https://www.wrightcountymn.gov/215/GIS-Mapping/QuickLinks",
+            "https://www.arcgis.com/sharing/rest/content/items/6bae27646e664fad990aa6018c60cb91?f=pjson"
+          ]
         },
         "fee_schedule": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Public downloadable parcel product verified through official distribution/metadata. No parcel fee inferred from unrelated viewing, maps, deeds or labor products; absence of fees not asserted exhaustively.",
+          "urls": [
+            "https://www.wrightcountymn.gov/215/GIS-Mapping/QuickLinks",
+            "https://www.arcgis.com/sharing/rest/content/items/6bae27646e664fad990aa6018c60cb91?f=pjson"
+          ]
         },
         "request_forms": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "not-applicable",
+          "note": "No request or resolution was needed or submitted to inspect published parcel distribution and metadata. Adoption of an open-data resolution is not asserted; advertised/current product evidence is used.",
+          "urls": [
+            "https://www.wrightcountymn.gov/215/GIS-Mapping/QuickLinks"
+          ]
         },
         "resolutions_ordinances": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "2025 official project administration memo lists parcels among public free open datasets and requests a resolution; this does not prove adoption. Current advertised public parcel product reviewed.",
+          "urls": [
+            "https://www.wrightcountymn.gov/AgendaCenter/ViewFile/Item/11878?fileID=27370"
+          ]
         },
         "authorized_portals": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed official distribution/product evidence and published item disclaimer within bounded scope. Independent category blockers remain explicit; no absence or polling permission inferred.",
+          "urls": [
+            "https://www.wrightcountymn.gov/215/GIS-Mapping/QuickLinks",
+            "https://www.arcgis.com/sharing/rest/content/items/6bae27646e664fad990aa6018c60cb91?f=pjson"
+          ]
         },
         "statewide_context": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Dated official statewide item membership reviewed; live coverage remains independent.",
+          "urls": [
+            "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
+          ]
         }
       },
-      "county_direct_classification": null,
+      "county_direct_classification": "free-parcel-data",
       "statewide_open_coverage": {
-        "available": null,
+        "available": true,
         "source": "MnGeo Plan Parcels Open",
-        "source_url": "https://gisdata.mn.gov/dataset/plan-parcels-open",
-        "verified_date": null
+        "source_url": "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson",
+        "verified_date": "2026-10-06"
       },
-      "comments": "",
+      "comments": "MnGeo downloads link county Parcels Wright County Hub About; rendered public Download and exact FeatureServer/0, esriGeometryPolygon. The same distinct county-owned product is rendered in Commons. Item purpose supports planning/property analysis/public reference; terms caution against legal-survey and precision uses, with no-warranty/liability language. County GIS landing reviewed; 2025 official project-administration memo explicitly lists parcels among free open-data downloads but is a proposed resolution, not proof of adoption.",
       "source_inventory": {
         "mngac_public_parcels": {
-          "review_status": "pending",
-          "availability": "unknown",
-          "review_date": null,
-          "finding": "Category not yet reviewed.",
-          "evidence": [],
-          "sources": []
+          "review_status": "reviewed",
+          "availability": "yes",
+          "review_date": "2026-10-06",
+          "finding": "Wright is included in dated official opt-in statewide publication; current runtime membership remains independent.",
+          "evidence": [
+            "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
+          ],
+          "sources": [
+            {
+              "inventory_id": "wright:mngac_public_parcels:1",
+              "name": "Wright parcel dataset",
+              "authority": "statewide",
+              "dataset_type": "Statewide parcel compilation",
+              "layer_id": null,
+              "approved_public_links": [
+                {
+                  "label": "Official parcel source",
+                  "href": "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
+                }
+              ],
+              "review_date": "2026-10-06",
+              "monitoring_decision": "not-assessed",
+              "evidence": [
+                "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
+              ]
+            }
+          ]
         },
         "mngeo_public_repository": {
-          "review_status": "pending",
-          "availability": "unknown",
-          "review_date": null,
-          "finding": "Category not yet reviewed.",
-          "evidence": [],
-          "sources": []
+          "review_status": "reviewed",
+          "availability": "yes",
+          "review_date": "2026-10-06",
+          "finding": "MnGeo downloads link county Parcels Wright County Hub About; rendered public Download and exact FeatureServer/0, esriGeometryPolygon. The same distinct county-owned product is rendered in Commons. Item purpose supports planning/property analysis/public reference; terms caution against legal-survey and precision uses, with no-warranty/liability language. County GIS landing reviewed; 2025 official project-administration memo explicitly lists parcels among free open-data downloads but is a proposed resolution, not proof of adoption.",
+          "evidence": [
+            "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
+            "https://wright-county-gis-wrightgis.hub.arcgis.com/datasets/6bae27646e664fad990aa6018c60cb91_0/about",
+            "https://www.arcgis.com/sharing/rest/content/items/6bae27646e664fad990aa6018c60cb91?f=pjson"
+          ],
+          "sources": [
+            {
+              "inventory_id": "wright:mngeo_public_repository:1",
+              "name": "Wright parcel dataset",
+              "authority": "statewide",
+              "dataset_type": "Distinct county parcel repository subdataset",
+              "layer_id": 0,
+              "approved_public_links": [
+                {
+                  "label": "Official parcel source",
+                  "href": "https://wright-county-gis-wrightgis.hub.arcgis.com/datasets/6bae27646e664fad990aa6018c60cb91_0/about"
+                }
+              ],
+              "review_date": "2026-10-06",
+              "monitoring_decision": "not-assessed",
+              "evidence": [
+                "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
+                "https://wright-county-gis-wrightgis.hub.arcgis.com/datasets/6bae27646e664fad990aa6018c60cb91_0/about",
+                "https://www.arcgis.com/sharing/rest/content/items/6bae27646e664fad990aa6018c60cb91?f=pjson"
+              ]
+            }
+          ]
         },
         "county_arcgis_rest": {
-          "review_status": "pending",
-          "availability": "unknown",
-          "review_date": null,
-          "finding": "Category not yet reviewed.",
-          "evidence": [],
-          "sources": []
+          "review_status": "reviewed",
+          "availability": "yes",
+          "review_date": "2026-10-06",
+          "finding": "MnGeo downloads link county Parcels Wright County Hub About; rendered public Download and exact FeatureServer/0, esriGeometryPolygon. The same distinct county-owned product is rendered in Commons. Item purpose supports planning/property analysis/public reference; terms caution against legal-survey and precision uses, with no-warranty/liability language. County GIS landing reviewed; 2025 official project-administration memo explicitly lists parcels among free open-data downloads but is a proposed resolution, not proof of adoption.",
+          "evidence": [
+            "https://www.wrightcountymn.gov/215/GIS-Mapping/QuickLinks",
+            "https://services2.arcgis.com/CiQCvRGImIxsaFnM/arcgis/rest/services/Parcels_Wright_County/FeatureServer/0?f=pjson",
+            "https://www.arcgis.com/sharing/rest/content/items/6bae27646e664fad990aa6018c60cb91?f=pjson"
+          ],
+          "sources": [
+            {
+              "inventory_id": "wright:county_arcgis_rest:1",
+              "name": "Wright parcel dataset",
+              "authority": "county-authorized-provider",
+              "dataset_type": "Parcel polygon REST layer",
+              "layer_id": 0,
+              "approved_public_links": [
+                {
+                  "label": "Official parcel source",
+                  "href": "https://services2.arcgis.com/CiQCvRGImIxsaFnM/arcgis/rest/services/Parcels_Wright_County/FeatureServer/0?f=pjson"
+                }
+              ],
+              "review_date": "2026-10-06",
+              "monitoring_decision": "not-assessed",
+              "evidence": [
+                "https://www.wrightcountymn.gov/215/GIS-Mapping/QuickLinks",
+                "https://services2.arcgis.com/CiQCvRGImIxsaFnM/arcgis/rest/services/Parcels_Wright_County/FeatureServer/0?f=pjson",
+                "https://www.arcgis.com/sharing/rest/content/items/6bae27646e664fad990aa6018c60cb91?f=pjson"
+              ]
+            }
+          ]
         },
         "county_download": {
-          "review_status": "pending",
-          "availability": "unknown",
-          "review_date": null,
-          "finding": "Category not yet reviewed.",
-          "evidence": [],
-          "sources": []
+          "review_status": "reviewed",
+          "availability": "yes",
+          "review_date": "2026-10-06",
+          "finding": "MnGeo downloads link county Parcels Wright County Hub About; rendered public Download and exact FeatureServer/0, esriGeometryPolygon. The same distinct county-owned product is rendered in Commons. Item purpose supports planning/property analysis/public reference; terms caution against legal-survey and precision uses, with no-warranty/liability language. County GIS landing reviewed; 2025 official project-administration memo explicitly lists parcels among free open-data downloads but is a proposed resolution, not proof of adoption.",
+          "evidence": [
+            "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
+            "https://wright-county-gis-wrightgis.hub.arcgis.com/datasets/6bae27646e664fad990aa6018c60cb91_0/about",
+            "https://www.arcgis.com/sharing/rest/content/items/6bae27646e664fad990aa6018c60cb91?f=pjson"
+          ],
+          "sources": [
+            {
+              "inventory_id": "wright:county_download:1",
+              "name": "Wright parcel dataset",
+              "authority": "county-authorized-provider",
+              "dataset_type": "Parcel polygon Hub download",
+              "layer_id": 0,
+              "approved_public_links": [
+                {
+                  "label": "Official parcel source",
+                  "href": "https://wright-county-gis-wrightgis.hub.arcgis.com/datasets/6bae27646e664fad990aa6018c60cb91_0/about"
+                }
+              ],
+              "review_date": "2026-10-06",
+              "monitoring_decision": "not-assessed",
+              "evidence": [
+                "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
+                "https://wright-county-gis-wrightgis.hub.arcgis.com/datasets/6bae27646e664fad990aa6018c60cb91_0/about",
+                "https://www.arcgis.com/sharing/rest/content/items/6bae27646e664fad990aa6018c60cb91?f=pjson"
+              ]
+            }
+          ]
         }
       }
     },
     {
       "county": "Yellow Medicine",
-      "review_date": null,
-      "research_complete": false,
+      "review_date": "2026-10-06",
+      "research_complete": true,
       "official_county_url": "https://www.co.ym.mn.gov/",
-      "parcel_page_url": null,
-      "download_or_service_url": null,
+      "parcel_page_url": "https://shareopendata-yellowmedicine.hub.arcgis.com/",
+      "download_or_service_url": "https://gis.co.ym.mn.gov/arcgis/rest/services/Assessors/TaxParcels/FeatureServer/0",
       "viewer_url": null,
       "fee_policy_url": null,
       "parcel_dataset_fee": null,
       "fee_product": null,
-      "evidence_note": "County-direct parcel access has not yet been reviewed.",
-      "source_authority": "unverified",
-      "usable_direct_machine_readable_source": false,
+      "evidence_note": "Official MnGeo parcel table delegates downloads to Yellow Medicine ShareOpenData. Rendered Tax Parcels About advertises public Download and exact county Assessors/TaxParcels FeatureServer/0, esriGeometryPolygon. Item disclaimer is as-is/no-warranty with liability and jurisdiction limitations; no polling permission inferred. Native county Hub resource remains separate from statewide compilation.",
+      "source_authority": "county-authorized-provider",
+      "usable_direct_machine_readable_source": true,
       "monitoring": {
         "decision": "not-assessed",
-        "reason": "Discovery does not authorize monitoring.",
-        "terms_urls": []
+        "reason": "Published product availability is separate from unattended monitoring permission; discovery does not activate polling.",
+        "terms_urls": [
+          "https://www.arcgis.com/sharing/rest/content/items/b541e04a4c204811ab3251a980b92138?f=pjson"
+        ]
       },
-      "evidence": [],
+      "evidence": [
+        {
+          "url": "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson",
+          "authority": "statewide",
+          "finding": "Yellow Medicine is included in dated official opt-in statewide publication; current runtime membership remains independent."
+        },
+        {
+          "url": "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
+          "authority": "statewide",
+          "finding": "Official county parcel distribution table reviewed; linked county products are distinct from statewide inclusion."
+        },
+        {
+          "url": "https://shareopendata-yellowmedicine.hub.arcgis.com/",
+          "authority": "county-authorized-provider",
+          "finding": "Official MnGeo parcel table delegates downloads to Yellow Medicine ShareOpenData. Rendered Tax Parcels About advertises public Download and exact county Assessors/TaxParcels FeatureServer/0, esriGeometryPolygon. Item disclaimer is as-is/no-warranty with liability and jurisdiction limitations; no polling permission inferred. Native county Hub resource remains separate from statewide compilation."
+        },
+        {
+          "url": "https://gis.co.ym.mn.gov/arcgis/rest/services/Assessors/TaxParcels/FeatureServer/0?f=pjson",
+          "authority": "county-authorized-provider",
+          "finding": "Official MnGeo parcel table delegates downloads to Yellow Medicine ShareOpenData. Rendered Tax Parcels About advertises public Download and exact county Assessors/TaxParcels FeatureServer/0, esriGeometryPolygon. Item disclaimer is as-is/no-warranty with liability and jurisdiction limitations; no polling permission inferred. Native county Hub resource remains separate from statewide compilation."
+        },
+        {
+          "url": "https://www.arcgis.com/sharing/rest/content/items/b541e04a4c204811ab3251a980b92138?f=pjson",
+          "authority": "county-authorized-provider",
+          "finding": "Official MnGeo parcel table delegates downloads to Yellow Medicine ShareOpenData. Rendered Tax Parcels About advertises public Download and exact county Assessors/TaxParcels FeatureServer/0, esriGeometryPolygon. Item disclaimer is as-is/no-warranty with liability and jurisdiction limitations; no polling permission inferred. Native county Hub resource remains separate from statewide compilation."
+        },
+        {
+          "url": "https://shareopendata-yellowmedicine.hub.arcgis.com/datasets/b541e04a4c204811ab3251a980b92138_0/about",
+          "authority": "county-authorized-provider",
+          "finding": "Official MnGeo parcel table delegates downloads to Yellow Medicine ShareOpenData. Rendered Tax Parcels About advertises public Download and exact county Assessors/TaxParcels FeatureServer/0, esriGeometryPolygon. Item disclaimer is as-is/no-warranty with liability and jurisdiction limitations; no polling permission inferred. Native county Hub resource remains separate from statewide compilation."
+        },
+        {
+          "url": "https://gis.data.mn.gov/search?q=Yellow%20Medicine%20parcels",
+          "authority": "statewide",
+          "finding": "Rendered scoped Commons catalog reviewed: statewide/derived compilation results returned; no distinct county parcel repository product established. Bounded search does not prove absence."
+        }
+      ],
       "review_log": {
         "county_site": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed official distribution/product evidence and published item disclaimer within bounded scope. Independent category blockers remain explicit; no absence or polling permission inferred.",
+          "urls": [
+            "https://shareopendata-yellowmedicine.hub.arcgis.com/",
+            "https://www.arcgis.com/sharing/rest/content/items/b541e04a4c204811ab3251a980b92138?f=pjson"
+          ]
         },
         "gis_assessor_land_records": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed official distribution/product evidence and published item disclaimer within bounded scope. Independent category blockers remain explicit; no absence or polling permission inferred.",
+          "urls": [
+            "https://shareopendata-yellowmedicine.hub.arcgis.com/",
+            "https://www.arcgis.com/sharing/rest/content/items/b541e04a4c204811ab3251a980b92138?f=pjson"
+          ]
         },
         "downloads_open_data": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed official distribution/product evidence and published item disclaimer within bounded scope. Independent category blockers remain explicit; no absence or polling permission inferred.",
+          "urls": [
+            "https://shareopendata-yellowmedicine.hub.arcgis.com/",
+            "https://www.arcgis.com/sharing/rest/content/items/b541e04a4c204811ab3251a980b92138?f=pjson"
+          ]
         },
         "arcgis_services": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed official distribution/product evidence and published item disclaimer within bounded scope. Independent category blockers remain explicit; no absence or polling permission inferred.",
+          "urls": [
+            "https://shareopendata-yellowmedicine.hub.arcgis.com/",
+            "https://www.arcgis.com/sharing/rest/content/items/b541e04a4c204811ab3251a980b92138?f=pjson"
+          ]
         },
         "data_policy": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed official distribution/product evidence and published item disclaimer within bounded scope. Independent category blockers remain explicit; no absence or polling permission inferred.",
+          "urls": [
+            "https://shareopendata-yellowmedicine.hub.arcgis.com/",
+            "https://www.arcgis.com/sharing/rest/content/items/b541e04a4c204811ab3251a980b92138?f=pjson"
+          ]
         },
         "fee_schedule": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Public downloadable parcel product verified through official distribution/metadata. No parcel fee inferred from unrelated viewing, maps, deeds or labor products; absence of fees not asserted exhaustively.",
+          "urls": [
+            "https://shareopendata-yellowmedicine.hub.arcgis.com/",
+            "https://www.arcgis.com/sharing/rest/content/items/b541e04a4c204811ab3251a980b92138?f=pjson"
+          ]
         },
         "request_forms": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "not-applicable",
+          "note": "No request or resolution was needed or submitted to inspect published parcel distribution and metadata. Adoption of an open-data resolution is not asserted; advertised/current product evidence is used.",
+          "urls": [
+            "https://shareopendata-yellowmedicine.hub.arcgis.com/"
+          ]
         },
         "resolutions_ordinances": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "not-applicable",
+          "note": "No request or resolution was needed or submitted to inspect published parcel distribution and metadata. Adoption of an open-data resolution is not asserted; advertised/current product evidence is used.",
+          "urls": [
+            "https://shareopendata-yellowmedicine.hub.arcgis.com/"
+          ]
         },
         "authorized_portals": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed official distribution/product evidence and published item disclaimer within bounded scope. Independent category blockers remain explicit; no absence or polling permission inferred.",
+          "urls": [
+            "https://shareopendata-yellowmedicine.hub.arcgis.com/",
+            "https://www.arcgis.com/sharing/rest/content/items/b541e04a4c204811ab3251a980b92138?f=pjson"
+          ]
         },
         "statewide_context": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Dated official statewide item membership reviewed; live coverage remains independent.",
+          "urls": [
+            "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
+          ]
         }
       },
-      "county_direct_classification": null,
+      "county_direct_classification": "free-parcel-data",
       "statewide_open_coverage": {
-        "available": null,
+        "available": true,
         "source": "MnGeo Plan Parcels Open",
-        "source_url": "https://gisdata.mn.gov/dataset/plan-parcels-open",
-        "verified_date": null
+        "source_url": "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson",
+        "verified_date": "2026-10-06"
       },
-      "comments": "",
+      "comments": "Official MnGeo parcel table delegates downloads to Yellow Medicine ShareOpenData. Rendered Tax Parcels About advertises public Download and exact county Assessors/TaxParcels FeatureServer/0, esriGeometryPolygon. Item disclaimer is as-is/no-warranty with liability and jurisdiction limitations; no polling permission inferred. Native county Hub resource remains separate from statewide compilation.",
       "source_inventory": {
         "mngac_public_parcels": {
-          "review_status": "pending",
-          "availability": "unknown",
-          "review_date": null,
-          "finding": "Category not yet reviewed.",
-          "evidence": [],
-          "sources": []
+          "review_status": "reviewed",
+          "availability": "yes",
+          "review_date": "2026-10-06",
+          "finding": "Yellow Medicine is included in dated official opt-in statewide publication; current runtime membership remains independent.",
+          "evidence": [
+            "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
+          ],
+          "sources": [
+            {
+              "inventory_id": "yellow-medicine:mngac_public_parcels:1",
+              "name": "Yellow Medicine parcel dataset",
+              "authority": "statewide",
+              "dataset_type": "Statewide parcel compilation",
+              "layer_id": null,
+              "approved_public_links": [
+                {
+                  "label": "Official parcel source",
+                  "href": "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
+                }
+              ],
+              "review_date": "2026-10-06",
+              "monitoring_decision": "not-assessed",
+              "evidence": [
+                "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
+              ]
+            }
+          ]
         },
         "mngeo_public_repository": {
-          "review_status": "pending",
+          "review_status": "blocked",
           "availability": "unknown",
-          "review_date": null,
-          "finding": "Category not yet reviewed.",
-          "evidence": [],
+          "review_date": "2026-10-06",
+          "finding": "Rendered scoped Commons catalog reviewed: statewide/derived compilation results returned; no distinct county parcel repository product established. Bounded search does not prove absence.",
+          "evidence": [
+            "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
+            "https://gis.data.mn.gov/search?q=Yellow%20Medicine%20parcels"
+          ],
           "sources": []
         },
         "county_arcgis_rest": {
-          "review_status": "pending",
-          "availability": "unknown",
-          "review_date": null,
-          "finding": "Category not yet reviewed.",
-          "evidence": [],
-          "sources": []
+          "review_status": "reviewed",
+          "availability": "yes",
+          "review_date": "2026-10-06",
+          "finding": "Official MnGeo parcel table delegates downloads to Yellow Medicine ShareOpenData. Rendered Tax Parcels About advertises public Download and exact county Assessors/TaxParcels FeatureServer/0, esriGeometryPolygon. Item disclaimer is as-is/no-warranty with liability and jurisdiction limitations; no polling permission inferred. Native county Hub resource remains separate from statewide compilation.",
+          "evidence": [
+            "https://shareopendata-yellowmedicine.hub.arcgis.com/",
+            "https://gis.co.ym.mn.gov/arcgis/rest/services/Assessors/TaxParcels/FeatureServer/0?f=pjson",
+            "https://www.arcgis.com/sharing/rest/content/items/b541e04a4c204811ab3251a980b92138?f=pjson"
+          ],
+          "sources": [
+            {
+              "inventory_id": "yellow-medicine:county_arcgis_rest:1",
+              "name": "Yellow Medicine parcel dataset",
+              "authority": "county-authorized-provider",
+              "dataset_type": "Parcel polygon REST layer",
+              "layer_id": 0,
+              "approved_public_links": [
+                {
+                  "label": "Official parcel source",
+                  "href": "https://gis.co.ym.mn.gov/arcgis/rest/services/Assessors/TaxParcels/FeatureServer/0?f=pjson"
+                }
+              ],
+              "review_date": "2026-10-06",
+              "monitoring_decision": "not-assessed",
+              "evidence": [
+                "https://shareopendata-yellowmedicine.hub.arcgis.com/",
+                "https://gis.co.ym.mn.gov/arcgis/rest/services/Assessors/TaxParcels/FeatureServer/0?f=pjson",
+                "https://www.arcgis.com/sharing/rest/content/items/b541e04a4c204811ab3251a980b92138?f=pjson"
+              ]
+            }
+          ]
         },
         "county_download": {
-          "review_status": "pending",
-          "availability": "unknown",
-          "review_date": null,
-          "finding": "Category not yet reviewed.",
-          "evidence": [],
-          "sources": []
+          "review_status": "reviewed",
+          "availability": "yes",
+          "review_date": "2026-10-06",
+          "finding": "Official MnGeo parcel table delegates downloads to Yellow Medicine ShareOpenData. Rendered Tax Parcels About advertises public Download and exact county Assessors/TaxParcels FeatureServer/0, esriGeometryPolygon. Item disclaimer is as-is/no-warranty with liability and jurisdiction limitations; no polling permission inferred. Native county Hub resource remains separate from statewide compilation.",
+          "evidence": [
+            "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
+            "https://shareopendata-yellowmedicine.hub.arcgis.com/datasets/b541e04a4c204811ab3251a980b92138_0/about",
+            "https://www.arcgis.com/sharing/rest/content/items/b541e04a4c204811ab3251a980b92138?f=pjson"
+          ],
+          "sources": [
+            {
+              "inventory_id": "yellow-medicine:county_download:1",
+              "name": "Yellow Medicine parcel dataset",
+              "authority": "county-authorized-provider",
+              "dataset_type": "Parcel polygon Hub download",
+              "layer_id": 0,
+              "approved_public_links": [
+                {
+                  "label": "Official parcel source",
+                  "href": "https://shareopendata-yellowmedicine.hub.arcgis.com/datasets/b541e04a4c204811ab3251a980b92138_0/about"
+                }
+              ],
+              "review_date": "2026-10-06",
+              "monitoring_decision": "not-assessed",
+              "evidence": [
+                "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
+                "https://shareopendata-yellowmedicine.hub.arcgis.com/datasets/b541e04a4c204811ab3251a980b92138_0/about",
+                "https://www.arcgis.com/sharing/rest/content/items/b541e04a4c204811ab3251a980b92138?f=pjson"
+              ]
+            }
+          ]
         }
       }
     }

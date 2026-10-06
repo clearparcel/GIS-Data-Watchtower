@@ -99,20 +99,18 @@ This is why Winona is correctly represented as:
 The original 35 counties were reviewed using bounded official county landing pages, parcel
 service metadata, the [official MnGeo parcel source table](https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp),
 the current state-hosted service directory, and county-specific Commons publishing-account
-metadata searches plus all 87 returned official state-organization parcel-search records. Search responses were read; snippets were only discovery. The next 44 previously unreviewed
-counties (the exact Aitkin–Clay, Clearwater–Houston, Isanti–Mower, Olmsted–Scott and Sherburne–Stevens batches, listed below) now have actual category reviews. The remaining 8
-records retain pending category reviews.
+metadata searches plus all 87 returned official state-organization parcel-search records. Search responses were read; snippets were only discovery. All52 previously unreviewed counties now have actual category reviews, including the exact final eight Swift–Yellow Medicine counties listed below. No county record retains pending categories; unresolved evidence remains blocked/unknown.
 
-| Category | Reviewed across 79 county reviews | Blocked / unresolved | Pending remaining 8 |
+| Category | Reviewed across 87 county reviews | Blocked / unresolved | Pending |
 | --- | ---: | ---: | ---: |
-| MnGeo Plan Parcels Open | 79 (52 included, 27 excluded) | 0 | 8 |
-| Distinct MnGeo public repository | 12 available | 67 | 8 |
-| County-authorized parcel REST | 51 available | 28 | 8 |
-| County parcel download | 45 available | 34 | 8 |
+| MnGeo Plan Parcels Open | 87 (59 included, 28 excluded) | 0 | 0 |
+| Distinct MnGeo public repository | 16 available | 71 | 0 |
+| County-authorized parcel REST | 59 available | 28 | 0 |
+| County parcel download | 52 available | 35 | 0 |
 
-These counts are derived from stored category statuses: **187 reviewed**, **129 blocked**,
-and **32 pending** category assessments across 87 county records. **Eleven counties have all
-four categories complete** (Aitkin, Anoka, Carver, Dakota, Fillmore, Hennepin, Houston, Itasca, Lake, Morrison, Steele);
+These counts are derived from stored category statuses: **214 reviewed**, **134 blocked**,
+and **0 pending** category assessments across 87 county records. **15 counties have all
+four categories complete** (Aitkin, Anoka, Carver, Dakota, Fillmore, Hennepin, Houston, Itasca, Lake, Morrison, Steele, Wabasha, Waseca, Washington, Wright);
 Aitkin's county-direct pricing/policy assessment remains unresolved. County-direct
 classification is separate from inventory completion; category keys alone do not finish research.
 
@@ -210,9 +208,8 @@ Exact vetted Aitkin and Beltrami public dataset identities retain monitored IDs 
 REST/Hub/download representations; no other join is inferred from county name or generic
 catalog. Current runtime coverage still overrides dated research membership.
 
-Across all stored records, **74** county-direct classifications are complete: **51 free**,
-**12 fee-based**, **11 viewer-only**. The remaining 13 are unresolved or pending (8 untouched records and five attempted county-direct reviews without a published classification). These research
-totals do not change active monitoring coverage.
+Across all stored records, **82** county-direct classifications are complete: **58 free**,
+**13 fee-based**, **11 viewer-only**. The remaining 5 county-direct classifications are unresolved (Aitkin, Big Stone, Cass, Koochiching, Rice). These research totals do not change active monitoring coverage.
 
 ### Clearwater–Houston inventory batch, 2026-10-06
 
@@ -411,7 +408,7 @@ type without retrieving the archive body.
 
 ### Hold for terms clarification
 
-The following **8 counties** retain research holds pending terms clarification. Advertised
+The following **11 counties** retain research holds pending terms clarification. Advertised
 free products and historical runtime observations remain separate from these research decisions:
 
 - **Blue Earth** — official county pages state property-tax GIS data are available for purchase;
@@ -428,8 +425,11 @@ free products and historical runtime observations remain separate from these res
 - **Lyon** — prior review retained a research hold for its advertised free product pending licensing clarification.
 - **McLeod** — prior review retained a research hold for its advertised free product pending licensing clarification.
 
-The original four holds, Brown and the three Isanti–Mower batch holds remain unchanged. The latter
-three are retained research decisions; their licensing text is not reinterpreted here as an express
+- **Stevens** — free county parcel product retained; general/visual-only use terms excluding financial or decision-making uses need clarification.
+- **Swift** — 2026 parcel dataset pricing is separate from free interactive viewing; public-layer permission scope needs clarification.
+- **Wilkin** — fee-exempt self-service parcel download retained; signed waiver/distribution statement applicability needs clarification.
+
+The original four holds, Brown, Lake, Lyon, McLeod and Stevens remain unchanged. All holds are retained research decisions; their licensing text is not reinterpreted here as an express
 ban on metadata-only monitoring. Public technical reachability is not treated as permission to automate a county data
 product that the county separately licenses or sells.
 
@@ -660,3 +660,53 @@ Commons/state metadata reviews; bounded searches do not prove exhaustive absence
 The eight existing holds remain, for **nine research holds total**. Typed stable geometry/format
 projection remains deferred to Task 4c. No parcel features, property-search pages,
 archives or download bodies were retrieved; no agreement gates were accepted.
+
+
+### Swift–Yellow Medicine inventory batch, 2026-10-06
+
+The exact eight counties are Swift, Traverse, Wabasha, Waseca, Washington, Wilkin, Wright,
+and Yellow Medicine. This batch adds **27 reviewed / 5 blocked** assessments. The official
+statewide item includes seven; Swift is excluded from that dated publication. Current
+runtime coverage remains authoritative.
+
+[Swift 2026 fees](https://swiftcounty.gov/uploads/dm/48672/2026_Licenses_Fees_and_Service_Charges)
+explicitly price GIS parcel data: $0.03 per parcel without tax information, $0.04 with tax
+information, $450 for the full layer with tax information; government agencies are exempt.
+Its county GIS and Interactive Maps pages separately authorize free viewing. Public
+staff-owned Swift_Parcels polygon metadata does not establish free downloadable delivery.
+Swift is fee-based with a research hold pending clarification of the fee/public-service scope;
+this is not an assertion that metadata-only monitoring is prohibited.
+
+[Wilkin policy](https://wilkincounty.gov/vertical/sites/%7B6E7AB7CB-4769-4357-B6C8-90E546FFE488%7D/uploads/GIS_data_policy_12-17-19.pdf)
+explicitly exempts self-service open-portal users from fees. Rendered county Tax Parcels About
+advertises a public downloadable polygon product. Its free route is retained separately from
+priced requested GIS/Tax Parcel packages ($3,000 plus contractor fees; individual parcels
+$0.50 each, minimum $20 plus contractor fee). Recipients must sign waiver/release and distribution
+liability statements; applicability to self-service access needs clarification, so Wilkin is
+free with a research hold. Requested delivery formats are Shapefile/geodatabase; these are not
+asserted as a particular Hub export format. No agreement was accepted or data downloaded.
+
+Wabasha has a distinct state-hosted county parcel product. Official metadata identifies the
+county publisher, countywide polygons, and no access/use restrictions beyond verification of
+source/currentness. Rendered Commons About advertises GeoPackage and a separate ZIP data
+product. Its county GIS landing returned 503; final official published product metadata remains
+available. Waseca's county-owned Commons About explicitly describes parcel polygons shared to
+Commons and advertises Download. Wright's county Hub and Commons resolve the same parcel
+product. Traverse and Yellow Medicine have MnGeo-delegated county Hub parcel downloads;
+public as-is/no-warranty/liability disclaimers remain separate from unattended-use permission.
+
+[Washington Survey Division](https://www.co.washington.mn.us/surveyor) and its Maps page provide
+free parcel data through GeoCommons. The official Metropolitan 7-County Parcel Polygons item
+states individual county sublayers/feature classes, no fees/license and public-domain terms.
+The verified Washington County Parcels subdataset is **FeatureServer/6**, distinct from the
+statewide compilation and from the regional aggregate. Its advertised FGDB package contains
+all seven counties; no native Washington-only archive or product counts/dates are inferred.
+This verified county-specific regional subdataset qualifies as a distinct repository resource.
+
+All eight bounded layer metadata reads report **esriGeometryPolygon**. No feature queries,
+archive bodies, viewer scraping, private registry reads or source activation occurred.
+Rendered scoped Commons searches for Swift, Traverse, Wilkin and Yellow Medicine did not
+establish distinct repository products; these remain unknown, without claiming exhaustive
+absence. Swift download remains unknown. Exact vetted public observed IDs are retained only
+for Swift, Waseca and Wabasha; Wabasha/Waseca shared repository/REST/download representations
+reuse the same observation identity. Discovery and the two new holds change research only.
