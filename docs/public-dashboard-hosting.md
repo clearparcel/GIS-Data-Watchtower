@@ -51,6 +51,8 @@ Public output may include:
 - MN GAC completeness statistics and the interactive county map;
 - sanitized JSON, CSV, and Excel exports.
 
+Source `public_metadata` contains only validated adapter, geometry type, provider edit timestamp, and file type, size, ETag, and Last-Modified scalars. ArcGIS edit timestamps come from metadata already fetched during authorized checks; older observations may omit them. The publisher and rendering sanitizer preserve this structure and change counts across repeated passes. Catalog and standard links use offline public URL validation, and MN GAC nested records use explicit field allowlists.
+
 The public representation intentionally omits:
 
 - provider connection URLs used by the monitoring engine;
@@ -86,3 +88,7 @@ The public dashboard refreshes its local aggregate cache on a bounded interval (
 - Keep load-balancer request logging enabled and use the one-minute HTTPS `/healthz` check plus availability/5xx alerting for the public serving path. Each published snapshot carries `public_published_at`; `/healthz` returns 503 when the production snapshot is more than 30 minutes old, so missed publication cycles are externally detectable.
 - Preserve the sanitized-state regression tests before deployment.
 - Treat any addition to the public state schema as a security-sensitive change.
+
+## Public request socket limits
+
+The public server limits concurrent handlers and gives each accepted connection an idle socket timeout plus an absolute socket deadline. `WATCHTOWER_PUBLIC_REQUEST_TIMEOUT_SECONDS` defaults to 10 seconds, is bounded to 2–60 seconds, and falls back to 10 for malformed values. The absolute deadline interrupts incomplete or trickling request headers and blocking response writes, releasing the connection slot after the handler unwinds. Timers are cancelled and joined on completion. This does not cancel application computation; keep load-balancer limits as well. These are repository implementation controls, not a claim that a production service has been redeployed.

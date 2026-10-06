@@ -18,6 +18,8 @@ import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
 from pathlib import Path
+from clearparcel.datawatch.public_values import provider_edit_timestamp
+from clearparcel.datawatch.transport import RequestDeadline, PinnedURL, resolve_addresses, effective_proxy, guarded_opener
 
 class ProviderRateLimitError(RuntimeError):
     """Provider explicitly asked the client to slow down."""
@@ -107,8 +109,11 @@ def _url_host(url: str) -> str:
     return parsed.hostname.lower().rstrip(".")
 
 
-def _destination_publicity(url: str) -> bool | None:
+def _destination_publicity(url: str, *, deadline: RequestDeadline | None = None) -> bool | None:
     """Return True for globally routable, False for local/reserved, None if unresolved."""
+    if deadline is None:
+        with RequestDeadline(20) as bounded:
+            return _destination_publicity(url, deadline=bounded)
     parsed = urllib.parse.urlparse(url)
     host = _url_host(url)
     if host in {"localhost", "metadata.google.internal"} or host.endswith(".localhost") or host.endswith(".internal"):
@@ -118,7 +123,7 @@ def _destination_publicity(url: str) -> bool | None:
     except ValueError:
         port = parsed.port or (443 if parsed.scheme.lower() == "https" else 80)
         try:
-            infos = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
+            infos = resolve_addresses(host, port, deadline)
         except socket.gaierror:
             return None
         addresses = []
@@ -132,30 +137,26 @@ def _destination_publicity(url: str) -> bool | None:
     return all(address.is_global for address in addresses)
 
 
-def _validated_redirect(current_url: str, location: str, initial_url: str) -> str:
+def _validated_redirect(current_url: str, location: str, initial_url: str, *, deadline: RequestDeadline | None = None) -> str:
     target = urllib.parse.urljoin(current_url, location)
     target_host = _url_host(target)
-    initial_host = _url_host(initial_url)
-    current_host = _url_host(current_url)
+    _url_host(initial_url)
+    _url_host(current_url)
+    if deadline is None:
+        with RequestDeadline(20) as bounded:
+            return _validated_redirect(current_url, location, initial_url, deadline=bounded)
+    parsed = urllib.parse.urlsplit(target)
+    addresses = resolve_addresses(target_host, parsed.port or (443 if parsed.scheme == "https" else 80), deadline)
+    target = PinnedURL(target, addresses)
     if target_host in _redirect_allow_hosts():
         return target
 
-    initial_public = _destination_publicity(initial_url)
-    target_public = _destination_publicity(target)
-    if target_host in {initial_host, current_host}:
-        # Same-provider redirects do not expand the operator-approved host boundary,
-        # but a provider that started public may not DNS-rebind a later hop to a
-        # private, link-local, loopback, reserved, or metadata address.
-        if initial_public is True and target_public is not True:
-            raise RuntimeError(f"redirect rejected: {target_host} no longer resolves only to public addresses")
-        if target_public is False and initial_public is not False:
-            raise RuntimeError(f"redirect rejected: non-public destination {target_host}")
-        return target
-
-    # Cross-host redirects expand trust. Permit them only when the new host resolves
-    # entirely to globally routable addresses or has been explicitly allowlisted.
-    if target_public is not True:
-        raise RuntimeError(f"redirect rejected: cross-host destination {target_host} is not public/approved")
+    # A fresh lookup cannot establish the original connection's trust boundary.
+    # Require public addresses even on same-host hops; private hops need explicit approval.
+    reserved_host = target_host in {"localhost", "metadata.google.internal"} or target_host.endswith((".localhost", ".internal"))
+    target_public = all(ipaddress.ip_address(info[4][0]).is_global for info in addresses)
+    if reserved_host or not target_public:
+        raise RuntimeError(f"redirect rejected: destination {target_host} is not public/approved")
     return target
 
 
@@ -173,16 +174,21 @@ def _urllib_request_once(
     *,
     data: bytes | None = None,
     content_type: str | None = None,
+    deadline: RequestDeadline | None = None,
+    method: str | None = None,
 ) -> tuple[bytes, dict]:
+    if deadline is None:
+        with RequestDeadline(timeout) as bounded:
+            return _urllib_request_once(url, timeout, data=data, content_type=content_type, deadline=bounded, method=method)
     headers = {"User-Agent": USER_AGENT}
     if content_type:
         headers["Content-Type"] = content_type
-    req = urllib.request.Request(url, data=data, headers=headers, method="POST" if data is not None else "GET")
-    opener = urllib.request.build_opener(_NoRedirectHandler)
+    req = urllib.request.Request(url, data=data, headers=headers, method=method or ("POST" if data is not None else "GET"))
+    opener = guarded_opener(url, deadline, _NoRedirectHandler)
     try:
-        with opener.open(req, timeout=timeout) as response:
+        with opener.open(req, timeout=deadline.remaining()) as response:
             content_length = response.headers.get("Content-Length")
-            if content_length:
+            if content_length and method != "HEAD":
                 try:
                     if int(content_length) > _max_response_bytes():
                         raise ProviderResponseTooLargeError(
@@ -190,7 +196,8 @@ def _urllib_request_once(
                         )
                 except ValueError:
                     pass
-            body = _read_bounded(response)
+            body = b"" if method == "HEAD" else _read_bounded(response)
+            deadline.remaining()
             return body, {
                 "status": int(response.status),
                 "headers": {k.lower(): v for k, v in response.headers.items()},
@@ -198,6 +205,7 @@ def _urllib_request_once(
                 "transport": "urllib-post" if data is not None else "urllib",
             }
     except urllib.error.HTTPError as exc:
+        exc.close()
         retry_after = exc.headers.get("Retry-After") if exc.headers else None
         if exc.code == 429:
             raise ProviderRateLimitError(retry_after) from exc
@@ -210,6 +218,9 @@ def _urllib_request_once(
                 "transport": "urllib-post" if data is not None else "urllib",
             }
         raise RuntimeError(f"provider returned HTTP {exc.code}; fallback transport not attempted") from exc
+    except Exception:
+        deadline.remaining()
+        raise
 
 def load_config(path: str | Path) -> dict:
     config_path = Path(path).expanduser().resolve()
@@ -272,6 +283,28 @@ def _hash_json(value) -> str:
     raw = json.dumps(value, sort_keys=True, separators=(",", ":")).encode("utf-8")
     return hashlib.sha256(raw).hexdigest()
 
+def _curl_response_metadata(output: bytes | str | None, headers_path: Path) -> tuple[int | None, str | None, str | None]:
+    """Read the final observed status before considering transfer/body failures."""
+    metadata = output.decode("utf-8", errors="replace") if isinstance(output, bytes) else (output or "")
+    statuses = re.findall(r"(?m)^__CP_HTTP__([0-9]{3})\r?$", metadata)
+    status = int(statuses[-1]) if statuses else None
+    if status is not None and not 100 <= status <= 599:
+        status = None
+    redirects = re.findall(r"(?m)^__CP_REDIRECT__([^\r\n]*)\r?$", metadata)
+    location = (redirects[-1].strip() if redirects else "") or None
+    retry_after = None
+    try:
+        if headers_path.is_file() and headers_path.stat().st_size <= 256 * 1024:
+            header_text = headers_path.read_text(encoding="iso-8859-1", errors="replace")
+            # Proxy/1xx header blocks can precede the provider's final response.
+            final_headers = re.split(r"(?m)^HTTP/[^\r\n]+\r?\n", header_text)[-1]
+            match = re.search(r"(?im)^Retry-After:[ \t]*([^\r\n]+)", final_headers)
+            retry_after = match.group(1).strip() if match else None
+    except OSError:
+        pass  # Missing optional headers must not discard an observed backoff signal.
+    return status, location, retry_after
+
+
 def _curl_request_once(
     url: str,
     timeout: int,
@@ -279,7 +312,15 @@ def _curl_request_once(
     transport: str,
     data: bytes | None = None,
     content_type: str | None = None,
+    deadline: RequestDeadline | None = None,
 ) -> tuple[bytes, dict]:
+    if deadline is None:
+        with RequestDeadline(timeout) as bounded:
+            return _curl_request_once(url, timeout, transport=transport, data=data, content_type=content_type, deadline=bounded)
+    timeout = deadline.remaining()
+    pinned = getattr(url, "addresses", None)
+    if pinned and effective_proxy(url):
+        raise RuntimeError("redirect rejected: configured proxy cannot enforce validated destination")
     curl_exe = shutil.which("curl") or shutil.which("curl.exe")
     if not curl_exe:
         raise RuntimeError("curl fallback unavailable")
@@ -289,6 +330,7 @@ def _curl_request_once(
         headers_path = Path(td) / "headers.txt"
         command = [
             curl_exe,
+            "--disable",
             "--connect-timeout", str(min(timeout, 15)),
             "--max-time", str(timeout),
             "--max-filesize", str(limit),
@@ -299,35 +341,44 @@ def _curl_request_once(
             "-o", str(body_path),
             "-w", "\n__CP_HTTP__%{http_code}\n__CP_REDIRECT__%{redirect_url}",
         ]
+        if pinned:
+            parsed = urllib.parse.urlsplit(url)
+            port = parsed.port or (443 if parsed.scheme == "https" else 80)
+            ips = list(dict.fromkeys(info[4][0] for info in pinned))
+            ips = [f"[{ip}]" if ":" in ip else ip for ip in ips]
+            binding = ["--noproxy", "*"]
+            try:
+                ipaddress.ip_address(parsed.hostname)
+            except ValueError:
+                binding.extend(["--resolve", f"{parsed.hostname}:{port}:{','.join(ips)}"])
+            command[2:2] = binding
         if data is not None:
             command.extend(["-H", f"Content-Type: {content_type or 'application/octet-stream'}", "--data-binary", "@-"])
         command.append(url)
-        cp = subprocess.run(
-            command,
-            input=data,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            timeout=timeout + 5,
-        )
+        try:
+            cp = subprocess.run(
+                command,
+                input=data,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=deadline.remaining(),
+            )
+        except subprocess.TimeoutExpired as exc:
+            status, _, retry_after = _curl_response_metadata(exc.output, headers_path)
+            if status == 429:
+                raise ProviderRateLimitError(retry_after) from None
+            raise TimeoutError("provider request wall-clock deadline exceeded") from None
+        status, location, retry_after = _curl_response_metadata(cp.stdout, headers_path)
+        if status == 429:
+            raise ProviderRateLimitError(retry_after)
+        deadline.remaining()
         if cp.returncode == 63:
             raise ProviderResponseTooLargeError(f"provider response exceeded {limit} bytes")
         if cp.returncode != 0:
             detail = _safe_diagnostic(cp.stderr.decode("utf-8", errors="replace"))
             raise RuntimeError(f"curl failed ({cp.returncode}: {detail})")
-        metadata = cp.stdout.decode("utf-8", errors="replace")
-        status_match = re.search(r"__CP_HTTP__(\d{3})", metadata)
-        redirect_match = re.search(r"__CP_REDIRECT__(.*?)(?:\r?\n|$)", metadata)
-        if not status_match:
+        if status is None:
             raise RuntimeError("curl returned no HTTP status marker")
-        status = int(status_match.group(1))
-        location = (redirect_match.group(1).strip() if redirect_match else "") or None
-        retry_after = None
-        if headers_path.is_file() and headers_path.stat().st_size <= 256 * 1024:
-            header_text = headers_path.read_text(encoding="iso-8859-1", errors="replace")
-            match = re.search(r"(?im)^Retry-After:\s*([^\r\n]+)", header_text)
-            retry_after = match.group(1).strip() if match else None
-        if status == 429:
-            raise ProviderRateLimitError(retry_after)
         if body_path.is_file() and body_path.stat().st_size > limit:
             raise ProviderResponseTooLargeError(f"provider response exceeded {limit} bytes")
         body = body_path.read_bytes() if body_path.is_file() else b""
@@ -348,13 +399,19 @@ def _curl_request(
     initial_url: str | None = None,
     data: bytes | None = None,
     content_type: str | None = None,
+    deadline: RequestDeadline | None = None,
+    redirect_budget: int | None = None,
 ) -> tuple[bytes, dict]:
+    if deadline is None:
+        with RequestDeadline(timeout) as bounded:
+            return _curl_request(url, timeout, transport=transport, initial_url=initial_url, data=data, content_type=content_type, deadline=bounded, redirect_budget=redirect_budget)
+    deadline.remaining()
     initial_url = initial_url or url
     current = url
-    max_redirects = _max_redirects()
+    max_redirects = _max_redirects() if redirect_budget is None else max(0, int(redirect_budget))
     for hop in range(max_redirects + 1):
         body, meta = _curl_request_once(
-            current, timeout, transport=transport, data=data, content_type=content_type
+            current, timeout, transport=transport, data=data, content_type=content_type, deadline=deadline
         )
         status = int(meta.get("status") or 0)
         if status in _REDIRECT_CODES:
@@ -365,7 +422,7 @@ def _curl_request(
                 raise RuntimeError(f"POST redirect HTTP {status} rejected to avoid method/payload forwarding")
             if hop >= max_redirects:
                 raise RuntimeError(f"provider redirect limit exceeded ({max_redirects})")
-            current = _validated_redirect(current, str(location), initial_url)
+            current = _validated_redirect(current, str(location), initial_url, deadline=deadline)
             continue
         if status < 200 or status >= 300:
             raise RuntimeError(f"curl HTTP status {status}")
@@ -374,20 +431,26 @@ def _curl_request(
     raise RuntimeError(f"provider redirect limit exceeded ({max_redirects})")
 
 
-def _request(url: str, timeout: int, *, prefer_curl: bool = False) -> tuple[bytes, dict]:
+def _request(url: str, timeout: int, *, prefer_curl: bool = False, deadline: RequestDeadline | None = None) -> tuple[bytes, dict]:
+    if deadline is None:
+        with RequestDeadline(timeout) as bounded:
+            return _request(url, timeout, prefer_curl=prefer_curl, deadline=bounded)
     _url_host(url)
     if prefer_curl:
-        return _curl_request(url, timeout, transport="curl-preferred")
+        return _curl_request(url, timeout, transport="curl-preferred", deadline=deadline)
     current = url
     max_redirects = _max_redirects()
     for hop in range(max_redirects + 1):
         try:
-            body, meta = _urllib_request_once(current, timeout)
+            body, meta = _urllib_request_once(current, timeout, deadline=deadline)
         except (urllib.error.URLError, TimeoutError, OSError) as primary:
+            deadline.remaining()
             try:
-                body, meta = _curl_request(current, timeout, transport="curl-fallback", initial_url=url)
+                body, meta = _curl_request(current, timeout, transport="curl-fallback", initial_url=url, deadline=deadline, redirect_budget=max_redirects - hop)
                 meta["primary_error"] = _safe_diagnostic(f"{type(primary).__name__}: {primary}")
                 return body, meta
+            except ProviderRateLimitError:
+                raise
             except Exception as fallback:
                 raise RuntimeError(
                     f"urllib transport failed ({_safe_diagnostic(type(primary).__name__ + ': ' + str(primary))}); "
@@ -400,13 +463,63 @@ def _request(url: str, timeout: int, *, prefer_curl: bool = False) -> tuple[byte
                 raise RuntimeError(f"provider returned redirect HTTP {status} without Location")
             if hop >= max_redirects:
                 raise RuntimeError(f"provider redirect limit exceeded ({max_redirects})")
-            current = _validated_redirect(current, str(location), url)
+            current = _validated_redirect(current, str(location), url, deadline=deadline)
             continue
         if status < 200 or status >= 300:
             raise RuntimeError(f"provider returned HTTP {status}")
         meta["final_url"] = current
         return body, meta
     raise RuntimeError(f"provider redirect limit exceeded ({max_redirects})")
+
+
+def _head_request(url: str, timeout: int) -> dict:
+    """Perform a redirect-guarded HEAD request without downloading the response body."""
+    _url_host(url)
+    current = url
+    max_redirects = _max_redirects()
+    with RequestDeadline(timeout) as deadline:
+        for hop in range(max_redirects + 1):
+            _, meta = _urllib_request_once(current, timeout, method="HEAD", deadline=deadline)
+            status = int(meta.get("status") or 0)
+            if status in _REDIRECT_CODES:
+                location = meta.get("location")
+                if not location:
+                    raise RuntimeError(f"provider returned redirect HTTP {status} without Location")
+                if hop >= max_redirects:
+                    raise RuntimeError(f"provider redirect limit exceeded ({max_redirects})")
+                current = _validated_redirect(current, str(location), url, deadline=deadline)
+                continue
+            if status < 200 or status >= 300:
+                raise RuntimeError(f"provider returned HTTP {status}")
+            meta["transport"] = "urllib-head"
+            return meta
+    raise RuntimeError(f"provider redirect limit exceeded ({max_redirects})")
+
+
+def _http_file(source: dict, timeout: int) -> dict:
+    meta = _head_request(source["url"], timeout)
+    headers = meta.get("headers") or {}
+    tracked = {
+        "etag": headers.get("etag"),
+        "last_modified": headers.get("last-modified"),
+        "content_length": headers.get("content-length"),
+    }
+    tracked = {k: v for k, v in tracked.items() if v not in (None, "")}
+    content_type = headers.get("content-type")
+    problems = []
+    expected = source.get("expected_content_type")
+    if expected and content_type and str(expected).lower() not in str(content_type).lower():
+        problems.append(f"content type changed: expected {expected}, got {content_type}")
+    if not tracked:
+        problems.append("provider returned no ETag, Last-Modified, or Content-Length freshness metadata")
+    return {
+        "http_status": meta["status"],
+        "transport": meta.get("transport"),
+        "content_type": content_type,
+        "tracked_values": tracked,
+        "schema_hash": _hash_json({"content_type": content_type}),
+        "problems": problems,
+    }
 
 
 def _json_request(url: str, timeout: int, *, prefer_curl: bool = False) -> tuple[dict, dict]:
@@ -417,7 +530,10 @@ def _json_request(url: str, timeout: int, *, prefer_curl: bool = False) -> tuple
     return data, meta
 
 
-def _post_json(url: str, payload: dict, timeout: int) -> tuple[dict, dict]:
+def _post_json(url: str, payload: dict, timeout: int, *, deadline: RequestDeadline | None = None) -> tuple[dict, dict]:
+    if deadline is None:
+        with RequestDeadline(timeout) as bounded:
+            return _post_json(url, payload, timeout, deadline=bounded)
     _url_host(url)
     body = json.dumps(payload).encode("utf-8")
     current = url
@@ -425,14 +541,17 @@ def _post_json(url: str, payload: dict, timeout: int) -> tuple[dict, dict]:
     for hop in range(max_redirects + 1):
         try:
             raw, meta = _urllib_request_once(
-                current, timeout, data=body, content_type="application/json"
+                current, timeout, data=body, content_type="application/json", deadline=deadline
             )
         except (urllib.error.URLError, TimeoutError, OSError) as primary:
+            deadline.remaining()
             try:
                 raw, meta = _curl_request(
                     current,
                     timeout,
                     transport="curl-post-fallback",
+                    deadline=deadline,
+                    redirect_budget=max_redirects - hop,
                     initial_url=url,
                     data=body,
                     content_type="application/json",
@@ -440,6 +559,8 @@ def _post_json(url: str, payload: dict, timeout: int) -> tuple[dict, dict]:
                 meta["primary_error"] = _safe_diagnostic(f"{type(primary).__name__}: {primary}")
                 data_obj = json.loads(raw.decode("utf-8-sig"))
                 return data_obj, meta
+            except ProviderRateLimitError:
+                raise
             except Exception as fallback:
                 raise RuntimeError(
                     f"POST transport failed ({_safe_diagnostic(type(primary).__name__ + ': ' + str(primary))}); "
@@ -454,7 +575,7 @@ def _post_json(url: str, payload: dict, timeout: int) -> tuple[dict, dict]:
                 raise RuntimeError(f"POST redirect HTTP {status} rejected to avoid method/payload forwarding")
             if hop >= max_redirects:
                 raise RuntimeError(f"provider redirect limit exceeded ({max_redirects})")
-            current = _validated_redirect(current, str(location), url)
+            current = _validated_redirect(current, str(location), url, deadline=deadline)
             continue
         if status < 200 or status >= 300:
             raise RuntimeError(f"provider returned HTTP {status}")
@@ -842,6 +963,9 @@ def _arcgis_layer(source: dict, timeout: int) -> dict:
         "schema_hash": _hash_json(schema_basis),
         "spatial_extent": _extent_basis(data),
     }
+    editing = data.get('editingInfo')
+    if isinstance(editing, dict) and provider_edit_timestamp(editing.get('lastEditDate')) is not None:
+        result['editing_info'] = {'lastEditDate': editing['lastEditDate']}
     if source.get("count"):
         result["feature_count"] = _arcgis_count_query(source["url"], "1=1", timeout, prefer_curl=bool(source.get("prefer_curl")))
     if source.get("mngac_completeness"):
@@ -857,6 +981,8 @@ def _arcgis_layer(source: dict, timeout: int) -> dict:
                 prefer_curl=bool(source.get("prefer_curl")),
                 batch_size=int(settings.get("batch_size", 12)),
             )
+        except ProviderRateLimitError:
+            raise
         except Exception as exc:
             result["mngac_completeness"] = {
                 "status": "unsupported",
@@ -866,7 +992,19 @@ def _arcgis_layer(source: dict, timeout: int) -> dict:
         id_field, confidence = _parcel_id_candidate(result["field_names"])
         result["parcel_id_field"] = id_field
         result["parcel_id_confidence"] = confidence
-        result["null_geometry_count"] = _arcgis_count_query(source["url"], "SHAPE IS NULL", timeout, prefer_curl=bool(source.get("prefer_curl")))
+        try:
+            result["null_geometry_count"] = _arcgis_count_query(
+                source["url"],
+                "SHAPE IS NULL",
+                timeout,
+                prefer_curl=bool(source.get("prefer_curl")),
+            )
+        except ProviderRateLimitError:
+            raise
+        except Exception as exc:
+            result["null_geometry_count"] = None
+            result["null_geometry_check"] = "unsupported"
+            result["null_geometry_check_error"] = _safe_diagnostic(exc)
         if id_field and confidence == "high":
             null_count = _arcgis_count_query(source["url"], f"{id_field} IS NULL OR {id_field} = ''", timeout, prefer_curl=bool(source.get("prefer_curl")))
             result["parcel_id_null_count"] = null_count
@@ -878,6 +1016,8 @@ def _arcgis_layer(source: dict, timeout: int) -> dict:
                 if field:
                     try:
                         profiles[label] = _field_completeness(source["url"], field, result.get("feature_count"), timeout, prefer_curl=bool(source.get("prefer_curl")))
+                    except ProviderRateLimitError:
+                        raise
                     except Exception as exc:
                         profiles[label] = {"field": field, "status": "unsupported", "error": str(exc)[:160]}
             result["completeness_profiles"] = profiles
@@ -888,11 +1028,15 @@ def _arcgis_layer(source: dict, timeout: int) -> dict:
                         sample_size=int(source.get("geometry_sample_size", 250)),
                         prefer_curl=bool(source.get("prefer_curl")),
                     ))
+                except ProviderRateLimitError:
+                    raise
                 except Exception as exc:
                     result["geometry_sample_status"] = "unsupported"
                     result["geometry_sample_error"] = str(exc)[:180]
             try:
                 result.update(_arcgis_duplicate_id_summary(source["url"], id_field, timeout, prefer_curl=bool(source.get("prefer_curl"))))
+            except ProviderRateLimitError:
+                raise
             except Exception as exc:
                 result["duplicate_id_check"] = "unsupported"
                 result["duplicate_id_check_error"] = str(exc)[:180]
@@ -960,6 +1104,8 @@ def _arcgis_service(source: dict, timeout: int) -> dict:
             "geometry_sample_rings": layer.get("geometry_sample_rings"), "geometry_sample_status": layer.get("geometry_sample_status"),
         })
         result["problems"].extend(layer.get("problems", []))
+        if 'editing_info' in layer:
+            result['editing_info'] = layer['editing_info']
     return result
 
 def _arcgis_image(source: dict, timeout: int) -> dict:
@@ -1139,6 +1285,7 @@ def _adapter_name(source: dict) -> str:
         "arcgis-map-service": "arcgis_service",
         "arcgis-image-service": "arcgis_image",
         "soil-data-access": "sda_query",
+        "http-file": "http_file",
     }
     return aliases.get(str(raw).strip().lower(), str(raw).strip().lower().replace("-", "_"))
 
@@ -1169,6 +1316,8 @@ def _source_check(source: dict, timeout: int) -> dict:
         return _wfs(source, timeout)
     if kind == "sda_query":
         return _sda_query(source, timeout)
+    if kind == "http_file":
+        return _http_file(source, timeout)
     raise ValueError(f"Unsupported source adapter: {kind}")
 def _compare(previous: dict | None, current: dict, source: dict | None = None) -> list[dict]:
     changes = []

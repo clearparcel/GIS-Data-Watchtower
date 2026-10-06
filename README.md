@@ -15,9 +15,19 @@ ClearParcel also operates a read-only public dashboard at **https://gis-watchtow
 - record-count and schema changes
 - parcel-ID and attribute completeness signals
 - Minnesota GAC parcel-field population statistics and interactive county comparison
+- evidence-backed Minnesota county-direct parcel access plus separate MnGeo statewide open coverage and active-monitoring paths
 - bounded geometry samples
 - source response and processing history
 - CSV, JSON, and Excel (`.xlsx`) snapshot exports
+- County parcel profiles in `/county-profiles.csv` (all 87 counties) and `/parcel-sources.csv` (each category and source, including empty-category placeholders). JSON county records include `parcel_source_profile`; Excel adds `County Access` and `Parcel Sources` sheets. `/snapshot.csv` retains the monitored-source rows. Unknown counts/dates stay blank in spreadsheets, observed zero stays zero, and date/time fields retain ISO semantics.
+- Both county maps open the same complete profile with click, Enter or Space. Escape closes the dialog and returns focus; overview refresh pauses while reading. Desktop and 390px layouts wrap long source/evidence values. Public publication reporting is Current, Overdue or Unknown using the `/healthz` threshold, separately from provider health and source reporting.
+- Profile coverage includes all 87 counties. The current evidence has 16 fully reviewed category inventories and 15 complete composed profiles; blocked evidence and unresolved county-direct access remain explicit. Monitoring coverage is derived from current observations.
+
+Public snapshots use typed projections for source metrics, completeness, workers,
+counts and catalog facts; private diagnostics and arbitrary nested values are
+omitted. Matching official statewide products retain one vetted inventory identity,
+with current county observations joined by source ID. Export row counts derive
+from the composed inventory and observations, including empty-category rows.
 
 Watchtower is designed for **low-frequency, respectful monitoring**. It is not a bulk downloader or a scraper for human-facing property-search websites.
 
@@ -76,6 +86,7 @@ Do not report security vulnerabilities in public issues. See `SECURITY.md`.
 ```bash
 python -W error::ResourceWarning -m unittest discover -s tests -q
 python -m compileall -q clearparcel tests
+git diff --check
 ```
 
 CI tests Windows and Ubuntu on Python 3.12, 3.13, and 3.14, plus a Linux container smoke test.
@@ -83,12 +94,12 @@ CI tests Windows and Ubuntu on Python 3.12, 3.13, and 3.14, plus a Linux contain
 ## Project documentation
 
 - [`STATUS.md`](STATUS.md) — concise validated project/deployment status
-- [`docs/current-status.md`](docs/current-status.md) — detailed current local/cloud/hybrid state
+- [`docs/current-status.md`](docs/current-status.md) — current recorded local/cloud/hybrid state and historical evidence
 - [`docs/configuration.md`](docs/configuration.md) — supported configuration and environment variables
 - [`docs/data-watchtower-processing-architecture.md`](docs/data-watchtower-processing-architecture.md) — processing/storage/dashboard boundaries
 - [`docs/google-cloud-deployment.md`](docs/google-cloud-deployment.md) — optional Cloud Run/GCS execution deployment
 - [`docs/public-dashboard-hosting.md`](docs/public-dashboard-hosting.md) — public Google Cloud serving architecture and security boundary
-- [`docs/county-parcel-data-access-audit.md`](docs/county-parcel-data-access-audit.md) — parcel-specific county access audit scope, classifications, and current 35-county review population
+- [`docs/county-parcel-data-access-audit.md`](docs/county-parcel-data-access-audit.md) — parcel-access audit, classifications, evidence methodology, and direct-source findings; offline county profiles cover all 87 counties; all category reviews have been attempted, while blocked and unresolved evidence remains explicit
 - [`docs/hybrid-execution.md`](docs/hybrid-execution.md) and [`docs/hybrid-aggregation.md`](docs/hybrid-aggregation.md) — hybrid worker model
 - [`docs/mngac-completeness.md`](docs/mngac-completeness.md) — Minnesota GAC field-population methodology, county map, and exports
 - [`docs/data-watchtower-provider-compliance.md`](docs/data-watchtower-provider-compliance.md) — respectful-use methodology and known provider constraints
@@ -101,3 +112,11 @@ The base package remains cloud-neutral. Optional Google Cloud Storage support an
 ## License
 
 GIS Data Watchtower is licensed under the **MIT License**. See [`LICENSE`](LICENSE).
+
+County map selections open a shared parcel-source profile with four independent source categories, source-specific counts and dates, access evidence, and research status. The overview supports monitoring-path and MN GAC completeness views. Unknown values remain unavailable; county research does not activate monitoring.
+
+The latest recorded (2026-10-06) isolated county-profile [preview](https://gis-data-watchtower-public-v2-preview-237020802969.us-central1.run.app) served committed `5aac504` (revision `00007-zfh`) with dedicated sanitized storage/identity. The previous five-class release served `dfacd72` (`00005-c24`). The final typed-metric and statewide-identity fixes passed review; live all-87 JSON/CSV/XLSX parity and targeted desktop/mobile checks passed. Original Task 8 and Task 10 local folder absence were verified on 2026-10-06; the earlier automatic approval review cleanup denial remains recorded. See [deployment details](docs/google-cloud-deployment.md#four-class-code-only-preview-release-2026-10-06).
+
+The shared public header is **Minnesota Open Data Watchtower** in the reviewed Task 9 source change, released to the existing preview by Task 10. The confirmed follow-up source uses <30%, 30% - 50%, 50% - 70%, >70% classes on both completeness maps, summary modes and individual fields, with exactly 30 in the second class, exactly 50 and 70 in the third class, and a separate No data class. This follow-up is deployed to existing preview `00007-zfh` from committed `5aac504`, and rendered acceptance passed; sanitized data and its real publication/source dates were preserved. Monitored entries cover all dataset/service types; parcel coverage counts unique counties across direct and statewide observations. One statewide entry can cover many counties. Internal project identities are unchanged.
+
+The [October 6 repository review](docs/repository-review-2026-10-06.md) fixes transport, reporting and publisher cleanup behavior. Those fixes are not deployed to the recorded preview or production. Current recorded deployment facts are maintained in [STATUS.md](STATUS.md).

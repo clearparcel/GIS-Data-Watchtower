@@ -8,7 +8,7 @@ Start from `config/example_sources.json`. The public example is deliberately pro
 
 | Key | Purpose | Default |
 | --- | --- | --- |
-| `timeout_seconds` | Default timeout for one provider request/check | `20` |
+| `timeout_seconds` | Overall wall-clock budget for one provider HTTP request, including redirects/fallback | `20` |
 | `retries` | Provider-aware source retry count | `1` |
 | `retry_delay_seconds` | Delay between retryable source attempts | `1` |
 | `state_file` | Current saved state | required by normal checks |
@@ -68,7 +68,7 @@ For a layer that follows the Minnesota GAC parcel-transfer schema, `mngac_comple
 
 The source must expose `CO_NAME`, `CO_CODE`, an object-id field, and GAC field names. Watchtower batches the standard fields into bounded grouped-statistics requests; the current 91-field MnGeo layer uses eight requests at the default batch size. See [`mngac-completeness.md`](mngac-completeness.md) for methodology and interpretation.
 
-Adapter-specific keys include `expected_layers` for WMS, `expected_feature_types`/`version` for WFS, and `query`/`expected_columns`/`tracked_values` for Soil Data Access.
+Adapter-specific keys include `expected_layers` for WMS, `expected_feature_types`/`version` for WFS, `query`/`expected_columns`/`tracked_values` for Soil Data Access, and `expected_content_type` for `http_file`. The `http_file` adapter performs a HEAD-only check and tracks ETag, Last-Modified, Content-Length, and content type without downloading the file body.
 
 ## Path environment overrides
 
@@ -105,6 +105,65 @@ GCS support requires the `gcs` package extra.
 
 - `WATCHTOWER_MAX_RESPONSE_BYTES` — response budget; 16 MiB default, hard-capped at 128 MiB.
 - `WATCHTOWER_MAX_REDIRECTS` — bounded redirect count. Keep at the default unless redirects are operationally required.
-- `WATCHTOWER_REDIRECT_ALLOW_HOSTS` — comma-separated explicit host allowlist for cross-host redirects that would otherwise be rejected.
+- `WATCHTOWER_REDIRECT_ALLOW_HOSTS` — comma-separated explicit host allowlist for any redirected host that would otherwise be rejected, including private same-host hops.
+- `WATCHTOWER_PUBLIC_REQUEST_TIMEOUT_SECONDS` — anonymous public server idle socket timeout and absolute accepted-connection socket deadline; 10 seconds default, bounded to 2–60; malformed values use the default.
+
+Enabled redirects bind urllib/curl connections to captured validated addresses and preserve Host/TLS hostname checks. Effective proxies reject redirected requests before dispatch because the proxy cannot enforce the binding. Initial operator URLs/proxy use remain supported; non-allowlisted redirect destinations must resolve exclusively public. All curl requests ignore local curl configuration (`--disable` first); curlrc options are unsupported, including automatic redirect/TLS overrides. Initial environment proxy behavior remains supported. Provider request deadlines also bound DNS caller waits; native DNS calls may continue in up to eight daemon workers, retaining capacity until completion. Resolver saturation fails closed. An observed final HTTP 429 stops remaining optional checks and retries for that source even when curl reports a failed/truncated/oversized transfer or a timeout with a usable final 429 marker.
 
 Do not use the redirect allowlist to bypass provider access controls or to authorize cloud metadata, loopback, link-local, private, or other privileged endpoints without a deliberate network-boundary review.
+
+## Static county parcel-source inventory
+
+`clearparcel/datawatch/minnesota_county_parcel_access.json` uses schema v3 and
+requires exactly the 87 canonical Minnesota county names in
+`minnesota_counties.json`. Sparse schema v2 research fixtures remain supported.
+Legacy `research_complete` describes county-direct access review only; overall
+profile completion additionally requires reviews of all four inventory categories.
+
+Every county preserves its direct-access classification, fee, terms, evidence
+and review log, and adds `comments` and `source_inventory`. The inventory keys
+are `mngac_public_parcels`, `mngeo_public_repository`, `county_arcgis_rest` and
+`county_download`. These categories are independent: REST evidence does not
+establish a download product or distinct MnGeo repository membership. Each
+category contains `review_status` (`pending`, `reviewed`, `not-found`, `blocked`),
+`availability` (`yes`, `no`, `unknown`), `review_date`, `finding`, `evidence` and
+`sources`. Evidence references are URL strings present in the county's existing
+`evidence` array. A reviewed absence requires a review date, factual finding
+and official evidence references. Positive sources can be preserved while the
+broader category review remains pending.
+
+Each source contains `inventory_id`, `name`, `authority`, `dataset_type`,
+`layer_id` (nullable), `approved_public_links` (`{label, href}` objects),
+`review_date`, `monitoring_decision` and `evidence` references. Optional
+`geometry_type` and `file_type` retain evidenced stable product facts. Geometry uses
+recognized ArcGIS geometry names; file type is a validated MIME scalar for an
+explicitly offered file. Both may be omitted or null. File Geodatabase/Shapefile
+advertisement alone does not establish a MIME type or archive contents. Safe live
+metadata takes precedence, with validated evidence used only when it lacks a value.
+Profile interfaces remain unchanged (`geometry_type` and `file.type`). Optional
+`monitored_source_id` joins an already monitored aggregate source; discovery
+never activates monitoring. Approved links pass the shared offline
+`safe_public_url` check, which rejects credentials, private/local hosts and
+sensitive query parameters. Static category and source fields are allowlisted:
+live counts, health, headers, provider edit/check/success dates, fingerprints and
+worker telemetry belong in aggregate state.
+
+Repository acquisition/refresh dates require a safe, exact catalog `data_url`
+match to an evidence-backed approved product reference (a dataset/item, selected
+REST layer or offered archive), unique among that county's repository products.
+When `layer_id` is present, the exact reference must select that same REST layer
+or carry the matching dataset layer suffix. Unqualified maps/items, service roots
+and archives cannot identify a selected county subdataset. Generic county/Hub/search
+links and ambiguous shared references cannot join dates.
+Unmatched repository dates remain null; county contribution dates for the observed
+statewide source retain their separate county-catalog association. Catalog checks,
+health and counts never become repository dataset observations.
+
+Migration retains all 35 existing direct-access findings and four terms holds.
+The other 52 counties are seeded using existing official county contact URLs,
+with pending reviews and unknown availability. Their legacy statewide coverage
+`available` and `verified_date` are nullable in v3 to represent missing research
+honestly. Historical statewide findings remain separate from current observed
+membership. Public classification is `OPEN` for verified free machine-readable
+access, `FEE BASED` for county-direct dataset fees, and `AMBIGUOUS` for incomplete
+or viewer-only findings; free statewide access does not override a direct fee.

@@ -146,3 +146,7 @@ A compatible ArcGIS layer can enable the scan with:
 The default batch size is 12. On the current 91-field MnGeo statewide parcel layer this produces eight grouped-statistics requests. Batch size is capped at 20 so a configuration mistake cannot turn the scan into one oversized statistics expression set.
 
 The source must contain `CO_NAME`, `CO_CODE`, an object-id field, and at least some standard GAC fields. Missing standard fields remain explicitly identified in the observation.
+
+## Public map classification
+
+The confirmed follow-up source now uses four percentage classes on both maps, all summary modes and individual fields: <30%, 30% - 50%, 50% - 70%, >70%. Intervals are p<30, 30<=p<50, 50<=p<=70, p>70; legend and county fills share #1b2b40, #315373, #3c708f, #4c9b7b. Observed zero remains the first class; unknown/nonfinite values remain No data. Monitoring-path colors, the public title and metric wording are unchanged. The code-only follow-up is deployed to existing preview `00007-zfh`, serving committed `5aac504`; rendered acceptance passed. Existing sanitized data and its actual publication/source dates remain unchanged.

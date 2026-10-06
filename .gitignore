@@ -12,3 +12,7 @@ dist/
 .ruff_cache/
 .mypy_cache/
 .coverage
+
+# Private agent/review scratch
+.cce-agent/
+.superpowers/

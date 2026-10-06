@@ -1,80 +1,91 @@
 # Project status
 
-Last validated: **2026-10-05**
+Operational record reconciled: **2026-10-06**. This page describes the latest recorded state; the repository review made no live provider or deployment requests.
 
-GIS Data Watchtower is public, MIT-licensed, and supports local, cloud, and hybrid execution.
+## Recorded deployment and coverage
 
-## Validated capabilities
+The latest recorded hybrid staging cycle passed **31 cloud + 4 local = 35 sources**, all healthy with worker provenance. Parcel monitoring covered **70/87 counties = 59 statewide + 24 county-direct - 13 overlaps**. These recorded observations do not establish present live health. The earlier 22-cloud/26-total cycle is historical.
 
-- Windows and Ubuntu CI on Python 3.12, 3.13, and 3.14
-- ArcGIS/WMS/WFS and catalog/API monitoring adapters
-- bounded provider-friendly polling and HTTP 429 handling
-- plain-language dashboard with county pages
-- CSV, JSON, and native Excel (`.xlsx`) snapshot exports
-- local filesystem and optional Google Cloud Storage persistence
-- Cloud Run Job container deployment
-- source execution profiles (`cloud`, `local`, `any`)
-- hybrid worker aggregation with per-source worker provenance
-- MN GAC parcel-field completeness analysis with county pages, interactive Minnesota county map, and JSON/CSV/Excel exports
+The latest recorded isolated preview is `00007-zfh`, serving `5aac504`, before the repository-review fixes. Its unchanged sanitized publication is `2026-10-06T18:29:46.124951+00:00`; aggregate/source generation is `2026-10-06T11:11:40.540673+00:00`. Publication becomes overdue after 30 minutes; provider health and reporting freshness remain separate. Production remains the previously recorded public `00006-82c` / private `00011-t4l`; this review did not redeploy either service.
 
-## ClearParcel staging validation
+The public service reads only the sanitized public aggregate. A separate publisher reads the private unified aggregate, applies typed allowlists and forbidden-field validation, and writes the public object. Its recorded 10-minute schedule performs no provider polling. Authoritative cloud GIS-provider scheduling remains disabled; the existing local production schedule remains authoritative pending the multi-day parallel validation gate and explicit approval.
 
-A private ClearParcel staging deployment has validated the hybrid architecture against a 26-source production registry:
+## Product and research
 
-- **22 cloud-profile sources:** 22 OK / 0 warning / 0 error
-- **4 local-profile sources:** 4 OK / 0 warning / 0 error
-- **aggregate:** 26 OK / 0 warning / 0 error
-- all 26 aggregate observations have worker provenance
-- cloud/local parity was exact for the sources accepted from both environments: status, feature counts, and schema hashes matched
+The public title is **Minnesota Open Data Watchtower**. Both county maps use four percentage classes: <30%, 30–50%, 50–70%, >70% (`p<30`, `30<=p<50`, `50<=p<=70`, `p>70`). Exact 70 belongs to the third class; observed zero belongs to the first, and unknown remains No data. All 87 county profiles and JSON/CSV/XLSX exports retain source identity and unavailable values.
 
-The four local-profile sources are kept local because their providers' network/TLS behavior does not support the Google Cloud egress path used in staging. Watchtower does not bypass those restrictions.
+Recorded MN GAC statistics: **91 fields**, **2,710,201 parcels**, **42.92% all-field** and **78.37% mandatory-field** population. These describe population, not compliance grades. Research reviewed all 87 county inventories: 216 reviewed categories, 132 blocked, zero pending; 16 fully reviewed inventories and 15 complete composed profiles. County-direct classifications are 58 free, 13 fee-based, 11 viewer-only and five unresolved. Eleven research holds remain, including Blue Earth, Faribault, Kandiyohi and Lincoln. Research access, statewide coverage and runtime monitoring health remain separate.
 
-The hardened post-security-review build was revalidated end-to-end on 2026-10-05: the Cloud Run worker completed **22/22 cloud sources OK**, the local worker completed **4/4 local-only sources OK**, and the resulting aggregate remained **26/26 OK** with **0 unassigned observations**. JSON, CSV, and Excel exports each represented all 26 monitored sources.
+## Repository review and remaining gates
 
-The same staging architecture also validated the MN GAC completeness feature against MnGeo Plan Parcels Open. The 2026-10-05 observation represented **59 of 87 counties**, **2,710,201 parcel records**, and all **91 standard fields** using **8 bounded grouped-statistics queries**. The other 28 counties are reported as **No data**, not 0%. The observed record-weighted all-field population was **42.92%** and Mandatory-field population was **78.37%**; these are descriptive population statistics, not compliance grades. The full cloud retry after this feature was enabled returned **22/22 OK**, preserving the **26/26** hybrid aggregate.
+The October 6 review fixes public socket deadlines, protected redirect address binding, total provider request deadlines and 429 stop propagation. Reporting freshness follows reports/checks independently of historical success; public zero counts stay zero; publisher scratch is unique and cleaned on success/failure. These changes are **repository-only and not deployed**. See [the dated repository review](docs/repository-review-2026-10-06.md) for actual commits, validation and limitations.
 
-## County parcel-data access audit
+Issues 1/2 (provider constraints) and 20 (multi-day validation) remain open. Issue 40 was closed after all original 35 classifications were verified complete. Active PRs 39/42 are preserved. User-approved main protection requires PRs, zero required approving reviewers, six strict Actions checks, resolved conversations and admin enforcement; force pushes/deletion are blocked. No merge or main push occurred.
 
-The 35 counties currently shown by the dashboard as `needs-source` are undergoing a parcel-specific access audit. The existing status is registry-derived and does not mean that an exhaustive source search has already failed. The audit now distinguishes free parcel data, fee-based parcel data, parcel-viewer-only access, request/restricted parcel access, statewide parcel coverage only, and a researched no-direct-parcel-dataset result. **Fee-based parcel data** is used only when official evidence shows that the parcel dataset itself carries a fee; charges for staff time, custom GIS services, maps, special exports, or other associated services do not trigger that label. See `docs/county-parcel-data-access-audit.md`.
+Prior deployment, browser, provider-policy, rollback and cleanup evidence is preserved in [historical status](docs/status-history-2026-10-06.md) and [deployment history](docs/google-cloud-deployment.md#four-class-code-only-preview-release-2026-10-06).
 
-## Public dashboard hosting
+## Historical section links
 
-A separate read-only Cloud Run service serves the shareable dashboard at **https://gis-watchtower.clear-parcel.com** through a Google Cloud external Application Load Balancer. The dashboard now reads only the sanitized production object at `gs://clearparcel-watchtower-dark-bit-503017-j7/production/aggregate-state.json`; its service account no longer has access to the unified staging aggregate, private provider registry, or provider credentials.
+<a id="validated-capabilities"></a>
 
-A dedicated Cloud Run publisher job reads only the unified aggregate object, applies the public allowlist and fail-closed forbidden-field validation, then writes only the production aggregate object. A separate least-privilege scheduler identity invokes that job every **10 minutes**. The final least-privilege publisher execution completed successfully in about **3m6s**. This publication schedule performs no GIS-provider polling and does not replace the multi-day validation gate for the authoritative monitoring schedule.
+[Validated capabilities](docs/status-history-2026-10-06.md#validated-capabilities) (historical evidence).
 
-The public renderer removes operational provider URLs, raw change payloads, tracked values, fingerprints, provenance details, and worker telemetry before rendering or exporting state. The existing private operational dashboard remains separate. Cloudflare is used only for authoritative DNS for the hostname; the record is DNS-only and application traffic is served by Google Cloud. Cloud Armor applies a conservative 120 requests/minute/IP throttle, load-balancer request logging is enabled at full sampling, and Cloud Monitoring checks `/healthz` every minute with availability and Cloud Run 5xx alert policies. Public snapshots carry their own publication timestamp; `/healthz` is designed to fail if publication age exceeds 30 minutes.
+<a id="clearparcel-staging-validation"></a>
 
-## Staging architecture
+[ClearParcel staging validation](docs/status-history-2026-10-06.md#clearparcel-staging-validation) (historical evidence).
 
-```text
-Cloud Run Job (cloud profile, 22)
-              \
-               -> aggregate state -> dashboard/exports
-              /
-Local worker (local profile, 4)
-```
+<a id="county-parcel-data-access-audit"></a>
 
-The cloud worker persists its staging artifacts in Google Cloud Storage. Private production configuration is supplied through Secret Manager and is not included in this public repository or its container image.
+[County parcel-data access audit](docs/status-history-2026-10-06.md#county-parcel-data-access-audit) (historical evidence).
 
-## Concurrency-safe aggregate publishing
+<a id="public-dashboard-hosting"></a>
 
-The shared aggregate store now uses compare-and-swap writes: Google Cloud Storage deployments use object-generation preconditions, and local/shared-filesystem deployments use an atomic lock-and-replace with retry. Ordinary cloud-job state, history, and alert artifacts also use version preconditions so a stale execution fails closed instead of overwriting a newer object. A normal profiled `watchtower check` run can publish directly to the configured shared aggregate store (opt-in via `aggregate_object` / `WATCHTOWER_AGGREGATE_OBJECT`); no separate script is required. The dashboard and the CSV/JSON/Excel exports read the unified aggregate state and show worker provenance, last-success time, and reporting freshness, with unhealthy sources tracked separately from stale/overdue reporting. See `docs/hybrid-aggregation.md` for the safety model and regression-test coverage.
+[Public dashboard hosting](docs/status-history-2026-10-06.md#public-dashboard-hosting) (historical evidence).
 
-A single hardened hybrid staging cycle has now been completed successfully. The remaining validation gate is multi-day parallel observation, not basic Cloud Run or aggregate correctness.
+<a id="staging-architecture"></a>
 
-## Not yet enabled
+[Staging architecture](docs/status-history-2026-10-06.md#staging-architecture) (historical evidence).
 
-- No Cloud Scheduler trigger has been enabled for the GIS-provider staging/check job. The only enabled Cloud Scheduler job is the 10-minute sanitized public-publication job, which performs no provider polling.
-- The existing local production monitoring schedule has not been retired.
-- The hybrid staging deployment is not yet the authoritative production monitoring scheduler.
+<a id="concurrency-safe-aggregate-publishing"></a>
 
-## Cloud Run startup behavior
+[Concurrency-safe aggregate publishing](docs/status-history-2026-10-06.md#concurrency-safe-aggregate-publishing) (historical evidence).
 
-Cloud Run Job provisioning can remain in **Waiting for execution to start** for several minutes after the image is imported and resources are provisioned. In the validated staging environment, successful executions have taken approximately **2m30s to 4m15s** to reach the Started condition. This delay is a Cloud Run scheduling/provisioning interval, not evidence that Watchtower itself has failed.
+<a id="not-yet-enabled"></a>
 
-Operationally, do not cancel an execution solely because Started is still Unknown during the first five minutes. Inspect the execution conditions if the delay exceeds roughly 5–7 minutes, investigate further by 7–10 minutes, and treat an explicit Failed condition as the real failure signal. The configured 15-minute task timeout remains the final execution bound.
+[Not yet enabled](docs/status-history-2026-10-06.md#not-yet-enabled) (historical evidence).
 
-## Next validation gate
+<a id="cloud-run-startup-behavior"></a>
 
-Run the hybrid system in parallel for several days using the concurrency-safe publishing path, verify aggregate freshness and failure/recovery behavior over multiple real runs, then decide whether Cloud Scheduler should become the primary orchestration mechanism while retaining the local worker for provider-restricted sources.
+[Cloud Run startup behavior](docs/status-history-2026-10-06.md#cloud-run-startup-behavior) (historical evidence).
+
+<a id="next-validation-gate"></a>
+
+[Next validation gate](docs/status-history-2026-10-06.md#next-validation-gate) (historical evidence).
+
+<a id="local-county-profile-acceptance-2026-10-06"></a>
+
+[Local county-profile acceptance (2026-10-06)](docs/status-history-2026-10-06.md#local-county-profile-acceptance-2026-10-06) (historical evidence).
+
+<a id="initial-isolated-county-profile-preview-release-2026-10-06"></a>
+
+[Initial isolated county-profile preview release (2026-10-06)](docs/status-history-2026-10-06.md#initial-isolated-county-profile-preview-release-2026-10-06) (historical evidence).
+
+<a id="final-review-product-fixes-and-deployed-preview"></a>
+
+[Final review product fixes and deployed preview](docs/status-history-2026-10-06.md#final-review-product-fixes-and-deployed-preview) (historical evidence).
+
+<a id="task-9-browser-feedback-2026-10-06-reviewed-and-released"></a>
+
+[Task 9 browser feedback (2026-10-06; reviewed and released)](docs/status-history-2026-10-06.md#task-9-browser-feedback-2026-10-06-reviewed-and-released) (historical evidence).
+
+<a id="feedback-preview-release-2026-10-06"></a>
+
+[Feedback preview release (2026-10-06)](docs/status-history-2026-10-06.md#feedback-preview-release-2026-10-06) (historical evidence).
+
+<a id="four-class-code-only-preview-release-2026-10-06"></a>
+
+[Four-class code-only preview release (2026-10-06)](docs/status-history-2026-10-06.md#four-class-code-only-preview-release-2026-10-06) (historical evidence).
+
+<a id="isolated-county-profile-preview-release-2026-10-06"></a>
+
+[Historical release](docs/status-history-2026-10-06.md#isolated-county-profile-preview-release-2026-10-06).

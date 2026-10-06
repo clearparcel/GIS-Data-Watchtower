@@ -80,6 +80,18 @@ def _fake_gcs_backend():
 
 
 class HybridReadinessTests(unittest.TestCase):
+    def test_profile_coverage_preserves_stale_local_worker(self):
+        from test_county_profiles import coverage_state, NOW
+        from clearparcel.datawatch.county_profiles import compose_county_profiles, county_profile_counts, FreshnessPolicy
+        state = coverage_state()
+        direct_id = next(sid for sid in state['sources'] if sid != 'statewide')
+        state['sources'][direct_id]['worker'] = 'local'
+        state['workers'] = {'local': {'last_report_at': '2026-10-01T00:00:00+00:00'}}
+        profiles = compose_county_profiles(state, {}, now=NOW, freshness_policy=FreshnessPolicy())
+        self.assertEqual(county_profile_counts(profiles)['active'], 70)
+        self.assertEqual(profiles[direct_id]['monitoring']['reporting'], 'overdue')
+        self.assertEqual(profiles[direct_id]['monitoring']['health'], 'ok')
+
     def test_competing_publishers_preserve_both_workers(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
@@ -294,6 +306,19 @@ class HybridReadinessTests(unittest.TestCase):
         self.assertFalse(result["workers"]["local"]["stale"])
         self.assertFalse(result["sources"]["a"]["stale"])
 
+    def test_recent_failed_report_preserves_old_success_and_current_reporting(self):
+        now = dt.datetime(2026, 10, 6, 20, 0, tzinfo=dt.timezone.utc)
+        old = "2026-10-01T00:00:00+00:00"
+        recent = "2026-10-06T19:30:00+00:00"
+        state = {"workers": {"local": {"last_success_at": old, "last_report_at": recent}},
+                 "sources": {"a": {"status": "error", "worker": "local", "last_success_at": old,
+                                    "last_report_at": recent, "checked_at": old}}}
+        result = with_freshness(state, now=now)
+        self.assertFalse(result["workers"]["local"]["stale"])
+        self.assertEqual(result["sources"]["a"]["reporting"], "current")
+        self.assertEqual(result["sources"]["a"]["health"], "unhealthy")
+        self.assertEqual(result["sources"]["a"]["last_success_at"], old)
+
     def test_freshness_is_separate_from_source_health(self):
         now = dt.datetime(2026, 10, 4, 20, 0, tzinfo=dt.timezone.utc)
         state = {"workers": {"local": {"last_success_at": "2026-10-04T10:00:00+00:00"}},
@@ -322,6 +347,8 @@ class HybridReadinessTests(unittest.TestCase):
             }), encoding="utf-8")
             config = {"state_file": str(root / "unused.json"), "aggregate_state_file": str(aggregate), "sources": []}
             snapshot = dashboard._statewide_snapshot(config)
+            self.assertEqual(len(snapshot["counties"]), 87)
+            self.assertTrue(all("parcel_source_profile" in row for row in snapshot["counties"]))
             self.assertEqual(snapshot["source_count"], 2)
             self.assertEqual({x["id"] for x in snapshot["sources"]}, {"county-source", "statewide-source"})
             csv_text = dashboard._snapshot_csv(snapshot)
@@ -332,6 +359,9 @@ class HybridReadinessTests(unittest.TestCase):
             import io, zipfile
             with zipfile.ZipFile(io.BytesIO(raw)) as zf:
                 source_xml = zf.read("xl/worksheets/sheet2.xml").decode("utf-8")
+                workbook = zf.read("xl/workbook.xml").decode("utf-8")
+                self.assertIn("County Access", workbook)
+                self.assertIn("Parcel Sources", workbook)
             self.assertIn("County Source", source_xml)
             self.assertIn("Statewide Source", source_xml)
             self.assertIn("Worker", source_xml)

@@ -13,6 +13,23 @@ import clearparcel.datawatch.dashboard as datawatch_dashboard
 from clearparcel.datawatch.watch import _compare, load_config as load_data_config, load_history as load_data_history
 
 class DataWatchTests(unittest.TestCase):
+    def test_arcgis_provider_date_uses_existing_metadata_response(self):
+        for stamp in (1735689600000, None, True, -1, 'private', 10**30):
+            metadata = {'fields': [], 'editingInfo': {'lastEditDate': stamp, 'private': 'hidden'}}
+            with patch.object(datawatch, '_json_request', return_value=(metadata, {'status': 200})) as request:
+                result = datawatch._arcgis_layer({'url': 'https://example.com/FeatureServer/0'}, 1)
+            self.assertEqual(request.call_count, 1)
+            if stamp == 1735689600000:
+                self.assertEqual(result['editing_info'], {'lastEditDate': stamp})
+            else:
+                self.assertNotIn('editing_info', result)
+
+    def test_service_propagates_existing_layer_edit_date(self):
+        responses = [({'layers': [{'id': 0, 'name': 'Parcels'}]}, {'status': 200}), ({'fields': [], 'editingInfo': {'lastEditDate': 1735689600000}}, {'status': 200}), ({'count': 0}, {'status': 200})]
+        with patch.object(datawatch, '_json_request', side_effect=responses) as request:
+            result = datawatch._arcgis_service({'url': 'https://example.com/FeatureServer', 'discover_parcel_layer': True}, 1)
+        self.assertEqual(request.call_count, 3)
+        self.assertEqual(result['editing_info'], {'lastEditDate': 1735689600000})
 
     def test_data_source_registry_loads(self):
         config = load_data_config(TOOLS_ROOT / 'config' / 'example_sources.json')
@@ -72,6 +89,84 @@ class DataWatchTests(unittest.TestCase):
             with patch.dict(os.environ, {'CLEARPARCEL_WATCHTOWER_AGGREGATE_STATE_FILE': str(override)}):
                 loaded = load_data_config(config_path)
             self.assertEqual(Path(loaded['aggregate_state_file']), override)
+
+    def test_http_file_adapter_tracks_metadata_without_downloading_body(self):
+        source = {
+            "id": "dodge-parcels-zip",
+            "kind": "http_file",
+            "url": "https://example.invalid/parcels.zip",
+            "expected_content_type": "zip",
+        }
+        meta = {
+            "status": 200,
+            "transport": "urllib-head",
+            "headers": {
+                "etag": '"abc"',
+                "last-modified": "Tue, 08 Sep 2026 15:26:32 GMT",
+                "content-length": "4221438",
+                "content-type": "application/x-zip-compressed",
+            },
+        }
+        with patch.object(datawatch, "_head_request", return_value=meta) as head:
+            result = datawatch._source_check(source, 20)
+        head.assert_called_once_with(source["url"], 20)
+        self.assertEqual(result["http_status"], 200)
+        self.assertEqual(result["tracked_values"]["etag"], '"abc"')
+        self.assertEqual(result["tracked_values"]["content_length"], "4221438")
+        self.assertEqual(result["problems"], [])
+
+    def test_http_file_adapter_reports_missing_freshness_metadata(self):
+        source = {
+            "id": "file",
+            "adapter": "http-file",
+            "url": "https://example.invalid/file.zip",
+        }
+        with patch.object(datawatch, "_head_request", return_value={
+            "status": 200,
+            "transport": "urllib-head",
+            "headers": {"content-type": "application/zip"},
+        }):
+            result = datawatch._source_check(source, 20)
+        self.assertTrue(any("freshness metadata" in x for x in result["problems"]))
+
+    def test_arcgis_parcel_quality_null_geometry_failure_is_nonfatal(self):
+        source = {
+            "id": "parcels",
+            "kind": "arcgis_layer",
+            "url": "https://example.invalid/MapServer/7",
+            "count": True,
+            "parcel_quality": True,
+            "expected_geometry": "esriGeometryPolygon",
+        }
+        metadata = {
+            "name": "Parcels",
+            "type": "Feature Layer",
+            "geometryType": "esriGeometryPolygon",
+            "currentVersion": 11.5,
+            "maxRecordCount": 2000,
+            "fields": [
+                {"name": "OBJECTID", "type": "esriFieldTypeOID"},
+                {"name": "ParcelType", "type": "esriFieldTypeString"},
+            ],
+            "extent": {
+                "xmin": 0, "ymin": 0, "xmax": 1, "ymax": 1,
+                "spatialReference": {"wkid": 26915},
+            },
+        }
+        def count_query(url, where, timeout, **kwargs):
+            if where == "1=1":
+                return 10
+            if where == "SHAPE IS NULL":
+                raise RuntimeError("ArcGIS error: Unable to complete operation")
+            raise AssertionError(where)
+        with patch.object(datawatch, "_json_request", return_value=(metadata, {"status": 200, "transport": "urllib"})):
+            with patch.object(datawatch, "_arcgis_count_query", side_effect=count_query):
+                result = datawatch._arcgis_layer(source, 30)
+        self.assertEqual(result["feature_count"], 10)
+        self.assertEqual(result["null_geometry_check"], "unsupported")
+        self.assertIsNone(result["null_geometry_count"])
+        self.assertIn("Unable to complete operation", result["null_geometry_check_error"])
+        self.assertEqual(result["problems"], [])
 
     def test_mngac_population_expressions_respect_standard_no_data_rules(self):
         self.assertEqual(
@@ -366,15 +461,17 @@ class DataWatchTests(unittest.TestCase):
             self.assertEqual(len(datawatch_dashboard._load_counties()), 87)
             self.assertIn('Wabasha County', counties)
             self.assertIn('Yellow Medicine County', counties)
-            self.assertIn('Direct sources', counties)
-            self.assertIn('Directly monitored', counties)
-            self.assertIn('How Watchtower currently knows about this county', counties)
+            self.assertIn('County-direct sources', counties)
+            self.assertIn('Actively checked', counties)
+            self.assertIn('Health and active monitoring path', counties)
+            self.assertIn('County-direct access', counties)
+            self.assertIn('Statewide open access', counties)
             self.assertIn('County-specific sources actively checked', counties)
-            self.assertIn('Coverage:', counties)
+            self.assertIn('Monitoring coverage', counties)
             self.assertNotIn('Live data checks', counties)
             self.assertNotIn('County update info available', counties)
             self.assertIn('Wabasha County Parcels', wabasha)
-            self.assertIn('A usable parcel-data source has not been found yet', aitkin)
+            self.assertIn('No direct county parcel source currently monitored', aitkin)
 
     def test_all_minnesota_counties_have_verified_contact_authority(self):
         contacts = datawatch_dashboard._load_county_contacts()
@@ -622,7 +719,7 @@ class DataWatchTests(unittest.TestCase):
             self.assertIn('No active alerts.', overview)
             self.assertIn('Data being watched', overview)
             self.assertIn('Healthy', overview)
-            self.assertNotIn('>Directly monitored</span><br><span class="muted">current reporting', overview)
+            self.assertNotIn('>Actively checked</span><br><span class="muted">current reporting', overview)
             self.assertIn('Records / change', overview)
             self.assertIn('Recent reliability', overview)
             self.assertIn('<details class="technical">', detail)
@@ -661,14 +758,14 @@ class DataWatchTests(unittest.TestCase):
             self.assertEqual(report['sources']['good']['status'], 'ok')
 
     def test_security_redirect_policy_rejects_private_and_allows_public(self):
-        with patch.object(datawatch, '_destination_publicity', side_effect=lambda url: False if '127.0.0.1' in url else True):
+        with patch.object(datawatch, 'resolve_addresses', side_effect=lambda host, port, deadline: ((2, 1, 6, '', (host if host == '127.0.0.1' else '93.184.216.34', port)),)):
             with self.assertRaisesRegex(RuntimeError, 'redirect rejected'):
                 datawatch._validated_redirect('https://provider.example/a', 'http://127.0.0.1/admin', 'https://provider.example/a')
             self.assertEqual(
                 datawatch._validated_redirect('https://provider.example/a', 'https://cdn.example/b', 'https://provider.example/a'),
                 'https://cdn.example/b',
             )
-        with patch.dict(os.environ, {'WATCHTOWER_REDIRECT_ALLOW_HOSTS': 'internal.example'}):
+        with patch.dict(os.environ, {'WATCHTOWER_REDIRECT_ALLOW_HOSTS': 'internal.example'}), patch.object(datawatch, 'resolve_addresses', return_value=((2, 1, 6, '', ('127.0.0.1', 443)),)):
             self.assertEqual(
                 datawatch._validated_redirect('https://provider.example/a', 'https://internal.example/b', 'https://provider.example/a'),
                 'https://internal.example/b',
@@ -912,9 +1009,7 @@ class DataWatchTests(unittest.TestCase):
 
     def test_redirect_policy_rejects_private_and_metadata_destinations(self):
         from unittest.mock import patch
-        def publicity(url):
-            return False if ('127.0.0.1' in url or 'metadata.google.internal' in url) else True
-        with patch.object(datawatch, '_destination_publicity', side_effect=publicity):
+        with patch.object(datawatch, 'resolve_addresses', side_effect=lambda host, port, deadline: ((2, 1, 6, '', ('127.0.0.1' if host in ('127.0.0.1', 'metadata.google.internal') else '93.184.216.34', port)),)):
             with self.assertRaisesRegex(RuntimeError, 'redirect rejected'):
                 datawatch._validated_redirect('https://provider.example/a', 'http://127.0.0.1/admin', 'https://provider.example/a')
             with self.assertRaisesRegex(RuntimeError, 'redirect rejected'):
@@ -1022,7 +1117,7 @@ class DataWatchTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, 'CLEARPARCEL_WATCHTOWER_DASHBOARD_PASSWORD'):
                 datawatch_dashboard._dashboard_auth({'public_dashboard': {'internet_exposure': False}}, '0.0.0.0')
     def test_county_status_uses_explicit_slug_not_substring(self):
-        state = {'sources': {'lake-source': {'name': 'Lake of the Woods County Parcels', 'provider': 'County', 'status': 'ok', 'county_slug': 'lake-of-the-woods'}}}
+        state = {'sources': {'lake-source': {'name': 'Lake of the Woods County Parcels', 'provider': 'County', 'category': 'Parcels', 'status': 'ok', 'county_slug': 'lake-of-the-woods'}}}
         lake = datawatch_dashboard._county_status({}, {'name': 'Lake', 'slug': 'lake'}, state)
         woods = datawatch_dashboard._county_status({}, {'name': 'Lake of the Woods', 'slug': 'lake-of-the-woods'}, state)
         self.assertEqual(lake['sources'], [])
@@ -1211,8 +1306,8 @@ class DataWatchTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, 'requires CLEARPARCEL_WATCHTOWER_DASHBOARD_PASSWORD'):
                 datawatch_dashboard._dashboard_auth({'public_dashboard': {'internet_exposure': False}}, '0.0.0.0')
 
-    def test_county_status_uses_explicit_slug_not_substring(self):
-        state = {'sources': {'lake': {'name': 'Lake County Parcels', 'county_slug': 'lake', 'status': 'ok'}, 'red-lake': {'name': 'Red Lake County Parcels', 'county_slug': 'red-lake', 'status': 'ok'}}}
+    def test_county_status_uses_explicit_slug_not_substring_additional_fixture(self):
+        state = {'sources': {'lake': {'name': 'Lake County Parcels', 'category': 'Parcels', 'county_slug': 'lake', 'status': 'ok'}, 'red-lake': {'name': 'Red Lake County Parcels', 'category': 'Parcels', 'county_slug': 'red-lake', 'status': 'ok'}}}
         lake = datawatch_dashboard._county_status({}, {'name': 'Lake', 'slug': 'lake'}, state)
         red = datawatch_dashboard._county_status({}, {'name': 'Red Lake', 'slug': 'red-lake'}, state)
         self.assertEqual([x['name'] for x in lake['sources']], ['Lake County Parcels'])

@@ -1,6 +1,6 @@
 # GIS Data Watchtower processing architecture
 
-Last reviewed: **2026-10-05**
+Last reviewed: **2026-10-06**
 
 GIS Data Watchtower is cloud-neutral at the monitoring-engine layer and supports local, cloud, and hybrid execution.
 
@@ -34,7 +34,7 @@ Local filesystem storage is the default. Google Cloud Storage is optional. Read/
 
 Cloud and local workers may own different source subsets. Each profiled worker publishes only its observations. The aggregate merger preserves observations from other workers and stamps worker provenance, last-report time, last-success time, counts, and telemetry.
 
-Freshness is separate from source health: an otherwise healthy source can be overdue, and a freshly checked source can be unhealthy.
+Reporting freshness prefers last_report_at, then checked_at, then legacy last_success_at. A fresh failed report is current and unhealthy; historical source success remains separate. Worker last_success_at records successful report publication even when sources fail.
 
 See [hybrid-aggregation.md](hybrid-aggregation.md) and [hybrid-execution.md](hybrid-execution.md).
 
@@ -42,7 +42,7 @@ See [hybrid-aggregation.md](hybrid-aggregation.md) and [hybrid-execution.md](hyb
 
 The dashboard is a **consumer of persisted state**, not the authoritative scheduler.
 
-The built-in private dashboard can display local or aggregate state and produce JSON, CSV, and Excel snapshots. ClearParcel also operates a separate read-only public renderer. It reads only the persisted aggregate, reduces it to an explicit public allowlist, and does not expose the private dashboard's provider connections or state-changing controls. HTML refreshes read saved state; they do not poll GIS providers.
+The built-in private dashboard can display local or aggregate state and produce JSON, CSV, and Excel snapshots. ClearParcel also operates a separate read-only public renderer. It reads only the sanitized public aggregate produced by a separate allowlist publisher, and does not expose the private dashboard's provider connections or state-changing controls. HTML refreshes read saved state; they do not poll GIS providers.
 
 Both static-site publication and the hosted public renderer omit detailed change payloads, fingerprints, tracked values, operational provider URLs, provenance details, worker telemetry, and other private diagnostics.
 
@@ -80,18 +80,9 @@ This supports providers that permit cloud egress alongside providers that must r
 
 ## Current validated posture
 
-As of 2026-10-05:
+Latest recorded validation on 2026-10-06 passed 31 cloud and four local sources (35 healthy aggregate observations with provenance). Earlier 22-cloud/26-total evidence is historical. The public service reads the sanitized object; provider polling remains separate from the 10-minute publisher cadence. Authoritative cloud provider scheduling remains disabled pending the multi-day gate. See [current status](current-status.md) and [deployment evidence](google-cloud-deployment.md).
 
-- the public package and container pass Windows/Linux CI;
-- a private Cloud Run staging worker successfully checks 22 cloud-profile sources;
-- a local worker successfully checks 4 provider-restricted sources;
-- the unified aggregate has been validated at 26/26 healthy observations with no unassigned sources;
-- the private hosted dashboard consumes the shared aggregate behind its authentication boundary;
-- a separate read-only Google Cloud public dashboard consumes a sanitized projection of that same aggregate at `gis-watchtower.clear-parcel.com`;
-- JSON, CSV, and Excel statewide exports contain the complete aggregate source set;
-- Cloud Run startup/provisioning may take several minutes before the container reaches Started; see [google-cloud-deployment.md](google-cloud-deployment.md);
-- Cloud Scheduler is intentionally not enabled for the staging deployment;
-- the existing local production schedule remains authoritative while the multi-day parallel validation gate is open.
+Repository-review transport, reporting and publisher changes are not deployed. Redirects remain disabled by default; protected hops bind validated addresses while retaining original Host/TLS identity and reject effective proxies. HTTP 429 stops source requests/retries, including optional QA. Overall provider deadlines and bounded public socket deadlines limit stalled I/O; they do not cancel CPU computation. Publisher invocations use unique temporary directories, cleaned on success/failure; both storage clients share process ADC. See [configuration](configuration.md), [public hosting](public-dashboard-hosting.md) and [review limitations](repository-review-2026-10-06.md).
 
 ## Production migration gate
 
