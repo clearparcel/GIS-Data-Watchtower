@@ -19,6 +19,7 @@ from pathlib import Path
 
 from clearparcel.datawatch.watch import check_sources, load_history, load_state
 from clearparcel.datawatch.aggregate import with_freshness
+from clearparcel.datawatch.parcel_access import access_label, load_parcel_access
 
 COUNTIES_FILE = Path(__file__).with_name("minnesota_counties.json")
 COUNTY_CONTACTS_FILE = Path(__file__).with_name("minnesota_county_contacts.json")
@@ -367,8 +368,9 @@ code{{font-size:12px;overflow-wrap:anywhere}}
   #counties,#counties tbody,#counties tr,#counties td,#datasets,#datasets tbody,#datasets tr,#datasets td,.history-table,.history-table tbody,.history-table tr,.history-table td,.contacts-table,.contacts-table tbody,.contacts-table tr,.contacts-table td{{display:block;width:100%}}
   #counties tr,#datasets tr,.history-table tr,.contacts-table tr{{padding:11px 0;border-bottom:1px solid #e6eaee}}
   #counties td,#datasets td,.history-table td,.contacts-table td{{border:0;padding:4px 2px;white-space:normal;overflow-wrap:anywhere}}
-  #counties td:nth-child(2)::before{{content:"Coverage: ";font-weight:700;color:var(--muted)}}
-  #counties td:nth-child(3)::before{{content:"Direct sources: ";font-weight:700;color:var(--muted)}}
+  #counties td:nth-child(2)::before{{content:"Monitoring coverage: ";font-weight:700;color:var(--muted)}}
+  #counties td:nth-child(3)::before{{content:"Parcel data access: ";font-weight:700;color:var(--muted)}}
+  #counties td:nth-child(4)::before{{content:"Direct sources: ";font-weight:700;color:var(--muted)}}
   #datasets td:nth-child(2)::before{{content:"Provider / type: ";font-weight:700;color:var(--muted)}}
   #datasets td:nth-child(3)::before{{content:"Status: ";font-weight:700;color:var(--muted)}}
   #datasets td:nth-child(4)::before{{content:"Records / change: ";font-weight:700;color:var(--muted)}}
@@ -590,7 +592,6 @@ def _load_county_contacts() -> dict:
 
 def _county_status(config: dict, county: dict, state: dict) -> dict:
     name = county["name"]
-    needle = name.lower()
     matches = []
     for sid, src in (state.get("sources") or {}).items():
         if sid == "mn-parcel-county-catalog":
@@ -610,7 +611,15 @@ def _county_status(config: dict, county: dict, state: dict) -> dict:
         status = "needs-source"
     else:
         status = "not-configured"
-    return {"name": name, "slug": county["slug"], "status": status, "sources": matches, "catalog": catalog_record}
+    parcel_access = load_parcel_access().get(name)
+    return {
+        "name": name,
+        "slug": county["slug"],
+        "status": status,
+        "sources": matches,
+        "catalog": catalog_record,
+        "parcel_access": parcel_access,
+    }
 
 
 def _format_arcgis_date(value) -> str:
@@ -881,7 +890,11 @@ def render_counties(config: dict) -> str:
             bucket = "0–30 days" if days <= 30 else "31–90 days" if days <= 90 else "91–365 days" if days <= 365 else "Over 1 year"
             age_buckets[bucket] += 1
     rows = "".join(
-        f'<tr data-name="{_esc(x["name"].lower())}" data-status="{_esc(x["status"])}"><td><a href="/county?slug={urllib.parse.quote(x["slug"])}"><strong>{_esc(x["name"])} County</strong></a></td><td><span class="pill {_esc(x["status"])}">{_esc(_friendly_status(x["status"]))}</span></td><td>{len(x["sources"])}</td></tr>'
+        f'<tr data-name="{_esc(x["name"].lower())}" data-status="{_esc(x["status"])}">'
+        f'<td><a href="/county?slug={urllib.parse.quote(x["slug"])}"><strong>{_esc(x["name"])} County</strong></a></td>'
+        f'<td><span class="pill {_esc(x["status"])}">{_esc(_friendly_status(x["status"]))}</span></td>'
+        f'<td><strong>{_esc(access_label(x.get("parcel_access")))}</strong></td>'
+        f'<td>{len(x["sources"])}</td></tr>'
         for x in counties
     )
     if mngac:
@@ -892,9 +905,9 @@ def render_counties(config: dict) -> str:
     else:
         mngac_card = '<div class="card"><h2>MN GAC field completeness</h2><p class="muted">A statewide completeness observation has not been stored yet.</p><p><a href="/mngac">Open MN GAC completeness →</a></p></div><br>'
     body = f'<div class="grid"><div class="card"><div class="muted">Minnesota counties</div><div class="metric">{len(counties)}</div><span class="subtext">Counties represented in the statewide county dashboard index.</span></div><div class="card"><div class="muted">Counties checked directly</div><div class="metric">{monitored}</div><span class="subtext">Counties with at least one county-specific source that Watchtower actively checks.</span></div><div class="card"><div class="muted">Counties marked public by MnGeo</div><div class="metric">{public_count}</div><span class="subtext">Counties whose MnGeo catalog record indicates public parcel-data approval.</span></div></div>' + mngac_card + \
-        f'<div class="grid"><div class="card">{_bar_chart([( _friendly_status(k), v) for k,v in sorted(status_counts.items())], title="County monitoring coverage")}<span class="subtext">How Watchtower currently knows about each county.</span></div><div class="card">{_bar_chart(list(age_buckets.items()), title="MnGeo parcel update age")}<span class="subtext">Age of the county acquisition/update date reported in the MnGeo parcel catalog; this is not Watchtower check time.</span></div></div><div class="card"><h2>Minnesota county dashboards</h2><p class="muted">Coverage describes how Watchtower knows about each county: Directly monitored means a county-specific source is checked; MnGeo update data only means catalog information is available without a direct county check; Direct source not yet identified means more source research is needed.</p><p class="subtext">Use Export in the page toolbar for statewide Excel, CSV, or JSON.</p>' \
-        '<div class="filters"><input id="cq" placeholder="Filter counties…" oninput="filterCounties()"><select id="cs" onchange="filterCounties()"><option value="">All coverage types</option><option value="ok">Directly monitored</option><option value="catalog">MnGeo update data only</option><option value="needs-source">Direct source not yet identified</option><option value="not-configured">No source information yet</option><option value="warn">Needs attention</option><option value="error">Check failed</option></select></div>' \
-        f'<table id="counties"><thead><tr><th>County</th><th>Coverage<br><span class="subtext">How Watchtower currently knows about this county</span></th><th>Direct sources<br><span class="subtext">County-specific sources actively checked</span></th></tr></thead><tbody>{rows}</tbody></table></div>' \
+        f'<div class="grid"><div class="card">{_bar_chart([( _friendly_status(k), v) for k,v in sorted(status_counts.items())], title="County monitoring coverage")}<span class="subtext">How Watchtower currently monitors or catalogs each county.</span></div><div class="card">{_bar_chart(list(age_buckets.items()), title="MnGeo parcel update age")}<span class="subtext">Age of the county acquisition/update date reported in the MnGeo parcel catalog; this is not Watchtower check time.</span></div></div><div class="card"><h2>Minnesota county dashboards</h2><p class="muted">Monitoring coverage and parcel-data access are separate. Coverage describes what Watchtower actively checks or catalogs; Parcel data access is based on documented county parcel-access research and does not imply that Watchtower is polling that source.</p><p class="subtext">Use Export in the page toolbar for statewide Excel, CSV, or JSON.</p>' \
+        '<div class="filters"><input id="cq" placeholder="Filter counties…" oninput="filterCounties()"><select id="cs" onchange="filterCounties()"><option value="">All coverage types</option><option value="ok">Directly monitored</option><option value="catalog">MnGeo update data only</option><option value="needs-source">No direct source monitored</option><option value="not-configured">No source information yet</option><option value="warn">Needs attention</option><option value="error">Check failed</option></select></div>' \
+        f'<table id="counties"><thead><tr><th>County</th><th>Monitoring coverage<br><span class="subtext">What Watchtower currently checks or catalogs</span></th><th>Parcel data access<br><span class="subtext">Evidence-backed access classification</span></th><th>Direct sources<br><span class="subtext">County-specific sources actively checked</span></th></tr></thead><tbody>{rows}</tbody></table></div>' \
         "<script>function filterCounties(){const q=document.getElementById('cq').value.toLowerCase(),s=document.getElementById('cs').value;document.querySelectorAll('#counties tbody tr').forEach(r=>r.style.display=(!q||r.dataset.name.includes(q))&&(!s||r.dataset.status===s)?'':'none')}</script>"
     return _layout("Minnesota Counties — GIS Data Watchtower", '<p><a href="/">← Watchtower overview</a></p>'+body, static=bool(config.get("_public_mode")), csrf_token=str(config.get("_csrf_token") or ""))
 
@@ -960,6 +973,42 @@ def render_county(config: dict, slug: str) -> str:
         return _layout("County not found", '<p><a href="/counties">← Minnesota counties</a></p><div class="card">County not found.</div>', static=bool(config.get("_public_mode")), csrf_token=str(config.get("_csrf_token") or ""))
     info = _county_status(config, county, state)
     mngac_html = _render_county_mngac(state, county)
+    parcel_access = info.get("parcel_access")
+    parcel_access_label = access_label(parcel_access)
+    if parcel_access and parcel_access.get("research_complete"):
+        evidence_links = []
+        for item in parcel_access.get("evidence") or []:
+            url = _safe_url(item.get("url"))
+            if url:
+                evidence_links.append(
+                    f'<a href="{_esc(url)}" target="_blank" rel="noopener">{_esc(item.get("authority") or "Source")}</a>'
+                )
+        details = [
+            f'<strong>Reviewed:</strong> {_esc(parcel_access.get("review_date") or "—")}',
+            f'<strong>Evidence:</strong> {" · ".join(evidence_links) if evidence_links else "—"}',
+        ]
+        if parcel_access.get("parcel_dataset_fee"):
+            details.append(f'<strong>Parcel dataset fee:</strong> {_esc(parcel_access.get("parcel_dataset_fee"))}')
+        if parcel_access.get("fee_product"):
+            details.append(f'<strong>Applies to:</strong> {_esc(parcel_access.get("fee_product"))}')
+        service_url = _safe_url(parcel_access.get("download_or_service_url"))
+        if service_url:
+            details.append(f'<strong>Machine-readable source:</strong> <a href="{_esc(service_url)}" target="_blank" rel="noopener">Open source</a>')
+        viewer_url = _safe_url(parcel_access.get("viewer_url"))
+        if viewer_url:
+            details.append(f'<strong>Viewer:</strong> <a href="{_esc(viewer_url)}" target="_blank" rel="noopener">Open viewer</a>')
+        parcel_access_detail = (
+            '<div class="card"><h2>Parcel dataset access</h2>'
+            f'<p><strong>{_esc(parcel_access_label)}</strong></p>'
+            f'<p>{_esc(parcel_access.get("evidence_note") or "")}</p>'
+            f'<p class="subtext">{"<br>".join(details)}</p></div>'
+        )
+    else:
+        parcel_access_detail = (
+            '<div class="card"><h2>Parcel dataset access</h2>'
+            f'<p><strong>{_esc(parcel_access_label)}</strong></p>'
+            '<p class="muted">A completed parcel-specific access review is not stored for this county.</p></div>'
+        )
     source_cards = ""
     for src in info["sources"]:
         checked = _format_public_time_compact(src.get("checked_at")) if config.get("_public_mode") else _esc(src.get("checked_at", "—"))
@@ -974,7 +1023,7 @@ def render_county(config: dict, slug: str) -> str:
             source_links += f' · <a href="{_esc(viewer_url)}" target="_blank" rel="noopener">Viewer</a>'
         source_cards = f'<div class="card"><h3>County parcel update information</h3><p><strong>MnGeo public-data approval:</strong> {_esc(approval)}<br><strong>Last county update:</strong> {_esc(_format_arcgis_date(catalog.get("acqdate")))}<br><strong>MnGeo listing refreshed:</strong> {_esc(_format_arcgis_date(catalog.get("rundate")))}<br><strong>Parcel links:</strong> {source_links}</p></div>'
     elif not source_cards:
-        source_cards = '<div class="card"><h3>A usable parcel-data source has not been found yet</h3><p>No direct county source or MnGeo parcel catalog record is currently available.</p></div>'
+        source_cards = '<div class="card"><h3>No direct county parcel source currently monitored</h3><p>Monitoring coverage is separate from the parcel-data access research shown below.</p></div>'
     contact_record = _load_county_contact_records().get(county["name"], {})
     contacts = contact_record.get("contacts", [])
     contact_rows = ""
@@ -998,7 +1047,7 @@ def render_county(config: dict, slug: str) -> str:
     verified_text = f' Verified {_esc(contact_record.get("verified"))}.' if contact_record.get("verified") else ""
     contacts_html = f'<div class="card"><h2>County GIS contacts</h2><p class="muted"><strong>Contact source:</strong> {contact_source}. {contact_source_note}{verified_text}</p><table class="contacts-table"><thead><tr><th>Name</th><th>Title</th><th>Department</th><th>Phone</th><th>Email</th></tr></thead><tbody>{contact_rows}</tbody></table></div>'
     export_links = f'<p><a href="/county-snapshot.csv?slug={urllib.parse.quote(slug)}">Download county snapshot (CSV)</a> · <a href="/county-snapshot.xlsx?slug={urllib.parse.quote(slug)}">Download county snapshot (Excel)</a> · <a href="/county-snapshot.json?slug={urllib.parse.quote(slug)}">Download county snapshot (JSON)</a></p>'
-    body = f'<p><a href="/counties">← Minnesota counties</a></p>{export_links}<div class="grid"><div class="card"><div class="muted">County</div><h2>{_esc(county["name"])} County</h2></div><div class="card"><div class="muted">Data availability</div><div class="metric {_esc(info["status"])}">{_esc(_friendly_status(info["status"]).upper())}</div></div><div class="card"><div class="muted">Direct data sources</div><div class="metric">{len(info["sources"])}</div></div></div><div class="grid">{source_cards}</div>{mngac_html}<br>{contacts_html}'
+    body = f'<p><a href="/counties">← Minnesota counties</a></p>{export_links}<div class="grid"><div class="card"><div class="muted">County</div><h2>{_esc(county["name"])} County</h2></div><div class="card"><div class="muted">Monitoring coverage</div><div class="metric {_esc(info["status"])}">{_esc(_friendly_status(info["status"]).upper())}</div></div><div class="card"><div class="muted">Direct sources monitored</div><div class="metric">{len(info["sources"])}</div></div></div><div class="grid">{source_cards}</div><br>{parcel_access_detail}<br>{mngac_html}<br>{contacts_html}'
     return _layout(f'{county["name"]} County — Watchtower', body, static=bool(config.get("_public_mode")), csrf_token=str(config.get("_csrf_token") or ""))
 
 def _county_snapshot(config: dict, slug: str, *, include_mngac: bool = True) -> dict | None:
@@ -1025,6 +1074,22 @@ def _county_snapshot(config: dict, slug: str, *, include_mngac: bool = True) -> 
         "public_data_approved": str(catalog.get("gac_open_approval") or "").lower() == "true",
         "parcel_data_url": _safe_url(catalog.get("data_url")) or "",
         "parcel_viewer_url": _safe_url(catalog.get("viewer_url")) or "",
+        "parcel_access": {
+            "classification": (info.get("parcel_access") or {}).get("classification"),
+            "label": access_label(info.get("parcel_access")),
+            "research_complete": bool((info.get("parcel_access") or {}).get("research_complete")),
+            "review_date": (info.get("parcel_access") or {}).get("review_date"),
+            "parcel_dataset_fee": (info.get("parcel_access") or {}).get("parcel_dataset_fee"),
+            "fee_product": (info.get("parcel_access") or {}).get("fee_product"),
+            "evidence_note": (info.get("parcel_access") or {}).get("evidence_note"),
+            "official_county_url": _safe_url((info.get("parcel_access") or {}).get("official_county_url")) or "",
+            "parcel_page_url": _safe_url((info.get("parcel_access") or {}).get("parcel_page_url")) or "",
+            "download_or_service_url": _safe_url((info.get("parcel_access") or {}).get("download_or_service_url")) or "",
+            "viewer_url": _safe_url((info.get("parcel_access") or {}).get("viewer_url")) or "",
+            "fee_policy_url": _safe_url((info.get("parcel_access") or {}).get("fee_policy_url")) or "",
+            "usable_direct_machine_readable_source": bool((info.get("parcel_access") or {}).get("usable_direct_machine_readable_source")),
+            "monitoring_assessment": (info.get("parcel_access") or {}).get("monitoring") or {},
+        },
         "direct_sources": [
             {
                 "name": x.get("name"), "status": x.get("status"),

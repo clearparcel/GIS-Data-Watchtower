@@ -113,47 +113,103 @@ The current production aggregate places **35 counties** in the registry-derived 
 
 ## Current audit state
 
-The 35-county parcel-data audit is **in progress**.
+The 35-county parcel-data access audit is **complete as of 2026-10-05**. Every stored county record has research_complete=true, parcel-specific evidence, and a completed official-source review log. Research conclusions remain separate from Watchtower monitoring observations and health.
 
-Already established:
+### Results
 
-- the current "Direct source not yet identified" label is not backed by a completed source-discovery audit;
-- official county websites/contact pages have previously been checked for all 35 counties as part of a separate GIS-contact verification effort, providing useful official-domain starting points;
-- MnGeo's statewide county open-data status layer has been queried as supporting context;
-- that statewide layer cannot be treated as a parcel-specific access classification;
-- the remaining work is a county-by-county review of parcel download, parcel GIS service, parcel-data request, and parcel-data fee evidence.
+- **17 Free parcel data**
+- **7 Fee-based parcel data**
+- **11 Parcel viewer only**
+- **0 Parcel data by request / restricted**
+- **0 Statewide parcel coverage only**
+- **0 No direct parcel dataset verified**
 
-Do **not** promote preliminary findings to public parcel-access labels until parcel-specific evidence is recorded.
+The review identified **17 county-direct machine-readable parcel sources**. One bounded validation request from GERTKEN-PC returned HTTP 200 for all 17 sources. This confirms reachability only; it does not add those sources to the deployment registry and does not enable provider polling.
 
-## Recommended audit record
+### County summary
 
-Each county should ultimately have a stored record similar to:
+| County | Parcel-data access | Direct machine-readable source | Parcel dataset fee |
+| --- | --- | --- | --- |
+| Blue Earth | Free parcel data | Yes | — |
+| Brown | Free parcel data | Yes | — |
+| Cottonwood | Parcel viewer only | No | — |
+| Dodge | Free parcel data | Yes | — |
+| Faribault | Free parcel data | Yes | — |
+| Freeborn | Parcel viewer only | No | — |
+| Goodhue | Fee-based parcel data | No | $0.05 per parcel for public-request digital parcel data; compilation/service charges may apply |
+| Hubbard | Free parcel data | Yes | — |
+| Jackson | Fee-based parcel data | No | $100 for the full GIS parcel layer |
+| Kanabec | Parcel viewer only | No | — |
+| Kandiyohi | Free parcel data | Yes | — |
+| Kittson | Parcel viewer only | No | — |
+| Lac qui Parle | Free parcel data | Yes | — |
+| Lake of the Woods | Parcel viewer only | No | — |
+| Le Sueur | Fee-based parcel data | No | $0.05 per parcel or $50/hour, whichever is greater |
+| Lincoln | Free parcel data | Yes | — |
+| Mahnomen | Free parcel data | Yes | — |
+| Marshall | Free parcel data | Yes | — |
+| Martin | Parcel viewer only | No | — |
+| Meeker | Free parcel data | Yes | — |
+| Murray | Parcel viewer only | No | — |
+| Nicollet | Fee-based parcel data | No | $0.05 per parcel ($5 minimum) or $500 for the entire county |
+| Nobles | Fee-based parcel data | No | $0.05 per parcel ($25 minimum) or $500 for the county parcel shapefile |
+| Norman | Free parcel data | Yes | — |
+| Pennington | Parcel viewer only | No | — |
+| Pine | Parcel viewer only | No | — |
+| Red Lake | Free parcel data | Yes | — |
+| Redwood | Fee-based parcel data | No | $800 for countywide parcel data or $0.10 per parcel |
+| Rock | Parcel viewer only | No | — |
+| Roseau | Free parcel data | Yes | — |
+| Sibley | Free parcel data | Yes | — |
+| Todd | Free parcel data | Yes | — |
+| Wadena | Free parcel data | Yes | — |
+| Watonwan | Parcel viewer only | No | — |
+| Winona | Fee-based parcel data | No | $75 minimum plus per-parcel rate (rate tiers in county fee schedule) |
 
-```json
-{
-  "county": "Example",
-  "reviewed": "YYYY-MM-DD",
-  "classification": "fee-based-parcel-data",
-  "research_complete": true,
-  "official_county_url": "https://...",
-  "parcel_page_url": "https://...",
-  "download_or_service_url": "https://...",
-  "fee_policy_url": "https://...",
-  "parcel_dataset_fee": "$...",
-  "viewer_url": "https://...",
-  "evidence_note": "Official county fee schedule states that the parcel GIS dataset is available for ...",
-  "source_authority": "county"
-}
-```
+### Direct machine-readable sources
 
-The audit data should remain separate from the monitoring observations so that source-access research can be updated without conflating it with service health.
+- Blue Earth — https://gis.blueearthcountymn.gov/server/rest/services/Planning/CityViewBase/MapServer/1
+- Brown — https://gis.browncountymn.gov/server/rest/services/Hosted/Brown_County_Authoritative_Parcels/FeatureServer/0
+- Dodge — https://maps.co.goodhue.mn.us/pdfs/DodgeCoOpenData/DodgeCoParcels.zip
+- Faribault — https://services2.arcgis.com/fxB2C8mQfjMb1848/arcgis/rest/services/TaxParcelsGAC/FeatureServer
+- Hubbard — https://gis.co.hubbard.mn.us/arcgis/rest/services/OpenData/Hubbard_County_Tax_Parcels/FeatureServer
+- Kandiyohi — https://gis.kcmn.us/arcgis/rest/services/Kandiyohi/PublicMailingKandi/FeatureServer/0
+- Lac qui Parle — https://services5.arcgis.com/D5NH3zpCRhpMEHEy/arcgis/rest/services/Tax_Parcels/FeatureServer
+- Lincoln — https://services2.arcgis.com/4bzoopFK3ECP25Sn/arcgis/rest/services/Parcels/FeatureServer/0
+- Mahnomen — https://services8.arcgis.com/eORKbx5CWReJmkoa/arcgis/rest/services/TaxParcels/FeatureServer
+- Marshall — https://gis.co.marshall.mn.us/server/rest/services/Marshall/MarshallCountyMN_TaxParcels/FeatureServer
+- Meeker — https://services2.arcgis.com/pHb2Lre5eSy5plfE/arcgis/rest/services/Parcels_hub/FeatureServer
+- Norman — https://gismap.co.pennington.mn.us/arcgis/rest/services/Norman/LandRecords/MapServer/8
+- Red Lake — https://gismap.redlakecounty.gov/arcgis/rest/services/RedLake/Public/MapServer/26
+- Roseau — https://gis.co.roseau.mn.us/arcgis/rest/services/TaxParcels/FeatureServer/0
+- Sibley — https://gis.sibleycounty.gov/arcgis/rest/services/AGOL/ParcelTaxData/FeatureServer/0
+- Todd — https://gis.mytoddcounty.com/toddcounty/rest/services/PublicViewerServer/MapServer
+- Wadena — https://gis.co.wadena.mn.us/arcgis/rest/services/LinkPublic/MapServer/0
 
-## UI implication
+Each of these records is marked candidate-low-frequency. That is a research/operations assessment, not a schedule. Watchtower must continue to use bounded read-only checks, honor rate limits and HTTP 429 responses, avoid raw-data redistribution unless permitted, and never scrape human-facing property-search pages.
 
-Until this audit is complete, the public v2 label should avoid implying that exhaustive research has already failed.
+### Fee interpretation
 
-Preferred interim wording:
+Fee-based parcel data is used only when official county evidence establishes that obtaining the parcel GIS dataset itself requires payment. Charges for staff time, custom analysis, custom exports, printed maps, plats, deeds, recorded documents, mailing lists, or unrelated subscriptions do not trigger the label.
+
+When a county sells a packaged shapefile but also publishes a county-authorized no-charge machine-readable parcel service, this audit classifies the county as Free parcel data. The packaged-product fee remains evidence/context but is not treated as a mandatory fee for all parcel-data access.
+
+## Structured research dataset and schema
+
+Persistent research data: clearparcel/datawatch/minnesota_county_parcel_access.json
+
+Schema/validation code: clearparcel/datawatch/parcel_access.py
+
+Regression coverage: tests/test_parcel_access.py
+
+Every county record captures the county, review date, classification, research-complete flag, official county and parcel/GIS URLs, download/service and viewer URLs where applicable, parcel fee evidence where applicable, evidence notes and source authority, direct-machine-readable-source flag, monitoring-suitability assessment, evidence items, and review logs for the required official-source areas.
+
+## UI integration
+
+Public v2 reads parcel-access research independently from monitoring status. The county index and county detail pages can therefore show an evidence-backed parcel-data access classification without changing Watchtower health, freshness, or monitored-source counts.
+
+For counties without completed stored parcel-access research, neutral wording remains appropriate:
 
 **No direct county parcel source currently monitored**
 
-After audit completion, the label should be replaced with the evidence-backed parcel classification above.
+That statement describes current Watchtower coverage and does not imply that an exhaustive source search has failed.

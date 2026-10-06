@@ -368,13 +368,14 @@ class DataWatchTests(unittest.TestCase):
             self.assertIn('Yellow Medicine County', counties)
             self.assertIn('Direct sources', counties)
             self.assertIn('Directly monitored', counties)
-            self.assertIn('How Watchtower currently knows about this county', counties)
+            self.assertIn('What Watchtower currently checks or catalogs', counties)
+            self.assertIn('Parcel data access', counties)
             self.assertIn('County-specific sources actively checked', counties)
-            self.assertIn('Coverage:', counties)
+            self.assertIn('Monitoring coverage', counties)
             self.assertNotIn('Live data checks', counties)
             self.assertNotIn('County update info available', counties)
             self.assertIn('Wabasha County Parcels', wabasha)
-            self.assertIn('A usable parcel-data source has not been found yet', aitkin)
+            self.assertIn('No direct county parcel source currently monitored', aitkin)
 
     def test_all_minnesota_counties_have_verified_contact_authority(self):
         contacts = datawatch_dashboard._load_county_contacts()

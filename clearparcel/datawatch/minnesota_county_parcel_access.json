@@ -1,0 +1,3525 @@
+{
+  "schema_version": 1,
+  "scope": "35 registry-derived needs-source counties; parcel dataset access research only, independent of Watchtower monitoring observations.",
+  "counties": [
+    {
+      "county": "Blue Earth",
+      "review_date": "2026-10-05",
+      "classification": "free-parcel-data",
+      "research_complete": true,
+      "official_county_url": "https://www.blueearthcountymn.gov/",
+      "parcel_page_url": "https://www.blueearthcountymn.gov/329/Mapping-Data",
+      "download_or_service_url": "https://gis.blueearthcountymn.gov/server/rest/services/Planning/CityViewBase/MapServer/1",
+      "viewer_url": "https://www.blueearthcountymn.gov/329/Mapping-Data",
+      "fee_policy_url": "https://www.blueearthcountymn.gov/DocumentCenter/View/1752",
+      "parcel_dataset_fee": null,
+      "fee_product": null,
+      "evidence_note": "County mapping/request pages sell packaged parcel shapefiles, but the county also exposes a public queryable TaxParcels REST layer. Under this audit's definition, the no-charge machine-readable county service is Free parcel data; packaged/custom delivery fees are recorded as context, not as a required access fee.",
+      "source_authority": "county",
+      "usable_direct_machine_readable_source": true,
+      "monitoring": {
+        "decision": "candidate-low-frequency",
+        "reason": "County-hosted parcel REST layer supports query/GeoJSON. Monitor only the GIS service, not the human property-search site.",
+        "terms_urls": [
+          "https://www.blueearthcountymn.gov/329/Mapping-Data",
+          "https://gis.blueearthcountymn.gov/server/rest/services/Planning/CityViewBase/MapServer/1"
+        ]
+      },
+      "evidence": [
+        {
+          "url": "https://www.blueearthcountymn.gov/329/Mapping-Data",
+          "authority": "county",
+          "finding": "Official mapping page provides the county GIS/data-request route."
+        },
+        {
+          "url": "https://gis.blueearthcountymn.gov/server/rest/services/Planning/CityViewBase/MapServer/1",
+          "authority": "county",
+          "finding": "County-hosted TaxParcels polygon layer supports machine-readable query formats."
+        },
+        {
+          "url": "https://www.blueearthcountymn.gov/DocumentCenter/View/1752",
+          "authority": "county",
+          "finding": "Fee schedule prices a packaged Basic Bundle containing parcel boundaries; this does not remove the public REST access path."
+        }
+      ],
+      "review_log": {
+        "county_site": {
+          "status": "reviewed",
+          "note": "Official county government site and relevant navigation/search results reviewed.",
+          "urls": [
+            "https://www.blueearthcountymn.gov/"
+          ]
+        },
+        "gis_assessor_land_records": {
+          "status": "reviewed",
+          "note": "Official GIS, assessor, mapping and/or land-records page reviewed for parcel-specific access.",
+          "urls": [
+            "https://www.blueearthcountymn.gov/329/Mapping-Data"
+          ]
+        },
+        "downloads_open_data": {
+          "status": "reviewed",
+          "note": "Reviewed official download/open-data routes; finding reflected in classification.",
+          "urls": [
+            "https://gis.blueearthcountymn.gov/server/rest/services/Planning/CityViewBase/MapServer/1"
+          ]
+        },
+        "arcgis_services": {
+          "status": "reviewed",
+          "note": "Reviewed county/county-authorized ArcGIS/REST/service exposure; any usable direct source is recorded separately.",
+          "urls": [
+            "https://gis.blueearthcountymn.gov/server/rest/services/Planning/CityViewBase/MapServer/1"
+          ]
+        },
+        "data_policy": {
+          "status": "not-found",
+          "note": "No additional parcel-specific data policy changed the access classification.",
+          "urls": []
+        },
+        "fee_schedule": {
+          "status": "reviewed",
+          "note": "Official parcel-related fee evidence reviewed; fee is recorded only when it applies to the parcel dataset itself.",
+          "urls": [
+            "https://www.blueearthcountymn.gov/DocumentCenter/View/1752"
+          ]
+        },
+        "request_forms": {
+          "status": "not-found",
+          "note": "No parcel-specific request-only path was needed to support the final classification.",
+          "urls": []
+        },
+        "resolutions_ordinances": {
+          "status": "not-found",
+          "note": "No resolution/ordinance located that changed the parcel-access conclusion.",
+          "urls": []
+        },
+        "authorized_portals": {
+          "status": "reviewed",
+          "note": "County-linked viewer, Hub, ArcGIS organization or authorized provider was reviewed where present.",
+          "urls": [
+            "https://www.blueearthcountymn.gov/329/Mapping-Data"
+          ]
+        },
+        "statewide_context": {
+          "status": "reviewed",
+          "note": "MnGeo statewide parcel coverage considered as corroborating context only; it did not determine the county-direct classification.",
+          "urls": [
+            "https://gisdata.mn.gov/dataset/plan-parcels-open"
+          ]
+        }
+      }
+    },
+    {
+      "county": "Brown",
+      "review_date": "2026-10-05",
+      "classification": "free-parcel-data",
+      "research_complete": true,
+      "official_county_url": "https://www.browncountymn.gov/",
+      "parcel_page_url": "https://www.browncountymn.gov/383/Maps-GIS",
+      "download_or_service_url": "https://gis.browncountymn.gov/server/rest/services/Hosted/Brown_County_Authoritative_Parcels/FeatureServer/0",
+      "viewer_url": "https://www.browncountymn.gov/383/Maps-GIS",
+      "fee_policy_url": "https://www.browncountymn.gov/DocumentCenter/View/502/Fee-Schedule-PDF",
+      "parcel_dataset_fee": null,
+      "fee_product": null,
+      "evidence_note": "Brown County sells packaged parcel shapefile products, but its official GIS infrastructure exposes an authoritative parcel FeatureServer without owner information. The direct machine-readable geometry source means the county is classified Free parcel data for this access audit.",
+      "source_authority": "county",
+      "usable_direct_machine_readable_source": true,
+      "monitoring": {
+        "decision": "candidate-low-frequency",
+        "reason": "County-hosted authoritative parcel FeatureServer is public and queryable; use derived-only low-frequency monitoring.",
+        "terms_urls": [
+          "https://www.browncountymn.gov/383/Maps-GIS",
+          "https://gis.browncountymn.gov/server/rest/services/Hosted/Brown_County_Authoritative_Parcels/FeatureServer/0"
+        ]
+      },
+      "evidence": [
+        {
+          "url": "https://www.browncountymn.gov/383/Maps-GIS",
+          "authority": "county",
+          "finding": "County GIS page links mapping/open GIS resources."
+        },
+        {
+          "url": "https://gis.browncountymn.gov/server/rest/services/Hosted/Brown_County_Authoritative_Parcels/FeatureServer/0",
+          "authority": "county",
+          "finding": "County-hosted authoritative parcel FeatureServer is publicly queryable."
+        },
+        {
+          "url": "https://www.browncountymn.gov/DocumentCenter/View/502/Fee-Schedule-PDF",
+          "authority": "county",
+          "finding": "Fee schedule prices packaged complete and partial GIS parcel shapefiles."
+        }
+      ],
+      "review_log": {
+        "county_site": {
+          "status": "reviewed",
+          "note": "Official county government site and relevant navigation/search results reviewed.",
+          "urls": [
+            "https://www.browncountymn.gov/"
+          ]
+        },
+        "gis_assessor_land_records": {
+          "status": "reviewed",
+          "note": "Official GIS, assessor, mapping and/or land-records page reviewed for parcel-specific access.",
+          "urls": [
+            "https://www.browncountymn.gov/383/Maps-GIS"
+          ]
+        },
+        "downloads_open_data": {
+          "status": "reviewed",
+          "note": "Reviewed official download/open-data routes; finding reflected in classification.",
+          "urls": [
+            "https://gis.browncountymn.gov/server/rest/services/Hosted/Brown_County_Authoritative_Parcels/FeatureServer/0"
+          ]
+        },
+        "arcgis_services": {
+          "status": "reviewed",
+          "note": "Reviewed county/county-authorized ArcGIS/REST/service exposure; any usable direct source is recorded separately.",
+          "urls": [
+            "https://gis.browncountymn.gov/server/rest/services/Hosted/Brown_County_Authoritative_Parcels/FeatureServer/0"
+          ]
+        },
+        "data_policy": {
+          "status": "not-found",
+          "note": "No additional parcel-specific data policy changed the access classification.",
+          "urls": []
+        },
+        "fee_schedule": {
+          "status": "reviewed",
+          "note": "Official parcel-related fee evidence reviewed; fee is recorded only when it applies to the parcel dataset itself.",
+          "urls": [
+            "https://www.browncountymn.gov/DocumentCenter/View/502/Fee-Schedule-PDF"
+          ]
+        },
+        "request_forms": {
+          "status": "not-found",
+          "note": "No parcel-specific request-only path was needed to support the final classification.",
+          "urls": []
+        },
+        "resolutions_ordinances": {
+          "status": "not-found",
+          "note": "No resolution/ordinance located that changed the parcel-access conclusion.",
+          "urls": []
+        },
+        "authorized_portals": {
+          "status": "reviewed",
+          "note": "County-linked viewer, Hub, ArcGIS organization or authorized provider was reviewed where present.",
+          "urls": [
+            "https://www.browncountymn.gov/383/Maps-GIS"
+          ]
+        },
+        "statewide_context": {
+          "status": "reviewed",
+          "note": "MnGeo statewide parcel coverage considered as corroborating context only; it did not determine the county-direct classification.",
+          "urls": [
+            "https://gisdata.mn.gov/dataset/plan-parcels-open"
+          ]
+        }
+      }
+    },
+    {
+      "county": "Cottonwood",
+      "review_date": "2026-10-05",
+      "classification": "parcel-viewer-only",
+      "research_complete": true,
+      "official_county_url": "https://www.cottonwoodcountymn.gov/",
+      "parcel_page_url": "https://www.cottonwoodcountymn.gov/departments/administrative/assessor/index.php",
+      "download_or_service_url": null,
+      "viewer_url": "https://beacon.schneidercorp.com/",
+      "fee_policy_url": null,
+      "parcel_dataset_fee": null,
+      "fee_product": null,
+      "evidence_note": "Official assessor, information-systems, county-map, data-practices, document-center and fee-source review found public parcel/property viewing but no verified county-direct downloadable or machine-readable parcel dataset and no parcel-dataset fee.",
+      "source_authority": "county-authorized-provider",
+      "usable_direct_machine_readable_source": false,
+      "monitoring": {
+        "decision": "not-appropriate",
+        "reason": "Only a human-facing county-authorized parcel/property viewer was verified; no separate county parcel dataset/API was established.",
+        "terms_urls": [
+          "https://www.cottonwoodcountymn.gov/departments/administrative/assessor/index.php",
+          "https://www.cottonwoodcountymn.gov/government/government_information/data_practices.php"
+        ]
+      },
+      "evidence": [
+        {
+          "url": "https://www.cottonwoodcountymn.gov/departments/administrative/assessor/index.php",
+          "authority": "county",
+          "finding": "Official assessor page describes parcel/property information and links the county's parcel-viewing resources."
+        },
+        {
+          "url": "https://www.cottonwoodcountymn.gov/government/government_information/data_practices.php",
+          "authority": "county",
+          "finding": "Official data-practices area was reviewed for parcel-data request/policy evidence; no parcel dataset access path was verified."
+        }
+      ],
+      "review_log": {
+        "county_site": {
+          "status": "reviewed",
+          "note": "Official county government site and relevant navigation/search results reviewed.",
+          "urls": [
+            "https://www.cottonwoodcountymn.gov/"
+          ]
+        },
+        "gis_assessor_land_records": {
+          "status": "reviewed",
+          "note": "Official GIS, assessor, mapping and/or land-records page reviewed for parcel-specific access.",
+          "urls": [
+            "https://www.cottonwoodcountymn.gov/departments/administrative/assessor/index.php"
+          ]
+        },
+        "downloads_open_data": {
+          "status": "not-found",
+          "note": "No separate parcel download/open-data product verified in the official-source review.",
+          "urls": []
+        },
+        "arcgis_services": {
+          "status": "not-found",
+          "note": "No county-authorized parcel REST/FeatureServer/MapServer endpoint verified.",
+          "urls": []
+        },
+        "data_policy": {
+          "status": "not-found",
+          "note": "No additional parcel-specific data policy changed the access classification.",
+          "urls": []
+        },
+        "fee_schedule": {
+          "status": "not-found",
+          "note": "No official fee evidence establishing a required parcel-dataset charge was verified.",
+          "urls": []
+        },
+        "request_forms": {
+          "status": "not-found",
+          "note": "No parcel-specific request-only path was needed to support the final classification.",
+          "urls": []
+        },
+        "resolutions_ordinances": {
+          "status": "not-found",
+          "note": "No resolution/ordinance located that changed the parcel-access conclusion.",
+          "urls": []
+        },
+        "authorized_portals": {
+          "status": "reviewed",
+          "note": "County-linked viewer, Hub, ArcGIS organization or authorized provider was reviewed where present.",
+          "urls": [
+            "https://beacon.schneidercorp.com/"
+          ]
+        },
+        "statewide_context": {
+          "status": "reviewed",
+          "note": "MnGeo statewide parcel coverage considered as corroborating context only; it did not determine the county-direct classification.",
+          "urls": [
+            "https://gisdata.mn.gov/dataset/plan-parcels-open"
+          ]
+        }
+      }
+    },
+    {
+      "county": "Dodge",
+      "review_date": "2026-10-05",
+      "classification": "free-parcel-data",
+      "research_complete": true,
+      "official_county_url": "https://dodgecountymn.gov/",
+      "parcel_page_url": "https://dodgecountymn.gov/departments/land_records/gis.php",
+      "download_or_service_url": "https://maps.co.goodhue.mn.us/pdfs/DodgeCoOpenData/DodgeCoParcels.zip",
+      "viewer_url": "https://experience.arcgis.com/experience/c0543b6276904e6b8da0a1e36a9491c8",
+      "fee_policy_url": null,
+      "parcel_dataset_fee": null,
+      "fee_product": null,
+      "evidence_note": "Dodge County's official GIS page links its county Hub and data-request process. The Hub publishes the parcel dataset as free/open data and provides a direct parcel ZIP; custom requests may incur charges, but the standard parcel dataset is available at no charge.",
+      "source_authority": "county-authorized-provider",
+      "usable_direct_machine_readable_source": true,
+      "monitoring": {
+        "decision": "candidate-low-frequency",
+        "reason": "County GIS page/Hub publishes a parcel ZIP as free/open data; metadata or file freshness checks are appropriate at low frequency.",
+        "terms_urls": [
+          "https://dodgecountymn.gov/departments/land_records/gis.php",
+          "https://maps.co.goodhue.mn.us/pdfs/DodgeCoOpenData/DodgeCoParcels.zip"
+        ]
+      },
+      "evidence": [
+        {
+          "url": "https://dodgecountymn.gov/departments/land_records/gis.php",
+          "authority": "county",
+          "finding": "Official GIS page links the Dodge County GIS Hub and parcel viewer."
+        },
+        {
+          "url": "https://maps.co.goodhue.mn.us/pdfs/DodgeCoOpenData/DodgeCoParcels.zip",
+          "authority": "county-authorized-provider",
+          "finding": "County Hub provides a direct parcel ZIP download."
+        }
+      ],
+      "review_log": {
+        "county_site": {
+          "status": "reviewed",
+          "note": "Official county government site and relevant navigation/search results reviewed.",
+          "urls": [
+            "https://dodgecountymn.gov/"
+          ]
+        },
+        "gis_assessor_land_records": {
+          "status": "reviewed",
+          "note": "Official GIS, assessor, mapping and/or land-records page reviewed for parcel-specific access.",
+          "urls": [
+            "https://dodgecountymn.gov/departments/land_records/gis.php"
+          ]
+        },
+        "downloads_open_data": {
+          "status": "reviewed",
+          "note": "Reviewed official download/open-data routes; finding reflected in classification.",
+          "urls": [
+            "https://maps.co.goodhue.mn.us/pdfs/DodgeCoOpenData/DodgeCoParcels.zip"
+          ]
+        },
+        "arcgis_services": {
+          "status": "reviewed",
+          "note": "Reviewed county/county-authorized ArcGIS/REST/service exposure; any usable direct source is recorded separately.",
+          "urls": [
+            "https://maps.co.goodhue.mn.us/pdfs/DodgeCoOpenData/DodgeCoParcels.zip"
+          ]
+        },
+        "data_policy": {
+          "status": "not-found",
+          "note": "No additional parcel-specific data policy changed the access classification.",
+          "urls": []
+        },
+        "fee_schedule": {
+          "status": "not-found",
+          "note": "No official fee evidence establishing a required parcel-dataset charge was verified.",
+          "urls": []
+        },
+        "request_forms": {
+          "status": "not-found",
+          "note": "No parcel-specific request-only path was needed to support the final classification.",
+          "urls": []
+        },
+        "resolutions_ordinances": {
+          "status": "not-found",
+          "note": "No resolution/ordinance located that changed the parcel-access conclusion.",
+          "urls": []
+        },
+        "authorized_portals": {
+          "status": "reviewed",
+          "note": "County-linked viewer, Hub, ArcGIS organization or authorized provider was reviewed where present.",
+          "urls": [
+            "https://experience.arcgis.com/experience/c0543b6276904e6b8da0a1e36a9491c8"
+          ]
+        },
+        "statewide_context": {
+          "status": "reviewed",
+          "note": "MnGeo statewide parcel coverage considered as corroborating context only; it did not determine the county-direct classification.",
+          "urls": [
+            "https://gisdata.mn.gov/dataset/plan-parcels-open"
+          ]
+        }
+      }
+    },
+    {
+      "county": "Faribault",
+      "review_date": "2026-10-05",
+      "classification": "free-parcel-data",
+      "research_complete": true,
+      "official_county_url": "https://www.faribaultcountymn.gov/",
+      "parcel_page_url": "https://www.faribaultcountymn.gov/1220/GIS",
+      "download_or_service_url": "https://services2.arcgis.com/fxB2C8mQfjMb1848/arcgis/rest/services/TaxParcelsGAC/FeatureServer",
+      "viewer_url": "https://www.faribaultcountymn.gov/1220/GIS",
+      "fee_policy_url": null,
+      "parcel_dataset_fee": null,
+      "fee_product": null,
+      "evidence_note": "The official county GIS presence and Faribault County ArcGIS organization expose TaxParcelsGAC as a public FeatureServer. No official evidence was found that payment is required to use that machine-readable parcel service.",
+      "source_authority": "county-authorized-provider",
+      "usable_direct_machine_readable_source": true,
+      "monitoring": {
+        "decision": "candidate-low-frequency",
+        "reason": "Faribault County ArcGIS organization publishes a public TaxParcelsGAC FeatureServer; low-frequency read-only monitoring is appropriate.",
+        "terms_urls": [
+          "https://www.faribaultcountymn.gov/1220/GIS",
+          "https://services2.arcgis.com/fxB2C8mQfjMb1848/arcgis/rest/services/TaxParcelsGAC/FeatureServer"
+        ]
+      },
+      "evidence": [
+        {
+          "url": "https://www.faribaultcountymn.gov/1220/GIS",
+          "authority": "county",
+          "finding": "Official GIS page establishes county GIS/parcel mapping context."
+        },
+        {
+          "url": "https://services2.arcgis.com/fxB2C8mQfjMb1848/arcgis/rest/services/TaxParcelsGAC/FeatureServer",
+          "authority": "county-authorized-provider",
+          "finding": "Faribault County ArcGIS organization publishes a public parcel FeatureServer."
+        }
+      ],
+      "review_log": {
+        "county_site": {
+          "status": "reviewed",
+          "note": "Official county government site and relevant navigation/search results reviewed.",
+          "urls": [
+            "https://www.faribaultcountymn.gov/"
+          ]
+        },
+        "gis_assessor_land_records": {
+          "status": "reviewed",
+          "note": "Official GIS, assessor, mapping and/or land-records page reviewed for parcel-specific access.",
+          "urls": [
+            "https://www.faribaultcountymn.gov/1220/GIS"
+          ]
+        },
+        "downloads_open_data": {
+          "status": "reviewed",
+          "note": "Reviewed official download/open-data routes; finding reflected in classification.",
+          "urls": [
+            "https://services2.arcgis.com/fxB2C8mQfjMb1848/arcgis/rest/services/TaxParcelsGAC/FeatureServer"
+          ]
+        },
+        "arcgis_services": {
+          "status": "reviewed",
+          "note": "Reviewed county/county-authorized ArcGIS/REST/service exposure; any usable direct source is recorded separately.",
+          "urls": [
+            "https://services2.arcgis.com/fxB2C8mQfjMb1848/arcgis/rest/services/TaxParcelsGAC/FeatureServer"
+          ]
+        },
+        "data_policy": {
+          "status": "not-found",
+          "note": "No additional parcel-specific data policy changed the access classification.",
+          "urls": []
+        },
+        "fee_schedule": {
+          "status": "not-found",
+          "note": "No official fee evidence establishing a required parcel-dataset charge was verified.",
+          "urls": []
+        },
+        "request_forms": {
+          "status": "not-found",
+          "note": "No parcel-specific request-only path was needed to support the final classification.",
+          "urls": []
+        },
+        "resolutions_ordinances": {
+          "status": "not-found",
+          "note": "No resolution/ordinance located that changed the parcel-access conclusion.",
+          "urls": []
+        },
+        "authorized_portals": {
+          "status": "reviewed",
+          "note": "County-linked viewer, Hub, ArcGIS organization or authorized provider was reviewed where present.",
+          "urls": [
+            "https://www.faribaultcountymn.gov/1220/GIS"
+          ]
+        },
+        "statewide_context": {
+          "status": "reviewed",
+          "note": "MnGeo statewide parcel coverage considered as corroborating context only; it did not determine the county-direct classification.",
+          "urls": [
+            "https://gisdata.mn.gov/dataset/plan-parcels-open"
+          ]
+        }
+      }
+    },
+    {
+      "county": "Freeborn",
+      "review_date": "2026-10-05",
+      "classification": "parcel-viewer-only",
+      "research_complete": true,
+      "official_county_url": "https://www.freeborncountymn.gov/",
+      "parcel_page_url": "https://www.freeborncountymn.gov/126/Assessor",
+      "download_or_service_url": null,
+      "viewer_url": "https://beacon.schneidercorp.com/Application.aspx?AppID=333&LayerID=3791&PageTypeID=1&PageID=2405",
+      "fee_policy_url": null,
+      "parcel_dataset_fee": null,
+      "fee_product": null,
+      "evidence_note": "Official assessor, IT, fee-schedule, data-practices and recorder sources were reviewed. Beacon provides public parcel/property lookup, but no county-direct parcel dataset download or machine-readable parcel service was verified, and the reviewed current fee sources did not establish a parcel-dataset charge.",
+      "source_authority": "county-authorized-provider",
+      "usable_direct_machine_readable_source": false,
+      "monitoring": {
+        "decision": "not-appropriate",
+        "reason": "County links a parcel/property viewer, but no separate public parcel dataset/API was verified; do not scrape the viewer.",
+        "terms_urls": [
+          "https://www.freeborncountymn.gov/126/Assessor",
+          "https://www.freeborncountymn.gov/472/Fee-Schedule"
+        ]
+      },
+      "evidence": [
+        {
+          "url": "https://www.freeborncountymn.gov/126/Assessor",
+          "authority": "county",
+          "finding": "Official assessor page provides the county property-information route."
+        },
+        {
+          "url": "https://www.freeborncountymn.gov/472/Fee-Schedule",
+          "authority": "county",
+          "finding": "Current fee-schedule landing page was reviewed; no parcel-dataset charge was established from the official material located."
+        }
+      ],
+      "review_log": {
+        "county_site": {
+          "status": "reviewed",
+          "note": "Official county government site and relevant navigation/search results reviewed.",
+          "urls": [
+            "https://www.freeborncountymn.gov/"
+          ]
+        },
+        "gis_assessor_land_records": {
+          "status": "reviewed",
+          "note": "Official GIS, assessor, mapping and/or land-records page reviewed for parcel-specific access.",
+          "urls": [
+            "https://www.freeborncountymn.gov/126/Assessor"
+          ]
+        },
+        "downloads_open_data": {
+          "status": "not-found",
+          "note": "No separate parcel download/open-data product verified in the official-source review.",
+          "urls": []
+        },
+        "arcgis_services": {
+          "status": "not-found",
+          "note": "No county-authorized parcel REST/FeatureServer/MapServer endpoint verified.",
+          "urls": []
+        },
+        "data_policy": {
+          "status": "not-found",
+          "note": "No additional parcel-specific data policy changed the access classification.",
+          "urls": []
+        },
+        "fee_schedule": {
+          "status": "not-found",
+          "note": "No official fee evidence establishing a required parcel-dataset charge was verified.",
+          "urls": []
+        },
+        "request_forms": {
+          "status": "not-found",
+          "note": "No parcel-specific request-only path was needed to support the final classification.",
+          "urls": []
+        },
+        "resolutions_ordinances": {
+          "status": "not-found",
+          "note": "No resolution/ordinance located that changed the parcel-access conclusion.",
+          "urls": []
+        },
+        "authorized_portals": {
+          "status": "reviewed",
+          "note": "County-linked viewer, Hub, ArcGIS organization or authorized provider was reviewed where present.",
+          "urls": [
+            "https://beacon.schneidercorp.com/Application.aspx?AppID=333&LayerID=3791&PageTypeID=1&PageID=2405"
+          ]
+        },
+        "statewide_context": {
+          "status": "reviewed",
+          "note": "MnGeo statewide parcel coverage considered as corroborating context only; it did not determine the county-direct classification.",
+          "urls": [
+            "https://gisdata.mn.gov/dataset/plan-parcels-open"
+          ]
+        }
+      }
+    },
+    {
+      "county": "Goodhue",
+      "review_date": "2026-10-05",
+      "classification": "fee-based-parcel-data",
+      "research_complete": true,
+      "official_county_url": "https://goodhuecountymn.gov/",
+      "parcel_page_url": "https://goodhuecountymn.gov/surveyor_gis/",
+      "download_or_service_url": null,
+      "viewer_url": "https://goodhuecountymn.gov/surveyor_gis/geohub/",
+      "fee_policy_url": "https://goodhuecountymn.gov/files/finance/finance/2025_fee_schedule_78889.pdf",
+      "parcel_dataset_fee": "$0.05 per parcel for public-request digital parcel data; compilation/service charges may apply",
+      "fee_product": "Digital parcel dataset / parcel polygons and assessor value-added attributes",
+      "evidence_note": "Goodhue County Surveyor/GIS maintains the parcel dataset and links GeoHub. The current county fee schedule explicitly prices public-request digital parcel data at $0.05 per parcel, and the GIS request form distinguishes parcel polygons/IDs and value-added assessor attributes. No separate free parcel dataset download was verified.",
+      "source_authority": "county",
+      "usable_direct_machine_readable_source": false,
+      "monitoring": {
+        "decision": "not-appropriate",
+        "reason": "The authoritative parcel dataset is supplied through the county request/fee process; no separate free parcel dataset endpoint was verified for monitoring.",
+        "terms_urls": [
+          "https://goodhuecountymn.gov/surveyor_gis/",
+          "https://goodhuecountymn.gov/files/finance/finance/2025_fee_schedule_78889.pdf"
+        ]
+      },
+      "evidence": [
+        {
+          "url": "https://goodhuecountymn.gov/surveyor_gis/",
+          "authority": "county",
+          "finding": "Official Surveyor/GIS page identifies the county parcel/GIS program."
+        },
+        {
+          "url": "https://goodhuecountymn.gov/files/finance/finance/2025_fee_schedule_78889.pdf",
+          "authority": "county",
+          "finding": "Current fee schedule explicitly prices public-request digital parcel data at $0.05 per parcel."
+        },
+        {
+          "url": "https://goodhuecountymn.gov/files/land_use_management/gis/data_request_form_42156.pdf",
+          "authority": "county",
+          "finding": "Official GIS request form lists parcel polygons/ID and parcel attribute products."
+        }
+      ],
+      "review_log": {
+        "county_site": {
+          "status": "reviewed",
+          "note": "Official county government site and relevant navigation/search results reviewed.",
+          "urls": [
+            "https://goodhuecountymn.gov/"
+          ]
+        },
+        "gis_assessor_land_records": {
+          "status": "reviewed",
+          "note": "Official GIS, assessor, mapping and/or land-records page reviewed for parcel-specific access.",
+          "urls": [
+            "https://goodhuecountymn.gov/surveyor_gis/"
+          ]
+        },
+        "downloads_open_data": {
+          "status": "reviewed",
+          "note": "Reviewed official download/open-data routes; finding reflected in classification.",
+          "urls": [
+            "https://goodhuecountymn.gov/files/finance/finance/2025_fee_schedule_78889.pdf"
+          ]
+        },
+        "arcgis_services": {
+          "status": "not-found",
+          "note": "No county-authorized parcel REST/FeatureServer/MapServer endpoint verified.",
+          "urls": []
+        },
+        "data_policy": {
+          "status": "not-found",
+          "note": "No additional parcel-specific data policy changed the access classification.",
+          "urls": []
+        },
+        "fee_schedule": {
+          "status": "reviewed",
+          "note": "Official parcel-related fee evidence reviewed; fee is recorded only when it applies to the parcel dataset itself.",
+          "urls": [
+            "https://goodhuecountymn.gov/files/finance/finance/2025_fee_schedule_78889.pdf"
+          ]
+        },
+        "request_forms": {
+          "status": "reviewed",
+          "note": "Official request/order route reviewed for parcel dataset access.",
+          "urls": [
+            "https://goodhuecountymn.gov/surveyor_gis/"
+          ]
+        },
+        "resolutions_ordinances": {
+          "status": "not-found",
+          "note": "No resolution/ordinance located that changed the parcel-access conclusion.",
+          "urls": []
+        },
+        "authorized_portals": {
+          "status": "reviewed",
+          "note": "County-linked viewer, Hub, ArcGIS organization or authorized provider was reviewed where present.",
+          "urls": [
+            "https://goodhuecountymn.gov/surveyor_gis/geohub/"
+          ]
+        },
+        "statewide_context": {
+          "status": "reviewed",
+          "note": "MnGeo statewide parcel coverage considered as corroborating context only; it did not determine the county-direct classification.",
+          "urls": [
+            "https://gisdata.mn.gov/dataset/plan-parcels-open"
+          ]
+        }
+      }
+    },
+    {
+      "county": "Hubbard",
+      "review_date": "2026-10-05",
+      "classification": "free-parcel-data",
+      "research_complete": true,
+      "official_county_url": "https://www.hubbardcounty.gov/",
+      "parcel_page_url": "https://www.hubbardcounty.gov/index.asp?SEC=D7FFB7AB-2D53-4054-8A28-E91077B7ED71",
+      "download_or_service_url": "https://gis.co.hubbard.mn.us/arcgis/rest/services/OpenData/Hubbard_County_Tax_Parcels/FeatureServer",
+      "viewer_url": "https://maps-hubbardcounty.opendata.arcgis.com/",
+      "fee_policy_url": null,
+      "parcel_dataset_fee": null,
+      "fee_product": null,
+      "evidence_note": "Hubbard County explicitly states that its official GIS Hub lets users explore and download official county datasets including parcels, that the data are free of charge, and that the Hub is the authoritative source. A public county parcel FeatureServer is available.",
+      "source_authority": "county",
+      "usable_direct_machine_readable_source": true,
+      "monitoring": {
+        "decision": "candidate-low-frequency",
+        "reason": "County explicitly designates its GIS Hub as the authoritative free geospatial-data source; public parcel FeatureServer is suitable for bounded read-only checks.",
+        "terms_urls": [
+          "https://www.hubbardcounty.gov/gis",
+          "https://gis.co.hubbard.mn.us/arcgis/rest/services/OpenData/Hubbard_County_Tax_Parcels/FeatureServer"
+        ]
+      },
+      "evidence": [
+        {
+          "url": "https://www.hubbardcounty.gov/gis",
+          "authority": "county",
+          "finding": "Official GIS page says parcel and other county GIS datasets are free to explore/download and identifies the Hub as authoritative."
+        },
+        {
+          "url": "https://gis.co.hubbard.mn.us/arcgis/rest/services/OpenData/Hubbard_County_Tax_Parcels/FeatureServer",
+          "authority": "county",
+          "finding": "County-hosted Tax Parcels FeatureServer provides machine-readable access."
+        }
+      ],
+      "review_log": {
+        "county_site": {
+          "status": "reviewed",
+          "note": "Official county government site and relevant navigation/search results reviewed.",
+          "urls": [
+            "https://www.hubbardcounty.gov/"
+          ]
+        },
+        "gis_assessor_land_records": {
+          "status": "reviewed",
+          "note": "Official GIS, assessor, mapping and/or land-records page reviewed for parcel-specific access.",
+          "urls": [
+            "https://www.hubbardcounty.gov/index.asp?SEC=D7FFB7AB-2D53-4054-8A28-E91077B7ED71"
+          ]
+        },
+        "downloads_open_data": {
+          "status": "reviewed",
+          "note": "Reviewed official download/open-data routes; finding reflected in classification.",
+          "urls": [
+            "https://gis.co.hubbard.mn.us/arcgis/rest/services/OpenData/Hubbard_County_Tax_Parcels/FeatureServer"
+          ]
+        },
+        "arcgis_services": {
+          "status": "reviewed",
+          "note": "Reviewed county/county-authorized ArcGIS/REST/service exposure; any usable direct source is recorded separately.",
+          "urls": [
+            "https://gis.co.hubbard.mn.us/arcgis/rest/services/OpenData/Hubbard_County_Tax_Parcels/FeatureServer"
+          ]
+        },
+        "data_policy": {
+          "status": "not-found",
+          "note": "No additional parcel-specific data policy changed the access classification.",
+          "urls": []
+        },
+        "fee_schedule": {
+          "status": "not-found",
+          "note": "No official fee evidence establishing a required parcel-dataset charge was verified.",
+          "urls": []
+        },
+        "request_forms": {
+          "status": "not-found",
+          "note": "No parcel-specific request-only path was needed to support the final classification.",
+          "urls": []
+        },
+        "resolutions_ordinances": {
+          "status": "not-found",
+          "note": "No resolution/ordinance located that changed the parcel-access conclusion.",
+          "urls": []
+        },
+        "authorized_portals": {
+          "status": "reviewed",
+          "note": "County-linked viewer, Hub, ArcGIS organization or authorized provider was reviewed where present.",
+          "urls": [
+            "https://maps-hubbardcounty.opendata.arcgis.com/"
+          ]
+        },
+        "statewide_context": {
+          "status": "reviewed",
+          "note": "MnGeo statewide parcel coverage considered as corroborating context only; it did not determine the county-direct classification.",
+          "urls": [
+            "https://gisdata.mn.gov/dataset/plan-parcels-open"
+          ]
+        }
+      }
+    },
+    {
+      "county": "Jackson",
+      "review_date": "2026-10-05",
+      "classification": "fee-based-parcel-data",
+      "research_complete": true,
+      "official_county_url": "https://jacksoncountymn.gov/",
+      "parcel_page_url": "https://jacksoncountymn.gov/maps",
+      "download_or_service_url": null,
+      "viewer_url": "https://jacksoncountymn.gov/property-data",
+      "fee_policy_url": "https://jacksoncountymn.gov/property-data",
+      "parcel_dataset_fee": "$100 for the full GIS parcel layer",
+      "fee_product": "Full GIS parcel layer in ESRI shapefile form",
+      "evidence_note": "Jackson County distinguishes free Beacon parcel/property viewing from GIS spatial data. Its official Property Data page states that ESRI shapefile data are purchased by written request and that the full GIS parcel layer costs $100.",
+      "source_authority": "county",
+      "usable_direct_machine_readable_source": false,
+      "monitoring": {
+        "decision": "not-appropriate",
+        "reason": "County states the GIS parcel dataset is released through a paid written-request process; viewer-only access should not be scraped.",
+        "terms_urls": [
+          "https://jacksoncountymn.gov/property-data",
+          "https://jacksoncountymn.gov/data"
+        ]
+      },
+      "evidence": [
+        {
+          "url": "https://jacksoncountymn.gov/property-data",
+          "authority": "county",
+          "finding": "Official Property Data page states full GIS parcel layer costs $100 and is released after written request/payment."
+        },
+        {
+          "url": "https://jacksoncountymn.gov/data",
+          "authority": "county",
+          "finding": "Official Data Requests page distinguishes free viewer information from GIS spatial data extracted from county files."
+        }
+      ],
+      "review_log": {
+        "county_site": {
+          "status": "reviewed",
+          "note": "Official county government site and relevant navigation/search results reviewed.",
+          "urls": [
+            "https://jacksoncountymn.gov/"
+          ]
+        },
+        "gis_assessor_land_records": {
+          "status": "reviewed",
+          "note": "Official GIS, assessor, mapping and/or land-records page reviewed for parcel-specific access.",
+          "urls": [
+            "https://jacksoncountymn.gov/maps"
+          ]
+        },
+        "downloads_open_data": {
+          "status": "reviewed",
+          "note": "Reviewed official download/open-data routes; finding reflected in classification.",
+          "urls": [
+            "https://jacksoncountymn.gov/property-data"
+          ]
+        },
+        "arcgis_services": {
+          "status": "not-found",
+          "note": "No county-authorized parcel REST/FeatureServer/MapServer endpoint verified.",
+          "urls": []
+        },
+        "data_policy": {
+          "status": "not-found",
+          "note": "No additional parcel-specific data policy changed the access classification.",
+          "urls": []
+        },
+        "fee_schedule": {
+          "status": "reviewed",
+          "note": "Official parcel-related fee evidence reviewed; fee is recorded only when it applies to the parcel dataset itself.",
+          "urls": [
+            "https://jacksoncountymn.gov/property-data"
+          ]
+        },
+        "request_forms": {
+          "status": "reviewed",
+          "note": "Official request/order route reviewed for parcel dataset access.",
+          "urls": [
+            "https://jacksoncountymn.gov/maps"
+          ]
+        },
+        "resolutions_ordinances": {
+          "status": "not-found",
+          "note": "No resolution/ordinance located that changed the parcel-access conclusion.",
+          "urls": []
+        },
+        "authorized_portals": {
+          "status": "reviewed",
+          "note": "County-linked viewer, Hub, ArcGIS organization or authorized provider was reviewed where present.",
+          "urls": [
+            "https://jacksoncountymn.gov/property-data"
+          ]
+        },
+        "statewide_context": {
+          "status": "reviewed",
+          "note": "MnGeo statewide parcel coverage considered as corroborating context only; it did not determine the county-direct classification.",
+          "urls": [
+            "https://gisdata.mn.gov/dataset/plan-parcels-open"
+          ]
+        }
+      }
+    },
+    {
+      "county": "Kanabec",
+      "review_date": "2026-10-05",
+      "classification": "parcel-viewer-only",
+      "research_complete": true,
+      "official_county_url": "https://www.kanabeccounty.org/",
+      "parcel_page_url": "https://www.kanabeccounty.org/departments/gis.php",
+      "download_or_service_url": null,
+      "viewer_url": "https://beacon.schneidercorp.com/",
+      "fee_policy_url": null,
+      "parcel_dataset_fee": null,
+      "fee_product": null,
+      "evidence_note": "The county GIS page and authorized parcel viewer were reviewed, along with the Schneider GIS service footprint. A parcel-capable provider service is publicly reachable, but the official county material located does not establish that endpoint as a free parcel dataset distribution channel. The conservative classification is Parcel viewer only.",
+      "source_authority": "county-authorized-provider",
+      "usable_direct_machine_readable_source": false,
+      "monitoring": {
+        "decision": "not-appropriate",
+        "reason": "County-authorized Beacon/WFS infrastructure exists, but no official statement authorizing the parcel service as a free dataset/API was verified; do not automate the human viewer.",
+        "terms_urls": [
+          "https://www.kanabeccounty.org/departments/gis.php",
+          "https://wfs.schneidercorp.com/arcgis/rest/services/KanabecCountyMN_WFS/MapServer"
+        ]
+      },
+      "evidence": [
+        {
+          "url": "https://www.kanabeccounty.org/departments/gis.php",
+          "authority": "county",
+          "finding": "Official GIS page provides county parcel mapping/viewer access."
+        },
+        {
+          "url": "https://wfs.schneidercorp.com/arcgis/rest/services/KanabecCountyMN_WFS/MapServer",
+          "authority": "county-authorized-provider",
+          "finding": "Schneider hosts a Kanabec GIS service used by the county-authorized viewer, but dataset-use authorization was not established."
+        }
+      ],
+      "review_log": {
+        "county_site": {
+          "status": "reviewed",
+          "note": "Official county government site and relevant navigation/search results reviewed.",
+          "urls": [
+            "https://www.kanabeccounty.org/"
+          ]
+        },
+        "gis_assessor_land_records": {
+          "status": "reviewed",
+          "note": "Official GIS, assessor, mapping and/or land-records page reviewed for parcel-specific access.",
+          "urls": [
+            "https://www.kanabeccounty.org/departments/gis.php"
+          ]
+        },
+        "downloads_open_data": {
+          "status": "not-found",
+          "note": "No separate parcel download/open-data product verified in the official-source review.",
+          "urls": []
+        },
+        "arcgis_services": {
+          "status": "reviewed",
+          "note": "Reviewed county/county-authorized ArcGIS/REST/service exposure; any usable direct source is recorded separately.",
+          "urls": []
+        },
+        "data_policy": {
+          "status": "not-found",
+          "note": "No additional parcel-specific data policy changed the access classification.",
+          "urls": []
+        },
+        "fee_schedule": {
+          "status": "not-found",
+          "note": "No official fee evidence establishing a required parcel-dataset charge was verified.",
+          "urls": []
+        },
+        "request_forms": {
+          "status": "not-found",
+          "note": "No parcel-specific request-only path was needed to support the final classification.",
+          "urls": []
+        },
+        "resolutions_ordinances": {
+          "status": "not-found",
+          "note": "No resolution/ordinance located that changed the parcel-access conclusion.",
+          "urls": []
+        },
+        "authorized_portals": {
+          "status": "reviewed",
+          "note": "County-linked viewer, Hub, ArcGIS organization or authorized provider was reviewed where present.",
+          "urls": [
+            "https://beacon.schneidercorp.com/"
+          ]
+        },
+        "statewide_context": {
+          "status": "reviewed",
+          "note": "MnGeo statewide parcel coverage considered as corroborating context only; it did not determine the county-direct classification.",
+          "urls": [
+            "https://gisdata.mn.gov/dataset/plan-parcels-open"
+          ]
+        }
+      }
+    },
+    {
+      "county": "Kandiyohi",
+      "review_date": "2026-10-05",
+      "classification": "free-parcel-data",
+      "research_complete": true,
+      "official_county_url": "https://www.kcmn.us/",
+      "parcel_page_url": "https://www.kcmn.us/departments/assessor/index.php",
+      "download_or_service_url": "https://gis.kcmn.us/arcgis/rest/services/Kandiyohi/PublicMailingKandi/FeatureServer/0",
+      "viewer_url": "https://www.kcmn.us/departments/assessor/index.php",
+      "fee_policy_url": "https://gis.kcmn.us/maps/geographicInformationReleaseForm.pdf",
+      "parcel_dataset_fee": null,
+      "fee_product": null,
+      "evidence_note": "Kandiyohi County publishes a county-hosted public parcel FeatureServer supporting JSON/GeoJSON queries. The county also prices packaged GIS parcel data, but that charge does not eliminate the public machine-readable service, so this audit classifies the county as Free parcel data.",
+      "source_authority": "county",
+      "usable_direct_machine_readable_source": true,
+      "monitoring": {
+        "decision": "candidate-low-frequency",
+        "reason": "County-hosted public parcel FeatureServer supports read-only queries; monitor the GIS endpoint, not unrelated property-search pages.",
+        "terms_urls": [
+          "https://gis.kcmn.us/arcgis/rest/services/Kandiyohi/PublicMailingKandi/FeatureServer/0",
+          "https://gis.kcmn.us/maps/geographicInformationReleaseForm.pdf"
+        ]
+      },
+      "evidence": [
+        {
+          "url": "https://gis.kcmn.us/arcgis/rest/services/Kandiyohi/PublicMailingKandi/FeatureServer/0",
+          "authority": "county",
+          "finding": "County-hosted public Parcels layer supports machine-readable queries."
+        },
+        {
+          "url": "https://gis.kcmn.us/maps/geographicInformationReleaseForm.pdf",
+          "authority": "county",
+          "finding": "Official GIS pricing document prices packaged parcel-with-tax-data delivery; recorded as context separate from public REST access."
+        }
+      ],
+      "review_log": {
+        "county_site": {
+          "status": "reviewed",
+          "note": "Official county government site and relevant navigation/search results reviewed.",
+          "urls": [
+            "https://www.kcmn.us/"
+          ]
+        },
+        "gis_assessor_land_records": {
+          "status": "reviewed",
+          "note": "Official GIS, assessor, mapping and/or land-records page reviewed for parcel-specific access.",
+          "urls": [
+            "https://www.kcmn.us/departments/assessor/index.php"
+          ]
+        },
+        "downloads_open_data": {
+          "status": "reviewed",
+          "note": "Reviewed official download/open-data routes; finding reflected in classification.",
+          "urls": [
+            "https://gis.kcmn.us/arcgis/rest/services/Kandiyohi/PublicMailingKandi/FeatureServer/0"
+          ]
+        },
+        "arcgis_services": {
+          "status": "reviewed",
+          "note": "Reviewed county/county-authorized ArcGIS/REST/service exposure; any usable direct source is recorded separately.",
+          "urls": [
+            "https://gis.kcmn.us/arcgis/rest/services/Kandiyohi/PublicMailingKandi/FeatureServer/0"
+          ]
+        },
+        "data_policy": {
+          "status": "not-found",
+          "note": "No additional parcel-specific data policy changed the access classification.",
+          "urls": []
+        },
+        "fee_schedule": {
+          "status": "reviewed",
+          "note": "Official parcel-related fee evidence reviewed; fee is recorded only when it applies to the parcel dataset itself.",
+          "urls": [
+            "https://gis.kcmn.us/maps/geographicInformationReleaseForm.pdf"
+          ]
+        },
+        "request_forms": {
+          "status": "not-found",
+          "note": "No parcel-specific request-only path was needed to support the final classification.",
+          "urls": []
+        },
+        "resolutions_ordinances": {
+          "status": "not-found",
+          "note": "No resolution/ordinance located that changed the parcel-access conclusion.",
+          "urls": []
+        },
+        "authorized_portals": {
+          "status": "reviewed",
+          "note": "County-linked viewer, Hub, ArcGIS organization or authorized provider was reviewed where present.",
+          "urls": [
+            "https://www.kcmn.us/departments/assessor/index.php"
+          ]
+        },
+        "statewide_context": {
+          "status": "reviewed",
+          "note": "MnGeo statewide parcel coverage considered as corroborating context only; it did not determine the county-direct classification.",
+          "urls": [
+            "https://gisdata.mn.gov/dataset/plan-parcels-open"
+          ]
+        }
+      }
+    },
+    {
+      "county": "Kittson",
+      "review_date": "2026-10-05",
+      "classification": "parcel-viewer-only",
+      "research_complete": true,
+      "official_county_url": "https://www.co.kittson.mn.us/",
+      "parcel_page_url": "https://www.co.kittson.mn.us/government/departments/taxpayer_services.php",
+      "download_or_service_url": null,
+      "viewer_url": "https://propertysearch.co.kittson.mn.us/",
+      "fee_policy_url": null,
+      "parcel_dataset_fee": null,
+      "fee_product": null,
+      "evidence_note": "Official taxpayer-services/property-search sources provide parcel lookup. The property-search disclaimer expressly prohibits applications designed to mine, gather or extract data. No separate county-direct parcel dataset download, API, fee schedule for the parcel dataset, or parcel-data request product was verified.",
+      "source_authority": "county",
+      "usable_direct_machine_readable_source": false,
+      "monitoring": {
+        "decision": "not-appropriate",
+        "reason": "Public property-search portal expressly prohibits automated mining/gathering/extraction; no separate county parcel dataset/API was verified.",
+        "terms_urls": [
+          "https://www.co.kittson.mn.us/government/departments/taxpayer_services.php",
+          "https://propertysearch.co.kittson.mn.us/Search/Disclaimer.aspx?FromUrl=..%2Fsearch%2Fcommonsearch.aspx%3Fmode%3Drealprop"
+        ]
+      },
+      "evidence": [
+        {
+          "url": "https://www.co.kittson.mn.us/government/departments/taxpayer_services.php",
+          "authority": "county",
+          "finding": "Official taxpayer-services page provides parcel/property access context."
+        },
+        {
+          "url": "https://propertysearch.co.kittson.mn.us/Search/Disclaimer.aspx?FromUrl=..%2Fsearch%2Fcommonsearch.aspx%3Fmode%3Drealprop",
+          "authority": "county",
+          "finding": "County property-search disclaimer prohibits automated data extraction."
+        }
+      ],
+      "review_log": {
+        "county_site": {
+          "status": "reviewed",
+          "note": "Official county government site and relevant navigation/search results reviewed.",
+          "urls": [
+            "https://www.co.kittson.mn.us/"
+          ]
+        },
+        "gis_assessor_land_records": {
+          "status": "reviewed",
+          "note": "Official GIS, assessor, mapping and/or land-records page reviewed for parcel-specific access.",
+          "urls": [
+            "https://www.co.kittson.mn.us/government/departments/taxpayer_services.php"
+          ]
+        },
+        "downloads_open_data": {
+          "status": "not-found",
+          "note": "No separate parcel download/open-data product verified in the official-source review.",
+          "urls": []
+        },
+        "arcgis_services": {
+          "status": "not-found",
+          "note": "No county-authorized parcel REST/FeatureServer/MapServer endpoint verified.",
+          "urls": []
+        },
+        "data_policy": {
+          "status": "reviewed",
+          "note": "Reviewed relevant county data-use/disclaimer policy evidence.",
+          "urls": [
+            "https://propertysearch.co.kittson.mn.us/Search/Disclaimer.aspx?FromUrl=..%2Fsearch%2Fcommonsearch.aspx%3Fmode%3Drealprop"
+          ]
+        },
+        "fee_schedule": {
+          "status": "not-found",
+          "note": "No official fee evidence establishing a required parcel-dataset charge was verified.",
+          "urls": []
+        },
+        "request_forms": {
+          "status": "not-found",
+          "note": "No parcel-specific request-only path was needed to support the final classification.",
+          "urls": []
+        },
+        "resolutions_ordinances": {
+          "status": "not-found",
+          "note": "No resolution/ordinance located that changed the parcel-access conclusion.",
+          "urls": []
+        },
+        "authorized_portals": {
+          "status": "reviewed",
+          "note": "County-linked viewer, Hub, ArcGIS organization or authorized provider was reviewed where present.",
+          "urls": [
+            "https://propertysearch.co.kittson.mn.us/"
+          ]
+        },
+        "statewide_context": {
+          "status": "reviewed",
+          "note": "MnGeo statewide parcel coverage considered as corroborating context only; it did not determine the county-direct classification.",
+          "urls": [
+            "https://gisdata.mn.gov/dataset/plan-parcels-open"
+          ]
+        }
+      }
+    },
+    {
+      "county": "Lac qui Parle",
+      "review_date": "2026-10-05",
+      "classification": "free-parcel-data",
+      "research_complete": true,
+      "official_county_url": "https://www.lqpcomn.gov/",
+      "parcel_page_url": "https://www.lqpcomn.gov/35/Services",
+      "download_or_service_url": "https://services5.arcgis.com/D5NH3zpCRhpMEHEy/arcgis/rest/services/Tax_Parcels/FeatureServer",
+      "viewer_url": "https://opendata-lqpgis.hub.arcgis.com/",
+      "fee_policy_url": "https://www.lqpcomn.gov/DocumentCenter/View/758/2026-Fee-Schedule",
+      "parcel_dataset_fee": null,
+      "fee_product": null,
+      "evidence_note": "Lac qui Parle County's official Services page links an Open GIS Data Hub for data available to view and download. That Hub publishes Tax Parcels as a Feature Service. The 2026 GIS fee schedule explicitly describes shape-file/data-request fees as non-parcel data only.",
+      "source_authority": "county-authorized-provider",
+      "usable_direct_machine_readable_source": true,
+      "monitoring": {
+        "decision": "candidate-low-frequency",
+        "reason": "Official county Open Data Hub publishes Tax Parcels as a Feature Service; low-frequency metadata/query checks are appropriate.",
+        "terms_urls": [
+          "https://www.lqpcomn.gov/35/Services",
+          "https://services5.arcgis.com/D5NH3zpCRhpMEHEy/arcgis/rest/services/Tax_Parcels/FeatureServer"
+        ]
+      },
+      "evidence": [
+        {
+          "url": "https://www.lqpcomn.gov/35/Services",
+          "authority": "county",
+          "finding": "Official Services page links the Open GIS Data Hub for public GIS downloads."
+        },
+        {
+          "url": "https://services5.arcgis.com/D5NH3zpCRhpMEHEy/arcgis/rest/services/Tax_Parcels/FeatureServer",
+          "authority": "county-authorized-provider",
+          "finding": "County Open Data Hub publishes Tax Parcels as a Feature Service."
+        },
+        {
+          "url": "https://www.lqpcomn.gov/DocumentCenter/View/758/2026-Fee-Schedule",
+          "authority": "county",
+          "finding": "2026 GIS fee schedule says GIS shapefile/data-request fee applies to non-parcel data only."
+        }
+      ],
+      "review_log": {
+        "county_site": {
+          "status": "reviewed",
+          "note": "Official county government site and relevant navigation/search results reviewed.",
+          "urls": [
+            "https://www.lqpcomn.gov/"
+          ]
+        },
+        "gis_assessor_land_records": {
+          "status": "reviewed",
+          "note": "Official GIS, assessor, mapping and/or land-records page reviewed for parcel-specific access.",
+          "urls": [
+            "https://www.lqpcomn.gov/35/Services"
+          ]
+        },
+        "downloads_open_data": {
+          "status": "reviewed",
+          "note": "Reviewed official download/open-data routes; finding reflected in classification.",
+          "urls": [
+            "https://services5.arcgis.com/D5NH3zpCRhpMEHEy/arcgis/rest/services/Tax_Parcels/FeatureServer"
+          ]
+        },
+        "arcgis_services": {
+          "status": "reviewed",
+          "note": "Reviewed county/county-authorized ArcGIS/REST/service exposure; any usable direct source is recorded separately.",
+          "urls": [
+            "https://services5.arcgis.com/D5NH3zpCRhpMEHEy/arcgis/rest/services/Tax_Parcels/FeatureServer"
+          ]
+        },
+        "data_policy": {
+          "status": "not-found",
+          "note": "No additional parcel-specific data policy changed the access classification.",
+          "urls": []
+        },
+        "fee_schedule": {
+          "status": "reviewed",
+          "note": "Official parcel-related fee evidence reviewed; fee is recorded only when it applies to the parcel dataset itself.",
+          "urls": [
+            "https://www.lqpcomn.gov/DocumentCenter/View/758/2026-Fee-Schedule"
+          ]
+        },
+        "request_forms": {
+          "status": "not-found",
+          "note": "No parcel-specific request-only path was needed to support the final classification.",
+          "urls": []
+        },
+        "resolutions_ordinances": {
+          "status": "not-found",
+          "note": "No resolution/ordinance located that changed the parcel-access conclusion.",
+          "urls": []
+        },
+        "authorized_portals": {
+          "status": "reviewed",
+          "note": "County-linked viewer, Hub, ArcGIS organization or authorized provider was reviewed where present.",
+          "urls": [
+            "https://opendata-lqpgis.hub.arcgis.com/"
+          ]
+        },
+        "statewide_context": {
+          "status": "reviewed",
+          "note": "MnGeo statewide parcel coverage considered as corroborating context only; it did not determine the county-direct classification.",
+          "urls": [
+            "https://gisdata.mn.gov/dataset/plan-parcels-open"
+          ]
+        }
+      }
+    },
+    {
+      "county": "Lake of the Woods",
+      "review_date": "2026-10-05",
+      "classification": "parcel-viewer-only",
+      "research_complete": true,
+      "official_county_url": "https://lotwcounty.gov/",
+      "parcel_page_url": "https://lotwcounty.gov/mis-gis/",
+      "download_or_service_url": null,
+      "viewer_url": "https://beacon.schneidercorp.com/",
+      "fee_policy_url": null,
+      "parcel_dataset_fee": null,
+      "fee_product": null,
+      "evidence_note": "Lake of the Woods County adopted a 2025 Free and Open Data resolution authorizing public GIS data to be published for no-cost download, and the county provides a parcel map/Beacon viewer. However, this review did not verify a current parcel-specific download or machine-readable parcel endpoint, so the evidence-backed present classification is Parcel viewer only rather than assuming implementation of the resolution.",
+      "source_authority": "county-authorized-provider",
+      "usable_direct_machine_readable_source": false,
+      "monitoring": {
+        "decision": "not-appropriate",
+        "reason": "The county has adopted a free/open GIS policy but the reviewed official sources did not yet verify a parcel-specific downloadable/API endpoint; monitor only after that publication path is identified.",
+        "terms_urls": [
+          "https://lotwcounty.gov/mis-gis/",
+          "https://lotwcounty.gov/september-9-2025-2/"
+        ]
+      },
+      "evidence": [
+        {
+          "url": "https://lotwcounty.gov/mis-gis/",
+          "authority": "county",
+          "finding": "Official IT/GIS page provides the county Internet Map Server and mapping resources."
+        },
+        {
+          "url": "https://lotwcounty.gov/september-9-2025-2/",
+          "authority": "county",
+          "finding": "County Board adopted a Free and Open Data resolution authorizing no-cost GIS downloads."
+        },
+        {
+          "url": "https://lotwcounty.gov/auditor/property-taxes/",
+          "authority": "county",
+          "finding": "Official property-tax page links the county parcel/property mapping tool."
+        }
+      ],
+      "review_log": {
+        "county_site": {
+          "status": "reviewed",
+          "note": "Official county government site and relevant navigation/search results reviewed.",
+          "urls": [
+            "https://lotwcounty.gov/"
+          ]
+        },
+        "gis_assessor_land_records": {
+          "status": "reviewed",
+          "note": "Official GIS, assessor, mapping and/or land-records page reviewed for parcel-specific access.",
+          "urls": [
+            "https://lotwcounty.gov/mis-gis/"
+          ]
+        },
+        "downloads_open_data": {
+          "status": "not-found",
+          "note": "No separate parcel download/open-data product verified in the official-source review.",
+          "urls": []
+        },
+        "arcgis_services": {
+          "status": "not-found",
+          "note": "No county-authorized parcel REST/FeatureServer/MapServer endpoint verified.",
+          "urls": []
+        },
+        "data_policy": {
+          "status": "reviewed",
+          "note": "Reviewed relevant county data-use/disclaimer policy evidence.",
+          "urls": [
+            "https://lotwcounty.gov/auditor/property-taxes/"
+          ]
+        },
+        "fee_schedule": {
+          "status": "not-found",
+          "note": "No official fee evidence establishing a required parcel-dataset charge was verified.",
+          "urls": []
+        },
+        "request_forms": {
+          "status": "not-found",
+          "note": "No parcel-specific request-only path was needed to support the final classification.",
+          "urls": []
+        },
+        "resolutions_ordinances": {
+          "status": "reviewed",
+          "note": "County Board Free and Open Data resolution reviewed.",
+          "urls": [
+            "https://lotwcounty.gov/september-9-2025-2/"
+          ]
+        },
+        "authorized_portals": {
+          "status": "reviewed",
+          "note": "County-linked viewer, Hub, ArcGIS organization or authorized provider was reviewed where present.",
+          "urls": [
+            "https://beacon.schneidercorp.com/"
+          ]
+        },
+        "statewide_context": {
+          "status": "reviewed",
+          "note": "MnGeo statewide parcel coverage considered as corroborating context only; it did not determine the county-direct classification.",
+          "urls": [
+            "https://gisdata.mn.gov/dataset/plan-parcels-open"
+          ]
+        }
+      }
+    },
+    {
+      "county": "Le Sueur",
+      "review_date": "2026-10-05",
+      "classification": "fee-based-parcel-data",
+      "research_complete": true,
+      "official_county_url": "https://www.lesueurcounty.gov/",
+      "parcel_page_url": "https://www.lesueurcounty.gov/m/directory",
+      "download_or_service_url": null,
+      "viewer_url": "https://www.lesueurcounty.gov/312/Geographic-Information-System-GIS",
+      "fee_policy_url": "https://www.lesueurcounty.gov/389/Fees",
+      "parcel_dataset_fee": "$0.05 per parcel or $50/hour, whichever is greater",
+      "fee_product": "Parcel layer / LSC Parcels",
+      "evidence_note": "Le Sueur County's GIS Data page states that several layers are free but specifically states LSC Parcels are available for $0.05 per parcel. The county fee page confirms the parcel layer price. Public map services used by county applications were not treated as superseding that explicit parcel-dataset policy.",
+      "source_authority": "county",
+      "usable_direct_machine_readable_source": false,
+      "monitoring": {
+        "decision": "not-appropriate",
+        "reason": "Official GIS data and fee pages state that the parcel layer is a paid data product; public viewer services are not treated as authorization for bulk/API monitoring.",
+        "terms_urls": [
+          "https://lesueurcounty.gov/646/GIS-Data",
+          "https://www.lesueurcounty.gov/389/Fees"
+        ]
+      },
+      "evidence": [
+        {
+          "url": "https://lesueurcounty.gov/646/GIS-Data",
+          "authority": "county",
+          "finding": "Official GIS Data page explicitly states LSC Parcels are available for $0.05 per parcel."
+        },
+        {
+          "url": "https://www.lesueurcounty.gov/389/Fees",
+          "authority": "county",
+          "finding": "Official GIS fee page prices the Parcel Layer at $0.05 per parcel or $50/hour, whichever is greater."
+        }
+      ],
+      "review_log": {
+        "county_site": {
+          "status": "reviewed",
+          "note": "Official county government site and relevant navigation/search results reviewed.",
+          "urls": [
+            "https://www.lesueurcounty.gov/"
+          ]
+        },
+        "gis_assessor_land_records": {
+          "status": "reviewed",
+          "note": "Official GIS, assessor, mapping and/or land-records page reviewed for parcel-specific access.",
+          "urls": [
+            "https://www.lesueurcounty.gov/m/directory"
+          ]
+        },
+        "downloads_open_data": {
+          "status": "reviewed",
+          "note": "Reviewed official download/open-data routes; finding reflected in classification.",
+          "urls": [
+            "https://www.lesueurcounty.gov/389/Fees"
+          ]
+        },
+        "arcgis_services": {
+          "status": "not-found",
+          "note": "No county-authorized parcel REST/FeatureServer/MapServer endpoint verified.",
+          "urls": []
+        },
+        "data_policy": {
+          "status": "not-found",
+          "note": "No additional parcel-specific data policy changed the access classification.",
+          "urls": []
+        },
+        "fee_schedule": {
+          "status": "reviewed",
+          "note": "Official parcel-related fee evidence reviewed; fee is recorded only when it applies to the parcel dataset itself.",
+          "urls": [
+            "https://www.lesueurcounty.gov/389/Fees"
+          ]
+        },
+        "request_forms": {
+          "status": "reviewed",
+          "note": "Official request/order route reviewed for parcel dataset access.",
+          "urls": [
+            "https://www.lesueurcounty.gov/m/directory"
+          ]
+        },
+        "resolutions_ordinances": {
+          "status": "not-found",
+          "note": "No resolution/ordinance located that changed the parcel-access conclusion.",
+          "urls": []
+        },
+        "authorized_portals": {
+          "status": "reviewed",
+          "note": "County-linked viewer, Hub, ArcGIS organization or authorized provider was reviewed where present.",
+          "urls": [
+            "https://www.lesueurcounty.gov/312/Geographic-Information-System-GIS"
+          ]
+        },
+        "statewide_context": {
+          "status": "reviewed",
+          "note": "MnGeo statewide parcel coverage considered as corroborating context only; it did not determine the county-direct classification.",
+          "urls": [
+            "https://gisdata.mn.gov/dataset/plan-parcels-open"
+          ]
+        }
+      }
+    },
+    {
+      "county": "Lincoln",
+      "review_date": "2026-10-05",
+      "classification": "free-parcel-data",
+      "research_complete": true,
+      "official_county_url": "https://www.lincolncounty-mn.us/",
+      "parcel_page_url": "https://www.lincolncounty-mn.us/departments_agencies/gis_maps.php",
+      "download_or_service_url": "https://services2.arcgis.com/4bzoopFK3ECP25Sn/arcgis/rest/services/Parcels/FeatureServer/0",
+      "viewer_url": "https://lcmn.maps.arcgis.com/apps/webappviewer/index.html?id=bd3d7b6cc3814818ab38a32c4b8c7105",
+      "fee_policy_url": null,
+      "parcel_dataset_fee": null,
+      "fee_product": null,
+      "evidence_note": "Lincoln County's official GIS & Maps page links its ArcGIS online mapping application. The application configuration references a public Parcels FeatureServer used for parcel search, establishing county-authorized machine-readable parcel access.",
+      "source_authority": "county-authorized-provider",
+      "usable_direct_machine_readable_source": true,
+      "monitoring": {
+        "decision": "candidate-low-frequency",
+        "reason": "Official county GIS page links the ArcGIS application, which directly references a public parcel FeatureServer.",
+        "terms_urls": [
+          "https://www.lincolncounty-mn.us/departments_agencies/gis_maps.php",
+          "https://services2.arcgis.com/4bzoopFK3ECP25Sn/arcgis/rest/services/Parcels/FeatureServer/0"
+        ]
+      },
+      "evidence": [
+        {
+          "url": "https://www.lincolncounty-mn.us/departments_agencies/gis_maps.php",
+          "authority": "county",
+          "finding": "Official GIS & Maps page links Lincoln County Online Mapping."
+        },
+        {
+          "url": "https://services2.arcgis.com/4bzoopFK3ECP25Sn/arcgis/rest/services/Parcels/FeatureServer/0",
+          "authority": "county-authorized-provider",
+          "finding": "County-linked ArcGIS application references the public parcel FeatureServer."
+        }
+      ],
+      "review_log": {
+        "county_site": {
+          "status": "reviewed",
+          "note": "Official county government site and relevant navigation/search results reviewed.",
+          "urls": [
+            "https://www.lincolncounty-mn.us/"
+          ]
+        },
+        "gis_assessor_land_records": {
+          "status": "reviewed",
+          "note": "Official GIS, assessor, mapping and/or land-records page reviewed for parcel-specific access.",
+          "urls": [
+            "https://www.lincolncounty-mn.us/departments_agencies/gis_maps.php"
+          ]
+        },
+        "downloads_open_data": {
+          "status": "reviewed",
+          "note": "Reviewed official download/open-data routes; finding reflected in classification.",
+          "urls": [
+            "https://services2.arcgis.com/4bzoopFK3ECP25Sn/arcgis/rest/services/Parcels/FeatureServer/0"
+          ]
+        },
+        "arcgis_services": {
+          "status": "reviewed",
+          "note": "Reviewed county/county-authorized ArcGIS/REST/service exposure; any usable direct source is recorded separately.",
+          "urls": [
+            "https://services2.arcgis.com/4bzoopFK3ECP25Sn/arcgis/rest/services/Parcels/FeatureServer/0"
+          ]
+        },
+        "data_policy": {
+          "status": "not-found",
+          "note": "No additional parcel-specific data policy changed the access classification.",
+          "urls": []
+        },
+        "fee_schedule": {
+          "status": "not-found",
+          "note": "No official fee evidence establishing a required parcel-dataset charge was verified.",
+          "urls": []
+        },
+        "request_forms": {
+          "status": "not-found",
+          "note": "No parcel-specific request-only path was needed to support the final classification.",
+          "urls": []
+        },
+        "resolutions_ordinances": {
+          "status": "not-found",
+          "note": "No resolution/ordinance located that changed the parcel-access conclusion.",
+          "urls": []
+        },
+        "authorized_portals": {
+          "status": "reviewed",
+          "note": "County-linked viewer, Hub, ArcGIS organization or authorized provider was reviewed where present.",
+          "urls": [
+            "https://lcmn.maps.arcgis.com/apps/webappviewer/index.html?id=bd3d7b6cc3814818ab38a32c4b8c7105"
+          ]
+        },
+        "statewide_context": {
+          "status": "reviewed",
+          "note": "MnGeo statewide parcel coverage considered as corroborating context only; it did not determine the county-direct classification.",
+          "urls": [
+            "https://gisdata.mn.gov/dataset/plan-parcels-open"
+          ]
+        }
+      }
+    },
+    {
+      "county": "Mahnomen",
+      "review_date": "2026-10-05",
+      "classification": "free-parcel-data",
+      "research_complete": true,
+      "official_county_url": "https://www.mahnomencounty.gov/",
+      "parcel_page_url": "https://www.mahnomencounty.gov/department/departments_a_h/assessor/department_contacts.php",
+      "download_or_service_url": "https://services8.arcgis.com/eORKbx5CWReJmkoa/arcgis/rest/services/TaxParcels/FeatureServer",
+      "viewer_url": "https://mahnomencountymn.maps.arcgis.com/apps/webappviewer/index.html?id=374e6dba7090419092bea8e28869fd07",
+      "fee_policy_url": null,
+      "parcel_dataset_fee": null,
+      "fee_product": null,
+      "evidence_note": "The official county assessor presence and the Mahnomen County ArcGIS organization were reviewed. The county organization publishes both a Tax Parcel Viewer and a public TaxParcels FeatureServer, providing machine-readable parcel access.",
+      "source_authority": "county-authorized-provider",
+      "usable_direct_machine_readable_source": true,
+      "monitoring": {
+        "decision": "candidate-low-frequency",
+        "reason": "Mahnomen County's ArcGIS organization publishes a public TaxParcels FeatureServer; bounded read-only monitoring is appropriate.",
+        "terms_urls": [
+          "https://www.mahnomencounty.gov/department/departments_a_h/assessor/department_contacts.php",
+          "https://services8.arcgis.com/eORKbx5CWReJmkoa/arcgis/rest/services/TaxParcels/FeatureServer"
+        ]
+      },
+      "evidence": [
+        {
+          "url": "https://www.mahnomencounty.gov/department/departments_a_h/assessor/department_contacts.php",
+          "authority": "county",
+          "finding": "Official assessor page establishes county parcel/assessment authority."
+        },
+        {
+          "url": "https://services8.arcgis.com/eORKbx5CWReJmkoa/arcgis/rest/services/TaxParcels/FeatureServer",
+          "authority": "county-authorized-provider",
+          "finding": "Mahnomen County ArcGIS organization publishes a public TaxParcels FeatureServer."
+        }
+      ],
+      "review_log": {
+        "county_site": {
+          "status": "reviewed",
+          "note": "Official county government site and relevant navigation/search results reviewed.",
+          "urls": [
+            "https://www.mahnomencounty.gov/"
+          ]
+        },
+        "gis_assessor_land_records": {
+          "status": "reviewed",
+          "note": "Official GIS, assessor, mapping and/or land-records page reviewed for parcel-specific access.",
+          "urls": [
+            "https://www.mahnomencounty.gov/department/departments_a_h/assessor/department_contacts.php"
+          ]
+        },
+        "downloads_open_data": {
+          "status": "reviewed",
+          "note": "Reviewed official download/open-data routes; finding reflected in classification.",
+          "urls": [
+            "https://services8.arcgis.com/eORKbx5CWReJmkoa/arcgis/rest/services/TaxParcels/FeatureServer"
+          ]
+        },
+        "arcgis_services": {
+          "status": "reviewed",
+          "note": "Reviewed county/county-authorized ArcGIS/REST/service exposure; any usable direct source is recorded separately.",
+          "urls": [
+            "https://services8.arcgis.com/eORKbx5CWReJmkoa/arcgis/rest/services/TaxParcels/FeatureServer"
+          ]
+        },
+        "data_policy": {
+          "status": "not-found",
+          "note": "No additional parcel-specific data policy changed the access classification.",
+          "urls": []
+        },
+        "fee_schedule": {
+          "status": "not-found",
+          "note": "No official fee evidence establishing a required parcel-dataset charge was verified.",
+          "urls": []
+        },
+        "request_forms": {
+          "status": "not-found",
+          "note": "No parcel-specific request-only path was needed to support the final classification.",
+          "urls": []
+        },
+        "resolutions_ordinances": {
+          "status": "not-found",
+          "note": "No resolution/ordinance located that changed the parcel-access conclusion.",
+          "urls": []
+        },
+        "authorized_portals": {
+          "status": "reviewed",
+          "note": "County-linked viewer, Hub, ArcGIS organization or authorized provider was reviewed where present.",
+          "urls": [
+            "https://mahnomencountymn.maps.arcgis.com/apps/webappviewer/index.html?id=374e6dba7090419092bea8e28869fd07"
+          ]
+        },
+        "statewide_context": {
+          "status": "reviewed",
+          "note": "MnGeo statewide parcel coverage considered as corroborating context only; it did not determine the county-direct classification.",
+          "urls": [
+            "https://gisdata.mn.gov/dataset/plan-parcels-open"
+          ]
+        }
+      }
+    },
+    {
+      "county": "Marshall",
+      "review_date": "2026-10-05",
+      "classification": "free-parcel-data",
+      "research_complete": true,
+      "official_county_url": "https://www.marshallcountymn.gov/",
+      "parcel_page_url": "https://www.marshallcountymn.gov/departments/gis.php",
+      "download_or_service_url": "https://gis.co.marshall.mn.us/server/rest/services/Marshall/MarshallCountyMN_TaxParcels/FeatureServer",
+      "viewer_url": "https://gis.co.marshall.mn.us/link/wab/",
+      "fee_policy_url": null,
+      "parcel_dataset_fee": null,
+      "fee_product": null,
+      "evidence_note": "Marshall County's official GIS page links the county-hosted web mapping system. The same county GIS host publishes a TaxParcels FeatureServer with query capability, establishing direct machine-readable parcel access.",
+      "source_authority": "county",
+      "usable_direct_machine_readable_source": true,
+      "monitoring": {
+        "decision": "candidate-low-frequency",
+        "reason": "County-hosted TaxParcels FeatureServer is public and queryable; bounded read-only checks fit current provider-compliance rules.",
+        "terms_urls": [
+          "https://www.marshallcountymn.gov/departments/gis.php",
+          "https://gis.co.marshall.mn.us/server/rest/services/Marshall/MarshallCountyMN_TaxParcels/FeatureServer"
+        ]
+      },
+      "evidence": [
+        {
+          "url": "https://www.marshallcountymn.gov/departments/gis.php",
+          "authority": "county",
+          "finding": "Official GIS page links county web mapping resources."
+        },
+        {
+          "url": "https://gis.co.marshall.mn.us/server/rest/services/Marshall/MarshallCountyMN_TaxParcels/FeatureServer",
+          "authority": "county",
+          "finding": "County-hosted TaxParcels FeatureServer provides public query access."
+        }
+      ],
+      "review_log": {
+        "county_site": {
+          "status": "reviewed",
+          "note": "Official county government site and relevant navigation/search results reviewed.",
+          "urls": [
+            "https://www.marshallcountymn.gov/"
+          ]
+        },
+        "gis_assessor_land_records": {
+          "status": "reviewed",
+          "note": "Official GIS, assessor, mapping and/or land-records page reviewed for parcel-specific access.",
+          "urls": [
+            "https://www.marshallcountymn.gov/departments/gis.php"
+          ]
+        },
+        "downloads_open_data": {
+          "status": "reviewed",
+          "note": "Reviewed official download/open-data routes; finding reflected in classification.",
+          "urls": [
+            "https://gis.co.marshall.mn.us/server/rest/services/Marshall/MarshallCountyMN_TaxParcels/FeatureServer"
+          ]
+        },
+        "arcgis_services": {
+          "status": "reviewed",
+          "note": "Reviewed county/county-authorized ArcGIS/REST/service exposure; any usable direct source is recorded separately.",
+          "urls": [
+            "https://gis.co.marshall.mn.us/server/rest/services/Marshall/MarshallCountyMN_TaxParcels/FeatureServer"
+          ]
+        },
+        "data_policy": {
+          "status": "not-found",
+          "note": "No additional parcel-specific data policy changed the access classification.",
+          "urls": []
+        },
+        "fee_schedule": {
+          "status": "not-found",
+          "note": "No official fee evidence establishing a required parcel-dataset charge was verified.",
+          "urls": []
+        },
+        "request_forms": {
+          "status": "not-found",
+          "note": "No parcel-specific request-only path was needed to support the final classification.",
+          "urls": []
+        },
+        "resolutions_ordinances": {
+          "status": "not-found",
+          "note": "No resolution/ordinance located that changed the parcel-access conclusion.",
+          "urls": []
+        },
+        "authorized_portals": {
+          "status": "reviewed",
+          "note": "County-linked viewer, Hub, ArcGIS organization or authorized provider was reviewed where present.",
+          "urls": [
+            "https://gis.co.marshall.mn.us/link/wab/"
+          ]
+        },
+        "statewide_context": {
+          "status": "reviewed",
+          "note": "MnGeo statewide parcel coverage considered as corroborating context only; it did not determine the county-direct classification.",
+          "urls": [
+            "https://gisdata.mn.gov/dataset/plan-parcels-open"
+          ]
+        }
+      }
+    },
+    {
+      "county": "Martin",
+      "review_date": "2026-10-05",
+      "classification": "parcel-viewer-only",
+      "research_complete": true,
+      "official_county_url": "https://martincountymn.gov/",
+      "parcel_page_url": "https://martincountymn.gov/your_government/departments/assessor/index.php",
+      "download_or_service_url": null,
+      "viewer_url": "https://beacon.schneidercorp.com/Application.aspx?AppID=139&LayerID=1771&PageTypeID=2&PageID=870",
+      "fee_policy_url": null,
+      "parcel_dataset_fee": null,
+      "fee_product": null,
+      "evidence_note": "Martin County's official assessor page links Beacon for parcel/property lookup. Schneider also exposes a Martin parcel-capable GIS service, but the reviewed county material does not establish that service as a free parcel dataset distribution channel. The conservative classification is Parcel viewer only.",
+      "source_authority": "county-authorized-provider",
+      "usable_direct_machine_readable_source": false,
+      "monitoring": {
+        "decision": "not-appropriate",
+        "reason": "County-authorized Beacon/Schneider mapping is available, but no county source established the Schneider WFS as a parcel dataset distribution/API endpoint; do not infer bulk access.",
+        "terms_urls": [
+          "https://martincountymn.gov/your_government/departments/assessor/index.php",
+          "https://wfs.schneidercorp.com/arcgis/rest/services/MartinCountyMN_WFS/MapServer/1"
+        ]
+      },
+      "evidence": [
+        {
+          "url": "https://martincountymn.gov/your_government/departments/assessor/index.php",
+          "authority": "county",
+          "finding": "Official assessor page links Beacon parcel/property information."
+        },
+        {
+          "url": "https://wfs.schneidercorp.com/arcgis/rest/services/MartinCountyMN_WFS/MapServer/1",
+          "authority": "county-authorized-provider",
+          "finding": "Schneider parcel layer is technically queryable, but county dataset-access authorization was not established."
+        }
+      ],
+      "review_log": {
+        "county_site": {
+          "status": "reviewed",
+          "note": "Official county government site and relevant navigation/search results reviewed.",
+          "urls": [
+            "https://martincountymn.gov/"
+          ]
+        },
+        "gis_assessor_land_records": {
+          "status": "reviewed",
+          "note": "Official GIS, assessor, mapping and/or land-records page reviewed for parcel-specific access.",
+          "urls": [
+            "https://martincountymn.gov/your_government/departments/assessor/index.php"
+          ]
+        },
+        "downloads_open_data": {
+          "status": "not-found",
+          "note": "No separate parcel download/open-data product verified in the official-source review.",
+          "urls": []
+        },
+        "arcgis_services": {
+          "status": "reviewed",
+          "note": "Reviewed county/county-authorized ArcGIS/REST/service exposure; any usable direct source is recorded separately.",
+          "urls": []
+        },
+        "data_policy": {
+          "status": "not-found",
+          "note": "No additional parcel-specific data policy changed the access classification.",
+          "urls": []
+        },
+        "fee_schedule": {
+          "status": "not-found",
+          "note": "No official fee evidence establishing a required parcel-dataset charge was verified.",
+          "urls": []
+        },
+        "request_forms": {
+          "status": "not-found",
+          "note": "No parcel-specific request-only path was needed to support the final classification.",
+          "urls": []
+        },
+        "resolutions_ordinances": {
+          "status": "not-found",
+          "note": "No resolution/ordinance located that changed the parcel-access conclusion.",
+          "urls": []
+        },
+        "authorized_portals": {
+          "status": "reviewed",
+          "note": "County-linked viewer, Hub, ArcGIS organization or authorized provider was reviewed where present.",
+          "urls": [
+            "https://beacon.schneidercorp.com/Application.aspx?AppID=139&LayerID=1771&PageTypeID=2&PageID=870"
+          ]
+        },
+        "statewide_context": {
+          "status": "reviewed",
+          "note": "MnGeo statewide parcel coverage considered as corroborating context only; it did not determine the county-direct classification.",
+          "urls": [
+            "https://gisdata.mn.gov/dataset/plan-parcels-open"
+          ]
+        }
+      }
+    },
+    {
+      "county": "Meeker",
+      "review_date": "2026-10-05",
+      "classification": "free-parcel-data",
+      "research_complete": true,
+      "official_county_url": "https://www.meekercountymn.gov/",
+      "parcel_page_url": "https://www.meekercountymn.gov/539/GIS",
+      "download_or_service_url": "https://services2.arcgis.com/pHb2Lre5eSy5plfE/arcgis/rest/services/Parcels_hub/FeatureServer",
+      "viewer_url": "https://meeker-county-gis-meekergis.hub.arcgis.com/",
+      "fee_policy_url": null,
+      "parcel_dataset_fee": null,
+      "fee_product": null,
+      "evidence_note": "Meeker County's official GIS page provides its GIS tool and public-use disclaimer. The county GIS Hub publishes Meeker Parcels as a Feature Service, providing a direct machine-readable source.",
+      "source_authority": "county-authorized-provider",
+      "usable_direct_machine_readable_source": true,
+      "monitoring": {
+        "decision": "candidate-low-frequency",
+        "reason": "Official county GIS page links the Meeker GIS tool/Hub, which publishes Meeker Parcels as a Feature Service.",
+        "terms_urls": [
+          "https://www.meekercountymn.gov/539/GIS",
+          "https://services2.arcgis.com/pHb2Lre5eSy5plfE/arcgis/rest/services/Parcels_hub/FeatureServer"
+        ]
+      },
+      "evidence": [
+        {
+          "url": "https://www.meekercountymn.gov/539/GIS",
+          "authority": "county",
+          "finding": "Official GIS page provides county GIS tool and data disclaimer."
+        },
+        {
+          "url": "https://services2.arcgis.com/pHb2Lre5eSy5plfE/arcgis/rest/services/Parcels_hub/FeatureServer",
+          "authority": "county-authorized-provider",
+          "finding": "Meeker County GIS Hub publishes the parcel Feature Service."
+        }
+      ],
+      "review_log": {
+        "county_site": {
+          "status": "reviewed",
+          "note": "Official county government site and relevant navigation/search results reviewed.",
+          "urls": [
+            "https://www.meekercountymn.gov/"
+          ]
+        },
+        "gis_assessor_land_records": {
+          "status": "reviewed",
+          "note": "Official GIS, assessor, mapping and/or land-records page reviewed for parcel-specific access.",
+          "urls": [
+            "https://www.meekercountymn.gov/539/GIS"
+          ]
+        },
+        "downloads_open_data": {
+          "status": "reviewed",
+          "note": "Reviewed official download/open-data routes; finding reflected in classification.",
+          "urls": [
+            "https://services2.arcgis.com/pHb2Lre5eSy5plfE/arcgis/rest/services/Parcels_hub/FeatureServer"
+          ]
+        },
+        "arcgis_services": {
+          "status": "reviewed",
+          "note": "Reviewed county/county-authorized ArcGIS/REST/service exposure; any usable direct source is recorded separately.",
+          "urls": [
+            "https://services2.arcgis.com/pHb2Lre5eSy5plfE/arcgis/rest/services/Parcels_hub/FeatureServer"
+          ]
+        },
+        "data_policy": {
+          "status": "not-found",
+          "note": "No additional parcel-specific data policy changed the access classification.",
+          "urls": []
+        },
+        "fee_schedule": {
+          "status": "not-found",
+          "note": "No official fee evidence establishing a required parcel-dataset charge was verified.",
+          "urls": []
+        },
+        "request_forms": {
+          "status": "not-found",
+          "note": "No parcel-specific request-only path was needed to support the final classification.",
+          "urls": []
+        },
+        "resolutions_ordinances": {
+          "status": "not-found",
+          "note": "No resolution/ordinance located that changed the parcel-access conclusion.",
+          "urls": []
+        },
+        "authorized_portals": {
+          "status": "reviewed",
+          "note": "County-linked viewer, Hub, ArcGIS organization or authorized provider was reviewed where present.",
+          "urls": [
+            "https://meeker-county-gis-meekergis.hub.arcgis.com/"
+          ]
+        },
+        "statewide_context": {
+          "status": "reviewed",
+          "note": "MnGeo statewide parcel coverage considered as corroborating context only; it did not determine the county-direct classification.",
+          "urls": [
+            "https://gisdata.mn.gov/dataset/plan-parcels-open"
+          ]
+        }
+      }
+    },
+    {
+      "county": "Murray",
+      "review_date": "2026-10-05",
+      "classification": "parcel-viewer-only",
+      "research_complete": true,
+      "official_county_url": "https://www.murraycountymn.com/",
+      "parcel_page_url": "https://www.murraycountymn.com/contact/index.php",
+      "download_or_service_url": null,
+      "viewer_url": "https://beacon.schneidercorp.com/Application.aspx?AppID=1153&LayerID=30832&PageTypeID=1&PageID=12498",
+      "fee_policy_url": null,
+      "parcel_dataset_fee": null,
+      "fee_product": null,
+      "evidence_note": "Murray County's official site links parcel/property tax search and Beacon mapping. The county maps, department, fee and data-request material reviewed did not establish a downloadable or machine-readable parcel dataset outside the human-facing property systems.",
+      "source_authority": "county-authorized-provider",
+      "usable_direct_machine_readable_source": false,
+      "monitoring": {
+        "decision": "not-appropriate",
+        "reason": "Official county map resources link Beacon/property lookup, but no separate public parcel dataset/API or parcel-dataset fee was verified.",
+        "terms_urls": [
+          "https://www.murraycountymn.com/community/maps.php",
+          "https://beacon.schneidercorp.com/Application.aspx?AppID=1153&LayerID=30832&PageTypeID=1&PageID=12498"
+        ]
+      },
+      "evidence": [
+        {
+          "url": "https://www.murraycountymn.com/community/maps.php",
+          "authority": "county",
+          "finding": "Official Maps page links county parcel/property mapping resources."
+        },
+        {
+          "url": "https://beacon.schneidercorp.com/Application.aspx?AppID=1153&LayerID=30832&PageTypeID=1&PageID=12498",
+          "authority": "county-authorized-provider",
+          "finding": "County-linked Beacon provides parcel/property viewing."
+        }
+      ],
+      "review_log": {
+        "county_site": {
+          "status": "reviewed",
+          "note": "Official county government site and relevant navigation/search results reviewed.",
+          "urls": [
+            "https://www.murraycountymn.com/"
+          ]
+        },
+        "gis_assessor_land_records": {
+          "status": "reviewed",
+          "note": "Official GIS, assessor, mapping and/or land-records page reviewed for parcel-specific access.",
+          "urls": [
+            "https://www.murraycountymn.com/contact/index.php"
+          ]
+        },
+        "downloads_open_data": {
+          "status": "not-found",
+          "note": "No separate parcel download/open-data product verified in the official-source review.",
+          "urls": []
+        },
+        "arcgis_services": {
+          "status": "not-found",
+          "note": "No county-authorized parcel REST/FeatureServer/MapServer endpoint verified.",
+          "urls": []
+        },
+        "data_policy": {
+          "status": "not-found",
+          "note": "No additional parcel-specific data policy changed the access classification.",
+          "urls": []
+        },
+        "fee_schedule": {
+          "status": "not-found",
+          "note": "No official fee evidence establishing a required parcel-dataset charge was verified.",
+          "urls": []
+        },
+        "request_forms": {
+          "status": "not-found",
+          "note": "No parcel-specific request-only path was needed to support the final classification.",
+          "urls": []
+        },
+        "resolutions_ordinances": {
+          "status": "not-found",
+          "note": "No resolution/ordinance located that changed the parcel-access conclusion.",
+          "urls": []
+        },
+        "authorized_portals": {
+          "status": "reviewed",
+          "note": "County-linked viewer, Hub, ArcGIS organization or authorized provider was reviewed where present.",
+          "urls": [
+            "https://beacon.schneidercorp.com/Application.aspx?AppID=1153&LayerID=30832&PageTypeID=1&PageID=12498"
+          ]
+        },
+        "statewide_context": {
+          "status": "reviewed",
+          "note": "MnGeo statewide parcel coverage considered as corroborating context only; it did not determine the county-direct classification.",
+          "urls": [
+            "https://gisdata.mn.gov/dataset/plan-parcels-open"
+          ]
+        }
+      }
+    },
+    {
+      "county": "Nicollet",
+      "review_date": "2026-10-05",
+      "classification": "fee-based-parcel-data",
+      "research_complete": true,
+      "official_county_url": "https://www.nicolletcountymn.gov/",
+      "parcel_page_url": "https://www.nicolletcountymn.gov/847/County-Maps",
+      "download_or_service_url": null,
+      "viewer_url": "https://www.nicolletcountymn.gov/364/View",
+      "fee_policy_url": "https://www.nicolletcountymn.gov/DocumentCenter/View/5049/Property-Services-Fee-Schedule",
+      "parcel_dataset_fee": "$0.05 per parcel ($5 minimum) or $500 for the entire county",
+      "fee_product": "GIS Digital Data - Parcels, ESRI Shapefile format",
+      "evidence_note": "Nicollet County's official fee schedule explicitly prices GIS Digital Data in ESRI shapefile format: parcels at $0.05 each with a $5 minimum or $500 for the entire county. The county also provides Beacon parcel viewing and separately prohibits extraction from its RecordEASE land-record system.",
+      "source_authority": "county",
+      "usable_direct_machine_readable_source": false,
+      "monitoring": {
+        "decision": "not-appropriate",
+        "reason": "Official Property Services fee schedule defines the parcel GIS dataset as a paid shapefile product; use county request process rather than automating parcel/land-record sites.",
+        "terms_urls": [
+          "https://www.nicolletcountymn.gov/DocumentCenter/View/5049/Property-Services-Fee-Schedule",
+          "https://www.nicolletcountymn.gov/364/View"
+        ]
+      },
+      "evidence": [
+        {
+          "url": "https://www.nicolletcountymn.gov/DocumentCenter/View/5049/Property-Services-Fee-Schedule",
+          "authority": "county",
+          "finding": "Official Property Services fee schedule explicitly prices GIS parcel shapefiles."
+        },
+        {
+          "url": "https://www.nicolletcountymn.gov/364/View",
+          "authority": "county",
+          "finding": "Official View page links County Parcel Information/Beacon."
+        },
+        {
+          "url": "https://www.nicolletcountymn.gov/581/RecordEASE-Web",
+          "authority": "county",
+          "finding": "Official RecordEASE page prohibits multiple-parcel extraction/screen scraping from that land-record system."
+        }
+      ],
+      "review_log": {
+        "county_site": {
+          "status": "reviewed",
+          "note": "Official county government site and relevant navigation/search results reviewed.",
+          "urls": [
+            "https://www.nicolletcountymn.gov/"
+          ]
+        },
+        "gis_assessor_land_records": {
+          "status": "reviewed",
+          "note": "Official GIS, assessor, mapping and/or land-records page reviewed for parcel-specific access.",
+          "urls": [
+            "https://www.nicolletcountymn.gov/847/County-Maps"
+          ]
+        },
+        "downloads_open_data": {
+          "status": "reviewed",
+          "note": "Reviewed official download/open-data routes; finding reflected in classification.",
+          "urls": [
+            "https://www.nicolletcountymn.gov/DocumentCenter/View/5049/Property-Services-Fee-Schedule"
+          ]
+        },
+        "arcgis_services": {
+          "status": "not-found",
+          "note": "No county-authorized parcel REST/FeatureServer/MapServer endpoint verified.",
+          "urls": []
+        },
+        "data_policy": {
+          "status": "not-found",
+          "note": "No additional parcel-specific data policy changed the access classification.",
+          "urls": []
+        },
+        "fee_schedule": {
+          "status": "reviewed",
+          "note": "Official parcel-related fee evidence reviewed; fee is recorded only when it applies to the parcel dataset itself.",
+          "urls": [
+            "https://www.nicolletcountymn.gov/DocumentCenter/View/5049/Property-Services-Fee-Schedule"
+          ]
+        },
+        "request_forms": {
+          "status": "reviewed",
+          "note": "Official request/order route reviewed for parcel dataset access.",
+          "urls": [
+            "https://www.nicolletcountymn.gov/847/County-Maps"
+          ]
+        },
+        "resolutions_ordinances": {
+          "status": "not-found",
+          "note": "No resolution/ordinance located that changed the parcel-access conclusion.",
+          "urls": []
+        },
+        "authorized_portals": {
+          "status": "reviewed",
+          "note": "County-linked viewer, Hub, ArcGIS organization or authorized provider was reviewed where present.",
+          "urls": [
+            "https://www.nicolletcountymn.gov/364/View"
+          ]
+        },
+        "statewide_context": {
+          "status": "reviewed",
+          "note": "MnGeo statewide parcel coverage considered as corroborating context only; it did not determine the county-direct classification.",
+          "urls": [
+            "https://gisdata.mn.gov/dataset/plan-parcels-open"
+          ]
+        }
+      }
+    },
+    {
+      "county": "Nobles",
+      "review_date": "2026-10-05",
+      "classification": "fee-based-parcel-data",
+      "research_complete": true,
+      "official_county_url": "https://www.co.nobles.mn.us/",
+      "parcel_page_url": "https://www.co.nobles.mn.us/departments/assessor/",
+      "download_or_service_url": null,
+      "viewer_url": "https://www.co.nobles.mn.us/departments/it/gis/",
+      "fee_policy_url": "https://www.co.nobles.mn.us/wp-content/uploads/2024/12/2025-Fee-Schedule-Draft.pdf",
+      "parcel_dataset_fee": "$0.05 per parcel ($25 minimum) or $500 for the county parcel shapefile",
+      "fee_product": "Digital parcel shapefile / County Parcel Shapefile",
+      "evidence_note": "Nobles County's official GIS page directs users to Beacon and GIS Requests. The county fee schedule explicitly prices digital parcel shapefiles at $0.05 per parcel with a $25 minimum and the county parcel shapefile at $500. Public ArcGIS items found outside the county's documented GIS access path were not treated as authoritative free distribution.",
+      "source_authority": "county",
+      "usable_direct_machine_readable_source": false,
+      "monitoring": {
+        "decision": "not-appropriate",
+        "reason": "Official GIS fee schedule treats parcel shapefiles as a paid data product; no county-authorized free parcel dataset/API was verified.",
+        "terms_urls": [
+          "https://www.co.nobles.mn.us/departments/it/gis/",
+          "https://www.co.nobles.mn.us/wp-content/uploads/2024/12/2025-Fee-Schedule-Draft.pdf"
+        ]
+      },
+      "evidence": [
+        {
+          "url": "https://www.co.nobles.mn.us/departments/it/gis/",
+          "authority": "county",
+          "finding": "Official GIS page identifies Beacon and GIS Requests as county parcel/GIS access paths."
+        },
+        {
+          "url": "https://www.co.nobles.mn.us/wp-content/uploads/2024/12/2025-Fee-Schedule-Draft.pdf",
+          "authority": "county",
+          "finding": "Official fee-schedule document explicitly prices parcel shapefile products."
+        }
+      ],
+      "review_log": {
+        "county_site": {
+          "status": "reviewed",
+          "note": "Official county government site and relevant navigation/search results reviewed.",
+          "urls": [
+            "https://www.co.nobles.mn.us/"
+          ]
+        },
+        "gis_assessor_land_records": {
+          "status": "reviewed",
+          "note": "Official GIS, assessor, mapping and/or land-records page reviewed for parcel-specific access.",
+          "urls": [
+            "https://www.co.nobles.mn.us/departments/assessor/"
+          ]
+        },
+        "downloads_open_data": {
+          "status": "reviewed",
+          "note": "Reviewed official download/open-data routes; finding reflected in classification.",
+          "urls": [
+            "https://www.co.nobles.mn.us/wp-content/uploads/2024/12/2025-Fee-Schedule-Draft.pdf"
+          ]
+        },
+        "arcgis_services": {
+          "status": "not-found",
+          "note": "No county-authorized parcel REST/FeatureServer/MapServer endpoint verified.",
+          "urls": []
+        },
+        "data_policy": {
+          "status": "not-found",
+          "note": "No additional parcel-specific data policy changed the access classification.",
+          "urls": []
+        },
+        "fee_schedule": {
+          "status": "reviewed",
+          "note": "Official parcel-related fee evidence reviewed; fee is recorded only when it applies to the parcel dataset itself.",
+          "urls": [
+            "https://www.co.nobles.mn.us/wp-content/uploads/2024/12/2025-Fee-Schedule-Draft.pdf"
+          ]
+        },
+        "request_forms": {
+          "status": "reviewed",
+          "note": "Official request/order route reviewed for parcel dataset access.",
+          "urls": [
+            "https://www.co.nobles.mn.us/departments/assessor/"
+          ]
+        },
+        "resolutions_ordinances": {
+          "status": "not-found",
+          "note": "No resolution/ordinance located that changed the parcel-access conclusion.",
+          "urls": []
+        },
+        "authorized_portals": {
+          "status": "reviewed",
+          "note": "County-linked viewer, Hub, ArcGIS organization or authorized provider was reviewed where present.",
+          "urls": [
+            "https://www.co.nobles.mn.us/departments/it/gis/"
+          ]
+        },
+        "statewide_context": {
+          "status": "reviewed",
+          "note": "MnGeo statewide parcel coverage considered as corroborating context only; it did not determine the county-direct classification.",
+          "urls": [
+            "https://gisdata.mn.gov/dataset/plan-parcels-open"
+          ]
+        }
+      }
+    },
+    {
+      "county": "Norman",
+      "review_date": "2026-10-05",
+      "classification": "free-parcel-data",
+      "research_complete": true,
+      "official_county_url": "https://www.normanmn.gov/",
+      "parcel_page_url": "https://www.normanmn.gov/departments/assessor/index.php",
+      "download_or_service_url": "https://gismap.co.pennington.mn.us/arcgis/rest/services/Norman/LandRecords/MapServer/8",
+      "viewer_url": "https://normancounty.maps.arcgis.com/",
+      "fee_policy_url": null,
+      "parcel_dataset_fee": null,
+      "fee_product": null,
+      "evidence_note": "Norman County's official site links its ArcGIS organization. The organization publishes Interactive Mapping/Tax Parcels content backed by a queryable Tax Parcel layer on the shared Pro-West county GIS host, establishing county-authorized machine-readable parcel access.",
+      "source_authority": "county-authorized-provider",
+      "usable_direct_machine_readable_source": true,
+      "monitoring": {
+        "decision": "candidate-low-frequency",
+        "reason": "Official county site links the Norman County ArcGIS organization, whose land-records map uses a queryable Tax Parcel layer on the shared county GIS host.",
+        "terms_urls": [
+          "https://www.normanmn.gov/",
+          "https://gismap.co.pennington.mn.us/arcgis/rest/services/Norman/LandRecords/MapServer/8"
+        ]
+      },
+      "evidence": [
+        {
+          "url": "https://www.normanmn.gov/",
+          "authority": "county",
+          "finding": "Official county site links the Norman County ArcGIS organization."
+        },
+        {
+          "url": "https://gismap.co.pennington.mn.us/arcgis/rest/services/Norman/LandRecords/MapServer/8",
+          "authority": "county-authorized-provider",
+          "finding": "County-authorized shared GIS host exposes Norman Tax Parcel geometry via queryable MapServer layer."
+        }
+      ],
+      "review_log": {
+        "county_site": {
+          "status": "reviewed",
+          "note": "Official county government site and relevant navigation/search results reviewed.",
+          "urls": [
+            "https://www.normanmn.gov/"
+          ]
+        },
+        "gis_assessor_land_records": {
+          "status": "reviewed",
+          "note": "Official GIS, assessor, mapping and/or land-records page reviewed for parcel-specific access.",
+          "urls": [
+            "https://www.normanmn.gov/departments/assessor/index.php"
+          ]
+        },
+        "downloads_open_data": {
+          "status": "reviewed",
+          "note": "Reviewed official download/open-data routes; finding reflected in classification.",
+          "urls": [
+            "https://gismap.co.pennington.mn.us/arcgis/rest/services/Norman/LandRecords/MapServer/8"
+          ]
+        },
+        "arcgis_services": {
+          "status": "reviewed",
+          "note": "Reviewed county/county-authorized ArcGIS/REST/service exposure; any usable direct source is recorded separately.",
+          "urls": [
+            "https://gismap.co.pennington.mn.us/arcgis/rest/services/Norman/LandRecords/MapServer/8"
+          ]
+        },
+        "data_policy": {
+          "status": "not-found",
+          "note": "No additional parcel-specific data policy changed the access classification.",
+          "urls": []
+        },
+        "fee_schedule": {
+          "status": "not-found",
+          "note": "No official fee evidence establishing a required parcel-dataset charge was verified.",
+          "urls": []
+        },
+        "request_forms": {
+          "status": "not-found",
+          "note": "No parcel-specific request-only path was needed to support the final classification.",
+          "urls": []
+        },
+        "resolutions_ordinances": {
+          "status": "not-found",
+          "note": "No resolution/ordinance located that changed the parcel-access conclusion.",
+          "urls": []
+        },
+        "authorized_portals": {
+          "status": "reviewed",
+          "note": "County-linked viewer, Hub, ArcGIS organization or authorized provider was reviewed where present.",
+          "urls": [
+            "https://normancounty.maps.arcgis.com/"
+          ]
+        },
+        "statewide_context": {
+          "status": "reviewed",
+          "note": "MnGeo statewide parcel coverage considered as corroborating context only; it did not determine the county-direct classification.",
+          "urls": [
+            "https://gisdata.mn.gov/dataset/plan-parcels-open"
+          ]
+        }
+      }
+    },
+    {
+      "county": "Pennington",
+      "review_date": "2026-10-05",
+      "classification": "parcel-viewer-only",
+      "research_complete": true,
+      "official_county_url": "https://www.penningtonmn.gov/",
+      "parcel_page_url": "https://www.penningtonmn.gov/index.php",
+      "download_or_service_url": null,
+      "viewer_url": "https://gismap.co.pennington.mn.us/",
+      "fee_policy_url": null,
+      "parcel_dataset_fee": null,
+      "fee_product": null,
+      "evidence_note": "Pennington County's public mapping infrastructure and ArcGIS Server folders were reviewed. The publicly reachable service catalog contains parcel geometry in an Internal-named map service, but no separate public parcel dataset/download or official authorization for automated parcel API use was verified. The public-facing access remains a viewer.",
+      "source_authority": "county-authorized-provider",
+      "usable_direct_machine_readable_source": false,
+      "monitoring": {
+        "decision": "not-appropriate",
+        "reason": "The public county mapping stack was reviewed, but parcel geometry was found only in an Internal-named service and no official county source authorized it as a public dataset/API.",
+        "terms_urls": [
+          "https://www.penningtonmn.gov/",
+          "https://gismap.co.pennington.mn.us/arcgis/rest/services/Pennington/Pennington_Internal/MapServer/29"
+        ]
+      },
+      "evidence": [
+        {
+          "url": "https://www.penningtonmn.gov/",
+          "authority": "county",
+          "finding": "Official county site provides property/GIS service entry points."
+        },
+        {
+          "url": "https://gismap.co.pennington.mn.us/arcgis/rest/services/Pennington/Pennington_Internal/MapServer/29",
+          "authority": "county-authorized-provider",
+          "finding": "A parcel layer is technically reachable, but its Internal service designation prevents treating it as an authorized public dataset source."
+        }
+      ],
+      "review_log": {
+        "county_site": {
+          "status": "reviewed",
+          "note": "Official county government site and relevant navigation/search results reviewed.",
+          "urls": [
+            "https://www.penningtonmn.gov/"
+          ]
+        },
+        "gis_assessor_land_records": {
+          "status": "reviewed",
+          "note": "Official GIS, assessor, mapping and/or land-records page reviewed for parcel-specific access.",
+          "urls": [
+            "https://www.penningtonmn.gov/index.php"
+          ]
+        },
+        "downloads_open_data": {
+          "status": "not-found",
+          "note": "No separate parcel download/open-data product verified in the official-source review.",
+          "urls": []
+        },
+        "arcgis_services": {
+          "status": "reviewed",
+          "note": "Reviewed county/county-authorized ArcGIS/REST/service exposure; any usable direct source is recorded separately.",
+          "urls": []
+        },
+        "data_policy": {
+          "status": "not-found",
+          "note": "No additional parcel-specific data policy changed the access classification.",
+          "urls": []
+        },
+        "fee_schedule": {
+          "status": "not-found",
+          "note": "No official fee evidence establishing a required parcel-dataset charge was verified.",
+          "urls": []
+        },
+        "request_forms": {
+          "status": "not-found",
+          "note": "No parcel-specific request-only path was needed to support the final classification.",
+          "urls": []
+        },
+        "resolutions_ordinances": {
+          "status": "not-found",
+          "note": "No resolution/ordinance located that changed the parcel-access conclusion.",
+          "urls": []
+        },
+        "authorized_portals": {
+          "status": "reviewed",
+          "note": "County-linked viewer, Hub, ArcGIS organization or authorized provider was reviewed where present.",
+          "urls": [
+            "https://gismap.co.pennington.mn.us/"
+          ]
+        },
+        "statewide_context": {
+          "status": "reviewed",
+          "note": "MnGeo statewide parcel coverage considered as corroborating context only; it did not determine the county-direct classification.",
+          "urls": [
+            "https://gisdata.mn.gov/dataset/plan-parcels-open"
+          ]
+        }
+      }
+    },
+    {
+      "county": "Pine",
+      "review_date": "2026-10-05",
+      "classification": "parcel-viewer-only",
+      "research_complete": true,
+      "official_county_url": "https://www.pinecountymn.gov/",
+      "parcel_page_url": "https://www.pinecountymn.gov/departments/public_works/surveying.php",
+      "download_or_service_url": null,
+      "viewer_url": "https://propertysearch.pinecountymn.gov/",
+      "fee_policy_url": null,
+      "parcel_dataset_fee": null,
+      "fee_product": null,
+      "evidence_note": "Pine County provides a GIS and Assessment Viewer/property-search site, but its official disclaimer expressly prohibits applications designed to mine, gather or extract data. Recorder/LandShark fees concern recorded documents and are excluded. No separate parcel dataset download, authorized API, or parcel-dataset fee was verified.",
+      "source_authority": "county",
+      "usable_direct_machine_readable_source": false,
+      "monitoring": {
+        "decision": "not-appropriate",
+        "reason": "County property/GIS viewer expressly prohibits automated mining, gathering or extraction; no separate authorized parcel dataset/API was verified.",
+        "terms_urls": [
+          "https://www.pinecountymn.gov/departments/public_works/surveying.php",
+          "https://propertysearch.pinecountymn.gov/Search/Disclaimer.aspx?FromUrl=..%2Fsearch%2Fcommonsearch.aspx%3Fmode%3Dcombined"
+        ]
+      },
+      "evidence": [
+        {
+          "url": "https://www.pinecountymn.gov/departments/public_works/surveying.php",
+          "authority": "county",
+          "finding": "Official county surveying/GIS context was reviewed."
+        },
+        {
+          "url": "https://propertysearch.pinecountymn.gov/Search/Disclaimer.aspx?FromUrl=..%2Fsearch%2Fcommonsearch.aspx%3Fmode%3Dcombined",
+          "authority": "county",
+          "finding": "Official property/GIS viewer prohibits automated extraction."
+        }
+      ],
+      "review_log": {
+        "county_site": {
+          "status": "reviewed",
+          "note": "Official county government site and relevant navigation/search results reviewed.",
+          "urls": [
+            "https://www.pinecountymn.gov/"
+          ]
+        },
+        "gis_assessor_land_records": {
+          "status": "reviewed",
+          "note": "Official GIS, assessor, mapping and/or land-records page reviewed for parcel-specific access.",
+          "urls": [
+            "https://www.pinecountymn.gov/departments/public_works/surveying.php"
+          ]
+        },
+        "downloads_open_data": {
+          "status": "not-found",
+          "note": "No separate parcel download/open-data product verified in the official-source review.",
+          "urls": []
+        },
+        "arcgis_services": {
+          "status": "not-found",
+          "note": "No county-authorized parcel REST/FeatureServer/MapServer endpoint verified.",
+          "urls": []
+        },
+        "data_policy": {
+          "status": "reviewed",
+          "note": "Reviewed relevant county data-use/disclaimer policy evidence.",
+          "urls": [
+            "https://propertysearch.pinecountymn.gov/Search/Disclaimer.aspx?FromUrl=..%2Fsearch%2Fcommonsearch.aspx%3Fmode%3Dcombined"
+          ]
+        },
+        "fee_schedule": {
+          "status": "not-found",
+          "note": "No official fee evidence establishing a required parcel-dataset charge was verified.",
+          "urls": []
+        },
+        "request_forms": {
+          "status": "not-found",
+          "note": "No parcel-specific request-only path was needed to support the final classification.",
+          "urls": []
+        },
+        "resolutions_ordinances": {
+          "status": "not-found",
+          "note": "No resolution/ordinance located that changed the parcel-access conclusion.",
+          "urls": []
+        },
+        "authorized_portals": {
+          "status": "reviewed",
+          "note": "County-linked viewer, Hub, ArcGIS organization or authorized provider was reviewed where present.",
+          "urls": [
+            "https://propertysearch.pinecountymn.gov/"
+          ]
+        },
+        "statewide_context": {
+          "status": "reviewed",
+          "note": "MnGeo statewide parcel coverage considered as corroborating context only; it did not determine the county-direct classification.",
+          "urls": [
+            "https://gisdata.mn.gov/dataset/plan-parcels-open"
+          ]
+        }
+      }
+    },
+    {
+      "county": "Red Lake",
+      "review_date": "2026-10-05",
+      "classification": "free-parcel-data",
+      "research_complete": true,
+      "official_county_url": "https://redlakecounty.gov/",
+      "parcel_page_url": "https://redlakecounty.gov/departments/assessor.php",
+      "download_or_service_url": "https://gismap.redlakecounty.gov/arcgis/rest/services/RedLake/Public/MapServer/26",
+      "viewer_url": "https://redlakecountymn.maps.arcgis.com/",
+      "fee_policy_url": null,
+      "parcel_dataset_fee": null,
+      "fee_product": null,
+      "evidence_note": "Red Lake County's official site links its county ArcGIS presence, and the county-hosted GIS server publishes a Public map service containing a queryable Parcels layer. No official parcel-dataset fee was found.",
+      "source_authority": "county",
+      "usable_direct_machine_readable_source": true,
+      "monitoring": {
+        "decision": "candidate-low-frequency",
+        "reason": "County-hosted Public map service exposes a queryable Parcels polygon layer; bounded read-only monitoring is appropriate.",
+        "terms_urls": [
+          "https://www.redlakecounty.gov/",
+          "https://gismap.redlakecounty.gov/arcgis/rest/services/RedLake/Public/MapServer/26"
+        ]
+      },
+      "evidence": [
+        {
+          "url": "https://www.redlakecounty.gov/",
+          "authority": "county",
+          "finding": "Official county site links GIS and county ArcGIS resources."
+        },
+        {
+          "url": "https://gismap.redlakecounty.gov/arcgis/rest/services/RedLake/Public/MapServer/26",
+          "authority": "county",
+          "finding": "County-hosted Public service exposes parcel polygons with query support."
+        }
+      ],
+      "review_log": {
+        "county_site": {
+          "status": "reviewed",
+          "note": "Official county government site and relevant navigation/search results reviewed.",
+          "urls": [
+            "https://redlakecounty.gov/"
+          ]
+        },
+        "gis_assessor_land_records": {
+          "status": "reviewed",
+          "note": "Official GIS, assessor, mapping and/or land-records page reviewed for parcel-specific access.",
+          "urls": [
+            "https://redlakecounty.gov/departments/assessor.php"
+          ]
+        },
+        "downloads_open_data": {
+          "status": "reviewed",
+          "note": "Reviewed official download/open-data routes; finding reflected in classification.",
+          "urls": [
+            "https://gismap.redlakecounty.gov/arcgis/rest/services/RedLake/Public/MapServer/26"
+          ]
+        },
+        "arcgis_services": {
+          "status": "reviewed",
+          "note": "Reviewed county/county-authorized ArcGIS/REST/service exposure; any usable direct source is recorded separately.",
+          "urls": [
+            "https://gismap.redlakecounty.gov/arcgis/rest/services/RedLake/Public/MapServer/26"
+          ]
+        },
+        "data_policy": {
+          "status": "not-found",
+          "note": "No additional parcel-specific data policy changed the access classification.",
+          "urls": []
+        },
+        "fee_schedule": {
+          "status": "not-found",
+          "note": "No official fee evidence establishing a required parcel-dataset charge was verified.",
+          "urls": []
+        },
+        "request_forms": {
+          "status": "not-found",
+          "note": "No parcel-specific request-only path was needed to support the final classification.",
+          "urls": []
+        },
+        "resolutions_ordinances": {
+          "status": "not-found",
+          "note": "No resolution/ordinance located that changed the parcel-access conclusion.",
+          "urls": []
+        },
+        "authorized_portals": {
+          "status": "reviewed",
+          "note": "County-linked viewer, Hub, ArcGIS organization or authorized provider was reviewed where present.",
+          "urls": [
+            "https://redlakecountymn.maps.arcgis.com/"
+          ]
+        },
+        "statewide_context": {
+          "status": "reviewed",
+          "note": "MnGeo statewide parcel coverage considered as corroborating context only; it did not determine the county-direct classification.",
+          "urls": [
+            "https://gisdata.mn.gov/dataset/plan-parcels-open"
+          ]
+        }
+      }
+    },
+    {
+      "county": "Redwood",
+      "review_date": "2026-10-05",
+      "classification": "fee-based-parcel-data",
+      "research_complete": true,
+      "official_county_url": "https://redwoodcounty-mn.gov/",
+      "parcel_page_url": "https://redwoodcounty-mn.gov/departments/assessor/",
+      "download_or_service_url": null,
+      "viewer_url": "https://redwoodcounty-mn.gov/departments/environmental-office/",
+      "fee_policy_url": "https://redwoodcounty-mn.gov/departments/environmental-office/",
+      "parcel_dataset_fee": "$800 for countywide parcel data or $0.10 per parcel",
+      "fee_product": "Parcel Data",
+      "evidence_note": "Redwood County's official Environmental Office/GIS page distinguishes public Beacon viewing from GIS data products and explicitly lists Parcel Data at $800 countywide or $0.10 per parcel. Other GIS data is listed as free, reinforcing that the parcel dataset itself is the paid exception.",
+      "source_authority": "county",
+      "usable_direct_machine_readable_source": false,
+      "monitoring": {
+        "decision": "not-appropriate",
+        "reason": "Official county GIS page explicitly prices parcel data as a paid product; Beacon is a viewer, not a dataset download authorization.",
+        "terms_urls": [
+          "https://redwoodcounty-mn.gov/departments/environmental-office/"
+        ]
+      },
+      "evidence": [
+        {
+          "url": "https://redwoodcounty-mn.gov/departments/environmental-office/",
+          "authority": "county",
+          "finding": "Official GIS page explicitly prices Parcel Data at $800/county or $0.10/parcel and distinguishes Beacon viewing."
+        }
+      ],
+      "review_log": {
+        "county_site": {
+          "status": "reviewed",
+          "note": "Official county government site and relevant navigation/search results reviewed.",
+          "urls": [
+            "https://redwoodcounty-mn.gov/"
+          ]
+        },
+        "gis_assessor_land_records": {
+          "status": "reviewed",
+          "note": "Official GIS, assessor, mapping and/or land-records page reviewed for parcel-specific access.",
+          "urls": [
+            "https://redwoodcounty-mn.gov/departments/assessor/"
+          ]
+        },
+        "downloads_open_data": {
+          "status": "reviewed",
+          "note": "Reviewed official download/open-data routes; finding reflected in classification.",
+          "urls": [
+            "https://redwoodcounty-mn.gov/departments/environmental-office/"
+          ]
+        },
+        "arcgis_services": {
+          "status": "not-found",
+          "note": "No county-authorized parcel REST/FeatureServer/MapServer endpoint verified.",
+          "urls": []
+        },
+        "data_policy": {
+          "status": "not-found",
+          "note": "No additional parcel-specific data policy changed the access classification.",
+          "urls": []
+        },
+        "fee_schedule": {
+          "status": "reviewed",
+          "note": "Official parcel-related fee evidence reviewed; fee is recorded only when it applies to the parcel dataset itself.",
+          "urls": [
+            "https://redwoodcounty-mn.gov/departments/environmental-office/"
+          ]
+        },
+        "request_forms": {
+          "status": "reviewed",
+          "note": "Official request/order route reviewed for parcel dataset access.",
+          "urls": [
+            "https://redwoodcounty-mn.gov/departments/assessor/"
+          ]
+        },
+        "resolutions_ordinances": {
+          "status": "not-found",
+          "note": "No resolution/ordinance located that changed the parcel-access conclusion.",
+          "urls": []
+        },
+        "authorized_portals": {
+          "status": "reviewed",
+          "note": "County-linked viewer, Hub, ArcGIS organization or authorized provider was reviewed where present.",
+          "urls": [
+            "https://redwoodcounty-mn.gov/departments/environmental-office/"
+          ]
+        },
+        "statewide_context": {
+          "status": "reviewed",
+          "note": "MnGeo statewide parcel coverage considered as corroborating context only; it did not determine the county-direct classification.",
+          "urls": [
+            "https://gisdata.mn.gov/dataset/plan-parcels-open"
+          ]
+        }
+      }
+    },
+    {
+      "county": "Rock",
+      "review_date": "2026-10-05",
+      "classification": "parcel-viewer-only",
+      "research_complete": true,
+      "official_county_url": "https://www.co.rock.mn.us/",
+      "parcel_page_url": "https://www.co.rock.mn.us/department_directory/land_records_office_(recording_and_assesing).php",
+      "download_or_service_url": null,
+      "viewer_url": "https://beacon.schneidercorp.com/",
+      "fee_policy_url": null,
+      "parcel_dataset_fee": null,
+      "fee_product": null,
+      "evidence_note": "Official Land Records/Assessor and county service pages were reviewed along with county-authorized parcel viewing. No county-direct parcel download, machine-readable service authorized for dataset access, parcel-data request product, or parcel-dataset fee was verified.",
+      "source_authority": "county-authorized-provider",
+      "usable_direct_machine_readable_source": false,
+      "monitoring": {
+        "decision": "not-appropriate",
+        "reason": "County land-record/property resources provide parcel viewing, but no free direct parcel dataset/API or parcel-dataset fee was verified.",
+        "terms_urls": [
+          "https://www.co.rock.mn.us/department_directory/land_records_office_(recording_and_assesing).php",
+          "https://beacon.schneidercorp.com/"
+        ]
+      },
+      "evidence": [
+        {
+          "url": "https://www.co.rock.mn.us/department_directory/land_records_office_(recording_and_assesing).php",
+          "authority": "county",
+          "finding": "Official Land Records office page is the county parcel/property authority."
+        },
+        {
+          "url": "https://beacon.schneidercorp.com/",
+          "authority": "county-authorized-provider",
+          "finding": "County-authorized Beacon provides parcel/property viewing."
+        }
+      ],
+      "review_log": {
+        "county_site": {
+          "status": "reviewed",
+          "note": "Official county government site and relevant navigation/search results reviewed.",
+          "urls": [
+            "https://www.co.rock.mn.us/"
+          ]
+        },
+        "gis_assessor_land_records": {
+          "status": "reviewed",
+          "note": "Official GIS, assessor, mapping and/or land-records page reviewed for parcel-specific access.",
+          "urls": [
+            "https://www.co.rock.mn.us/department_directory/land_records_office_(recording_and_assesing).php"
+          ]
+        },
+        "downloads_open_data": {
+          "status": "not-found",
+          "note": "No separate parcel download/open-data product verified in the official-source review.",
+          "urls": []
+        },
+        "arcgis_services": {
+          "status": "not-found",
+          "note": "No county-authorized parcel REST/FeatureServer/MapServer endpoint verified.",
+          "urls": []
+        },
+        "data_policy": {
+          "status": "not-found",
+          "note": "No additional parcel-specific data policy changed the access classification.",
+          "urls": []
+        },
+        "fee_schedule": {
+          "status": "not-found",
+          "note": "No official fee evidence establishing a required parcel-dataset charge was verified.",
+          "urls": []
+        },
+        "request_forms": {
+          "status": "not-found",
+          "note": "No parcel-specific request-only path was needed to support the final classification.",
+          "urls": []
+        },
+        "resolutions_ordinances": {
+          "status": "not-found",
+          "note": "No resolution/ordinance located that changed the parcel-access conclusion.",
+          "urls": []
+        },
+        "authorized_portals": {
+          "status": "reviewed",
+          "note": "County-linked viewer, Hub, ArcGIS organization or authorized provider was reviewed where present.",
+          "urls": [
+            "https://beacon.schneidercorp.com/"
+          ]
+        },
+        "statewide_context": {
+          "status": "reviewed",
+          "note": "MnGeo statewide parcel coverage considered as corroborating context only; it did not determine the county-direct classification.",
+          "urls": [
+            "https://gisdata.mn.gov/dataset/plan-parcels-open"
+          ]
+        }
+      }
+    },
+    {
+      "county": "Roseau",
+      "review_date": "2026-10-05",
+      "classification": "free-parcel-data",
+      "research_complete": true,
+      "official_county_url": "https://www.roseaucountymn.gov/",
+      "parcel_page_url": "https://www.roseaucountymn.gov/",
+      "download_or_service_url": "https://gis.co.roseau.mn.us/arcgis/rest/services/TaxParcels/FeatureServer/0",
+      "viewer_url": "https://www.roseaucountymn.gov/",
+      "fee_policy_url": null,
+      "parcel_dataset_fee": null,
+      "fee_product": null,
+      "evidence_note": "Roseau County's GIS infrastructure was reviewed and the county GIS host publishes a TaxParcels FeatureServer with parcel polygons and Query/Extract capabilities. No official evidence was found that payment is required for access to that service.",
+      "source_authority": "county",
+      "usable_direct_machine_readable_source": true,
+      "monitoring": {
+        "decision": "candidate-low-frequency",
+        "reason": "County-hosted TaxParcels FeatureServer supports Query/Extract; low-frequency read-only monitoring is appropriate.",
+        "terms_urls": [
+          "https://www.roseaucountymn.gov/",
+          "https://gis.co.roseau.mn.us/arcgis/rest/services/TaxParcels/FeatureServer/0"
+        ]
+      },
+      "evidence": [
+        {
+          "url": "https://www.roseaucountymn.gov/",
+          "authority": "county",
+          "finding": "Official county site provides GIS/property service context."
+        },
+        {
+          "url": "https://gis.co.roseau.mn.us/arcgis/rest/services/TaxParcels/FeatureServer/0",
+          "authority": "county",
+          "finding": "County-hosted TaxParcels FeatureServer provides machine-readable parcel access."
+        }
+      ],
+      "review_log": {
+        "county_site": {
+          "status": "reviewed",
+          "note": "Official county government site and relevant navigation/search results reviewed.",
+          "urls": [
+            "https://www.roseaucountymn.gov/"
+          ]
+        },
+        "gis_assessor_land_records": {
+          "status": "reviewed",
+          "note": "Official GIS, assessor, mapping and/or land-records page reviewed for parcel-specific access.",
+          "urls": [
+            "https://www.roseaucountymn.gov/"
+          ]
+        },
+        "downloads_open_data": {
+          "status": "reviewed",
+          "note": "Reviewed official download/open-data routes; finding reflected in classification.",
+          "urls": [
+            "https://gis.co.roseau.mn.us/arcgis/rest/services/TaxParcels/FeatureServer/0"
+          ]
+        },
+        "arcgis_services": {
+          "status": "reviewed",
+          "note": "Reviewed county/county-authorized ArcGIS/REST/service exposure; any usable direct source is recorded separately.",
+          "urls": [
+            "https://gis.co.roseau.mn.us/arcgis/rest/services/TaxParcels/FeatureServer/0"
+          ]
+        },
+        "data_policy": {
+          "status": "not-found",
+          "note": "No additional parcel-specific data policy changed the access classification.",
+          "urls": []
+        },
+        "fee_schedule": {
+          "status": "not-found",
+          "note": "No official fee evidence establishing a required parcel-dataset charge was verified.",
+          "urls": []
+        },
+        "request_forms": {
+          "status": "not-found",
+          "note": "No parcel-specific request-only path was needed to support the final classification.",
+          "urls": []
+        },
+        "resolutions_ordinances": {
+          "status": "not-found",
+          "note": "No resolution/ordinance located that changed the parcel-access conclusion.",
+          "urls": []
+        },
+        "authorized_portals": {
+          "status": "reviewed",
+          "note": "County-linked viewer, Hub, ArcGIS organization or authorized provider was reviewed where present.",
+          "urls": [
+            "https://www.roseaucountymn.gov/"
+          ]
+        },
+        "statewide_context": {
+          "status": "reviewed",
+          "note": "MnGeo statewide parcel coverage considered as corroborating context only; it did not determine the county-direct classification.",
+          "urls": [
+            "https://gisdata.mn.gov/dataset/plan-parcels-open"
+          ]
+        }
+      }
+    },
+    {
+      "county": "Sibley",
+      "review_date": "2026-10-05",
+      "classification": "free-parcel-data",
+      "research_complete": true,
+      "official_county_url": "https://www.sibleycounty.gov/",
+      "parcel_page_url": "https://www.sibleycounty.gov/384/Parcel-Mapping",
+      "download_or_service_url": "https://gis.sibleycounty.gov/arcgis/rest/services/AGOL/ParcelTaxData/FeatureServer/0",
+      "viewer_url": "https://www.sibleycounty.gov/384/Parcel-Mapping",
+      "fee_policy_url": null,
+      "parcel_dataset_fee": null,
+      "fee_product": null,
+      "evidence_note": "Sibley County's official Parcel Mapping/GIS pages provide public parcel mapping, and the county GIS host exposes Parcel Tax Data through a public FeatureServer. The general county fee schedule includes other property-data request charges but did not establish a required fee for this public GIS parcel service.",
+      "source_authority": "county",
+      "usable_direct_machine_readable_source": true,
+      "monitoring": {
+        "decision": "candidate-low-frequency",
+        "reason": "County-hosted parcel FeatureServer is publicly queryable; monitor it at bounded low frequency and publish derived metrics only.",
+        "terms_urls": [
+          "https://www.sibleycounty.gov/384/Parcel-Mapping",
+          "https://gis.sibleycounty.gov/arcgis/rest/services/AGOL/ParcelTaxData/FeatureServer/0"
+        ]
+      },
+      "evidence": [
+        {
+          "url": "https://www.sibleycounty.gov/384/Parcel-Mapping",
+          "authority": "county",
+          "finding": "Official Parcel Mapping page provides public parcel GIS access."
+        },
+        {
+          "url": "https://gis.sibleycounty.gov/arcgis/rest/services/AGOL/ParcelTaxData/FeatureServer/0",
+          "authority": "county",
+          "finding": "County-hosted parcel FeatureServer provides machine-readable access."
+        }
+      ],
+      "review_log": {
+        "county_site": {
+          "status": "reviewed",
+          "note": "Official county government site and relevant navigation/search results reviewed.",
+          "urls": [
+            "https://www.sibleycounty.gov/"
+          ]
+        },
+        "gis_assessor_land_records": {
+          "status": "reviewed",
+          "note": "Official GIS, assessor, mapping and/or land-records page reviewed for parcel-specific access.",
+          "urls": [
+            "https://www.sibleycounty.gov/384/Parcel-Mapping"
+          ]
+        },
+        "downloads_open_data": {
+          "status": "reviewed",
+          "note": "Reviewed official download/open-data routes; finding reflected in classification.",
+          "urls": [
+            "https://gis.sibleycounty.gov/arcgis/rest/services/AGOL/ParcelTaxData/FeatureServer/0"
+          ]
+        },
+        "arcgis_services": {
+          "status": "reviewed",
+          "note": "Reviewed county/county-authorized ArcGIS/REST/service exposure; any usable direct source is recorded separately.",
+          "urls": [
+            "https://gis.sibleycounty.gov/arcgis/rest/services/AGOL/ParcelTaxData/FeatureServer/0"
+          ]
+        },
+        "data_policy": {
+          "status": "not-found",
+          "note": "No additional parcel-specific data policy changed the access classification.",
+          "urls": []
+        },
+        "fee_schedule": {
+          "status": "not-found",
+          "note": "No official fee evidence establishing a required parcel-dataset charge was verified.",
+          "urls": []
+        },
+        "request_forms": {
+          "status": "not-found",
+          "note": "No parcel-specific request-only path was needed to support the final classification.",
+          "urls": []
+        },
+        "resolutions_ordinances": {
+          "status": "not-found",
+          "note": "No resolution/ordinance located that changed the parcel-access conclusion.",
+          "urls": []
+        },
+        "authorized_portals": {
+          "status": "reviewed",
+          "note": "County-linked viewer, Hub, ArcGIS organization or authorized provider was reviewed where present.",
+          "urls": [
+            "https://www.sibleycounty.gov/384/Parcel-Mapping"
+          ]
+        },
+        "statewide_context": {
+          "status": "reviewed",
+          "note": "MnGeo statewide parcel coverage considered as corroborating context only; it did not determine the county-direct classification.",
+          "urls": [
+            "https://gisdata.mn.gov/dataset/plan-parcels-open"
+          ]
+        }
+      }
+    },
+    {
+      "county": "Todd",
+      "review_date": "2026-10-05",
+      "classification": "free-parcel-data",
+      "research_complete": true,
+      "official_county_url": "https://www.toddcountymn.gov/",
+      "parcel_page_url": "https://www.toddcountymn.gov/government/departments/interactive_gis_mapping.php",
+      "download_or_service_url": "https://gis.mytoddcounty.com/toddcounty/rest/services/PublicViewerServer/MapServer",
+      "viewer_url": "https://www.toddcountymn.gov/government/departments/interactive_gis_mapping.php",
+      "fee_policy_url": null,
+      "parcel_dataset_fee": null,
+      "fee_product": null,
+      "evidence_note": "Todd County's official Interactive GIS Mapping page states that the viewer contains frequently updated Parcel Boundaries and provides a reuse disclaimer. The county ArcGIS organization identifies the public viewer MapServer backing that application, establishing machine-readable county-authorized parcel access.",
+      "source_authority": "county",
+      "usable_direct_machine_readable_source": true,
+      "monitoring": {
+        "decision": "candidate-low-frequency",
+        "reason": "Official county GIS page links the public viewer backed by a county GIS MapServer; the county reuse disclaimer permits public-service use but checks should remain bounded and derived-only.",
+        "terms_urls": [
+          "https://www.toddcountymn.gov/government/departments/interactive_gis_mapping.php",
+          "https://gis.mytoddcounty.com/toddcounty/rest/services/PublicViewerServer/MapServer"
+        ]
+      },
+      "evidence": [
+        {
+          "url": "https://www.toddcountymn.gov/government/departments/interactive_gis_mapping.php",
+          "authority": "county",
+          "finding": "Official GIS page describes public parcel-boundary mapping and reuse disclaimer."
+        },
+        {
+          "url": "https://gis.mytoddcounty.com/toddcounty/rest/services/PublicViewerServer/MapServer",
+          "authority": "county",
+          "finding": "County GIS public viewer MapServer provides the machine-readable service used by the public application."
+        }
+      ],
+      "review_log": {
+        "county_site": {
+          "status": "reviewed",
+          "note": "Official county government site and relevant navigation/search results reviewed.",
+          "urls": [
+            "https://www.toddcountymn.gov/"
+          ]
+        },
+        "gis_assessor_land_records": {
+          "status": "reviewed",
+          "note": "Official GIS, assessor, mapping and/or land-records page reviewed for parcel-specific access.",
+          "urls": [
+            "https://www.toddcountymn.gov/government/departments/interactive_gis_mapping.php"
+          ]
+        },
+        "downloads_open_data": {
+          "status": "reviewed",
+          "note": "Reviewed official download/open-data routes; finding reflected in classification.",
+          "urls": [
+            "https://gis.mytoddcounty.com/toddcounty/rest/services/PublicViewerServer/MapServer"
+          ]
+        },
+        "arcgis_services": {
+          "status": "reviewed",
+          "note": "Reviewed county/county-authorized ArcGIS/REST/service exposure; any usable direct source is recorded separately.",
+          "urls": [
+            "https://gis.mytoddcounty.com/toddcounty/rest/services/PublicViewerServer/MapServer"
+          ]
+        },
+        "data_policy": {
+          "status": "reviewed",
+          "note": "Reviewed relevant county data-use/disclaimer policy evidence.",
+          "urls": [
+            "https://gis.mytoddcounty.com/toddcounty/rest/services/PublicViewerServer/MapServer"
+          ]
+        },
+        "fee_schedule": {
+          "status": "not-found",
+          "note": "No official fee evidence establishing a required parcel-dataset charge was verified.",
+          "urls": []
+        },
+        "request_forms": {
+          "status": "not-found",
+          "note": "No parcel-specific request-only path was needed to support the final classification.",
+          "urls": []
+        },
+        "resolutions_ordinances": {
+          "status": "not-found",
+          "note": "No resolution/ordinance located that changed the parcel-access conclusion.",
+          "urls": []
+        },
+        "authorized_portals": {
+          "status": "reviewed",
+          "note": "County-linked viewer, Hub, ArcGIS organization or authorized provider was reviewed where present.",
+          "urls": [
+            "https://www.toddcountymn.gov/government/departments/interactive_gis_mapping.php"
+          ]
+        },
+        "statewide_context": {
+          "status": "reviewed",
+          "note": "MnGeo statewide parcel coverage considered as corroborating context only; it did not determine the county-direct classification.",
+          "urls": [
+            "https://gisdata.mn.gov/dataset/plan-parcels-open"
+          ]
+        }
+      }
+    },
+    {
+      "county": "Wadena",
+      "review_date": "2026-10-05",
+      "classification": "free-parcel-data",
+      "research_complete": true,
+      "official_county_url": "https://www.wadenacounty.gov/",
+      "parcel_page_url": "https://www.wadenacounty.gov/194/GIS",
+      "download_or_service_url": "https://gis.co.wadena.mn.us/arcgis/rest/services/LinkPublic/MapServer/0",
+      "viewer_url": "https://www.wadenacounty.gov/194/GIS",
+      "fee_policy_url": null,
+      "parcel_dataset_fee": null,
+      "fee_product": null,
+      "evidence_note": "Wadena County's official GIS page provides a Public Interactive Map, GIS Data Request Form, disclaimer and fee links. The county GIS server publishes a LinkPublic map service whose Parcels layer is queryable, establishing no-charge machine-readable access even though special data requests may have separate fees.",
+      "source_authority": "county",
+      "usable_direct_machine_readable_source": true,
+      "monitoring": {
+        "decision": "candidate-low-frequency",
+        "reason": "Official GIS page links public parcel mapping and the county-hosted LinkPublic MapServer exposes Parcels with query support.",
+        "terms_urls": [
+          "https://www.wadenacounty.gov/194/GIS",
+          "https://gis.co.wadena.mn.us/arcgis/rest/services/LinkPublic/MapServer/0"
+        ]
+      },
+      "evidence": [
+        {
+          "url": "https://www.wadenacounty.gov/194/GIS",
+          "authority": "county",
+          "finding": "Official GIS page provides public interactive mapping, request forms and disclaimer."
+        },
+        {
+          "url": "https://gis.co.wadena.mn.us/arcgis/rest/services/LinkPublic/MapServer/0",
+          "authority": "county",
+          "finding": "County-hosted LinkPublic Parcels layer supports machine-readable query access."
+        }
+      ],
+      "review_log": {
+        "county_site": {
+          "status": "reviewed",
+          "note": "Official county government site and relevant navigation/search results reviewed.",
+          "urls": [
+            "https://www.wadenacounty.gov/"
+          ]
+        },
+        "gis_assessor_land_records": {
+          "status": "reviewed",
+          "note": "Official GIS, assessor, mapping and/or land-records page reviewed for parcel-specific access.",
+          "urls": [
+            "https://www.wadenacounty.gov/194/GIS"
+          ]
+        },
+        "downloads_open_data": {
+          "status": "reviewed",
+          "note": "Reviewed official download/open-data routes; finding reflected in classification.",
+          "urls": [
+            "https://gis.co.wadena.mn.us/arcgis/rest/services/LinkPublic/MapServer/0"
+          ]
+        },
+        "arcgis_services": {
+          "status": "reviewed",
+          "note": "Reviewed county/county-authorized ArcGIS/REST/service exposure; any usable direct source is recorded separately.",
+          "urls": [
+            "https://gis.co.wadena.mn.us/arcgis/rest/services/LinkPublic/MapServer/0"
+          ]
+        },
+        "data_policy": {
+          "status": "not-found",
+          "note": "No additional parcel-specific data policy changed the access classification.",
+          "urls": []
+        },
+        "fee_schedule": {
+          "status": "not-found",
+          "note": "No official fee evidence establishing a required parcel-dataset charge was verified.",
+          "urls": []
+        },
+        "request_forms": {
+          "status": "not-found",
+          "note": "No parcel-specific request-only path was needed to support the final classification.",
+          "urls": []
+        },
+        "resolutions_ordinances": {
+          "status": "not-found",
+          "note": "No resolution/ordinance located that changed the parcel-access conclusion.",
+          "urls": []
+        },
+        "authorized_portals": {
+          "status": "reviewed",
+          "note": "County-linked viewer, Hub, ArcGIS organization or authorized provider was reviewed where present.",
+          "urls": [
+            "https://www.wadenacounty.gov/194/GIS"
+          ]
+        },
+        "statewide_context": {
+          "status": "reviewed",
+          "note": "MnGeo statewide parcel coverage considered as corroborating context only; it did not determine the county-direct classification.",
+          "urls": [
+            "https://gisdata.mn.gov/dataset/plan-parcels-open"
+          ]
+        }
+      }
+    },
+    {
+      "county": "Watonwan",
+      "review_date": "2026-10-05",
+      "classification": "parcel-viewer-only",
+      "research_complete": true,
+      "official_county_url": "https://www.watonwancountymn.gov/",
+      "parcel_page_url": "https://www.watonwancountymn.gov/112/Assessor",
+      "download_or_service_url": null,
+      "viewer_url": "https://beacon.schneidercorp.com/",
+      "fee_policy_url": null,
+      "parcel_dataset_fee": null,
+      "fee_product": null,
+      "evidence_note": "Watonwan County's official County Parcel Information page provides Beacon parcel viewing. The 2026 fee schedule prices assessment spreadsheets and custom tabular reports but does not establish a fee for a parcel geometry dataset. No separate county-direct parcel download or machine-readable parcel geometry service was verified.",
+      "source_authority": "county-authorized-provider",
+      "usable_direct_machine_readable_source": false,
+      "monitoring": {
+        "decision": "not-appropriate",
+        "reason": "Official county sources verify Beacon parcel viewing and assessment spreadsheets, not a parcel geometry dataset/API; do not scrape the viewer.",
+        "terms_urls": [
+          "https://www.watonwancountymn.gov/221/County-Parcel-Information",
+          "https://www.watonwancountymn.gov/DocumentCenter/View/8050"
+        ]
+      },
+      "evidence": [
+        {
+          "url": "https://www.watonwancountymn.gov/221/County-Parcel-Information",
+          "authority": "county",
+          "finding": "Official County Parcel Information page directs users to Beacon parcel lookup."
+        },
+        {
+          "url": "https://www.watonwancountymn.gov/DocumentCenter/View/8050",
+          "authority": "county",
+          "finding": "2026 fee schedule prices assessment spreadsheets/custom tabular data; it does not establish a parcel geometry dataset fee."
+        }
+      ],
+      "review_log": {
+        "county_site": {
+          "status": "reviewed",
+          "note": "Official county government site and relevant navigation/search results reviewed.",
+          "urls": [
+            "https://www.watonwancountymn.gov/"
+          ]
+        },
+        "gis_assessor_land_records": {
+          "status": "reviewed",
+          "note": "Official GIS, assessor, mapping and/or land-records page reviewed for parcel-specific access.",
+          "urls": [
+            "https://www.watonwancountymn.gov/112/Assessor"
+          ]
+        },
+        "downloads_open_data": {
+          "status": "not-found",
+          "note": "No separate parcel download/open-data product verified in the official-source review.",
+          "urls": []
+        },
+        "arcgis_services": {
+          "status": "not-found",
+          "note": "No county-authorized parcel REST/FeatureServer/MapServer endpoint verified.",
+          "urls": []
+        },
+        "data_policy": {
+          "status": "not-found",
+          "note": "No additional parcel-specific data policy changed the access classification.",
+          "urls": []
+        },
+        "fee_schedule": {
+          "status": "not-found",
+          "note": "No official fee evidence establishing a required parcel-dataset charge was verified.",
+          "urls": []
+        },
+        "request_forms": {
+          "status": "not-found",
+          "note": "No parcel-specific request-only path was needed to support the final classification.",
+          "urls": []
+        },
+        "resolutions_ordinances": {
+          "status": "not-found",
+          "note": "No resolution/ordinance located that changed the parcel-access conclusion.",
+          "urls": []
+        },
+        "authorized_portals": {
+          "status": "reviewed",
+          "note": "County-linked viewer, Hub, ArcGIS organization or authorized provider was reviewed where present.",
+          "urls": [
+            "https://beacon.schneidercorp.com/"
+          ]
+        },
+        "statewide_context": {
+          "status": "reviewed",
+          "note": "MnGeo statewide parcel coverage considered as corroborating context only; it did not determine the county-direct classification.",
+          "urls": [
+            "https://gisdata.mn.gov/dataset/plan-parcels-open"
+          ]
+        }
+      }
+    },
+    {
+      "county": "Winona",
+      "review_date": "2026-10-05",
+      "classification": "fee-based-parcel-data",
+      "research_complete": true,
+      "official_county_url": "https://winonacounty.gov",
+      "parcel_page_url": "https://winonacounty.gov/162/Assessor",
+      "download_or_service_url": null,
+      "viewer_url": "https://www.winonacounty.gov/245/GIS",
+      "fee_policy_url": "https://winonacounty.gov/Archive.aspx?ADID=434",
+      "parcel_dataset_fee": "$75 minimum plus per-parcel rate (rate tiers in county fee schedule)",
+      "fee_product": "GIS Data Set - Parcels",
+      "evidence_note": "Winona County's official GIS and Request GIS Data pages direct GIS datasets through a county request form. The county fee schedule explicitly prices the Parcels GIS Data Set at a $75 minimum plus per-parcel rates. Public ArcGIS services used by county applications were found, but their application role does not supersede the county's explicit parcel-data request/fee policy.",
+      "source_authority": "county",
+      "usable_direct_machine_readable_source": false,
+      "monitoring": {
+        "decision": "not-appropriate",
+        "reason": "County directs GIS dataset requests through its request form and prices parcel GIS data in the fee schedule; public application services are not treated as a free distribution license.",
+        "terms_urls": [
+          "https://www.winonacounty.gov/245/GIS",
+          "https://winonacounty.gov/561/Request-GIS-Data"
+        ]
+      },
+      "evidence": [
+        {
+          "url": "https://www.winonacounty.gov/245/GIS",
+          "authority": "county",
+          "finding": "Official GIS page describes county mapping/data services and public-domain disclaimer."
+        },
+        {
+          "url": "https://winonacounty.gov/561/Request-GIS-Data",
+          "authority": "county",
+          "finding": "Official Request GIS Data page requires a GIS data request form and points to the county fee schedule."
+        },
+        {
+          "url": "https://winonacounty.gov/Archive.aspx?ADID=434",
+          "authority": "county",
+          "finding": "County fee schedule explicitly lists GIS Data Set - Parcels with a $75 minimum plus parcel-rate pricing."
+        }
+      ],
+      "review_log": {
+        "county_site": {
+          "status": "reviewed",
+          "note": "Official county government site and relevant navigation/search results reviewed.",
+          "urls": [
+            "https://winonacounty.gov"
+          ]
+        },
+        "gis_assessor_land_records": {
+          "status": "reviewed",
+          "note": "Official GIS, assessor, mapping and/or land-records page reviewed for parcel-specific access.",
+          "urls": [
+            "https://winonacounty.gov/162/Assessor"
+          ]
+        },
+        "downloads_open_data": {
+          "status": "reviewed",
+          "note": "Reviewed official download/open-data routes; finding reflected in classification.",
+          "urls": [
+            "https://winonacounty.gov/Archive.aspx?ADID=434"
+          ]
+        },
+        "arcgis_services": {
+          "status": "not-found",
+          "note": "No county-authorized parcel REST/FeatureServer/MapServer endpoint verified.",
+          "urls": []
+        },
+        "data_policy": {
+          "status": "reviewed",
+          "note": "Reviewed relevant county data-use/disclaimer policy evidence.",
+          "urls": [
+            "https://winonacounty.gov/Archive.aspx?ADID=434"
+          ]
+        },
+        "fee_schedule": {
+          "status": "reviewed",
+          "note": "Official parcel-related fee evidence reviewed; fee is recorded only when it applies to the parcel dataset itself.",
+          "urls": [
+            "https://winonacounty.gov/Archive.aspx?ADID=434"
+          ]
+        },
+        "request_forms": {
+          "status": "reviewed",
+          "note": "Official request/order route reviewed for parcel dataset access.",
+          "urls": [
+            "https://winonacounty.gov/162/Assessor"
+          ]
+        },
+        "resolutions_ordinances": {
+          "status": "not-found",
+          "note": "No resolution/ordinance located that changed the parcel-access conclusion.",
+          "urls": []
+        },
+        "authorized_portals": {
+          "status": "reviewed",
+          "note": "County-linked viewer, Hub, ArcGIS organization or authorized provider was reviewed where present.",
+          "urls": [
+            "https://www.winonacounty.gov/245/GIS"
+          ]
+        },
+        "statewide_context": {
+          "status": "reviewed",
+          "note": "MnGeo statewide parcel coverage considered as corroborating context only; it did not determine the county-direct classification.",
+          "urls": [
+            "https://gisdata.mn.gov/dataset/plan-parcels-open"
+          ]
+        }
+      }
+    }
+  ]
+}

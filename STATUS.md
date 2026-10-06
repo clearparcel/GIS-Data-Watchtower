@@ -35,7 +35,7 @@ The same staging architecture also validated the MN GAC completeness feature aga
 
 ## County parcel-data access audit
 
-The 35 counties currently shown by the dashboard as `needs-source` are undergoing a parcel-specific access audit. The existing status is registry-derived and does not mean that an exhaustive source search has already failed. The audit now distinguishes free parcel data, fee-based parcel data, parcel-viewer-only access, request/restricted parcel access, statewide parcel coverage only, and a researched no-direct-parcel-dataset result. **Fee-based parcel data** is used only when official evidence shows that the parcel dataset itself carries a fee; charges for staff time, custom GIS services, maps, special exports, or other associated services do not trigger that label. See `docs/county-parcel-data-access-audit.md`.
+The 35-county parcel-specific access audit is complete. Results are **17 Free parcel data**, **7 Fee-based parcel data**, and **11 Parcel viewer only**. All 35 records are stored separately from monitoring observations in `clearparcel/datawatch/minnesota_county_parcel_access.json`, with parcel-specific evidence and completed review logs. The audit identified **17 county-direct machine-readable parcel sources**; each returned HTTP 200 in a single bounded validation pass and is marked only as a low-frequency monitoring candidate. No new provider polling or scheduler was enabled. **Fee-based parcel data** is used only when official evidence shows that the parcel dataset itself carries a fee. See `docs/county-parcel-data-access-audit.md`.
 
 ## Public dashboard hosting
 

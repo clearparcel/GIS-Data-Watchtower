@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from clearparcel.datawatch.dashboard import _layout, render_counties
+from clearparcel.datawatch.dashboard import _layout, render_counties, render_county
 from clearparcel.datawatch.public_dashboard import (
     _publication_health,
     render_public_dashboard,
@@ -227,7 +227,34 @@ class PublicDashboardTests(unittest.TestCase):
             }
             page = render_counties(config)
             self.assertIn("Minnesota county dashboards", page)
+            self.assertIn("Monitoring coverage", page)
+            self.assertIn("Parcel data access", page)
+            self.assertIn("Fee-based parcel data", page)
+            self.assertIn("Free parcel data", page)
             self.assertNotIn('<form method="post" action="/refresh"', page)
+
+    def test_county_detail_separates_monitoring_from_parcel_access_research(self):
+        public = sanitize_public_render_state(self._state())
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            state = root / "state.json"
+            history = root / "history.jsonl"
+            state.write_text(json.dumps(public), encoding="utf-8")
+            history.write_text("", encoding="utf-8")
+            config = {
+                "state_file": str(state),
+                "aggregate_state_file": str(state),
+                "history_file": str(history),
+                "sources": [],
+                "_public_mode": True,
+            }
+            page = render_county(config, "winona")
+            self.assertIn("Monitoring coverage", page)
+            self.assertIn("Parcel dataset access", page)
+            self.assertIn("Fee-based parcel data", page)
+            self.assertIn("Parcel dataset fee:", page)
+            self.assertIn("GIS Data Set - Parcels", page)
+            self.assertIn("No direct county parcel source currently monitored", page)
 
 
 if __name__ == "__main__":
