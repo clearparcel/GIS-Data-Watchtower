@@ -932,7 +932,17 @@ def _arcgis_layer(source: dict, timeout: int) -> dict:
         id_field, confidence = _parcel_id_candidate(result["field_names"])
         result["parcel_id_field"] = id_field
         result["parcel_id_confidence"] = confidence
-        result["null_geometry_count"] = _arcgis_count_query(source["url"], "SHAPE IS NULL", timeout, prefer_curl=bool(source.get("prefer_curl")))
+        try:
+            result["null_geometry_count"] = _arcgis_count_query(
+                source["url"],
+                "SHAPE IS NULL",
+                timeout,
+                prefer_curl=bool(source.get("prefer_curl")),
+            )
+        except Exception as exc:
+            result["null_geometry_count"] = None
+            result["null_geometry_check"] = "unsupported"
+            result["null_geometry_check_error"] = _safe_diagnostic(exc)
         if id_field and confidence == "high":
             null_count = _arcgis_count_query(source["url"], f"{id_field} IS NULL OR {id_field} = ''", timeout, prefer_curl=bool(source.get("prefer_curl")))
             result["parcel_id_null_count"] = null_count

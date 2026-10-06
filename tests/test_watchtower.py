@@ -112,6 +112,45 @@ class DataWatchTests(unittest.TestCase):
             result = datawatch._source_check(source, 20)
         self.assertTrue(any("freshness metadata" in x for x in result["problems"]))
 
+    def test_arcgis_parcel_quality_null_geometry_failure_is_nonfatal(self):
+        source = {
+            "id": "parcels",
+            "kind": "arcgis_layer",
+            "url": "https://example.invalid/MapServer/7",
+            "count": True,
+            "parcel_quality": True,
+            "expected_geometry": "esriGeometryPolygon",
+        }
+        metadata = {
+            "name": "Parcels",
+            "type": "Feature Layer",
+            "geometryType": "esriGeometryPolygon",
+            "currentVersion": 11.5,
+            "maxRecordCount": 2000,
+            "fields": [
+                {"name": "OBJECTID", "type": "esriFieldTypeOID"},
+                {"name": "ParcelType", "type": "esriFieldTypeString"},
+            ],
+            "extent": {
+                "xmin": 0, "ymin": 0, "xmax": 1, "ymax": 1,
+                "spatialReference": {"wkid": 26915},
+            },
+        }
+        def count_query(url, where, timeout, **kwargs):
+            if where == "1=1":
+                return 10
+            if where == "SHAPE IS NULL":
+                raise RuntimeError("ArcGIS error: Unable to complete operation")
+            raise AssertionError(where)
+        with patch.object(datawatch, "_json_request", return_value=(metadata, {"status": 200, "transport": "urllib"})):
+            with patch.object(datawatch, "_arcgis_count_query", side_effect=count_query):
+                result = datawatch._arcgis_layer(source, 30)
+        self.assertEqual(result["feature_count"], 10)
+        self.assertEqual(result["null_geometry_check"], "unsupported")
+        self.assertIsNone(result["null_geometry_count"])
+        self.assertIn("Unable to complete operation", result["null_geometry_check_error"])
+        self.assertEqual(result["problems"], [])
+
     def test_mngac_population_expressions_respect_standard_no_data_rules(self):
         self.assertEqual(
             datawatch._mngac_population_expression({'field': 'OWNER_NAME', 'data_type': 'Text'}, 'OWNER_NAME'),
