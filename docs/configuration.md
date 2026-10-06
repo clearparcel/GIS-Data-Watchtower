@@ -108,3 +108,41 @@ GCS support requires the `gcs` package extra.
 - `WATCHTOWER_REDIRECT_ALLOW_HOSTS` — comma-separated explicit host allowlist for cross-host redirects that would otherwise be rejected.
 
 Do not use the redirect allowlist to bypass provider access controls or to authorize cloud metadata, loopback, link-local, private, or other privileged endpoints without a deliberate network-boundary review.
+
+## Static county parcel-source inventory
+
+`clearparcel/datawatch/minnesota_county_parcel_access.json` uses schema v3 and
+requires exactly the 87 canonical Minnesota county names in
+`minnesota_counties.json`. Sparse schema v2 research fixtures remain supported.
+Legacy `research_complete` describes county-direct access review only; overall
+profile completion additionally requires reviews of all four inventory categories.
+
+Every county preserves its direct-access classification, fee, terms, evidence
+and review log, and adds `comments` and `source_inventory`. The inventory keys
+are `mngac_public_parcels`, `mngeo_public_repository`, `county_arcgis_rest` and
+`county_download`. These categories are independent: REST evidence does not
+establish a download product or distinct MnGeo repository membership. Each
+category contains `review_status` (`pending`, `reviewed`, `not-found`, `blocked`),
+`availability` (`yes`, `no`, `unknown`), `review_date`, `finding`, `evidence` and
+`sources`. Evidence references are URL strings present in the county's existing
+`evidence` array. A reviewed absence requires a review date, factual finding
+and official evidence references. Positive sources can be preserved while the
+broader category review remains pending.
+
+Each source contains `inventory_id`, `name`, `authority`, `dataset_type`,
+`layer_id` (nullable), `approved_public_links` (`{label, href}` objects),
+`review_date`, `monitoring_decision` and `evidence` references. Optional
+`monitored_source_id` joins an already monitored aggregate source; discovery
+never activates monitoring. Approved links pass the shared offline
+`safe_public_url` check, which rejects credentials, private/local hosts and
+sensitive query parameters. Static category and source fields are allowlisted:
+live counts, health, checks and worker telemetry belong in aggregate state.
+
+Migration retains all 35 existing direct-access findings and four terms holds.
+The other 52 counties are seeded using existing official county contact URLs,
+with pending reviews and unknown availability. Their legacy statewide coverage
+`available` and `verified_date` are nullable in v3 to represent missing research
+honestly. Historical statewide findings remain separate from current observed
+membership. Public classification is `OPEN` for verified free machine-readable
+access, `FEE BASED` for county-direct dataset fees, and `AMBIGUOUS` for incomplete
+or viewer-only findings; free statewide access does not override a direct fee.

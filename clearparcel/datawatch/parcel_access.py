@@ -2,9 +2,11 @@
 from __future__ import annotations
 
 import datetime as dt
+import copy
 import json
 from pathlib import Path
 from urllib.parse import urlsplit
+from .public_values import safe_public_url, public_access_classification
 
 DIRECT_CLASSIFICATIONS = {
     "free-parcel-data": "Free parcel data",
@@ -31,6 +33,80 @@ RECORD_FIELDS = {
     "statewide_open_coverage", "monitoring", "review_log", "evidence",
 }
 INTERIM_LABEL = "County-direct parcel access not yet researched"
+INVENTORY_CATEGORIES = (
+    "mngac_public_parcels", "mngeo_public_repository",
+    "county_arcgis_rest", "county_download",
+)
+MONITORING_DECISIONS = {"candidate-low-frequency", "hold-for-terms", "not-appropriate", "not-assessed"}
+INVENTORY_FIELDS = {"review_status", "availability", "review_date", "finding", "evidence", "sources"}
+SOURCE_FIELDS = {"inventory_id", "name", "authority", "dataset_type", "layer_id", "approved_public_links", "review_date", "monitoring_decision", "evidence"}
+
+
+def _date(value: object) -> bool:
+    try:
+        return isinstance(value, str) and dt.date.fromisoformat(value).isoformat() == value
+    except ValueError:
+        return False
+
+
+def _validate_inventory(record: dict) -> None:
+    inventory = record["source_inventory"]
+    if not isinstance(inventory, dict) or set(inventory) != set(INVENTORY_CATEGORIES):
+        raise ValueError("All four inventory categories required")
+    if not isinstance(record["comments"], str):
+        raise ValueError("Comments must be text")
+    evidence_urls = {e["url"] for e in record["evidence"]}
+    official_urls = {e["url"] for e in record["evidence"] if e["authority"] in {"county", "county-authorized-provider", "statewide"}}
+    ids = set()
+    for category in inventory.values():
+        if not isinstance(category, dict) or set(category) != INVENTORY_FIELDS:
+            raise ValueError("Invalid inventory category fields")
+        status, available = category["review_status"], category["availability"]
+        if status not in {"pending", "reviewed", "not-found", "blocked"} or available not in {"yes", "no", "unknown"}:
+            raise ValueError("Invalid inventory assessment")
+        if not isinstance(category["finding"], str) or not category["finding"].strip():
+            raise ValueError("Inventory finding required")
+        refs = category["evidence"]
+        if not isinstance(refs, list) or not all(isinstance(ref, str) and ref in evidence_urls for ref in refs):
+            raise ValueError("Unknown inventory evidence reference")
+        if category["review_date"] is not None and not _date(category["review_date"]):
+            raise ValueError("Invalid inventory review date")
+        if status in {"reviewed", "not-found"} and (not _date(category["review_date"]) or not refs):
+            raise ValueError("Reviewed category requires date and evidence")
+        if available == "yes" and not refs:
+            raise ValueError("Positive availability requires evidence")
+        if available == "no" and (status not in {"reviewed", "not-found"} or not set(refs).intersection(official_urls)):
+            raise ValueError("Absence requires completed official evidence review")
+        if status == "not-found" and available != "no":
+            raise ValueError("Not-found category must document absence")
+        sources = category["sources"]
+        if not isinstance(sources, list) or (available == "yes" and not sources) or (available != "yes" and sources):
+            raise ValueError("Inventory availability must match sources")
+        for source in sources:
+            if not isinstance(source, dict) or set(source) not in (SOURCE_FIELDS, SOURCE_FIELDS | {"monitored_source_id"}):
+                raise ValueError("Invalid static source fields")
+            for key in ("inventory_id", "name", "dataset_type"):
+                if not isinstance(source[key], str) or not source[key].strip():
+                    raise ValueError("Source identity, name and type required")
+            if source["inventory_id"] in ids:
+                raise ValueError("Duplicate inventory source ID")
+            ids.add(source["inventory_id"])
+            if source["authority"] not in {"county", "county-authorized-provider", "statewide"}:
+                raise ValueError("Invalid inventory source authority")
+            if source["layer_id"] is not None and (type(source["layer_id"]) not in {str, int} or str(source["layer_id"]) == ""):
+                raise ValueError("Invalid layer ID")
+            if not _date(source["review_date"]) or source["monitoring_decision"] not in MONITORING_DECISIONS:
+                raise ValueError("Source requires review date and monitoring decision")
+            if "monitored_source_id" in source and source["monitored_source_id"] is not None and (not isinstance(source["monitored_source_id"], str) or not source["monitored_source_id"].strip()):
+                raise ValueError("Invalid monitored source ID")
+            if not isinstance(source["evidence"], list) or not source["evidence"] or not all(isinstance(ref, str) and ref in evidence_urls for ref in source["evidence"]):
+                raise ValueError("Source requires existing evidence references")
+            links = source["approved_public_links"]
+            if not isinstance(links, list) or not links:
+                raise ValueError("Source public links required")
+            for link in links:
+                if not isinstance(link, dict) or set(link) != {"label", "href"} or not isinstance(link["label"], str) or not link["label"].strip() or safe_public_url(link["href"]) is None or link["href"] not in evidence_urls:
+                    raise ValueError("Invalid approved public link")
 
 
 def _url(value: object) -> bool:
@@ -42,7 +118,7 @@ def _url(value: object) -> bool:
 
 def validate_parcel_access(data: dict) -> None:
     """Reject ambiguous/unsupported published research; no network access."""
-    if set(data) != {"schema_version", "scope", "counties"} or data["schema_version"] != 2:
+    if set(data) != {"schema_version", "scope", "counties"} or data["schema_version"] not in {2, 3}:
         raise ValueError("Unsupported parcel-access schema")
     if not isinstance(data["scope"], str) or not data["scope"].strip():
         raise ValueError("Research scope required")
@@ -50,7 +126,8 @@ def validate_parcel_access(data: dict) -> None:
         raise ValueError("Counties must be a list")
     seen = set()
     for record in data["counties"]:
-        if not isinstance(record, dict) or set(record) != RECORD_FIELDS:
+        expected_fields = RECORD_FIELDS | {"source_inventory", "comments"} if data["schema_version"] == 3 else RECORD_FIELDS
+        if not isinstance(record, dict) or set(record) != expected_fields:
             raise ValueError("Invalid county research fields")
         county = record["county"]
         if not isinstance(county, str) or not county.strip() or county in seen:
@@ -80,16 +157,18 @@ def validate_parcel_access(data: dict) -> None:
         statewide = record["statewide_open_coverage"]
         if not isinstance(statewide, dict) or set(statewide) != {"available", "source", "source_url", "verified_date"}:
             raise ValueError("Invalid statewide open-coverage record")
-        if type(statewide["available"]) is not bool:
+        unknown_statewide = data["schema_version"] == 3 and statewide["available"] is None and statewide["verified_date"] is None
+        if type(statewide["available"]) is not bool and not unknown_statewide:
             raise ValueError("statewide open coverage must be boolean")
         if not isinstance(statewide["source"], str) or not statewide["source"].strip():
             raise ValueError("Statewide source name required")
         if not _url(statewide["source_url"]):
             raise ValueError("Statewide source URL required")
-        try:
-            dt.date.fromisoformat(statewide["verified_date"])
-        except (ValueError, TypeError) as exc:
-            raise ValueError("Invalid statewide coverage verification date") from exc
+        if not unknown_statewide:
+            try:
+                dt.date.fromisoformat(statewide["verified_date"])
+            except (ValueError, TypeError) as exc:
+                raise ValueError("Invalid statewide coverage verification date") from exc
         if record["source_authority"] not in {"county", "county-authorized-provider", "statewide", "unverified"}:
             raise ValueError("Invalid source authority")
         direct = record["usable_direct_machine_readable_source"]
@@ -139,6 +218,53 @@ def validate_parcel_access(data: dict) -> None:
                 raise ValueError("Dataset fee requires official county evidence")
         if classification == "parcel-viewer-only" and (not record["viewer_url"] or direct):
             raise ValueError("Viewer-only requires viewer and no verified direct dataset")
+        if data["schema_version"] == 3:
+            _validate_inventory(record)
+    if data["schema_version"] == 3:
+        canonical = json.loads(Path(__file__).with_name("minnesota_counties.json").read_text(encoding="utf-8"))["counties"]
+        if seen != {c["name"] for c in canonical} or len(data["counties"]) != 87:
+            raise ValueError("V3 inventory requires exactly 87 canonical Minnesota counties")
+
+
+def migrate_parcel_access(data: dict, county_index: list[dict], official_urls: dict[str, str]) -> dict:
+    """Preserve direct-access evidence; seed incomplete inventory without networking."""
+    validate_parcel_access(data)
+    if data["schema_version"] == 3:
+        return copy.deepcopy(data)
+    existing = {r["county"]: r for r in data["counties"]}
+    if set(existing) - {c["name"] for c in county_index}:
+        raise ValueError("Migration contains unknown county")
+    migrated = {"schema_version": 3, "scope": data["scope"], "counties": []}
+    for county in county_index:
+        name = county["name"]
+        if name in existing:
+            record = copy.deepcopy(existing[name])
+        else:
+            record = dict.fromkeys(sorted(RECORD_FIELDS))
+            record.update(county=name, official_county_url=official_urls[name], research_complete=False,
+                source_authority="unverified", usable_direct_machine_readable_source=False,
+                evidence_note="County-direct parcel access has not yet been reviewed.", evidence=[],
+                review_log={area: {"status": "pending", "note": "Not yet reviewed.", "urls": []} for area in REVIEW_AREAS},
+                monitoring={"decision": "not-assessed", "reason": "Discovery does not authorize monitoring.", "terms_urls": []},
+                statewide_open_coverage={"available": None, "source": "MnGeo Plan Parcels Open", "source_url": "https://gisdata.mn.gov/dataset/plan-parcels-open", "verified_date": None})
+        record["comments"] = ""
+        record["source_inventory"] = {key: {"review_status": "pending", "availability": "unknown", "review_date": None, "finding": "Category not yet reviewed.", "evidence": [], "sources": []} for key in INVENTORY_CATEGORIES}
+        url = record["download_or_service_url"]
+        # Only a retained evidence URL supporting usable access establishes a source.
+        if url and record["usable_direct_machine_readable_source"] and safe_public_url(url):
+            refs = [e["url"] for e in record["evidence"] if e["url"] == url]
+            parsed = urlsplit(url)
+            rest = "/rest/services/" in parsed.path.lower() and any(t in parsed.path.lower() for t in ("featureserver", "mapserver"))
+            download = parsed.path.lower().endswith((".zip", ".shp", ".gdb", ".geojson", ".gpkg"))
+            if refs and (rest or download):
+                key = "county_arcgis_rest" if rest else "county_download"
+                category = record["source_inventory"][key]
+                tail = parsed.path.rstrip("/").split("/")[-1]
+                source = {"inventory_id": county["slug"] + ":" + key + ":1", "name": name + " parcel dataset", "authority": record["source_authority"], "dataset_type": "ArcGIS REST" if rest else "Parcel download", "layer_id": tail if rest and tail.isdigit() else None, "approved_public_links": [{"label": "Official parcel source", "href": url}], "review_date": record["review_date"], "monitoring_decision": record["monitoring"]["decision"], "evidence": refs}
+                category.update(availability="yes", evidence=refs, sources=[source], finding="Retained evidence establishes this parcel source; full category review remains pending.")
+        migrated["counties"].append(record)
+    validate_parcel_access(migrated)
+    return migrated
 
 
 def load_parcel_access(path: Path | None = None) -> dict[str, dict]:

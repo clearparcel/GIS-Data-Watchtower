@@ -1,5 +1,7 @@
 import copy
 import unittest
+import json
+from pathlib import Path
 
 from clearparcel.datawatch.parcel_access import (
     CLASSIFICATIONS, INTERIM_LABEL, REVIEW_AREAS, access_label,
@@ -13,18 +15,111 @@ def research_fixture():
         "county": "Example", "review_date": "2026-10-05",
         "county_direct_classification": "free-parcel-data", "research_complete": True,
         "official_county_url": url, "parcel_page_url": url,
-        "download_or_service_url": url + "/FeatureServer/0", "viewer_url": None,
+        "download_or_service_url": url + "/rest/services/Parcels/FeatureServer/0", "viewer_url": None,
         "fee_policy_url": None, "parcel_dataset_fee": None, "fee_product": None,
         "evidence_note": "County publishes parcel polygons for public download.",
         "source_authority": "county", "usable_direct_machine_readable_source": True,
         "statewide_open_coverage": {"available": True, "source": "MnGeo Plan Parcels Open", "source_url": "https://gisdata.mn.gov/dataset/plan-parcels-open", "verified_date": "2026-10-05"},
         "monitoring": {"decision": "candidate-low-frequency", "reason": "Published open GIS API; bounded daily reads only.", "terms_urls": [url]},
-        "evidence": [{"url": url, "authority": "county", "finding": "Public parcel download."}],
+        "evidence": [{"url": url, "authority": "county", "finding": "Public parcel download."}, {"url": url + "/rest/services/Parcels/FeatureServer/0", "authority": "county", "finding": "County publishes parcel polygon layer."}],
         "review_log": {area: {"status": "reviewed", "note": "Reviewed official source.", "urls": [url]} for area in REVIEW_AREAS},
     }]}
 
 
 class ParcelAccessSchemaTests(unittest.TestCase):
+    def migrated(self):
+        from clearparcel.datawatch.parcel_access import migrate_parcel_access
+        root = Path(__file__).parents[1] / "clearparcel/datawatch"
+        index = json.loads((root / "minnesota_counties.json").read_text())["counties"]
+        contacts = json.loads((root / "minnesota_county_contact_verification.json").read_text())["counties"]
+        data = research_fixture()
+        data["counties"][0]["county"] = "Aitkin"
+        return migrate_parcel_access(data, index, {r["county"]: r["official_county_url"] for r in contacts})
+
+    def test_v3_requires_exactly_87_canonical_counties(self):
+        data = self.migrated()
+        validate_parcel_access(data)
+        self.assertEqual(len(data["counties"]), 87)
+        for change in ("delete", "duplicate", "unknown"):
+            bad = copy.deepcopy(data)
+            if change == "delete":
+                bad["counties"].pop()
+            else:
+                bad["counties"][-1]["county"] = "Aitkin" if change == "duplicate" else "Example"
+            with self.assertRaises(ValueError):
+                validate_parcel_access(bad)
+
+    def test_inventory_categories_are_independent(self):
+        data = self.migrated()
+        record = data["counties"][0]
+        self.assertEqual(record["source_inventory"]["county_arcgis_rest"]["availability"], "yes")
+        for key in ("county_download", "mngeo_public_repository"):
+            self.assertEqual(record["source_inventory"][key]["availability"], "unknown")
+        category = record["source_inventory"]["county_download"]
+        category.update(review_status="not-found", availability="no")
+        with self.assertRaises(ValueError):
+            validate_parcel_access(data)
+        category.update(review_date="2026-10-06", evidence=[record["evidence"][0]["url"]], finding="Official parcel-specific download search found no download product.")
+        validate_parcel_access(data)
+        for key in ("count", "health", "last_checked"):
+            bad = copy.deepcopy(data)
+            bad["counties"][0]["source_inventory"]["county_download"][key] = 0
+            with self.assertRaises(ValueError):
+                validate_parcel_access(bad)
+
+    def test_migration_preserves_evidence_without_inventing_reviews(self):
+        data = self.migrated()
+        original = research_fixture()["counties"][0]
+        migrated = data["counties"][0]
+        for key in ("evidence", "monitoring", "research_complete", "county_direct_classification"):
+            self.assertEqual(migrated[key], original[key])
+        self.assertTrue(all(not r["research_complete"] for r in data["counties"][1:]))
+        self.assertTrue(all(r["statewide_open_coverage"]["available"] is None for r in data["counties"][1:]))
+        self.assertTrue(all(c["review_status"] == "pending" for r in data["counties"][1:] for c in r["source_inventory"].values()))
+
+    def test_migration_preserves_all_35_legacy_records_and_holds(self):
+        from clearparcel.datawatch.parcel_access import migrate_parcel_access, RECORD_FIELDS
+        root = Path(__file__).parents[1] / "clearparcel/datawatch"
+        legacy = {"schema_version": 2, "scope": "Preservation test", "counties": [
+            {key: copy.deepcopy(record[key]) for key in RECORD_FIELDS}
+            for record in load_parcel_access().values() if record["research_complete"]
+        ]}
+        index = json.loads((root / "minnesota_counties.json").read_text())["counties"]
+        contacts = json.loads((root / "minnesota_county_contact_verification.json").read_text())["counties"]
+        result = migrate_parcel_access(legacy, index, {r["county"]: r["official_county_url"] for r in contacts})
+        migrated = {r["county"]: r for r in result["counties"]}
+        self.assertEqual(len(legacy["counties"]), 35)
+        for original in legacy["counties"]:
+            self.assertEqual({k: migrated[original["county"]][k] for k in RECORD_FIELDS}, original)
+        self.assertEqual({name for name, r in migrated.items() if r["monitoring"]["decision"] == "hold-for-terms"}, {"Blue Earth", "Faribault", "Kandiyohi", "Lincoln"})
+        for r in result["counties"]:
+            for category in r["source_inventory"].values():
+                self.assertEqual(category["review_status"], "pending")
+                self.assertNotEqual(category["availability"], "no")
+
+    def test_inventory_sources_reject_unknown_evidence_and_unsafe_links(self):
+        data = self.migrated()
+        source = data["counties"][0]["source_inventory"]["county_arcgis_rest"]["sources"][0]
+        for key, value in (("evidence", ["https://unreviewed.example"]), ("approved_public_links", [{"label": "GIS", "href": "https://county.example?token=secret"}]), ("count", 123)):
+            bad = copy.deepcopy(data)
+            bad["counties"][0]["source_inventory"]["county_arcgis_rest"]["sources"][0][key] = value
+            with self.assertRaises(ValueError):
+                validate_parcel_access(bad)
+        self.assertIsNone(source.get("monitored_source_id"))
+
+    def test_public_classification_and_safe_links(self):
+        from clearparcel.datawatch.public_values import public_access_classification, safe_public_url
+        record = research_fixture()["counties"][0]
+        self.assertEqual(public_access_classification(record), "OPEN")
+        record["county_direct_classification"] = "fee-based-parcel-data"
+        self.assertEqual(public_access_classification(record), "FEE BASED")
+        record["county_direct_classification"] = "parcel-viewer-only"
+        self.assertEqual(public_access_classification(record), "AMBIGUOUS")
+        self.assertEqual(public_access_classification(None), "AMBIGUOUS")
+        self.assertEqual(safe_public_url("https://county.example/gis"), "https://county.example/gis")
+        for url in ("https://user:pass@example.com", "http://127.0.0.1", "http://10.0.0.1", "http://[::1]", "https://localhost", "https://server.internal", "https://server", "https://county.example?token=secret", "https://county.example?api_key=secret"):
+            self.assertIsNone(safe_public_url(url), url)
+
     def test_accepts_supported_complete_record(self):
         validate_parcel_access(research_fixture())
 
@@ -95,6 +190,8 @@ class ParcelAccessSchemaTests(unittest.TestCase):
 
     def test_minnesota_audit_contains_35_completed_evidence_backed_records(self):
         records = load_parcel_access()
+        self.assertEqual(len(records), 87)
+        records = {name: r for name, r in records.items() if r["research_complete"]}
         self.assertEqual(len(records), 35)
         self.assertTrue(all(record["research_complete"] for record in records.values()))
         self.assertTrue(all(record["evidence"] for record in records.values()))
