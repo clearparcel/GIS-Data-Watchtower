@@ -1,5 +1,7 @@
 # Repository review — 2026-10-06
 
+Subsequent user-approved merge and deployment: the reviewed fixes were released from merged commit `32852a8`. See [release verification](release-2026-10-06.md). The review-stage statements below describe the earlier, undeployed audit snapshot.
+
 This review covers repository security, correctness, documentation and GitHub hygiene. It made no provider requests, live exploit attempts, deployment or production changes, merge, main push or scheduling change. The latest recorded preview `00007-zfh` serves `5aac504` and predates these fixes.
 
 ## Baseline and implemented fixes

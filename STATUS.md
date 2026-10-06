@@ -1,12 +1,12 @@
 # Project status
 
-Operational record reconciled: **2026-10-06**. This page describes the latest recorded state; the repository review made no live provider or deployment requests.
+Operational record updated: **2026-10-06** after the user-approved merge and application release. Provider observations remain dated; this deployment did not re-poll GIS providers.
 
 ## Recorded deployment and coverage
 
 The latest recorded hybrid staging cycle passed **31 cloud + 4 local = 35 sources**, all healthy with worker provenance. Parcel monitoring covered **70/87 counties = 59 statewide + 24 county-direct - 13 overlaps**. These recorded observations do not establish present live health. The earlier 22-cloud/26-total cycle is historical.
 
-The latest recorded isolated preview is `00007-zfh`, serving `5aac504`, before the repository-review fixes. Its unchanged sanitized publication is `2026-10-06T18:29:46.124951+00:00`; aggregate/source generation is `2026-10-06T11:11:40.540673+00:00`. Publication becomes overdue after 30 minutes; provider health and reporting freshness remain separate. Production remains the previously recorded public `00006-82c` / private `00011-t4l`; this review did not redeploy either service.
+The reviewed application release is merged commit `32852a8`: isolated preview `00008-dv5`, production public `00007-glp`, and private dashboard `00012-2sn`, each Ready at 100% traffic. Publisher and staging worker job images use the same release; their runtime settings and schedules are unchanged. See [release verification](docs/release-2026-10-06.md). The preview retains its older sanitized publication; production publication advances through the existing publisher. Publication age remains separate from actual source observation time and provider health.
 
 The public service reads only the sanitized public aggregate. A separate publisher reads the private unified aggregate, applies typed allowlists and forbidden-field validation, and writes the public object. Its recorded 10-minute schedule performs no provider polling. Authoritative cloud GIS-provider scheduling remains disabled; the existing local production schedule remains authoritative pending the multi-day parallel validation gate and explicit approval.
 
@@ -18,9 +18,9 @@ Recorded MN GAC statistics: **91 fields**, **2,710,201 parcels**, **42.92% all-f
 
 ## Repository review and remaining gates
 
-The October 6 review fixes public socket deadlines, protected redirect address binding, total provider request deadlines and 429 stop propagation. Reporting freshness follows reports/checks independently of historical success; public zero counts stay zero; publisher scratch is unique and cleaned on success/failure. These changes are **repository-only and not deployed**. See [the dated repository review](docs/repository-review-2026-10-06.md) for actual commits, validation and limitations.
+The October 6 review fixes public socket deadlines, protected redirect address binding, total provider request deadlines and 429 stop propagation. Reporting freshness follows reports/checks independently of historical success; public zero counts stay zero; publisher scratch is unique and cleaned on success/failure. These changes are **merged and deployed** to the existing application services and job images. No fresh provider execution is claimed. See [the dated repository review](docs/repository-review-2026-10-06.md) for actual commits, validation and limitations.
 
-Issues 1/2 (provider constraints) and 20 (multi-day validation) remain open. Issue 40 was closed after all original 35 classifications were verified complete. Active PRs 39/42 are preserved. User-approved main protection requires PRs, zero required approving reviewers, six strict Actions checks, resolved conversations and admin enforcement; force pushes/deletion are blocked. No merge or main push occurred.
+Issues 1/2 (provider constraints) and 20 (multi-day validation) remain open. Issue 40 was closed after all original 35 classifications were verified complete. PRs 39/42 were merged after fresh required CI passed. User-approved main protection requires PRs, zero required approving reviewers, six strict Actions checks, resolved conversations and admin enforcement; force pushes/deletion are blocked. Main advanced through approved PR merges; no direct main push or provider scheduling change occurred.
 
 Prior deployment, browser, provider-policy, rollback and cleanup evidence is preserved in [historical status](docs/status-history-2026-10-06.md) and [deployment history](docs/google-cloud-deployment.md#four-class-code-only-preview-release-2026-10-06).
 
