@@ -185,6 +185,47 @@ Source now uses the shared public header `Minnesota Open Data Watchtower`. Both 
 
 Overview helpers distinguish all-type monitored dataset/service entries from unique counties with parcel observations. One statewide entry can cover many counties; overlapping paths count each county once. Derived counts, all 87 profiles, source identities, privacy, export contracts and provider holds are preserved.
 
-Root verified the user's deletion of `C:/Users/sgert/AppData/Local/Temp/watchtower-task8-b342b5d` with Test-Path returning False. The cloud temporary build object was already verified deleted. Historical automatic-review denials and the Benton archive incident remain recorded; old Chrome cleanup remains unverified, while root IAB viewport reset was verified. The active parent workflow continues this feedback task. Preview still runs `00004-sv8`/product `5686013`; Task 9 independent review and separate committed preview release remain pending. No deployment or provider action occurred in this task.
+Root verified the user's deletion of `C:/Users/sgert/AppData/Local/Temp/watchtower-task8-b342b5d` with Test-Path returning False. The cloud temporary build object was already verified deleted. Historical automatic-review denials and the Benton archive incident remain recorded; old Chrome cleanup remains unverified, while root IAB viewport reset was verified. The active parent workflow continues this feedback task. Task 9 review passed after its documentation fix. Task 10 separately released committed `dfacd72` to existing preview `00005-c24`; no provider action occurred. See the feedback preview release record.
 
-Task 9 required validation: 196 tests passed with ResourceWarning treated as an error; compileall and git diff --check passed. Independent review and preview release remain pending.
+Task 9 required validation: 196 tests passed with ResourceWarning treated as an error; compileall and git diff --check passed. Independent review and separate Task 10 preview release passed.
+
+
+## Feedback preview release (2026-10-06)
+
+Task 9 review passed after its documentation fix. Cloud Build
+`e4debabe-4cf4-4c3f-ba16-4a8bdee56dd8` successfully built a fresh committed-only
+`git archive` of `dfacd72`. Existing preview `00005-c24` serves 100% traffic,
+Ready/ConfigurationsReady/RoutesReady true, pinned to
+`sha256:c94c030aad2eec2063aabc4a73416a96f2b6163287e46f168f3e01de43f77e15`.
+Dedicated preview bucket/object/identity, IAM and explicit
+`public-dashboard --host 0.0.0.0 --port 8080` remain unchanged.
+
+Fresh unified aggregate reads stayed in memory; only committed sanitizer output
+passed public validation and was written/uploaded. Actual publication is
+`2026-10-06T18:29:46.124951+00:00`; aggregate generation remains
+`2026-10-06T11:11:40.540673+00:00`. All 35 sources remain OK, cloud=31/local=4,
+with matching worker summaries and source check/success/provenance/observed-at
+facts. Source dates and nested producer MNGAC completeness were preserved.
+Internal exports passed 87 county JSON/CSV/XLSX rows, 87 individual JSON profiles,
+350 actual source-category rows and 35 legacy rows. Coverage derives to
+70 = 59 statewide + 24 direct - 13 overlaps; each county has at most one official
+statewide product. No provider links were requested.
+
+Root's browser acceptance verified exact title/metric explanation, all 87
+overview fills, and 87 fills each for MNGAC mandatory, fields with values,
+COUNTY_PIN and ANUMBERPRE with zero bin mismatches. ANUMBERPRE distinguished
+45 true zeros and 28 No data counties. At 390px, page width was 375/375 and
+Aitkin dialog 349/349; title wrapped within 316.98px. Enter opened the dialog,
+Escape returned focus to Aitkin. Desktop screenshots were saved and inspected;
+viewport reset was verified and the deliverable tab retained.
+
+196 strict ResourceWarning-error unittests passed in 5.629s; compileall and diff
+checks passed. Owned Cloud Build source upload was removed with exact generation
+precondition `1791311349964872`; follow-up returned 404. Scoped local public-only
+archive/build/sanitized/log cleanup was rejected by automatic approval review
+with reason "blocked by policy". No bypass or retry occurred; folder
+`.cce-agent/task10-feedback-preview-dfacd72` remains pending user cleanup.
+The original Task 8 folder was previously verified absent. Production stays public `00006-82c`/private
+`00011-t4l`, bucket IAM etag `CAQ=`, sole existing publisher scheduler unchanged.
+No production, provider scheduling, IAM expansion, main, merge or Astra action.
+No CI claim is made for the forthcoming documentation head.
