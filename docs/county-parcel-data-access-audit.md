@@ -211,7 +211,7 @@ REST/Hub/download representations; no other join is inferred from county name or
 catalog. Current runtime coverage still overrides dated research membership.
 
 Across all stored records, **61** county-direct classifications are complete: **38 free**,
-**12 fee-based**, **11 viewer-only**. The remaining 34 are unresolved or pending. These research
+**12 fee-based**, **11 viewer-only**. The remaining 26 are unresolved or pending. These research
 totals do not change active monitoring coverage.
 
 ### Clearwater–Houston inventory batch, 2026-10-06
