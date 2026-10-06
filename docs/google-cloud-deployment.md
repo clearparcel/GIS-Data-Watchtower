@@ -1,6 +1,6 @@
 # Google Cloud deployment
 
-Operational deployment evidence below is dated. Latest recorded preview `00007-zfh` serves `5aac504`, before the [repository-review fixes](repository-review-2026-10-06.md); no live provider/deployment validation was performed in that review. See [current status](current-status.md).
+Latest application release: merged commit `32852a8`, preview `00008-dv5`, production public `00007-glp`, private `00012-2sn`; publisher and staging job images updated with existing runtime settings. See [the October 6 release record](release-2026-10-06.md). Older deployment evidence below remains explicitly dated.
 
 GIS Data Watchtower can run as a scheduled **Cloud Run Job** while retaining the same CLI and monitoring engine used locally.
 
