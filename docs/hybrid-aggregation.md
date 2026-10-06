@@ -22,4 +22,6 @@ Aggregation never bypasses provider restrictions. Sources that are unsuitable fo
 
 ## Deployment validation
 
-As of 2026-10-05, the hardened aggregation path has been validated with a real hybrid staging cycle containing 26 sources: 22 refreshed by the cloud worker and 4 refreshed by the local worker. The resulting aggregate reported 26 healthy sources, 0 unassigned observations, complete JSON/CSV/Excel exports, per-source worker provenance, and per-worker telemetry. The remaining release gate is multi-day parallel observation; production scheduling changes still require explicit approval.
+As of 2026-10-05, the hardened aggregation path had been validated with a real hybrid staging cycle containing 26 sources: 22 refreshed by the cloud worker and 4 refreshed by the local worker. The resulting aggregate reported 26 healthy sources, 0 unassigned observations, complete JSON/CSV/Excel exports, per-source worker provenance, and per-worker telemetry.
+
+On 2026-10-06, the same path was validated after adding nine approved county-direct parcel sources to private staging. The cloud profile completed **31/31 OK**, the local profile completed **4/4 OK**, and a generation-protected merge produced **35/35 OK** with worker provenance preserved. The resulting county coverage model is **70/87 actively checked** (59 MnGeo, 24 county-direct, 13 overlap). The remaining release gate is multi-day parallel observation; authoritative provider scheduling changes still require explicit approval.

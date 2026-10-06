@@ -176,10 +176,19 @@ These four remain hold-for-terms even though their viewer/application services a
 reachable. Public technical reachability is not treated as permission to automate a county data
 product that the county separately licenses or sells.
 
-If the nine approved outside-MnGeo candidates are later added to the active registry, the current
-61/87 monitoring footprint would rise to **70/87 counties**, assuming current MnGeo coverage and
-existing county-direct sources remain unchanged. The four held counties could raise the ceiling to
+The nine approved outside-MnGeo candidates were added to **private staging registry version 7**
+on 2026-10-06, all assigned to the cloud execution profile. Staging image `473157b` completed
+**31/31 cloud checks OK** and the local profile completed **4/4 OK**. A generation-matched merge
+produced a **35/35 OK** hybrid aggregate with worker provenance `cloud=31` and `local=4`.
+
+Against that aggregate, the county model resolves to **70/87 actively checked counties**:
+59 through MnGeo Plan Parcels Open, 24 through county-direct sources, and 13 through both paths.
+The separate public v2 preview revision `00002-bn8` was queried directly and confirmed to render
+the KPI **70/87** with those component counts. The four held counties could raise the ceiling to
 74/87 only after terms are clarified.
+
+This staging activation does not enable authoritative provider scheduling. No GIS-provider Cloud
+Scheduler job was created or enabled, and the production UI service was not replaced.
 
 ## County summary
 
