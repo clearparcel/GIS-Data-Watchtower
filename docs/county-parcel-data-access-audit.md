@@ -99,20 +99,20 @@ This is why Winona is correctly represented as:
 The original 35 counties were reviewed using bounded official county landing pages, parcel
 service metadata, the [official MnGeo parcel source table](https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp),
 the current state-hosted service directory, and county-specific Commons publishing-account
-metadata searches plus all 87 returned official state-organization parcel-search records. Search responses were read; snippets were only discovery. The next 39 previously unreviewed
-counties (the exact Aitkin–Clay, Clearwater–Houston, Isanti–Mower and Olmsted–Scott batches, listed below) now have actual category reviews. The remaining 13
+metadata searches plus all 87 returned official state-organization parcel-search records. Search responses were read; snippets were only discovery. The next 44 previously unreviewed
+counties (the exact Aitkin–Clay, Clearwater–Houston, Isanti–Mower, Olmsted–Scott and Sherburne–Stevens batches, listed below) now have actual category reviews. The remaining 8
 records retain pending category reviews.
 
-| Category | Reviewed across 74 county reviews | Blocked / unresolved | Pending remaining 13 |
+| Category | Reviewed across 79 county reviews | Blocked / unresolved | Pending remaining 8 |
 | --- | ---: | ---: | ---: |
-| MnGeo Plan Parcels Open | 74 (47 included, 27 excluded) | 0 | 13 |
-| Distinct MnGeo public repository | 11 available | 63 | 13 |
-| County-authorized parcel REST | 47 available | 27 | 13 |
-| County parcel download | 40 available | 34 | 13 |
+| MnGeo Plan Parcels Open | 79 (52 included, 27 excluded) | 0 | 8 |
+| Distinct MnGeo public repository | 12 available | 67 | 8 |
+| County-authorized parcel REST | 51 available | 28 | 8 |
+| County parcel download | 45 available | 34 | 8 |
 
-These counts are derived from stored category statuses: **172 reviewed**, **124 blocked**,
-and **52 pending** category assessments across 87 county records. **Ten counties have all
-four categories complete** (Aitkin, Anoka, Carver, Dakota, Fillmore, Hennepin, Houston, Itasca, Lake, Morrison);
+These counts are derived from stored category statuses: **187 reviewed**, **129 blocked**,
+and **32 pending** category assessments across 87 county records. **Eleven counties have all
+four categories complete** (Aitkin, Anoka, Carver, Dakota, Fillmore, Hennepin, Houston, Itasca, Lake, Morrison, Steele);
 Aitkin's county-direct pricing/policy assessment remains unresolved. County-direct
 classification is separate from inventory completion; category keys alone do not finish research.
 
@@ -210,8 +210,8 @@ Exact vetted Aitkin and Beltrami public dataset identities retain monitored IDs 
 REST/Hub/download representations; no other join is inferred from county name or generic
 catalog. Current runtime coverage still overrides dated research membership.
 
-Across all stored records, **69** county-direct classifications are complete: **46 free**,
-**12 fee-based**, **11 viewer-only**. The remaining 18 are unresolved or pending (13 untouched records and five attempted county-direct reviews without a published classification). These research
+Across all stored records, **74** county-direct classifications are complete: **51 free**,
+**12 fee-based**, **11 viewer-only**. The remaining 13 are unresolved or pending (8 untouched records and five attempted county-direct reviews without a published classification). These research
 totals do not change active monitoring coverage.
 
 ### Clearwater–Houston inventory batch, 2026-10-06
@@ -604,3 +604,56 @@ integrity or unattended authority. GeoPackage, Shapefile and File Geodatabase fa
 are retained only where official publication states them; ZIP interior formats and
 REST export formats are not inferred. Typed static geometry/format projection is
 deferred to Task 4c.
+
+
+### Sherburne–Stevens inventory batch, 2026-10-06
+
+Exact counties: Sherburne, St. Louis, Stearns, Steele and Stevens. Actual official
+reviews add **15 reviewed / 5 blocked** category assessments. All five have dated
+statewide inclusion evidence and published county-authorized parcel downloads; the
+other 82 county records are unchanged. These five county-direct classifications
+are free parcel data, independently of unattended monitoring permission.
+
+| County | Distinct Commons repository | County-authorized REST | Published parcel download |
+| --- | --- | --- | --- |
+| Sherburne | Unknown | OpenData/Parcels FeatureServer/0 polygon | County Parcels Hub product |
+| St. Louis | Unknown | Open_Data MapServer/7 polygon | Native Tax Parcels Hub product |
+| Stearns | Unknown | Unknown | Official parcel compressed ZIP; HEAD only |
+| Steele | Distinct Tax Parcels county product | County Tax_Parcels MapServer/0 polygon | Delegated Commons parcel product |
+| Stevens | Unknown | July_2026_Parcels FeatureServer/0 polygon | County July 2026 Parcels Hub product |
+
+[Sherburne GIS Applications](https://www.co.sherburne.mn.us/841/GIS-Applications)
+authorizes its open-data Hub for downloads/services; the current public Parcels
+About page resolves its county polygon layer. Assessor CAMA subscription charges
+are a separate product. [St. Louis Data - Geospatial](https://www.stlouiscountymn.gov/departments-a-z/economic-community-development/enterprise-gis/data-geospatial)
+explicitly provides free parcel data. Its native Tax Parcels product uses the
+exact vetted existing observation identity; the separate State Standard product
+/6 receives none. Existing optional null-geometry QA remains unchanged.
+
+The [Stearns county Hub](https://stearns-county-gis-stearns.hub.arcgis.com/)
+explicitly lists its parcel ZIP as free without a license agreement. Bounded HEAD
+returned 200/ZIP; no archive body was read and the interior format is unknown.
+The page's imagery/LiDAR and Beacon fees are separate products. No authorized
+parcel REST layer was established from its public distribution page; viewer
+backends were not investigated.
+
+[Steele GIS](https://www.steelecountymn.gov/departments/gis_geographic_information_systems/index.php)
+delegates datasets to Commons. MnGeo's distinct Tax Parcels item, its rendered
+About page and current county layer metadata establish repository, REST and
+download independently of statewide inclusion. Linked resolution and fee-schedule PDF returned 404; the current fee landing
+mentions potential requested-data charges without an actual parcel dataset price.
+Current public parcel distribution and disclaimers were reviewed.
+[Stevens GIS Open Data](https://www.stevenscountymn.gov/993/GIS-Open-Data)
+advertises free GIS products in Shapefile, CSV and KML with zipped metadata; its
+July 2026 Parcels About identifies the current polygon layer and download. These
+county-wide format statements do not prove a particular archive's interior.
+Its linked resolution returned a redirect loop. The item restricts use to
+general/visual purposes, excluding financial or decision-making purposes.
+
+All five monitoring decisions remain **not-assessed**. Published availability
+and licensing/use suitability remain separate; no new provider is activated.
+Four distinct-repository categories remain unknown after actual rendered scoped
+Commons/state metadata reviews; bounded searches do not prove exhaustive absence.
+All eight existing research holds are unchanged. Typed stable geometry/format
+projection remains deferred to Task 4c. No parcel features, property-search pages,
+archives or download bodies were retrieved; no agreement gates were accepted.

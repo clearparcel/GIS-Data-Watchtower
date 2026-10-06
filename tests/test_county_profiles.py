@@ -28,6 +28,19 @@ def compose(state=None, research=None):
 
 
 class CountyProfilesTests(unittest.TestCase):
+    def test_st_louis_native_product_identity_and_inventory_completion(self):
+        research = load_parcel_access()
+        profiles = compose(research=research)
+        for name, slug in (('Sherburne', 'sherburne'), ('St. Louis', 'st-louis'),
+                           ('Stearns', 'stearns'), ('Stevens', 'stevens')):
+            self.assertFalse(profiles[slug]['research']['complete'])
+        self.assertTrue(profiles['steele']['research']['complete'])
+        for category in ('county_arcgis_rest', 'county_download'):
+            source = research['St. Louis']['source_inventory'][category]['sources'][0]
+            self.assertEqual(source['monitored_source_id'], 'mn-st-louis-parcels-direct')
+            self.assertEqual(source['layer_id'], 7)
+        self.assertFalse(profiles['st-louis']['monitoring']['active'])
+
     def test_olmsted_scott_inventory_keeps_blocks_products_and_observations_separate(self):
         research = load_parcel_access()
         names = ('Olmsted', 'Otter Tail', 'Pipestone', 'Polk', 'Pope',

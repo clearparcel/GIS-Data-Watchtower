@@ -27,6 +27,20 @@ def research_fixture():
 
 
 class ParcelAccessSchemaTests(unittest.TestCase):
+    def test_sherburne_stevens_batch_records_official_products_and_blockers(self):
+        records = load_parcel_access()
+        for name in ('Sherburne', 'St. Louis', 'Stearns', 'Steele', 'Stevens'):
+            record = records[name]
+            self.assertEqual(record['review_date'], '2026-10-06')
+            self.assertEqual(record['source_inventory']['mngac_public_parcels']['availability'], 'yes')
+            self.assertEqual(record['source_inventory']['county_download']['availability'], 'yes')
+            self.assertEqual(record['monitoring']['decision'], 'not-assessed')
+            self.assertIsNone(record['parcel_dataset_fee'])
+        self.assertEqual(records['Steele']['source_inventory']['mngeo_public_repository']['availability'], 'yes')
+        self.assertEqual(records['Stearns']['source_inventory']['county_arcgis_rest']['availability'], 'unknown')
+        for name in ('Sherburne', 'St. Louis', 'Steele', 'Stevens'):
+            self.assertIn('esriGeometryPolygon', records[name]['source_inventory']['county_arcgis_rest']['finding'])
+
     def test_olmsted_scott_review_retains_static_evidence_and_existing_holds(self):
         records = load_parcel_access()
         olmsted = records['Olmsted']

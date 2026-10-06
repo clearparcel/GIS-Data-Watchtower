@@ -16486,116 +16486,264 @@
     },
     {
       "county": "Sherburne",
-      "review_date": null,
-      "research_complete": false,
+      "review_date": "2026-10-06",
+      "research_complete": true,
       "official_county_url": "https://www.co.sherburne.mn.us/",
-      "parcel_page_url": null,
-      "download_or_service_url": null,
+      "parcel_page_url": "https://www.co.sherburne.mn.us/841/GIS-Applications",
+      "download_or_service_url": "https://gis.co.sherburne.mn.us/arcgis4/rest/services/OpenData/Parcels/FeatureServer/0",
       "viewer_url": null,
       "fee_policy_url": null,
       "parcel_dataset_fee": null,
       "fee_product": null,
-      "evidence_note": "County-direct parcel access has not yet been reviewed.",
-      "source_authority": "unverified",
-      "usable_direct_machine_readable_source": false,
+      "evidence_note": "County GIS Applications explicitly links Open Data for GIS downloads and services. Rendered Parcels About advertises Download and identifies exact public county FeatureServer/0, esriGeometryPolygon. Reference-only, no-warranty and indemnity disclaimer reviewed. CAMA subscription fees concern property information, not this parcel dataset.",
+      "source_authority": "county-authorized-provider",
+      "usable_direct_machine_readable_source": true,
       "monitoring": {
         "decision": "not-assessed",
-        "reason": "Discovery does not authorize monitoring.",
-        "terms_urls": []
+        "reason": "Published free product availability is separate from licensing suitability and unattended monitoring permission; discovery does not activate polling.",
+        "terms_urls": [
+          "https://www.co.sherburne.mn.us/841/GIS-Applications",
+          "https://www.arcgis.com/sharing/rest/content/items/0fdf41eee3004bab9ef04df77a45e5a7?f=pjson"
+        ]
       },
-      "evidence": [],
+      "evidence": [
+        {
+          "url": "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson",
+          "authority": "statewide",
+          "finding": "Sherburne is included in dated official opt-in statewide publication; current runtime membership remains independent."
+        },
+        {
+          "url": "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
+          "authority": "statewide",
+          "finding": "Official parcel table reviewed; county-specific distribution links are distinct from statewide inclusion."
+        },
+        {
+          "url": "https://www.co.sherburne.mn.us/841/GIS-Applications",
+          "authority": "county",
+          "finding": "County GIS Applications explicitly links Open Data for GIS downloads and services. Rendered Parcels About advertises Download and identifies exact public county FeatureServer/0, esriGeometryPolygon. Reference-only, no-warranty and indemnity disclaimer reviewed. CAMA subscription fees concern property information, not this parcel dataset."
+        },
+        {
+          "url": "https://data-sherburnegis.opendata.arcgis.com/datasets/0fdf41eee3004bab9ef04df77a45e5a7_0/about",
+          "authority": "county-authorized-provider",
+          "finding": "County GIS Applications explicitly links Open Data for GIS downloads and services. Rendered Parcels About advertises Download and identifies exact public county FeatureServer/0, esriGeometryPolygon. Reference-only, no-warranty and indemnity disclaimer reviewed. CAMA subscription fees concern property information, not this parcel dataset."
+        },
+        {
+          "url": "https://gis.data.mn.gov/search?q=Sherburne%20parcels",
+          "authority": "statewide",
+          "finding": "Rendered scoped official Commons parcel catalog reviewed; statewide/government-owned compilations do not establish a distinct county parcel product. Bounded search is not exhaustive absence evidence."
+        },
+        {
+          "url": "https://gis.co.sherburne.mn.us/arcgis4/rest/services/OpenData/Parcels/FeatureServer/0?f=pjson",
+          "authority": "county-authorized-provider",
+          "finding": "County GIS Applications explicitly links Open Data for GIS downloads and services. Rendered Parcels About advertises Download and identifies exact public county FeatureServer/0, esriGeometryPolygon. Reference-only, no-warranty and indemnity disclaimer reviewed. CAMA subscription fees concern property information, not this parcel dataset."
+        },
+        {
+          "url": "https://www.arcgis.com/sharing/rest/content/items/0fdf41eee3004bab9ef04df77a45e5a7?f=pjson",
+          "authority": "county-authorized-provider",
+          "finding": "County GIS Applications explicitly links Open Data for GIS downloads and services. Rendered Parcels About advertises Download and identifies exact public county FeatureServer/0, esriGeometryPolygon. Reference-only, no-warranty and indemnity disclaimer reviewed. CAMA subscription fees concern property information, not this parcel dataset."
+        },
+        {
+          "url": "https://www.co.sherburne.mn.us/179/Finding-Property-Information",
+          "authority": "county",
+          "finding": "Official assessor page charges for CAMA/database subscription access. It does not price the separate county GIS parcel polygon download."
+        }
+      ],
       "review_log": {
         "county_site": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed official county distribution page or MnGeo-authorized county Hub; public parcel route is published.",
+          "urls": [
+            "https://www.co.sherburne.mn.us/841/GIS-Applications",
+            "https://data-sherburnegis.opendata.arcgis.com/datasets/0fdf41eee3004bab9ef04df77a45e5a7_0/about"
+          ]
         },
         "gis_assessor_land_records": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Parcel-specific product and source authority established from official distribution/metadata.",
+          "urls": [
+            "https://www.co.sherburne.mn.us/841/GIS-Applications",
+            "https://data-sherburnegis.opendata.arcgis.com/datasets/0fdf41eee3004bab9ef04df77a45e5a7_0/about"
+          ]
         },
         "downloads_open_data": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Rendered official parcel download publication reviewed; no data body retrieved. About page advertises Download.",
+          "urls": [
+            "https://www.co.sherburne.mn.us/841/GIS-Applications",
+            "https://data-sherburnegis.opendata.arcgis.com/datasets/0fdf41eee3004bab9ef04df77a45e5a7_0/about"
+          ]
         },
         "arcgis_services": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Bounded authoritative parcel layer metadata read; esriGeometryPolygon retained.",
+          "urls": [
+            "https://www.co.sherburne.mn.us/841/GIS-Applications",
+            "https://data-sherburnegis.opendata.arcgis.com/datasets/0fdf41eee3004bab9ef04df77a45e5a7_0/about"
+          ]
         },
         "data_policy": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Published product disclaimer reviewed; use/accuracy limitations retained in evidence. Monitoring permission remains not-assessed.",
+          "urls": [
+            "https://www.co.sherburne.mn.us/841/GIS-Applications",
+            "https://data-sherburnegis.opendata.arcgis.com/datasets/0fdf41eee3004bab9ef04df77a45e5a7_0/about"
+          ]
         },
         "fee_schedule": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Official assessor CAMA subscription fee applies to a distinct product, not the public GIS parcel polygon download.",
+          "urls": [
+            "https://www.co.sherburne.mn.us/179/Finding-Property-Information",
+            "https://www.co.sherburne.mn.us/841/GIS-Applications"
+          ]
         },
         "request_forms": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "not-applicable",
+          "note": "Published parcel download route does not require a submitted request; no request submitted.",
+          "urls": [
+            "https://www.co.sherburne.mn.us/841/GIS-Applications",
+            "https://data-sherburnegis.opendata.arcgis.com/datasets/0fdf41eee3004bab9ef04df77a45e5a7_0/about"
+          ]
         },
         "resolutions_ordinances": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed published distribution/disclaimer as current product evidence; no independent ordinance conclusion is needed to establish this public route.",
+          "urls": [
+            "https://www.co.sherburne.mn.us/841/GIS-Applications",
+            "https://data-sherburnegis.opendata.arcgis.com/datasets/0fdf41eee3004bab9ef04df77a45e5a7_0/about"
+          ]
         },
         "authorized_portals": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "County or MnGeo official page authorizes the reviewed data portal.",
+          "urls": [
+            "https://www.co.sherburne.mn.us/841/GIS-Applications",
+            "https://data-sherburnegis.opendata.arcgis.com/datasets/0fdf41eee3004bab9ef04df77a45e5a7_0/about"
+          ]
         },
         "statewide_context": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Official statewide item explicitly includes this county; current monitoring membership remains independent.",
+          "urls": [
+            "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
+          ]
         }
       },
-      "county_direct_classification": null,
+      "county_direct_classification": "free-parcel-data",
       "statewide_open_coverage": {
-        "available": null,
+        "available": true,
         "source": "MnGeo Plan Parcels Open",
-        "source_url": "https://gisdata.mn.gov/dataset/plan-parcels-open",
-        "verified_date": null
+        "source_url": "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson",
+        "verified_date": "2026-10-06"
       },
-      "comments": "",
+      "comments": "County GIS Applications explicitly links Open Data for GIS downloads and services. Rendered Parcels About advertises Download and identifies exact public county FeatureServer/0, esriGeometryPolygon. Reference-only, no-warranty and indemnity disclaimer reviewed. CAMA subscription fees concern property information, not this parcel dataset.",
       "source_inventory": {
         "mngac_public_parcels": {
-          "review_status": "pending",
-          "availability": "unknown",
-          "review_date": null,
-          "finding": "Category not yet reviewed.",
-          "evidence": [],
-          "sources": []
+          "review_status": "reviewed",
+          "availability": "yes",
+          "review_date": "2026-10-06",
+          "finding": "Sherburne included in dated official statewide publication. County-direct policy and current runtime coverage remain independent.",
+          "evidence": [
+            "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
+          ],
+          "sources": [
+            {
+              "inventory_id": "sherburne:mngac_public_parcels:1",
+              "name": "Sherburne parcel dataset",
+              "authority": "statewide",
+              "dataset_type": "Statewide parcel compilation",
+              "layer_id": null,
+              "approved_public_links": [
+                {
+                  "label": "Official parcel source",
+                  "href": "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
+                }
+              ],
+              "review_date": "2026-10-06",
+              "monitoring_decision": "not-assessed",
+              "evidence": [
+                "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
+              ]
+            }
+          ]
         },
         "mngeo_public_repository": {
-          "review_status": "pending",
+          "review_status": "blocked",
           "availability": "unknown",
-          "review_date": null,
-          "finding": "Category not yet reviewed.",
-          "evidence": [],
+          "review_date": "2026-10-06",
+          "finding": "Reviewed official MnGeo source table, state-org discovery, public account metadata and rendered scoped Commons catalog. Results establish statewide/government-owned compilations; no distinct county parcel repository established. County-native Hub product remains independent. Bounded review does not prove exhaustive absence.",
+          "evidence": [
+            "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
+            "https://gis.data.mn.gov/search?q=Sherburne%20parcels",
+            "https://data-sherburnegis.opendata.arcgis.com/datasets/0fdf41eee3004bab9ef04df77a45e5a7_0/about"
+          ],
           "sources": []
         },
         "county_arcgis_rest": {
-          "review_status": "pending",
-          "availability": "unknown",
-          "review_date": null,
-          "finding": "Category not yet reviewed.",
-          "evidence": [],
-          "sources": []
+          "review_status": "reviewed",
+          "availability": "yes",
+          "review_date": "2026-10-06",
+          "finding": "County GIS Applications explicitly links Open Data for GIS downloads and services. Rendered Parcels About advertises Download and identifies exact public county FeatureServer/0, esriGeometryPolygon. Reference-only, no-warranty and indemnity disclaimer reviewed. CAMA subscription fees concern property information, not this parcel dataset.",
+          "evidence": [
+            "https://www.co.sherburne.mn.us/841/GIS-Applications",
+            "https://gis.co.sherburne.mn.us/arcgis4/rest/services/OpenData/Parcels/FeatureServer/0?f=pjson",
+            "https://www.arcgis.com/sharing/rest/content/items/0fdf41eee3004bab9ef04df77a45e5a7?f=pjson"
+          ],
+          "sources": [
+            {
+              "inventory_id": "sherburne:county_arcgis_rest:1",
+              "name": "Sherburne parcel dataset",
+              "authority": "county-authorized-provider",
+              "dataset_type": "Parcel polygon REST layer",
+              "layer_id": 0,
+              "approved_public_links": [
+                {
+                  "label": "Official parcel source",
+                  "href": "https://gis.co.sherburne.mn.us/arcgis4/rest/services/OpenData/Parcels/FeatureServer/0?f=pjson"
+                }
+              ],
+              "review_date": "2026-10-06",
+              "monitoring_decision": "not-assessed",
+              "evidence": [
+                "https://www.co.sherburne.mn.us/841/GIS-Applications",
+                "https://gis.co.sherburne.mn.us/arcgis4/rest/services/OpenData/Parcels/FeatureServer/0?f=pjson",
+                "https://www.arcgis.com/sharing/rest/content/items/0fdf41eee3004bab9ef04df77a45e5a7?f=pjson"
+              ]
+            }
+          ]
         },
         "county_download": {
-          "review_status": "pending",
-          "availability": "unknown",
-          "review_date": null,
-          "finding": "Category not yet reviewed.",
-          "evidence": [],
-          "sources": []
+          "review_status": "reviewed",
+          "availability": "yes",
+          "review_date": "2026-10-06",
+          "finding": "County GIS Applications explicitly links Open Data for GIS downloads and services. Rendered Parcels About advertises Download and identifies exact public county FeatureServer/0, esriGeometryPolygon. Reference-only, no-warranty and indemnity disclaimer reviewed. CAMA subscription fees concern property information, not this parcel dataset.",
+          "evidence": [
+            "https://www.co.sherburne.mn.us/841/GIS-Applications",
+            "https://data-sherburnegis.opendata.arcgis.com/datasets/0fdf41eee3004bab9ef04df77a45e5a7_0/about",
+            "https://www.arcgis.com/sharing/rest/content/items/0fdf41eee3004bab9ef04df77a45e5a7?f=pjson"
+          ],
+          "sources": [
+            {
+              "inventory_id": "sherburne:county_download:1",
+              "name": "Sherburne parcel dataset",
+              "authority": "county-authorized-provider",
+              "dataset_type": "Parcel polygon Hub download",
+              "layer_id": 0,
+              "approved_public_links": [
+                {
+                  "label": "Official parcel source",
+                  "href": "https://data-sherburnegis.opendata.arcgis.com/datasets/0fdf41eee3004bab9ef04df77a45e5a7_0/about"
+                }
+              ],
+              "review_date": "2026-10-06",
+              "monitoring_decision": "not-assessed",
+              "evidence": [
+                "https://www.co.sherburne.mn.us/841/GIS-Applications",
+                "https://data-sherburnegis.opendata.arcgis.com/datasets/0fdf41eee3004bab9ef04df77a45e5a7_0/about",
+                "https://www.arcgis.com/sharing/rest/content/items/0fdf41eee3004bab9ef04df77a45e5a7?f=pjson"
+              ]
+            }
+          ]
         }
       }
     },
@@ -16823,461 +16971,1017 @@
     },
     {
       "county": "St. Louis",
-      "review_date": null,
-      "research_complete": false,
+      "review_date": "2026-10-06",
+      "research_complete": true,
       "official_county_url": "https://www.stlouiscountymn.gov/",
-      "parcel_page_url": null,
-      "download_or_service_url": null,
+      "parcel_page_url": "https://www.stlouiscountymn.gov/departments-a-z/economic-community-development/enterprise-gis/data-geospatial",
+      "download_or_service_url": "https://gis.stlouiscountymn.gov/server2/rest/services/GeneralUse/Open_Data/MapServer/7",
       "viewer_url": null,
       "fee_policy_url": null,
       "parcel_dataset_fee": null,
       "fee_product": null,
-      "evidence_note": "County-direct parcel access has not yet been reviewed.",
-      "source_authority": "unverified",
-      "usable_direct_machine_readable_source": false,
+      "evidence_note": "County Data - Geospatial explicitly provides free GIS parcel data and links official Open Data. Native Tax Parcels About advertises Download; public county item and exact MapServer/7 metadata identify Parcels, esriGeometryPolygon. Published no-warranty/use-at-risk disclaimer reviewed; restriction on use in states disallowing liability exclusions retained. State Standard Tax Parcels /6 is a distinct product and receives no native observation identity. Optional null-geometry QA behavior is unchanged.",
+      "source_authority": "county-authorized-provider",
+      "usable_direct_machine_readable_source": true,
       "monitoring": {
         "decision": "not-assessed",
-        "reason": "Discovery does not authorize monitoring.",
-        "terms_urls": []
+        "reason": "Published free product availability is separate from licensing suitability and unattended monitoring permission; discovery does not activate polling.",
+        "terms_urls": [
+          "https://www.stlouiscountymn.gov/departments-a-z/economic-community-development/enterprise-gis/data-geospatial",
+          "https://www.arcgis.com/sharing/rest/content/items/5f05e9148b4a4fe58b04d62e37decff2?f=pjson"
+        ]
       },
-      "evidence": [],
+      "evidence": [
+        {
+          "url": "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson",
+          "authority": "statewide",
+          "finding": "St. Louis is included in dated official opt-in statewide publication; current runtime membership remains independent."
+        },
+        {
+          "url": "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
+          "authority": "statewide",
+          "finding": "Official parcel table reviewed; county-specific distribution links are distinct from statewide inclusion."
+        },
+        {
+          "url": "https://www.stlouiscountymn.gov/departments-a-z/economic-community-development/enterprise-gis/data-geospatial",
+          "authority": "county",
+          "finding": "County Data - Geospatial explicitly provides free GIS parcel data and links official Open Data. Native Tax Parcels About advertises Download; public county item and exact MapServer/7 metadata identify Parcels, esriGeometryPolygon. Published no-warranty/use-at-risk disclaimer reviewed; restriction on use in states disallowing liability exclusions retained. State Standard Tax Parcels /6 is a distinct product and receives no native observation identity. Optional null-geometry QA behavior is unchanged."
+        },
+        {
+          "url": "https://open-data-slcgis.hub.arcgis.com/datasets/5f05e9148b4a4fe58b04d62e37decff2_7/about",
+          "authority": "county-authorized-provider",
+          "finding": "County Data - Geospatial explicitly provides free GIS parcel data and links official Open Data. Native Tax Parcels About advertises Download; public county item and exact MapServer/7 metadata identify Parcels, esriGeometryPolygon. Published no-warranty/use-at-risk disclaimer reviewed; restriction on use in states disallowing liability exclusions retained. State Standard Tax Parcels /6 is a distinct product and receives no native observation identity. Optional null-geometry QA behavior is unchanged."
+        },
+        {
+          "url": "https://gis.data.mn.gov/search?q=St.%20Louis%20parcels",
+          "authority": "statewide",
+          "finding": "Rendered scoped official Commons parcel catalog reviewed; statewide/government-owned compilations do not establish a distinct county parcel product. Bounded search is not exhaustive absence evidence."
+        },
+        {
+          "url": "https://gis.stlouiscountymn.gov/server2/rest/services/GeneralUse/Open_Data/MapServer/7?f=pjson",
+          "authority": "county-authorized-provider",
+          "finding": "County Data - Geospatial explicitly provides free GIS parcel data and links official Open Data. Native Tax Parcels About advertises Download; public county item and exact MapServer/7 metadata identify Parcels, esriGeometryPolygon. Published no-warranty/use-at-risk disclaimer reviewed; restriction on use in states disallowing liability exclusions retained. State Standard Tax Parcels /6 is a distinct product and receives no native observation identity. Optional null-geometry QA behavior is unchanged."
+        },
+        {
+          "url": "https://www.arcgis.com/sharing/rest/content/items/5f05e9148b4a4fe58b04d62e37decff2?f=pjson",
+          "authority": "county-authorized-provider",
+          "finding": "County Data - Geospatial explicitly provides free GIS parcel data and links official Open Data. Native Tax Parcels About advertises Download; public county item and exact MapServer/7 metadata identify Parcels, esriGeometryPolygon. Published no-warranty/use-at-risk disclaimer reviewed; restriction on use in states disallowing liability exclusions retained. State Standard Tax Parcels /6 is a distinct product and receives no native observation identity. Optional null-geometry QA behavior is unchanged."
+        }
+      ],
       "review_log": {
         "county_site": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed official county distribution page or MnGeo-authorized county Hub; public parcel route is published.",
+          "urls": [
+            "https://www.stlouiscountymn.gov/departments-a-z/economic-community-development/enterprise-gis/data-geospatial",
+            "https://open-data-slcgis.hub.arcgis.com/datasets/5f05e9148b4a4fe58b04d62e37decff2_7/about"
+          ]
         },
         "gis_assessor_land_records": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Parcel-specific product and source authority established from official distribution/metadata.",
+          "urls": [
+            "https://www.stlouiscountymn.gov/departments-a-z/economic-community-development/enterprise-gis/data-geospatial",
+            "https://open-data-slcgis.hub.arcgis.com/datasets/5f05e9148b4a4fe58b04d62e37decff2_7/about"
+          ]
         },
         "downloads_open_data": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Rendered official parcel download publication reviewed; no data body retrieved. About page advertises Download.",
+          "urls": [
+            "https://www.stlouiscountymn.gov/departments-a-z/economic-community-development/enterprise-gis/data-geospatial",
+            "https://open-data-slcgis.hub.arcgis.com/datasets/5f05e9148b4a4fe58b04d62e37decff2_7/about"
+          ]
         },
         "arcgis_services": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Bounded authoritative parcel layer metadata read; esriGeometryPolygon retained.",
+          "urls": [
+            "https://www.stlouiscountymn.gov/departments-a-z/economic-community-development/enterprise-gis/data-geospatial",
+            "https://open-data-slcgis.hub.arcgis.com/datasets/5f05e9148b4a4fe58b04d62e37decff2_7/about"
+          ]
         },
         "data_policy": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Published product disclaimer reviewed; use/accuracy limitations retained in evidence. Monitoring permission remains not-assessed.",
+          "urls": [
+            "https://www.stlouiscountymn.gov/departments-a-z/economic-community-development/enterprise-gis/data-geospatial",
+            "https://open-data-slcgis.hub.arcgis.com/datasets/5f05e9148b4a4fe58b04d62e37decff2_7/about"
+          ]
         },
         "fee_schedule": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Published open parcel route reviewed; no actual parcel dataset fee identified. This is not an exhaustive fee-policy absence claim.",
+          "urls": [
+            "https://www.stlouiscountymn.gov/departments-a-z/economic-community-development/enterprise-gis/data-geospatial",
+            "https://open-data-slcgis.hub.arcgis.com/datasets/5f05e9148b4a4fe58b04d62e37decff2_7/about"
+          ]
         },
         "request_forms": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "not-applicable",
+          "note": "Published parcel download route does not require a submitted request; no request submitted.",
+          "urls": [
+            "https://www.stlouiscountymn.gov/departments-a-z/economic-community-development/enterprise-gis/data-geospatial",
+            "https://open-data-slcgis.hub.arcgis.com/datasets/5f05e9148b4a4fe58b04d62e37decff2_7/about"
+          ]
         },
         "resolutions_ordinances": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed published distribution/disclaimer as current product evidence; no independent ordinance conclusion is needed to establish this public route.",
+          "urls": [
+            "https://www.stlouiscountymn.gov/departments-a-z/economic-community-development/enterprise-gis/data-geospatial",
+            "https://open-data-slcgis.hub.arcgis.com/datasets/5f05e9148b4a4fe58b04d62e37decff2_7/about"
+          ]
         },
         "authorized_portals": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "County or MnGeo official page authorizes the reviewed data portal.",
+          "urls": [
+            "https://www.stlouiscountymn.gov/departments-a-z/economic-community-development/enterprise-gis/data-geospatial",
+            "https://open-data-slcgis.hub.arcgis.com/datasets/5f05e9148b4a4fe58b04d62e37decff2_7/about"
+          ]
         },
         "statewide_context": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Official statewide item explicitly includes this county; current monitoring membership remains independent.",
+          "urls": [
+            "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
+          ]
         }
       },
-      "county_direct_classification": null,
+      "county_direct_classification": "free-parcel-data",
       "statewide_open_coverage": {
-        "available": null,
+        "available": true,
         "source": "MnGeo Plan Parcels Open",
-        "source_url": "https://gisdata.mn.gov/dataset/plan-parcels-open",
-        "verified_date": null
+        "source_url": "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson",
+        "verified_date": "2026-10-06"
       },
-      "comments": "",
+      "comments": "County Data - Geospatial explicitly provides free GIS parcel data and links official Open Data. Native Tax Parcels About advertises Download; public county item and exact MapServer/7 metadata identify Parcels, esriGeometryPolygon. Published no-warranty/use-at-risk disclaimer reviewed; restriction on use in states disallowing liability exclusions retained. State Standard Tax Parcels /6 is a distinct product and receives no native observation identity. Optional null-geometry QA behavior is unchanged.",
       "source_inventory": {
         "mngac_public_parcels": {
-          "review_status": "pending",
-          "availability": "unknown",
-          "review_date": null,
-          "finding": "Category not yet reviewed.",
-          "evidence": [],
-          "sources": []
+          "review_status": "reviewed",
+          "availability": "yes",
+          "review_date": "2026-10-06",
+          "finding": "St. Louis included in dated official statewide publication. County-direct policy and current runtime coverage remain independent.",
+          "evidence": [
+            "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
+          ],
+          "sources": [
+            {
+              "inventory_id": "st-louis:mngac_public_parcels:1",
+              "name": "St. Louis parcel dataset",
+              "authority": "statewide",
+              "dataset_type": "Statewide parcel compilation",
+              "layer_id": null,
+              "approved_public_links": [
+                {
+                  "label": "Official parcel source",
+                  "href": "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
+                }
+              ],
+              "review_date": "2026-10-06",
+              "monitoring_decision": "not-assessed",
+              "evidence": [
+                "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
+              ]
+            }
+          ]
         },
         "mngeo_public_repository": {
-          "review_status": "pending",
+          "review_status": "blocked",
           "availability": "unknown",
-          "review_date": null,
-          "finding": "Category not yet reviewed.",
-          "evidence": [],
+          "review_date": "2026-10-06",
+          "finding": "Reviewed official MnGeo source table, state-org discovery, public account metadata and rendered scoped Commons catalog. Results establish statewide/government-owned compilations; no distinct county parcel repository established. County-native Hub product remains independent. Bounded review does not prove exhaustive absence.",
+          "evidence": [
+            "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
+            "https://gis.data.mn.gov/search?q=St.%20Louis%20parcels",
+            "https://open-data-slcgis.hub.arcgis.com/datasets/5f05e9148b4a4fe58b04d62e37decff2_7/about"
+          ],
           "sources": []
         },
         "county_arcgis_rest": {
-          "review_status": "pending",
-          "availability": "unknown",
-          "review_date": null,
-          "finding": "Category not yet reviewed.",
-          "evidence": [],
-          "sources": []
+          "review_status": "reviewed",
+          "availability": "yes",
+          "review_date": "2026-10-06",
+          "finding": "County Data - Geospatial explicitly provides free GIS parcel data and links official Open Data. Native Tax Parcels About advertises Download; public county item and exact MapServer/7 metadata identify Parcels, esriGeometryPolygon. Published no-warranty/use-at-risk disclaimer reviewed; restriction on use in states disallowing liability exclusions retained. State Standard Tax Parcels /6 is a distinct product and receives no native observation identity. Optional null-geometry QA behavior is unchanged.",
+          "evidence": [
+            "https://www.stlouiscountymn.gov/departments-a-z/economic-community-development/enterprise-gis/data-geospatial",
+            "https://gis.stlouiscountymn.gov/server2/rest/services/GeneralUse/Open_Data/MapServer/7?f=pjson",
+            "https://www.arcgis.com/sharing/rest/content/items/5f05e9148b4a4fe58b04d62e37decff2?f=pjson"
+          ],
+          "sources": [
+            {
+              "inventory_id": "st-louis:county_arcgis_rest:1",
+              "name": "St. Louis parcel dataset",
+              "authority": "county-authorized-provider",
+              "dataset_type": "Parcel polygon REST layer",
+              "layer_id": 7,
+              "approved_public_links": [
+                {
+                  "label": "Official parcel source",
+                  "href": "https://gis.stlouiscountymn.gov/server2/rest/services/GeneralUse/Open_Data/MapServer/7?f=pjson"
+                }
+              ],
+              "review_date": "2026-10-06",
+              "monitoring_decision": "not-assessed",
+              "evidence": [
+                "https://www.stlouiscountymn.gov/departments-a-z/economic-community-development/enterprise-gis/data-geospatial",
+                "https://gis.stlouiscountymn.gov/server2/rest/services/GeneralUse/Open_Data/MapServer/7?f=pjson",
+                "https://www.arcgis.com/sharing/rest/content/items/5f05e9148b4a4fe58b04d62e37decff2?f=pjson"
+              ],
+              "monitored_source_id": "mn-st-louis-parcels-direct"
+            }
+          ]
         },
         "county_download": {
-          "review_status": "pending",
-          "availability": "unknown",
-          "review_date": null,
-          "finding": "Category not yet reviewed.",
-          "evidence": [],
-          "sources": []
+          "review_status": "reviewed",
+          "availability": "yes",
+          "review_date": "2026-10-06",
+          "finding": "County Data - Geospatial explicitly provides free GIS parcel data and links official Open Data. Native Tax Parcels About advertises Download; public county item and exact MapServer/7 metadata identify Parcels, esriGeometryPolygon. Published no-warranty/use-at-risk disclaimer reviewed; restriction on use in states disallowing liability exclusions retained. State Standard Tax Parcels /6 is a distinct product and receives no native observation identity. Optional null-geometry QA behavior is unchanged.",
+          "evidence": [
+            "https://www.stlouiscountymn.gov/departments-a-z/economic-community-development/enterprise-gis/data-geospatial",
+            "https://open-data-slcgis.hub.arcgis.com/datasets/5f05e9148b4a4fe58b04d62e37decff2_7/about",
+            "https://www.arcgis.com/sharing/rest/content/items/5f05e9148b4a4fe58b04d62e37decff2?f=pjson"
+          ],
+          "sources": [
+            {
+              "inventory_id": "st-louis:county_download:1",
+              "name": "St. Louis parcel dataset",
+              "authority": "county-authorized-provider",
+              "dataset_type": "Parcel polygon Hub download",
+              "layer_id": 7,
+              "approved_public_links": [
+                {
+                  "label": "Official parcel source",
+                  "href": "https://open-data-slcgis.hub.arcgis.com/datasets/5f05e9148b4a4fe58b04d62e37decff2_7/about"
+                }
+              ],
+              "review_date": "2026-10-06",
+              "monitoring_decision": "not-assessed",
+              "evidence": [
+                "https://www.stlouiscountymn.gov/departments-a-z/economic-community-development/enterprise-gis/data-geospatial",
+                "https://open-data-slcgis.hub.arcgis.com/datasets/5f05e9148b4a4fe58b04d62e37decff2_7/about",
+                "https://www.arcgis.com/sharing/rest/content/items/5f05e9148b4a4fe58b04d62e37decff2?f=pjson"
+              ],
+              "monitored_source_id": "mn-st-louis-parcels-direct"
+            }
+          ]
         }
       }
     },
     {
       "county": "Stearns",
-      "review_date": null,
-      "research_complete": false,
+      "review_date": "2026-10-06",
+      "research_complete": true,
       "official_county_url": "https://www.stearnscountymn.gov",
-      "parcel_page_url": null,
-      "download_or_service_url": null,
+      "parcel_page_url": "https://stearns-county-gis-stearns.hub.arcgis.com/",
+      "download_or_service_url": "https://gis.co.stearns.mn.us/gisdata/parcels.zip",
       "viewer_url": null,
       "fee_policy_url": null,
       "parcel_dataset_fee": null,
       "fee_product": null,
-      "evidence_note": "County-direct parcel access has not yet been reviewed.",
-      "source_authority": "unverified",
-      "usable_direct_machine_readable_source": false,
+      "evidence_note": "MnGeo-authorized county GIS Hub explicitly lists Parcels for download as a compressed ZIP and states GIS layers are free without a license agreement. Read as-is/no-warranty disclaimer. Bounded archive HEAD returned 200 with ZIP content type; no response body retrieved and archive interior format not inferred. Imagery, LiDAR and Beacon subscription fees concern separate products. No authoritative parcel REST layer established from reviewed county distribution page; viewer backend discovery is not authorization.",
+      "source_authority": "county-authorized-provider",
+      "usable_direct_machine_readable_source": true,
       "monitoring": {
         "decision": "not-assessed",
-        "reason": "Discovery does not authorize monitoring.",
-        "terms_urls": []
+        "reason": "Published free product availability is separate from licensing suitability and unattended monitoring permission; discovery does not activate polling.",
+        "terms_urls": [
+          "https://stearns-county-gis-stearns.hub.arcgis.com/"
+        ]
       },
-      "evidence": [],
+      "evidence": [
+        {
+          "url": "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson",
+          "authority": "statewide",
+          "finding": "Stearns is included in dated official opt-in statewide publication; current runtime membership remains independent."
+        },
+        {
+          "url": "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
+          "authority": "statewide",
+          "finding": "Official parcel table reviewed; county-specific distribution links are distinct from statewide inclusion."
+        },
+        {
+          "url": "https://stearns-county-gis-stearns.hub.arcgis.com/",
+          "authority": "county-authorized-provider",
+          "finding": "MnGeo-authorized county GIS Hub explicitly lists Parcels for download as a compressed ZIP and states GIS layers are free without a license agreement. Read as-is/no-warranty disclaimer. Bounded archive HEAD returned 200 with ZIP content type; no response body retrieved and archive interior format not inferred. Imagery, LiDAR and Beacon subscription fees concern separate products. No authoritative parcel REST layer established from reviewed county distribution page; viewer backend discovery is not authorization."
+        },
+        {
+          "url": "https://gis.data.mn.gov/search?q=Stearns%20parcels",
+          "authority": "statewide",
+          "finding": "Rendered scoped official Commons parcel catalog reviewed; statewide/government-owned compilations do not establish a distinct county parcel product. Bounded search is not exhaustive absence evidence."
+        },
+        {
+          "url": "https://gis.co.stearns.mn.us/gisdata/parcels.zip",
+          "authority": "county",
+          "finding": "Official Hub advertises parcel compressed ZIP; bounded HEAD 200 ZIP type only, no body read."
+        }
+      ],
       "review_log": {
         "county_site": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed official county distribution page or MnGeo-authorized county Hub; public parcel route is published.",
+          "urls": [
+            "https://stearns-county-gis-stearns.hub.arcgis.com/"
+          ]
         },
         "gis_assessor_land_records": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Parcel-specific product and source authority established from official distribution/metadata.",
+          "urls": [
+            "https://stearns-county-gis-stearns.hub.arcgis.com/"
+          ]
         },
         "downloads_open_data": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Rendered official parcel download publication reviewed; no data body retrieved. Bounded ZIP HEAD only; interior format unknown.",
+          "urls": [
+            "https://stearns-county-gis-stearns.hub.arcgis.com/"
+          ]
         },
         "arcgis_services": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "County distribution page reviewed; no authoritative public parcel REST layer established. This is unresolved, not proof of absence.",
+          "urls": [
+            "https://stearns-county-gis-stearns.hub.arcgis.com/"
+          ]
         },
         "data_policy": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Published product disclaimer reviewed; use/accuracy limitations retained in evidence. Monitoring permission remains not-assessed.",
+          "urls": [
+            "https://stearns-county-gis-stearns.hub.arcgis.com/"
+          ]
         },
         "fee_schedule": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Published open parcel route reviewed; no actual parcel dataset fee identified. This is not an exhaustive fee-policy absence claim.",
+          "urls": [
+            "https://stearns-county-gis-stearns.hub.arcgis.com/"
+          ]
         },
         "request_forms": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "not-applicable",
+          "note": "Published parcel download route does not require a submitted request; no request submitted.",
+          "urls": [
+            "https://stearns-county-gis-stearns.hub.arcgis.com/"
+          ]
         },
         "resolutions_ordinances": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed published distribution/disclaimer as current product evidence; no independent ordinance conclusion is needed to establish this public route.",
+          "urls": [
+            "https://stearns-county-gis-stearns.hub.arcgis.com/"
+          ]
         },
         "authorized_portals": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "County or MnGeo official page authorizes the reviewed data portal.",
+          "urls": [
+            "https://stearns-county-gis-stearns.hub.arcgis.com/"
+          ]
         },
         "statewide_context": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Official statewide item explicitly includes this county; current monitoring membership remains independent.",
+          "urls": [
+            "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
+          ]
         }
       },
-      "county_direct_classification": null,
+      "county_direct_classification": "free-parcel-data",
       "statewide_open_coverage": {
-        "available": null,
+        "available": true,
         "source": "MnGeo Plan Parcels Open",
-        "source_url": "https://gisdata.mn.gov/dataset/plan-parcels-open",
-        "verified_date": null
+        "source_url": "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson",
+        "verified_date": "2026-10-06"
       },
-      "comments": "",
+      "comments": "MnGeo-authorized county GIS Hub explicitly lists Parcels for download as a compressed ZIP and states GIS layers are free without a license agreement. Read as-is/no-warranty disclaimer. Bounded archive HEAD returned 200 with ZIP content type; no response body retrieved and archive interior format not inferred. Imagery, LiDAR and Beacon subscription fees concern separate products. No authoritative parcel REST layer established from reviewed county distribution page; viewer backend discovery is not authorization.",
       "source_inventory": {
         "mngac_public_parcels": {
-          "review_status": "pending",
-          "availability": "unknown",
-          "review_date": null,
-          "finding": "Category not yet reviewed.",
-          "evidence": [],
-          "sources": []
+          "review_status": "reviewed",
+          "availability": "yes",
+          "review_date": "2026-10-06",
+          "finding": "Stearns included in dated official statewide publication. County-direct policy and current runtime coverage remain independent.",
+          "evidence": [
+            "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
+          ],
+          "sources": [
+            {
+              "inventory_id": "stearns:mngac_public_parcels:1",
+              "name": "Stearns parcel dataset",
+              "authority": "statewide",
+              "dataset_type": "Statewide parcel compilation",
+              "layer_id": null,
+              "approved_public_links": [
+                {
+                  "label": "Official parcel source",
+                  "href": "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
+                }
+              ],
+              "review_date": "2026-10-06",
+              "monitoring_decision": "not-assessed",
+              "evidence": [
+                "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
+              ]
+            }
+          ]
         },
         "mngeo_public_repository": {
-          "review_status": "pending",
+          "review_status": "blocked",
           "availability": "unknown",
-          "review_date": null,
-          "finding": "Category not yet reviewed.",
-          "evidence": [],
+          "review_date": "2026-10-06",
+          "finding": "Reviewed official MnGeo source table, state-org discovery, public account metadata and rendered scoped Commons catalog. Results establish statewide/government-owned compilations; no distinct county parcel repository established. County-native Hub product remains independent. Bounded review does not prove exhaustive absence.",
+          "evidence": [
+            "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
+            "https://gis.data.mn.gov/search?q=Stearns%20parcels",
+            "https://stearns-county-gis-stearns.hub.arcgis.com/"
+          ],
           "sources": []
         },
         "county_arcgis_rest": {
-          "review_status": "pending",
+          "review_status": "blocked",
           "availability": "unknown",
-          "review_date": null,
-          "finding": "Category not yet reviewed.",
-          "evidence": [],
+          "review_date": "2026-10-06",
+          "finding": "MnGeo-authorized county GIS Hub explicitly lists Parcels for download as a compressed ZIP and states GIS layers are free without a license agreement. Read as-is/no-warranty disclaimer. Bounded archive HEAD returned 200 with ZIP content type; no response body retrieved and archive interior format not inferred. Imagery, LiDAR and Beacon subscription fees concern separate products. No authoritative parcel REST layer established from reviewed county distribution page; viewer backend discovery is not authorization.",
+          "evidence": [
+            "https://stearns-county-gis-stearns.hub.arcgis.com/",
+            "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp"
+          ],
           "sources": []
         },
         "county_download": {
-          "review_status": "pending",
-          "availability": "unknown",
-          "review_date": null,
-          "finding": "Category not yet reviewed.",
-          "evidence": [],
-          "sources": []
+          "review_status": "reviewed",
+          "availability": "yes",
+          "review_date": "2026-10-06",
+          "finding": "MnGeo-authorized county GIS Hub explicitly lists Parcels for download as a compressed ZIP and states GIS layers are free without a license agreement. Read as-is/no-warranty disclaimer. Bounded archive HEAD returned 200 with ZIP content type; no response body retrieved and archive interior format not inferred. Imagery, LiDAR and Beacon subscription fees concern separate products. No authoritative parcel REST layer established from reviewed county distribution page; viewer backend discovery is not authorization.",
+          "evidence": [
+            "https://stearns-county-gis-stearns.hub.arcgis.com/",
+            "https://gis.co.stearns.mn.us/gisdata/parcels.zip"
+          ],
+          "sources": [
+            {
+              "inventory_id": "stearns:county_download:1",
+              "name": "Stearns parcel dataset",
+              "authority": "county-authorized-provider",
+              "dataset_type": "Parcel compressed ZIP download",
+              "layer_id": null,
+              "approved_public_links": [
+                {
+                  "label": "Official parcel source",
+                  "href": "https://stearns-county-gis-stearns.hub.arcgis.com/"
+                }
+              ],
+              "review_date": "2026-10-06",
+              "monitoring_decision": "not-assessed",
+              "evidence": [
+                "https://stearns-county-gis-stearns.hub.arcgis.com/",
+                "https://gis.co.stearns.mn.us/gisdata/parcels.zip"
+              ]
+            }
+          ]
         }
       }
     },
     {
       "county": "Steele",
-      "review_date": null,
-      "research_complete": false,
+      "review_date": "2026-10-06",
+      "research_complete": true,
       "official_county_url": "https://www.steelecountymn.gov/",
-      "parcel_page_url": null,
-      "download_or_service_url": null,
+      "parcel_page_url": "https://www.steelecountymn.gov/departments/gis_geographic_information_systems/index.php",
+      "download_or_service_url": "https://gis.steele.mn/server/rest/services/gcportal_us_mn_co_steele/Tax_Parcels/MapServer/0",
       "viewer_url": null,
       "fee_policy_url": null,
       "parcel_dataset_fee": null,
       "fee_product": null,
-      "evidence_note": "County-direct parcel access has not yet been reviewed.",
-      "source_authority": "unverified",
-      "usable_direct_machine_readable_source": false,
+      "evidence_note": "County GIS page states Open GIS Data resolution adopted and delegates published GIS datasets to Commons. MnGeo parcel table resolves a distinct public Commons Tax Parcels item; rendered About advertises Download and exact county MapServer/0, esriGeometryPolygon. This county-native parcel resource is separate from statewide membership. County/item reference-only, as-is, no-warranty and user-risk disclaimer reviewed. Linked resolution URL returned 404; current official product/distribution evidence remains available.",
+      "source_authority": "county-authorized-provider",
+      "usable_direct_machine_readable_source": true,
       "monitoring": {
         "decision": "not-assessed",
-        "reason": "Discovery does not authorize monitoring.",
-        "terms_urls": []
+        "reason": "Published free product availability is separate from licensing suitability and unattended monitoring permission; discovery does not activate polling.",
+        "terms_urls": [
+          "https://www.steelecountymn.gov/departments/gis_geographic_information_systems/index.php",
+          "https://www.arcgis.com/sharing/rest/content/items/bb17fc1a866a4f6396c33737e0bb0963?f=pjson"
+        ]
       },
-      "evidence": [],
+      "evidence": [
+        {
+          "url": "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson",
+          "authority": "statewide",
+          "finding": "Steele is included in dated official opt-in statewide publication; current runtime membership remains independent."
+        },
+        {
+          "url": "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
+          "authority": "statewide",
+          "finding": "Official parcel table reviewed; county-specific distribution links are distinct from statewide inclusion."
+        },
+        {
+          "url": "https://www.steelecountymn.gov/departments/gis_geographic_information_systems/index.php",
+          "authority": "county",
+          "finding": "County GIS page states Open GIS Data resolution adopted and delegates published GIS datasets to Commons. MnGeo parcel table resolves a distinct public Commons Tax Parcels item; rendered About advertises Download and exact county MapServer/0, esriGeometryPolygon. This county-native parcel resource is separate from statewide membership. County/item reference-only, as-is, no-warranty and user-risk disclaimer reviewed. Linked resolution URL returned 404; current official product/distribution evidence remains available."
+        },
+        {
+          "url": "https://gis.data.mn.gov/datasets/bb17fc1a866a4f6396c33737e0bb0963_0/about",
+          "authority": "statewide",
+          "finding": "County GIS page states Open GIS Data resolution adopted and delegates published GIS datasets to Commons. MnGeo parcel table resolves a distinct public Commons Tax Parcels item; rendered About advertises Download and exact county MapServer/0, esriGeometryPolygon. This county-native parcel resource is separate from statewide membership. County/item reference-only, as-is, no-warranty and user-risk disclaimer reviewed. Linked resolution URL returned 404; current official product/distribution evidence remains available."
+        },
+        {
+          "url": "https://gis.data.mn.gov/search?q=Steele%20parcels",
+          "authority": "statewide",
+          "finding": "Rendered scoped official Commons parcel catalog reviewed; statewide/government-owned compilations do not establish a distinct county parcel product. Bounded search is not exhaustive absence evidence."
+        },
+        {
+          "url": "https://gis.steele.mn/server/rest/services/gcportal_us_mn_co_steele/Tax_Parcels/MapServer/0?f=pjson",
+          "authority": "county-authorized-provider",
+          "finding": "County GIS page states Open GIS Data resolution adopted and delegates published GIS datasets to Commons. MnGeo parcel table resolves a distinct public Commons Tax Parcels item; rendered About advertises Download and exact county MapServer/0, esriGeometryPolygon. This county-native parcel resource is separate from statewide membership. County/item reference-only, as-is, no-warranty and user-risk disclaimer reviewed. Linked resolution URL returned 404; current official product/distribution evidence remains available."
+        },
+        {
+          "url": "https://www.arcgis.com/sharing/rest/content/items/bb17fc1a866a4f6396c33737e0bb0963?f=pjson",
+          "authority": "statewide",
+          "finding": "County GIS page states Open GIS Data resolution adopted and delegates published GIS datasets to Commons. MnGeo parcel table resolves a distinct public Commons Tax Parcels item; rendered About advertises Download and exact county MapServer/0, esriGeometryPolygon. This county-native parcel resource is separate from statewide membership. County/item reference-only, as-is, no-warranty and user-risk disclaimer reviewed. Linked resolution URL returned 404; current official product/distribution evidence remains available."
+        },
+        {
+          "url": "https://www.steelecountymn.gov/departments/administration/fee_schedules.php",
+          "authority": "county",
+          "finding": "Current fee landing states certain public services/data requests can incur charges; linked 2026 schedule returns 404. No actual parcel dataset price established from this page. Independent current Commons tax-parcel public download verified."
+        }
+      ],
       "review_log": {
         "county_site": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed official county distribution page or MnGeo-authorized county Hub; public parcel route is published.",
+          "urls": [
+            "https://www.steelecountymn.gov/departments/gis_geographic_information_systems/index.php",
+            "https://gis.data.mn.gov/datasets/bb17fc1a866a4f6396c33737e0bb0963_0/about"
+          ]
         },
         "gis_assessor_land_records": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Parcel-specific product and source authority established from official distribution/metadata.",
+          "urls": [
+            "https://www.steelecountymn.gov/departments/gis_geographic_information_systems/index.php",
+            "https://gis.data.mn.gov/datasets/bb17fc1a866a4f6396c33737e0bb0963_0/about"
+          ]
         },
         "downloads_open_data": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Rendered official parcel download publication reviewed; no data body retrieved. About page advertises Download.",
+          "urls": [
+            "https://www.steelecountymn.gov/departments/gis_geographic_information_systems/index.php",
+            "https://gis.data.mn.gov/datasets/bb17fc1a866a4f6396c33737e0bb0963_0/about"
+          ]
         },
         "arcgis_services": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Bounded authoritative parcel layer metadata read; esriGeometryPolygon retained.",
+          "urls": [
+            "https://www.steelecountymn.gov/departments/gis_geographic_information_systems/index.php",
+            "https://gis.data.mn.gov/datasets/bb17fc1a866a4f6396c33737e0bb0963_0/about"
+          ]
         },
         "data_policy": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Published product disclaimer reviewed; use/accuracy limitations retained in evidence. Monitoring permission remains not-assessed.",
+          "urls": [
+            "https://www.steelecountymn.gov/departments/gis_geographic_information_systems/index.php",
+            "https://gis.data.mn.gov/datasets/bb17fc1a866a4f6396c33737e0bb0963_0/about"
+          ]
         },
         "fee_schedule": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Current fee landing reviewed; requested-data fees may exist. Linked schedule 404; no actual parcel product fee inferred. Public delegated Commons parcel route remains available.",
+          "urls": [
+            "https://www.steelecountymn.gov/departments/administration/fee_schedules.php",
+            "https://www.steelecountymn.gov/departments/gis_geographic_information_systems/index.php"
+          ]
         },
         "request_forms": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "not-applicable",
+          "note": "Published parcel download route does not require a submitted request; no request submitted.",
+          "urls": [
+            "https://www.steelecountymn.gov/departments/gis_geographic_information_systems/index.php",
+            "https://gis.data.mn.gov/datasets/bb17fc1a866a4f6396c33737e0bb0963_0/about"
+          ]
         },
         "resolutions_ordinances": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "County explicitly states Open GIS Data resolution adopted. Linked resolution 404; full-text resolution not claimed. Current county delegation and public product metadata are available.",
+          "urls": [
+            "https://www.steelecountymn.gov/departments/gis_geographic_information_systems/index.php",
+            "https://gis.data.mn.gov/datasets/bb17fc1a866a4f6396c33737e0bb0963_0/about"
+          ]
         },
         "authorized_portals": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "County or MnGeo official page authorizes the reviewed data portal.",
+          "urls": [
+            "https://www.steelecountymn.gov/departments/gis_geographic_information_systems/index.php",
+            "https://gis.data.mn.gov/datasets/bb17fc1a866a4f6396c33737e0bb0963_0/about"
+          ]
         },
         "statewide_context": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Official statewide item explicitly includes this county; current monitoring membership remains independent.",
+          "urls": [
+            "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
+          ]
         }
       },
-      "county_direct_classification": null,
+      "county_direct_classification": "free-parcel-data",
       "statewide_open_coverage": {
-        "available": null,
+        "available": true,
         "source": "MnGeo Plan Parcels Open",
-        "source_url": "https://gisdata.mn.gov/dataset/plan-parcels-open",
-        "verified_date": null
+        "source_url": "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson",
+        "verified_date": "2026-10-06"
       },
-      "comments": "",
+      "comments": "County GIS page states Open GIS Data resolution adopted and delegates published GIS datasets to Commons. MnGeo parcel table resolves a distinct public Commons Tax Parcels item; rendered About advertises Download and exact county MapServer/0, esriGeometryPolygon. This county-native parcel resource is separate from statewide membership. County/item reference-only, as-is, no-warranty and user-risk disclaimer reviewed. Linked resolution URL returned 404; current official product/distribution evidence remains available.",
       "source_inventory": {
         "mngac_public_parcels": {
-          "review_status": "pending",
-          "availability": "unknown",
-          "review_date": null,
-          "finding": "Category not yet reviewed.",
-          "evidence": [],
-          "sources": []
+          "review_status": "reviewed",
+          "availability": "yes",
+          "review_date": "2026-10-06",
+          "finding": "Steele included in dated official statewide publication. County-direct policy and current runtime coverage remain independent.",
+          "evidence": [
+            "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
+          ],
+          "sources": [
+            {
+              "inventory_id": "steele:mngac_public_parcels:1",
+              "name": "Steele parcel dataset",
+              "authority": "statewide",
+              "dataset_type": "Statewide parcel compilation",
+              "layer_id": null,
+              "approved_public_links": [
+                {
+                  "label": "Official parcel source",
+                  "href": "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
+                }
+              ],
+              "review_date": "2026-10-06",
+              "monitoring_decision": "not-assessed",
+              "evidence": [
+                "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
+              ]
+            }
+          ]
         },
         "mngeo_public_repository": {
-          "review_status": "pending",
-          "availability": "unknown",
-          "review_date": null,
-          "finding": "Category not yet reviewed.",
-          "evidence": [],
-          "sources": []
+          "review_status": "reviewed",
+          "availability": "yes",
+          "review_date": "2026-10-06",
+          "finding": "County GIS page states Open GIS Data resolution adopted and delegates published GIS datasets to Commons. MnGeo parcel table resolves a distinct public Commons Tax Parcels item; rendered About advertises Download and exact county MapServer/0, esriGeometryPolygon. This county-native parcel resource is separate from statewide membership. County/item reference-only, as-is, no-warranty and user-risk disclaimer reviewed. Linked resolution URL returned 404; current official product/distribution evidence remains available.",
+          "evidence": [
+            "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
+            "https://gis.data.mn.gov/datasets/bb17fc1a866a4f6396c33737e0bb0963_0/about",
+            "https://www.arcgis.com/sharing/rest/content/items/bb17fc1a866a4f6396c33737e0bb0963?f=pjson"
+          ],
+          "sources": [
+            {
+              "inventory_id": "steele:mngeo_public_repository:1",
+              "name": "Steele parcel dataset",
+              "authority": "statewide",
+              "dataset_type": "Distinct county parcel repository",
+              "layer_id": 0,
+              "approved_public_links": [
+                {
+                  "label": "Official parcel source",
+                  "href": "https://gis.data.mn.gov/datasets/bb17fc1a866a4f6396c33737e0bb0963_0/about"
+                }
+              ],
+              "review_date": "2026-10-06",
+              "monitoring_decision": "not-assessed",
+              "evidence": [
+                "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
+                "https://gis.data.mn.gov/datasets/bb17fc1a866a4f6396c33737e0bb0963_0/about",
+                "https://www.arcgis.com/sharing/rest/content/items/bb17fc1a866a4f6396c33737e0bb0963?f=pjson"
+              ]
+            }
+          ]
         },
         "county_arcgis_rest": {
-          "review_status": "pending",
-          "availability": "unknown",
-          "review_date": null,
-          "finding": "Category not yet reviewed.",
-          "evidence": [],
-          "sources": []
+          "review_status": "reviewed",
+          "availability": "yes",
+          "review_date": "2026-10-06",
+          "finding": "County GIS page states Open GIS Data resolution adopted and delegates published GIS datasets to Commons. MnGeo parcel table resolves a distinct public Commons Tax Parcels item; rendered About advertises Download and exact county MapServer/0, esriGeometryPolygon. This county-native parcel resource is separate from statewide membership. County/item reference-only, as-is, no-warranty and user-risk disclaimer reviewed. Linked resolution URL returned 404; current official product/distribution evidence remains available.",
+          "evidence": [
+            "https://www.steelecountymn.gov/departments/gis_geographic_information_systems/index.php",
+            "https://gis.steele.mn/server/rest/services/gcportal_us_mn_co_steele/Tax_Parcels/MapServer/0?f=pjson",
+            "https://www.arcgis.com/sharing/rest/content/items/bb17fc1a866a4f6396c33737e0bb0963?f=pjson"
+          ],
+          "sources": [
+            {
+              "inventory_id": "steele:county_arcgis_rest:1",
+              "name": "Steele parcel dataset",
+              "authority": "county-authorized-provider",
+              "dataset_type": "Parcel polygon REST layer",
+              "layer_id": 0,
+              "approved_public_links": [
+                {
+                  "label": "Official parcel source",
+                  "href": "https://gis.steele.mn/server/rest/services/gcportal_us_mn_co_steele/Tax_Parcels/MapServer/0?f=pjson"
+                }
+              ],
+              "review_date": "2026-10-06",
+              "monitoring_decision": "not-assessed",
+              "evidence": [
+                "https://www.steelecountymn.gov/departments/gis_geographic_information_systems/index.php",
+                "https://gis.steele.mn/server/rest/services/gcportal_us_mn_co_steele/Tax_Parcels/MapServer/0?f=pjson",
+                "https://www.arcgis.com/sharing/rest/content/items/bb17fc1a866a4f6396c33737e0bb0963?f=pjson"
+              ]
+            }
+          ]
         },
         "county_download": {
-          "review_status": "pending",
-          "availability": "unknown",
-          "review_date": null,
-          "finding": "Category not yet reviewed.",
-          "evidence": [],
-          "sources": []
+          "review_status": "reviewed",
+          "availability": "yes",
+          "review_date": "2026-10-06",
+          "finding": "County GIS page states Open GIS Data resolution adopted and delegates published GIS datasets to Commons. MnGeo parcel table resolves a distinct public Commons Tax Parcels item; rendered About advertises Download and exact county MapServer/0, esriGeometryPolygon. This county-native parcel resource is separate from statewide membership. County/item reference-only, as-is, no-warranty and user-risk disclaimer reviewed. Linked resolution URL returned 404; current official product/distribution evidence remains available.",
+          "evidence": [
+            "https://www.steelecountymn.gov/departments/gis_geographic_information_systems/index.php",
+            "https://gis.data.mn.gov/datasets/bb17fc1a866a4f6396c33737e0bb0963_0/about",
+            "https://www.arcgis.com/sharing/rest/content/items/bb17fc1a866a4f6396c33737e0bb0963?f=pjson"
+          ],
+          "sources": [
+            {
+              "inventory_id": "steele:county_download:1",
+              "name": "Steele parcel dataset",
+              "authority": "county-authorized-provider",
+              "dataset_type": "Parcel polygon Hub download",
+              "layer_id": 0,
+              "approved_public_links": [
+                {
+                  "label": "Official parcel source",
+                  "href": "https://gis.data.mn.gov/datasets/bb17fc1a866a4f6396c33737e0bb0963_0/about"
+                }
+              ],
+              "review_date": "2026-10-06",
+              "monitoring_decision": "not-assessed",
+              "evidence": [
+                "https://www.steelecountymn.gov/departments/gis_geographic_information_systems/index.php",
+                "https://gis.data.mn.gov/datasets/bb17fc1a866a4f6396c33737e0bb0963_0/about",
+                "https://www.arcgis.com/sharing/rest/content/items/bb17fc1a866a4f6396c33737e0bb0963?f=pjson"
+              ]
+            }
+          ]
         }
       }
     },
     {
       "county": "Stevens",
-      "review_date": null,
-      "research_complete": false,
+      "review_date": "2026-10-06",
+      "research_complete": true,
       "official_county_url": "https://www.stevenscountymn.gov",
-      "parcel_page_url": null,
-      "download_or_service_url": null,
+      "parcel_page_url": "https://www.stevenscountymn.gov/993/GIS-Open-Data",
+      "download_or_service_url": "https://services2.arcgis.com/7iPhaYyq6PkRoVhV/arcgis/rest/services/July_2026_Parcels/FeatureServer/0",
       "viewer_url": null,
       "fee_policy_url": null,
       "parcel_dataset_fee": null,
       "fee_product": null,
-      "evidence_note": "County-direct parcel access has not yet been reviewed.",
-      "source_authority": "unverified",
-      "usable_direct_machine_readable_source": false,
+      "evidence_note": "County GIS Open Data explicitly provides GIS datasets free, advertised as shapefiles, CSV and KML with metadata in a zipped folder. County-linked Hub lists July 2026 Parcels under GIS Data for Download; About advertises Download and exact public FeatureServer/0, esriGeometryPolygon. County/item as-is disclaimer limits product to general/visual uses, excluding financial or decision-making purposes. Linked resolution returned a redirect loop; current free distribution and parcel metadata were read. County-wide advertised formats do not prove this particular ZIP interior.",
+      "source_authority": "county-authorized-provider",
+      "usable_direct_machine_readable_source": true,
       "monitoring": {
         "decision": "not-assessed",
-        "reason": "Discovery does not authorize monitoring.",
-        "terms_urls": []
+        "reason": "Published free product availability is separate from licensing suitability and unattended monitoring permission; discovery does not activate polling.",
+        "terms_urls": [
+          "https://www.stevenscountymn.gov/993/GIS-Open-Data",
+          "https://www.arcgis.com/sharing/rest/content/items/f5cc5ff20f5d4fcb8279b26e4eac5f6d?f=pjson"
+        ]
       },
-      "evidence": [],
+      "evidence": [
+        {
+          "url": "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson",
+          "authority": "statewide",
+          "finding": "Stevens is included in dated official opt-in statewide publication; current runtime membership remains independent."
+        },
+        {
+          "url": "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
+          "authority": "statewide",
+          "finding": "Official parcel table reviewed; county-specific distribution links are distinct from statewide inclusion."
+        },
+        {
+          "url": "https://www.stevenscountymn.gov/993/GIS-Open-Data",
+          "authority": "county",
+          "finding": "County GIS Open Data explicitly provides GIS datasets free, advertised as shapefiles, CSV and KML with metadata in a zipped folder. County-linked Hub lists July 2026 Parcels under GIS Data for Download; About advertises Download and exact public FeatureServer/0, esriGeometryPolygon. County/item as-is disclaimer limits product to general/visual uses, excluding financial or decision-making purposes. Linked resolution returned a redirect loop; current free distribution and parcel metadata were read. County-wide advertised formats do not prove this particular ZIP interior."
+        },
+        {
+          "url": "https://geospatial-hub-stevens-county.hub.arcgis.com/datasets/f5cc5ff20f5d4fcb8279b26e4eac5f6d_0/about",
+          "authority": "county-authorized-provider",
+          "finding": "County GIS Open Data explicitly provides GIS datasets free, advertised as shapefiles, CSV and KML with metadata in a zipped folder. County-linked Hub lists July 2026 Parcels under GIS Data for Download; About advertises Download and exact public FeatureServer/0, esriGeometryPolygon. County/item as-is disclaimer limits product to general/visual uses, excluding financial or decision-making purposes. Linked resolution returned a redirect loop; current free distribution and parcel metadata were read. County-wide advertised formats do not prove this particular ZIP interior."
+        },
+        {
+          "url": "https://gis.data.mn.gov/search?q=Stevens%20parcels",
+          "authority": "statewide",
+          "finding": "Rendered scoped official Commons parcel catalog reviewed; statewide/government-owned compilations do not establish a distinct county parcel product. Bounded search is not exhaustive absence evidence."
+        },
+        {
+          "url": "https://services2.arcgis.com/7iPhaYyq6PkRoVhV/arcgis/rest/services/July_2026_Parcels/FeatureServer/0?f=pjson",
+          "authority": "county-authorized-provider",
+          "finding": "County GIS Open Data explicitly provides GIS datasets free, advertised as shapefiles, CSV and KML with metadata in a zipped folder. County-linked Hub lists July 2026 Parcels under GIS Data for Download; About advertises Download and exact public FeatureServer/0, esriGeometryPolygon. County/item as-is disclaimer limits product to general/visual uses, excluding financial or decision-making purposes. Linked resolution returned a redirect loop; current free distribution and parcel metadata were read. County-wide advertised formats do not prove this particular ZIP interior."
+        },
+        {
+          "url": "https://www.arcgis.com/sharing/rest/content/items/f5cc5ff20f5d4fcb8279b26e4eac5f6d?f=pjson",
+          "authority": "county-authorized-provider",
+          "finding": "County GIS Open Data explicitly provides GIS datasets free, advertised as shapefiles, CSV and KML with metadata in a zipped folder. County-linked Hub lists July 2026 Parcels under GIS Data for Download; About advertises Download and exact public FeatureServer/0, esriGeometryPolygon. County/item as-is disclaimer limits product to general/visual uses, excluding financial or decision-making purposes. Linked resolution returned a redirect loop; current free distribution and parcel metadata were read. County-wide advertised formats do not prove this particular ZIP interior."
+        }
+      ],
       "review_log": {
         "county_site": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Reviewed official county distribution page or MnGeo-authorized county Hub; public parcel route is published.",
+          "urls": [
+            "https://www.stevenscountymn.gov/993/GIS-Open-Data",
+            "https://geospatial-hub-stevens-county.hub.arcgis.com/datasets/f5cc5ff20f5d4fcb8279b26e4eac5f6d_0/about"
+          ]
         },
         "gis_assessor_land_records": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Parcel-specific product and source authority established from official distribution/metadata.",
+          "urls": [
+            "https://www.stevenscountymn.gov/993/GIS-Open-Data",
+            "https://geospatial-hub-stevens-county.hub.arcgis.com/datasets/f5cc5ff20f5d4fcb8279b26e4eac5f6d_0/about"
+          ]
         },
         "downloads_open_data": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Rendered official parcel download publication reviewed; no data body retrieved. About page advertises Download.",
+          "urls": [
+            "https://www.stevenscountymn.gov/993/GIS-Open-Data",
+            "https://geospatial-hub-stevens-county.hub.arcgis.com/datasets/f5cc5ff20f5d4fcb8279b26e4eac5f6d_0/about"
+          ]
         },
         "arcgis_services": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Bounded authoritative parcel layer metadata read; esriGeometryPolygon retained.",
+          "urls": [
+            "https://www.stevenscountymn.gov/993/GIS-Open-Data",
+            "https://geospatial-hub-stevens-county.hub.arcgis.com/datasets/f5cc5ff20f5d4fcb8279b26e4eac5f6d_0/about"
+          ]
         },
         "data_policy": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Published product disclaimer reviewed; use/accuracy limitations retained in evidence. Monitoring permission remains not-assessed.",
+          "urls": [
+            "https://www.stevenscountymn.gov/993/GIS-Open-Data",
+            "https://geospatial-hub-stevens-county.hub.arcgis.com/datasets/f5cc5ff20f5d4fcb8279b26e4eac5f6d_0/about"
+          ]
         },
         "fee_schedule": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Published open parcel route reviewed; no actual parcel dataset fee identified. This is not an exhaustive fee-policy absence claim.",
+          "urls": [
+            "https://www.stevenscountymn.gov/993/GIS-Open-Data",
+            "https://geospatial-hub-stevens-county.hub.arcgis.com/datasets/f5cc5ff20f5d4fcb8279b26e4eac5f6d_0/about"
+          ]
         },
         "request_forms": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "not-applicable",
+          "note": "Published parcel download route does not require a submitted request; no request submitted.",
+          "urls": [
+            "https://www.stevenscountymn.gov/993/GIS-Open-Data",
+            "https://geospatial-hub-stevens-county.hub.arcgis.com/datasets/f5cc5ff20f5d4fcb8279b26e4eac5f6d_0/about"
+          ]
         },
         "resolutions_ordinances": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "County free GIS distribution page reviewed; linked free/open resolution returned redirect loop. Full-text resolution not claimed; current product publication establishes free route.",
+          "urls": [
+            "https://www.stevenscountymn.gov/993/GIS-Open-Data",
+            "https://geospatial-hub-stevens-county.hub.arcgis.com/datasets/f5cc5ff20f5d4fcb8279b26e4eac5f6d_0/about"
+          ]
         },
         "authorized_portals": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "County or MnGeo official page authorizes the reviewed data portal.",
+          "urls": [
+            "https://www.stevenscountymn.gov/993/GIS-Open-Data",
+            "https://geospatial-hub-stevens-county.hub.arcgis.com/datasets/f5cc5ff20f5d4fcb8279b26e4eac5f6d_0/about"
+          ]
         },
         "statewide_context": {
-          "status": "pending",
-          "note": "Not yet reviewed.",
-          "urls": []
+          "status": "reviewed",
+          "note": "Official statewide item explicitly includes this county; current monitoring membership remains independent.",
+          "urls": [
+            "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
+          ]
         }
       },
-      "county_direct_classification": null,
+      "county_direct_classification": "free-parcel-data",
       "statewide_open_coverage": {
-        "available": null,
+        "available": true,
         "source": "MnGeo Plan Parcels Open",
-        "source_url": "https://gisdata.mn.gov/dataset/plan-parcels-open",
-        "verified_date": null
+        "source_url": "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson",
+        "verified_date": "2026-10-06"
       },
-      "comments": "",
+      "comments": "County GIS Open Data explicitly provides GIS datasets free, advertised as shapefiles, CSV and KML with metadata in a zipped folder. County-linked Hub lists July 2026 Parcels under GIS Data for Download; About advertises Download and exact public FeatureServer/0, esriGeometryPolygon. County/item as-is disclaimer limits product to general/visual uses, excluding financial or decision-making purposes. Linked resolution returned a redirect loop; current free distribution and parcel metadata were read. County-wide advertised formats do not prove this particular ZIP interior.",
       "source_inventory": {
         "mngac_public_parcels": {
-          "review_status": "pending",
-          "availability": "unknown",
-          "review_date": null,
-          "finding": "Category not yet reviewed.",
-          "evidence": [],
-          "sources": []
+          "review_status": "reviewed",
+          "availability": "yes",
+          "review_date": "2026-10-06",
+          "finding": "Stevens included in dated official statewide publication. County-direct policy and current runtime coverage remain independent.",
+          "evidence": [
+            "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
+          ],
+          "sources": [
+            {
+              "inventory_id": "stevens:mngac_public_parcels:1",
+              "name": "Stevens parcel dataset",
+              "authority": "statewide",
+              "dataset_type": "Statewide parcel compilation",
+              "layer_id": null,
+              "approved_public_links": [
+                {
+                  "label": "Official parcel source",
+                  "href": "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
+                }
+              ],
+              "review_date": "2026-10-06",
+              "monitoring_decision": "not-assessed",
+              "evidence": [
+                "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
+              ]
+            }
+          ]
         },
         "mngeo_public_repository": {
-          "review_status": "pending",
+          "review_status": "blocked",
           "availability": "unknown",
-          "review_date": null,
-          "finding": "Category not yet reviewed.",
-          "evidence": [],
+          "review_date": "2026-10-06",
+          "finding": "Reviewed official MnGeo source table, state-org discovery, public account metadata and rendered scoped Commons catalog. Results establish statewide/government-owned compilations; no distinct county parcel repository established. County-native Hub product remains independent. Bounded review does not prove exhaustive absence.",
+          "evidence": [
+            "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
+            "https://gis.data.mn.gov/search?q=Stevens%20parcels",
+            "https://geospatial-hub-stevens-county.hub.arcgis.com/datasets/f5cc5ff20f5d4fcb8279b26e4eac5f6d_0/about"
+          ],
           "sources": []
         },
         "county_arcgis_rest": {
-          "review_status": "pending",
-          "availability": "unknown",
-          "review_date": null,
-          "finding": "Category not yet reviewed.",
-          "evidence": [],
-          "sources": []
+          "review_status": "reviewed",
+          "availability": "yes",
+          "review_date": "2026-10-06",
+          "finding": "County GIS Open Data explicitly provides GIS datasets free, advertised as shapefiles, CSV and KML with metadata in a zipped folder. County-linked Hub lists July 2026 Parcels under GIS Data for Download; About advertises Download and exact public FeatureServer/0, esriGeometryPolygon. County/item as-is disclaimer limits product to general/visual uses, excluding financial or decision-making purposes. Linked resolution returned a redirect loop; current free distribution and parcel metadata were read. County-wide advertised formats do not prove this particular ZIP interior.",
+          "evidence": [
+            "https://www.stevenscountymn.gov/993/GIS-Open-Data",
+            "https://services2.arcgis.com/7iPhaYyq6PkRoVhV/arcgis/rest/services/July_2026_Parcels/FeatureServer/0?f=pjson",
+            "https://www.arcgis.com/sharing/rest/content/items/f5cc5ff20f5d4fcb8279b26e4eac5f6d?f=pjson"
+          ],
+          "sources": [
+            {
+              "inventory_id": "stevens:county_arcgis_rest:1",
+              "name": "Stevens parcel dataset",
+              "authority": "county-authorized-provider",
+              "dataset_type": "Parcel polygon REST layer",
+              "layer_id": 0,
+              "approved_public_links": [
+                {
+                  "label": "Official parcel source",
+                  "href": "https://services2.arcgis.com/7iPhaYyq6PkRoVhV/arcgis/rest/services/July_2026_Parcels/FeatureServer/0?f=pjson"
+                }
+              ],
+              "review_date": "2026-10-06",
+              "monitoring_decision": "not-assessed",
+              "evidence": [
+                "https://www.stevenscountymn.gov/993/GIS-Open-Data",
+                "https://services2.arcgis.com/7iPhaYyq6PkRoVhV/arcgis/rest/services/July_2026_Parcels/FeatureServer/0?f=pjson",
+                "https://www.arcgis.com/sharing/rest/content/items/f5cc5ff20f5d4fcb8279b26e4eac5f6d?f=pjson"
+              ]
+            }
+          ]
         },
         "county_download": {
-          "review_status": "pending",
-          "availability": "unknown",
-          "review_date": null,
-          "finding": "Category not yet reviewed.",
-          "evidence": [],
-          "sources": []
+          "review_status": "reviewed",
+          "availability": "yes",
+          "review_date": "2026-10-06",
+          "finding": "County GIS Open Data explicitly provides GIS datasets free, advertised as shapefiles, CSV and KML with metadata in a zipped folder. County-linked Hub lists July 2026 Parcels under GIS Data for Download; About advertises Download and exact public FeatureServer/0, esriGeometryPolygon. County/item as-is disclaimer limits product to general/visual uses, excluding financial or decision-making purposes. Linked resolution returned a redirect loop; current free distribution and parcel metadata were read. County-wide advertised formats do not prove this particular ZIP interior.",
+          "evidence": [
+            "https://www.stevenscountymn.gov/993/GIS-Open-Data",
+            "https://geospatial-hub-stevens-county.hub.arcgis.com/datasets/f5cc5ff20f5d4fcb8279b26e4eac5f6d_0/about",
+            "https://www.arcgis.com/sharing/rest/content/items/f5cc5ff20f5d4fcb8279b26e4eac5f6d?f=pjson"
+          ],
+          "sources": [
+            {
+              "inventory_id": "stevens:county_download:1",
+              "name": "Stevens parcel dataset",
+              "authority": "county-authorized-provider",
+              "dataset_type": "Parcel polygon Hub download",
+              "layer_id": 0,
+              "approved_public_links": [
+                {
+                  "label": "Official parcel source",
+                  "href": "https://geospatial-hub-stevens-county.hub.arcgis.com/datasets/f5cc5ff20f5d4fcb8279b26e4eac5f6d_0/about"
+                }
+              ],
+              "review_date": "2026-10-06",
+              "monitoring_decision": "not-assessed",
+              "evidence": [
+                "https://www.stevenscountymn.gov/993/GIS-Open-Data",
+                "https://geospatial-hub-stevens-county.hub.arcgis.com/datasets/f5cc5ff20f5d4fcb8279b26e4eac5f6d_0/about",
+                "https://www.arcgis.com/sharing/rest/content/items/f5cc5ff20f5d4fcb8279b26e4eac5f6d?f=pjson"
+              ]
+            }
+          ]
         }
       }
     },
