@@ -650,10 +650,13 @@ county-wide format statements do not prove a particular archive's interior.
 Its linked resolution returned a redirect loop. The item restricts use to
 general/visual purposes, excluding financial or decision-making purposes.
 
-All five monitoring decisions remain **not-assessed**. Published availability
-and licensing/use suitability remain separate; no new provider is activated.
+Stevens receives a research-only **hold-for-terms** pending clarification of its
+general/visual-only terms excluding financial or decision-making uses. Free
+availability and its completed county-direct classification remain verified.
+This is licensing uncertainty, not an established prohibition on bounded metadata
+monitoring. The other four decisions remain **not-assessed**; no provider is activated.
 Four distinct-repository categories remain unknown after actual rendered scoped
 Commons/state metadata reviews; bounded searches do not prove exhaustive absence.
-All eight existing research holds are unchanged. Typed stable geometry/format
+The eight existing holds remain, for **nine research holds total**. Typed stable geometry/format
 projection remains deferred to Task 4c. No parcel features, property-search pages,
 archives or download bodies were retrieved; no agreement gates were accepted.

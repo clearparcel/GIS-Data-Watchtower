@@ -17742,8 +17742,8 @@
       "source_authority": "county-authorized-provider",
       "usable_direct_machine_readable_source": true,
       "monitoring": {
-        "decision": "not-assessed",
-        "reason": "Published free product availability is separate from licensing suitability and unattended monitoring permission; discovery does not activate polling.",
+        "decision": "hold-for-terms",
+        "reason": "Research-only hold pending clarification: published parcel terms limit use to general/visual purposes and exclude financial or decision-making purposes, creating licensing uncertainty for the intended use. Free publication remains verified. These terms do not establish an explicit ban on bounded metadata monitoring; no runtime activation or configuration change is authorized.",
         "terms_urls": [
           "https://www.stevenscountymn.gov/993/GIS-Open-Data",
           "https://www.arcgis.com/sharing/rest/content/items/f5cc5ff20f5d4fcb8279b26e4eac5f6d?f=pjson"
@@ -17941,7 +17941,7 @@
                 }
               ],
               "review_date": "2026-10-06",
-              "monitoring_decision": "not-assessed",
+              "monitoring_decision": "hold-for-terms",
               "evidence": [
                 "https://www.stevenscountymn.gov/993/GIS-Open-Data",
                 "https://services2.arcgis.com/7iPhaYyq6PkRoVhV/arcgis/rest/services/July_2026_Parcels/FeatureServer/0?f=pjson",
@@ -17974,7 +17974,7 @@
                 }
               ],
               "review_date": "2026-10-06",
-              "monitoring_decision": "not-assessed",
+              "monitoring_decision": "hold-for-terms",
               "evidence": [
                 "https://www.stevenscountymn.gov/993/GIS-Open-Data",
                 "https://geospatial-hub-stevens-county.hub.arcgis.com/datasets/f5cc5ff20f5d4fcb8279b26e4eac5f6d_0/about",

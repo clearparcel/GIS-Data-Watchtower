@@ -34,10 +34,18 @@ class ParcelAccessSchemaTests(unittest.TestCase):
             self.assertEqual(record['review_date'], '2026-10-06')
             self.assertEqual(record['source_inventory']['mngac_public_parcels']['availability'], 'yes')
             self.assertEqual(record['source_inventory']['county_download']['availability'], 'yes')
-            self.assertEqual(record['monitoring']['decision'], 'not-assessed')
+            self.assertEqual(record['monitoring']['decision'],
+                             'hold-for-terms' if name == 'Stevens' else 'not-assessed')
             self.assertIsNone(record['parcel_dataset_fee'])
         self.assertEqual(records['Steele']['source_inventory']['mngeo_public_repository']['availability'], 'yes')
         self.assertEqual(records['Stearns']['source_inventory']['county_arcgis_rest']['availability'], 'unknown')
+        stevens = records['Stevens']
+        self.assertEqual(stevens['county_direct_classification'], 'free-parcel-data')
+        self.assertTrue(stevens['research_complete'])
+        self.assertIn('financial', stevens['monitoring']['reason'])
+        for category in ('county_arcgis_rest', 'county_download'):
+            self.assertEqual(stevens['source_inventory'][category]['sources'][0]['monitoring_decision'],
+                             'hold-for-terms')
         for name in ('Sherburne', 'St. Louis', 'Steele', 'Stevens'):
             self.assertIn('esriGeometryPolygon', records[name]['source_inventory']['county_arcgis_rest']['finding'])
 
@@ -53,7 +61,7 @@ class ParcelAccessSchemaTests(unittest.TestCase):
         held = {name for name, record in records.items()
                 if record['monitoring']['decision'] == 'hold-for-terms'}
         self.assertEqual(held, {'Blue Earth', 'Brown', 'Faribault', 'Kandiyohi', 'Lincoln',
-                               'Lake', 'Lyon', 'McLeod'})
+                               'Lake', 'Lyon', 'McLeod', 'Stevens'})
 
     def test_inventory_reviews_have_evidence_and_honest_blockers(self):
         from clearparcel.datawatch.parcel_access import INVENTORY_CATEGORIES
