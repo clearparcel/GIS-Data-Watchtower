@@ -99,19 +99,19 @@ This is why Winona is correctly represented as:
 The original 35 counties were reviewed using bounded official county landing pages, parcel
 service metadata, the [official MnGeo parcel source table](https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp),
 the current state-hosted service directory, and county-specific Commons publishing-account
-metadata searches plus all 87 returned official state-organization parcel-search records. Search responses were read; snippets were only discovery. The next 30 previously unreviewed
-counties (the exact Aitkin–Clay, Clearwater–Houston and Isanti–Mower batches, listed below) now have actual category reviews. The remaining 22
+metadata searches plus all 87 returned official state-organization parcel-search records. Search responses were read; snippets were only discovery. The next 39 previously unreviewed
+counties (the exact Aitkin–Clay, Clearwater–Houston, Isanti–Mower and Olmsted–Scott batches, listed below) now have actual category reviews. The remaining 13
 records retain pending category reviews.
 
-| Category | Reviewed across 65 county reviews | Blocked / unresolved | Pending remaining 22 |
+| Category | Reviewed across 74 county reviews | Blocked / unresolved | Pending remaining 13 |
 | --- | ---: | ---: | ---: |
-| MnGeo Plan Parcels Open | 65 (38 included, 27 excluded) | 0 | 22 |
-| Distinct MnGeo public repository | 10 available | 55 | 22 |
-| County-authorized parcel REST | 40 available | 25 | 22 |
-| County parcel download | 32 available | 33 | 22 |
+| MnGeo Plan Parcels Open | 74 (47 included, 27 excluded) | 0 | 13 |
+| Distinct MnGeo public repository | 11 available | 63 | 13 |
+| County-authorized parcel REST | 47 available | 27 | 13 |
+| County parcel download | 40 available | 34 | 13 |
 
-These counts are derived from stored category statuses: **147 reviewed**, **113 blocked**,
-and **88 pending** category assessments across 87 county records. **Ten counties have all
+These counts are derived from stored category statuses: **172 reviewed**, **124 blocked**,
+and **52 pending** category assessments across 87 county records. **Ten counties have all
 four categories complete** (Aitkin, Anoka, Carver, Dakota, Fillmore, Hennepin, Houston, Itasca, Lake, Morrison);
 Aitkin's county-direct pricing/policy assessment remains unresolved. County-direct
 classification is separate from inventory completion; category keys alone do not finish research.
@@ -210,8 +210,8 @@ Exact vetted Aitkin and Beltrami public dataset identities retain monitored IDs 
 REST/Hub/download representations; no other join is inferred from county name or generic
 catalog. Current runtime coverage still overrides dated research membership.
 
-Across all stored records, **61** county-direct classifications are complete: **38 free**,
-**12 fee-based**, **11 viewer-only**. The remaining 26 are unresolved or pending. These research
+Across all stored records, **69** county-direct classifications are complete: **46 free**,
+**12 fee-based**, **11 viewer-only**. The remaining 18 are unresolved or pending (13 untouched records and five attempted county-direct reviews without a published classification). These research
 totals do not change active monitoring coverage.
 
 ### Clearwater–Houston inventory batch, 2026-10-06
@@ -261,6 +261,85 @@ those distinct repository categories remain unknown. Clearwater's published down
 not establish an authorized REST layer. No runtime registry, configuration, scheduling,
 provider polling, deployment or production writes occurred; all five existing research holds
 remain unchanged. Earlier staging results elsewhere in this document remain historical observations.
+
+### Olmsted–Scott inventory batch, 2026-10-06
+
+The exact nine counties are Olmsted, Otter Tail, Pipestone, Polk, Pope, Ramsey,
+Renville, Rice and Scott. This batch adds **25 reviewed / 11 blocked** category
+assessments; the other 78 county records are unchanged. Eight county-direct
+classifications are free for the advertised public product; Rice's current
+county download/product-policy scope remains unresolved, so its classification
+and legacy research completion remain unset. All nine statewide memberships
+are supported by the dated official publication, separate from current observations.
+
+| County | Distinct county Commons repository | County REST | County download |
+| --- | --- | --- | --- |
+| Olmsted | Unknown | Blocked (403) | Advertised free; agreement gate unaccepted |
+| Otter Tail | Unknown | ParcelView layer 25, polygon | Hub Parcels, same layer 25 |
+| Pipestone | Unknown | TaxParcels layer 0, polygon | Hub Tax Parcels, same layer 0 |
+| Polk | Unknown | TaxParcels layer 0, polygon | Current Hub Tax Parcels, same layer 0 |
+| Pope | Unknown | TaxParcels layer 0, polygon | Hub Tax Parcels, same layer 0 |
+| Ramsey | Unknown | Blocked (403) | Current Attributed Parcels Hub product |
+| Renville | Unknown | TaxParcels layer 0, polygon | Hub Tax Parcels, same layer 0 |
+| Rice | Current county-owned Tax Parcels item | TaxParcels MapServer layer 1, polygon | Blocked; current Commons page says unavailable |
+| Scott | Unknown | Parcels layer 0, polygon | County-authorized free Hub Parcels |
+
+Official county pages or the explicit [MnGeo county parcel source table](https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp)
+establish product delegation. Linked county Hub About pages were rendered and their
+public item metadata and exact layer identities inspected; no viewer or feature table
+was opened. All seven accessible exact REST layers identify **esriGeometryPolygon**.
+Ramsey's public item describes parcel polygons, but its direct metadata returned 403.
+Olmsted's cached official REST page identifies polygon geometry; that is dated cached
+evidence and does not establish current metadata success. No archive was opened or
+retrieved, and no terms gate was accepted.
+
+[Olmsted Data Catalog](https://webapp.co.olmsted.mn.us/shoppingcart/site/Planning/GIS/DataCatalog/categories.aspx?CTypeid=4)
+explicitly lists countywide Parcel Boundaries and cites adopted Resolution 19-248,
+allowing public geospatial downloads at no cost subject to accepting its disclaimer.
+The linked terms were read; they address as-is use, derivative-product responsibility
+and liability. Addressing, mailing-list and subscriber-map fees do not establish parcel
+dataset pricing. The download is advertised independently of the unaccepted gate and
+blocked current REST access; discovery grants no unattended-use authorization.
+
+Otter Tail's current public Parcels item now references **layer 25**, distinct from the
+older discovery layer 8. Polk's current item references **TaxParcels/FeatureServer/0**;
+its older item instead references **TaxParcels_public/FeatureServer/1**. The latter was
+also inspected as polygon metadata but cannot supply current-product observation facts.
+Neither county product gains an inferred identity join. Pope's assessor report/payment
+processing fees and Renville's Landshark document subscription are separate from parcel
+dataset fees. County as-is/no-warranty item terms were inspected; generic Hub
+"No License Provided" labels do not themselves establish an automation prohibition.
+
+Ramsey's current [Attributed Parcels item](https://www.arcgis.com/sharing/rest/content/items/3115ff609037465796604556843420be?f=pjson)
+and rendered About advertise the county-native parcel product with unrestricted item
+terms and a request to verify source/currentness. [MetroGIS](https://metrogis.org/how-do-i-get/parcel-data/)
+corroborates native county geospatial publication without fee/licensure, including Ramsey
+and Scott. Scott's county GIS page explicitly provides authoritative Parcels downloads
+free through its linked Hub; item terms contain reference-only, liability and indemnity
+language. Regional seven-county parcel compilations remain separate products.
+
+Rice's old MnGeo-linked item is inaccessible. A rendered Commons search and current
+[Tax Parcels item](https://www.arcgis.com/sharing/rest/content/items/d79e1a5432e44980877703f5371a1a70?f=pjson)
+resolve a distinct county-owned repository product and exact county MapServer/1. Direct
+bounded metadata succeeds, but its current Commons About reports a secure-service
+authorization requirement and unavailable downloads. The county Maps page direct read
+returned 403; current county homepage and item disclaimer were reviewed. No denial or
+authorization gate was bypassed. Prior discovery of a FGDB archive does not resolve the
+current download/product-policy scope, and technical REST access does not finish Rice's
+legacy county-direct classification or authorize polling.
+
+All nine scoped Commons catalogs were rendered. Rice's current county-owned item is a
+distinct repository product; the other eight searches found statewide/derived or regional
+compilations, and Ramsey also returned government-lot/address resources. These bounded
+reviews do not prove exhaustive absence, so those eight repository categories remain
+unknown. Their completed county-native product reviews remain independent.
+
+Exact vetted public identities are retained only for Pipestone, Rice, Ramsey and Scott.
+Rice's repository/REST and Pipestone/Scott REST/download share their same observation;
+Ramsey's advertised download can retain historical source facts while current REST remains
+blocked. Olmsted's newly inspected source did not match its observed product and receives
+no inferred count/health join. All eight existing research holds remain unchanged. No
+provider/configuration/scheduling/deployment or production writes occurred.
 
 ### Historical original 35 county-direct results
 
@@ -332,8 +411,8 @@ type without retrieving the archive body.
 
 ### Hold for terms clarification
 
-The following **5 counties** expose technically reachable parcel services but are **not** approved
-for unattended Watchtower monitoring under the current evidence:
+The following **8 counties** retain research holds pending terms clarification. Advertised
+free products and historical runtime observations remain separate from these research decisions:
 
 - **Blue Earth** — official county pages state property-tax GIS data are available for purchase;
   request terms say use may be restricted by a license agreement.
@@ -345,9 +424,13 @@ for unattended Watchtower monitoring under the current evidence:
   delivered files to the identified project, and restricts transmission without written consent.
 - **Lincoln** — the county geospatial pricing schedule states that some data require a license
   agreement and prices parcel boundaries/attributes per parcel.
+- **Lake** — prior review retained a research hold for its advertised free product pending licensing clarification.
+- **Lyon** — prior review retained a research hold for its advertised free product pending licensing clarification.
+- **McLeod** — prior review retained a research hold for its advertised free product pending licensing clarification.
 
-The original four holds remain, and Brown is additionally held in research even though services are publicly
-reachable. Public technical reachability is not treated as permission to automate a county data
+The original four holds, Brown and the three Isanti–Mower batch holds remain unchanged. The latter
+three are retained research decisions; their licensing text is not reinterpreted here as an express
+ban on metadata-only monitoring. Public technical reachability is not treated as permission to automate a county data
 product that the county separately licenses or sells.
 
 The nine candidates from the earlier evaluation were added to **private staging registry version 7**
@@ -365,7 +448,7 @@ unmonitored held counties require terms clarification before activation.
 This staging activation does not enable authoritative provider scheduling. No GIS-provider Cloud
 Scheduler job was created or enabled, and the production UI service was not replaced.
 
-## County summary
+## Historical original 35 county summary
 
 | County | County-direct access | MnGeo open coverage | Direct machine-readable source | County parcel dataset fee |
 | --- | --- | --- | --- | --- |
@@ -405,7 +488,7 @@ Scheduler job was created or enabled, and the production UI service was not repl
 | Watonwan | Parcel viewer only | No | No | — |
 | Winona | Fee-based parcel data | Yes | No | $75 minimum plus per-parcel rate (rate tiers in county fee schedule) |
 
-## Direct machine-readable sources discovered
+## Historical original 35 machine-readable sources discovered
 
 - Brown — https://gis.browncountymn.gov/server/rest/services/Hosted/Brown_County_Authoritative_Parcels/FeatureServer/0
 - Dodge — https://maps.co.goodhue.mn.us/pdfs/DodgeCoOpenData/DodgeCoParcels.zip
@@ -421,7 +504,8 @@ Scheduler job was created or enabled, and the production UI service was not repl
 - Todd — https://gis.mytoddcounty.com/toddcounty/rest/services/PublicViewerServer/MapServer
 - Wadena — https://gis.co.wadena.mn.us/arcgis/rest/services/LinkPublic/MapServer/0
 
-Each is marked candidate-low-frequency. This is a research/operations assessment, not a
+These were historical candidate-low-frequency assessments; Brown now retains a research terms
+hold. This is a research/operations assessment, not a
 production schedule. Watchtower must continue to use bounded read-only checks, honor rate limits
 and HTTP 429 responses, avoid raw-data redistribution unless permitted, and never scrape
 human-facing property-search pages.
@@ -436,7 +520,8 @@ Schema/validation code:
 
 clearparcel/datawatch/parcel_access.py
 
-The schema is version 2. Each county record captures county and review date,
+The schema is version 3. Its four source-inventory categories retain independent review status,
+availability, checked date, evidence and explicit public source identities. Each county record captures county and review date,
 county_direct_classification, statewide_open_coverage, official county and parcel/GIS URLs,
 download/service and viewer URLs where applicable, parcel fee evidence where applicable,
 evidence notes and source authority, the county-direct machine-readable-source flag, monitoring

@@ -27,6 +27,20 @@ def research_fixture():
 
 
 class ParcelAccessSchemaTests(unittest.TestCase):
+    def test_olmsted_scott_review_retains_static_evidence_and_existing_holds(self):
+        records = load_parcel_access()
+        olmsted = records['Olmsted']
+        self.assertIn('gate', olmsted['source_inventory']['county_download']['finding'].lower())
+        self.assertIn('cached', olmsted['source_inventory']['county_arcgis_rest']['finding'].lower())
+        for name in ('Otter Tail', 'Pipestone', 'Polk', 'Pope', 'Renville', 'Rice', 'Scott'):
+            self.assertIn('esriGeometryPolygon', records[name]['source_inventory']['county_arcgis_rest']['finding'])
+        self.assertEqual(records['Otter Tail']['source_inventory']['county_arcgis_rest']['sources'][0]['layer_id'], 25)
+        self.assertEqual(records['Polk']['source_inventory']['county_arcgis_rest']['sources'][0]['layer_id'], 0)
+        held = {name for name, record in records.items()
+                if record['monitoring']['decision'] == 'hold-for-terms'}
+        self.assertEqual(held, {'Blue Earth', 'Brown', 'Faribault', 'Kandiyohi', 'Lincoln',
+                               'Lake', 'Lyon', 'McLeod'})
+
     def test_inventory_reviews_have_evidence_and_honest_blockers(self):
         from clearparcel.datawatch.parcel_access import INVENTORY_CATEGORIES
         records = load_parcel_access()

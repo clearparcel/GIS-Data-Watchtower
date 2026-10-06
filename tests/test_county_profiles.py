@@ -28,6 +28,51 @@ def compose(state=None, research=None):
 
 
 class CountyProfilesTests(unittest.TestCase):
+    def test_olmsted_scott_inventory_keeps_blocks_products_and_observations_separate(self):
+        research = load_parcel_access()
+        names = ('Olmsted', 'Otter Tail', 'Pipestone', 'Polk', 'Pope',
+                 'Ramsey', 'Renville', 'Rice', 'Scott')
+        profiles = compose(research=research)
+        for name in names:
+            record = research[name]
+            self.assertTrue(record['statewide_open_coverage']['available'])
+            self.assertTrue(all(c['review_status'] != 'pending'
+                                for c in record['source_inventory'].values()))
+            self.assertEqual(record['monitoring']['decision'], 'not-assessed')
+            self.assertIsNone(record['parcel_dataset_fee'])
+            self.assertFalse(profiles[name.lower().replace(' ', '-')]['research']['complete'])
+        for name in ('Olmsted', 'Ramsey'):
+            self.assertEqual(research[name]['source_inventory']['county_arcgis_rest']['review_status'], 'blocked')
+            self.assertEqual(research[name]['source_inventory']['county_arcgis_rest']['availability'], 'unknown')
+            self.assertEqual(research[name]['source_inventory']['county_download']['availability'], 'yes')
+        self.assertFalse(research['Rice']['research_complete'])
+        self.assertFalse(research['Rice']['usable_direct_machine_readable_source'])
+        self.assertIsNone(research['Rice']['county_direct_classification'])
+        self.assertEqual(research['Rice']['source_inventory']['county_download']['availability'], 'unknown')
+        for category in ('mngeo_public_repository', 'county_arcgis_rest'):
+            self.assertEqual(research['Rice']['source_inventory'][category]['availability'], 'yes')
+        state = {'sources': {f'mn-{slug}-parcels-direct': {
+            'id': f'mn-{slug}-parcels-direct', 'county_slug': slug, 'category': 'Parcels',
+            'adapter': 'arcgis_layer', 'status': 'ok', 'checked_at': STAMP,
+            'last_success_at': STAMP, 'feature_count': 42}
+            for slug in ('pipestone', 'rice', 'ramsey', 'scott', 'olmsted')}}
+        profiles = compose(state)
+        for slug, categories in (
+            ('pipestone', ('county_arcgis_rest', 'county_download')),
+            ('rice', ('mngeo_public_repository', 'county_arcgis_rest')),
+            ('ramsey', ('county_download',)),
+            ('scott', ('county_arcgis_rest', 'county_download')),
+        ):
+            for category in categories:
+                source = profiles[slug][category]['sources'][0]
+                self.assertEqual(source['monitored_source_id'], f'mn-{slug}-parcels-direct')
+                self.assertEqual(source['feature_count'], 42)
+        source = profiles['olmsted']['county_download']['sources'][0]
+        self.assertIsNone(source['monitored_source_id'])
+        self.assertIsNone(source['feature_count'])
+        self.assertEqual(profiles['ramsey']['county_arcgis_rest']['availability'], 'unknown')
+        self.assertFalse(profiles['rice']['research']['complete'])
+
     def test_isanti_mower_inventory_preserves_delegation_terms_and_identity(self):
         research = load_parcel_access()
         names = ('Isanti', 'Itasca', 'Koochiching', 'Lake', 'Lyon', 'McLeod',
