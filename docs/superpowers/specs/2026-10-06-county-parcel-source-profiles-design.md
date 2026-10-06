@@ -1,6 +1,6 @@
 # Minnesota county parcel-source profiles
 
-Date: 2026-10-06. Status: **Draft for user review; implementation has not started.**
+Date: 2026-10-06. Status: **User approved on 2026-10-06; implementation-plan review pending.**
 
 ## Intent and scope
 
@@ -11,7 +11,7 @@ MN GAC metric switching, provider compliance, and the separation between
 research conclusions and operational health. Support desktop and 390px mobile.
 
 The user's continuation brief authorizes development and preview deployment.
-This draft defines the requested schema and regression contract before UI work.
+This design defines the requested schema and regression contract before UI work.
 The requested Superpowers architectural workflow requires review of the written
 design and then the implementation plan before product implementation.
 
@@ -281,5 +281,5 @@ production UI/service/data/configuration unchanged, and authoritative provider
 scheduling disabled. Existing St. Louis optional QA fail-soft behavior remains.
 
 Implementation, expanded research, tests and preview deployment remain pending
-design and implementation-plan review; this document records no completed
+implementation-plan review; this document records no completed
 implementation or new provider authorization.
