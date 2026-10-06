@@ -1,4 +1,8 @@
 import unittest
+import html
+import json
+import subprocess
+import shutil
 from clearparcel.datawatch.county_profile_panel import render_county_profile_body, render_county_profile_panel, profile_time
 
 class CountyProfilePanelTests(unittest.TestCase):
@@ -41,3 +45,21 @@ class CountyProfilePanelTests(unittest.TestCase):
         self.assertIn('window.watchtowerRefresh?.pause()',page)
         self.assertNotIn('innerHTML',page)
         self.assertEqual(page.count('<template data-profile='),87)
+
+    @unittest.skipUnless(shutil.which("node"), "JavaScript boundary execution requires Node.js")
+    def test_percentage_class_boundaries_and_legend_match_emitted_javascript(self):
+        from clearparcel.datawatch.county_profile_panel import percentage_color_js, percentage_legend, PERCENT_COLORS, NO_DATA_COLOR
+        values = [0, 19.999, 20, 20.001, 39.999, 40, 40.001, 59.999,
+                  60, 60.001, 79.999, 80, 80.001, 100, None, "", "20"]
+        expected = [PERCENT_COLORS[i] for i in [0, 0, 1, 1, 1, 2, 2, 2,
+                    3, 3, 3, 3, 4, 4]] + [NO_DATA_COLOR] * 3
+        script = percentage_color_js() + "\nconsole.log(JSON.stringify(" + json.dumps(values) + ".map(percentageColor).concat([percentageColor(undefined),percentageColor(NaN),percentageColor(Infinity)])))"
+        result = subprocess.run(["node", "-e", script], check=True, capture_output=True, text=True)
+        self.assertEqual(json.loads(result.stdout), expected + [NO_DATA_COLOR] * 3)
+        self.assertEqual(result.stderr, "")
+    def test_percentage_legend_classes_and_palette(self):
+        from clearparcel.datawatch.county_profile_panel import percentage_legend, PERCENT_COLORS, NO_DATA_COLOR
+        legend = html.unescape(percentage_legend())
+        for color, label in zip([NO_DATA_COLOR] + PERCENT_COLORS,
+                                ["No data", "<20%", "20-40%", "40-60%", "60-80%", ">80%"]):
+            self.assertIn(f'background:{color}"></i>{label}</span>', legend)

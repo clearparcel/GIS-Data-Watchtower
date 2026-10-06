@@ -265,10 +265,13 @@ class PublicDashboardTests(unittest.TestCase):
             self.assertNotIn("PRIVATE-FINGERPRINT", page)
             self.assertNotIn('<form method="post" action="/refresh"', page)
             self.assertIn("CLEARPARCEL GIS DATA WATCHTOWER", page)
-            self.assertIn("Minnesota GIS Data Watchtower", page)
+            self.assertIn("<h1>Minnesota Open Data Watchtower</h1>", page)
             self.assertIn("summary-v2", page)
             self.assertIn("Explore Minnesota GIS data", page)
-            self.assertIn("Counties actively checked", page)
+            self.assertIn("Counties with parcel observations", page)
+            self.assertIn("Dataset/service entries monitored", page)
+            self.assertIn("All data types · entries, not counties or unique providers", page)
+            self.assertIn("One statewide source can cover many counties", page)
             self.assertIn("2/87", page)
             self.assertIn("2 via MnGeo open parcels", page)
             self.assertIn("1 via county-direct sources", page)
@@ -312,7 +315,7 @@ class PublicDashboardTests(unittest.TestCase):
             }
             page = render_public_dashboard(config)
             self.assertIn("CLEARPARCEL GIS DATA WATCHTOWER", page)
-            self.assertIn("Minnesota GIS Data Watchtower", page)
+            self.assertIn("<h1>Minnesota Open Data Watchtower</h1>", page)
             self.assertIn("Explore Minnesota GIS data", page)
             self.assertIn('class="summary-v2"', page)
             self.assertIn('id="mngac-map"', page)
@@ -394,6 +397,32 @@ class PublicDashboardTests(unittest.TestCase):
             self.assertIn("Available free through MnGeo Plan Parcels Open", page)
             self.assertIn("County parcel dataset fee:", page)
             self.assertIn("GIS Data Set - Parcels", page)
+
+    def test_feedback_maps_share_classifier_and_entries_count_all_data_types(self):
+        from unittest.mock import patch
+        from clearparcel.datawatch.dashboard import render_mngac
+        from clearparcel.datawatch.county_profile_panel import percentage_color_js, percentage_legend
+        state = self._state()
+        state["sources"]["imagery"] = {"id": "imagery", "name": "Imagery", "category": "Imagery", "status": "ok"}
+        public = sanitize_public_render_state(state)
+        with patch("clearparcel.datawatch.public_dashboard._dashboard_state", return_value=public):
+            overview = render_public_dashboard({"_public_mode": True})
+        with patch("clearparcel.datawatch.dashboard._dashboard_state", return_value=public):
+            mngac = render_mngac({"_public_mode": True})
+        # Two parcel entries cover two counties, including overlap; imagery adds an entry only.
+        self.assertIn('Dataset/service entries monitored</div><div class="metric">3</div>', overview)
+        self.assertIn('Counties with parcel observations</div><div class="metric">2/87</div>', overview)
+        self.assertIn("2 via MnGeo open parcels · 1 via county-direct sources · each county counted once", overview)
+        for page in (overview, mngac):
+            self.assertIn("<h1>Minnesota Open Data Watchtower</h1>", page)
+            self.assertIn(percentage_color_js(), page)
+        self.assertIn(json.dumps(percentage_legend()), overview)
+        self.assertIn(percentage_legend(), mngac)
+        self.assertIn("const fill=percentageColor", overview)
+        self.assertIn("const color=percentageColor", mngac)
+        for key in ("__overall__", "__mandatory__", "__fields_with_values__"):
+            self.assertIn("if(key==='" + key + "')", mngac)
+        self.assertIn("const f=(c.fields||{})[key]", mngac)
 
 
 if __name__ == "__main__":

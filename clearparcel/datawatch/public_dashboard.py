@@ -318,13 +318,14 @@ def render_public_dashboard(config: dict) -> str:
 
     body = f"""
 <div class="summary-v2">
-  <div class="card"><div class="muted">Sources monitored</div><div class="metric">{len(sources)}</div><span class="subtext">Cloud + provider-restricted local observations</span></div>
-  <div class="card"><div class="muted">Sources healthy</div><div class="metric ok">{healthy}</div><span class="subtext">{issues} currently need attention</span></div>
+  <div class="card"><div class="muted">Dataset/service entries monitored</div><div class="metric">{len(sources)}</div><span class="subtext">All data types · entries, not counties or unique providers</span></div>
+  <div class="card"><div class="muted">Entries healthy</div><div class="metric ok">{healthy}</div><span class="subtext">{issues} currently need attention</span></div>
   <div class="card"><div class="muted">Minnesota counties</div><div class="metric">87</div><span class="subtext">Statewide county profile index</span></div>
-  <div class="card"><div class="muted">Counties actively checked</div><div class="metric">{monitoring["active"]}/87</div><span class="subtext">{monitoring["mngeo_open"]} via MnGeo open parcels · {monitoring["county_direct"]} via county-direct sources · overlap counted once</span></div>
+  <div class="card"><div class="muted">Counties with parcel observations</div><div class="metric">{monitoring["active"]}/87</div><span class="subtext">{monitoring["mngeo_open"]} via MnGeo open parcels · {monitoring["county_direct"]} via county-direct sources · each county counted once</span></div>
   <div class="card"><div class="muted">All-field population</div><div class="metric">{_esc(f"{all_field:.2f}%" if isinstance(all_field,(int,float)) else "—")}</div><span class="subtext">Across all 91 standard fields</span></div>
   <div class="card"><div class="muted">Mandatory-field population</div><div class="metric">{_esc(f"{mandatory:.2f}%" if isinstance(mandatory,(int,float)) else "—")}</div><span class="subtext">Record-weighted statewide rate</span></div>
 </div>
+<p class="mngac-note">A source is a monitored dataset or service entry across any data type. Parcel coverage counts unique counties observed through county-direct or statewide sources. One statewide source can cover many counties; overlapping paths count each county once.</p>
 
 <div class="section-head"><div><h2>Explore Minnesota GIS data</h2><p>Select any county to inspect its complete parcel source profile.</p></div><a href="/counties">All 87 counties →</a></div>
 <div class="hero-panel">

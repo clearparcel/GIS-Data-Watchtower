@@ -146,3 +146,7 @@ A compatible ArcGIS layer can enable the scan with:
 The default batch size is 12. On the current 91-field MnGeo statewide parcel layer this produces eight grouped-statistics requests. Batch size is capped at 20 so a configuration mistake cannot turn the scan into one oversized statistics expression set.
 
 The source must contain `CO_NAME`, `CO_CODE`, an object-id field, and at least some standard GAC fields. Missing standard fields remain explicitly identified in the observation.
+
+## Public map classification
+
+Both public completeness maps, summary modes and individual fields use fixed classes <20%, 20-40%, 40-60%, 60-80%, >80%. Lower bounds are inclusive and upper bounds exclusive, except exactly 80% remains in 60-80%. The legend and fills share their definitions and five-color palette. Zero is observed data in the first class; unavailable values use a separate No data color. The overview's monitoring-path view retains categorical colors. This Task 9 change is pending independent review and preview release; the current preview remains `00004-sv8`/product `5686013`.

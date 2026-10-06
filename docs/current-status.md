@@ -5,9 +5,9 @@ Last validated: **2026-10-06**
 The offline county-profile composer derives all 87 county profiles and parcel coverage counts from current observations and evidence inventory. Explicit source identity joins preserve source-specific facts; catalog discovery and imagery cannot activate parcel monitoring. Unavailable statewide observations remain unknown, and pending category reviews remain incomplete.
 
 
-Overview and MN GAC maps now open one complete county source dialog for every canonical county. Overview offers monitoring-path and completeness coloring; both maps share fixed percentage colors and a separate no-data class. The dialog pauses page refresh, preserves date-only evidence, and displays unknown values explicitly. Local and live preview browser/mobile acceptance passed; scoped final review passed; manual cleanup remains pending.
+Overview and MN GAC maps now open one complete county source dialog for every canonical county. Overview offers monitoring-path and completeness coloring; both maps share fixed percentage colors and a separate no-data class. The dialog pauses page refresh, preserves date-only evidence, and displays unknown values explicitly. Local and live preview browser/mobile acceptance passed; scoped final review passed; manual cleanup was verified complete on 2026-10-06.
 
-County JSON snapshots now include the composed parcel source profile. Statewide county/category CSV routes and the added County Access/Parcel Sources workbook sheets retain all 87 counties and unavailable values; the legacy monitored-source CSV remains compatible. Export regression, full unit validation and isolated preview deployment passed; scoped final review passed; manual cleanup remains pending.
+County JSON snapshots now include the composed parcel source profile. Statewide county/category CSV routes and the added County Access/Parcel Sources workbook sheets retain all 87 counties and unavailable values; the legacy monitored-source CSV remains compatible. Export regression, full unit validation and isolated preview deployment passed; scoped final review passed; manual cleanup was verified complete on 2026-10-06.
 
 ## Release status
 
@@ -143,7 +143,7 @@ pending. County-direct classifications remain 82 resolved (58 free, 13 fee-based
 11 viewer-only), five unresolved, and 11 research holds. Runtime monitoring
 coverage continues to be derived from the supplied current aggregate; these local
 fixtures do not establish new live coverage. The live release below establishes
-current preview coverage; scoped final review passed, while manual cleanup remains pending.
+current preview coverage; scoped final review passed, while manual cleanup was verified complete on 2026-10-06.
 
 Required validation: 186 unittest tests passed with ResourceWarning treated as an
 error; compileall and `git diff --check` passed. Live acceptance is recorded below.
@@ -162,8 +162,8 @@ Publication `2026-10-06T17:15:59.241555+00:00` is manually generated from the
 actual aggregate; no preview scheduler or provider polling was introduced.
 External `/healthz` returns a Google frontend 404, consistent with reserved paths;
 external HTTP 200 health is not claimed. Production services/configuration are unchanged.
-Required validation: 186 tests, compileall and diff checks passed. Private temporary cleanup,
-Scoped final review and validated CI heads are recorded below; manual cleanup remains pending.
+Required validation: 186 tests, compileall and diff checks passed. Private temporary cleanup is verified complete.
+Scoped final review and validated CI heads are recorded below; manual cleanup was verified complete on 2026-10-06.
 See [resource isolation, validation and limitations](google-cloud-deployment.md#final-committed-preview-release-2026-10-06).
 
 
@@ -199,4 +199,14 @@ closing, over 40 seconds later refresh restored monitoring mode and “Choose a 
 IAB viewport reset to 1280px/page 1265px. Prior Chrome follow-up timeouts remain a tool
 limitation; Chrome cleanup is not claimed. Product head 5686013 and operational
 docs head c2c97e2 were pushed with both CI runs successful for each. Required manual
-local temporary cleanup remains open; the controller checks eventual final PR-head CI.
+local temporary cleanup was verified complete on 2026-10-06; the controller checks eventual final PR-head CI.
+
+## Task 9 browser feedback (2026-10-06; review/release pending)
+
+Source now uses the shared public header `Minnesota Open Data Watchtower`. Both maps, summary modes and individual fields share <20%, 20-40%, 40-60%, 60-80%, >80% fill/legend definitions: lower bounds inclusive, upper bounds exclusive except exactly 80 belongs to 60-80. True zero uses the first class; unavailable observations retain No data. Monitoring-path colors remain categorical.
+
+Overview helpers distinguish all-type monitored dataset/service entries from unique counties with parcel observations. One statewide entry can cover many counties; overlapping paths count each county once. Derived counts, all 87 profiles, source identities, privacy, export contracts and provider holds are preserved.
+
+Root verified the user's deletion of `C:/Users/sgert/AppData/Local/Temp/watchtower-task8-b342b5d` with Test-Path returning False. The cloud temporary build object was already verified deleted. Historical automatic-review denials and the Benton archive incident remain recorded; old Chrome cleanup remains unverified, while root IAB viewport reset was verified. The active parent workflow continues this feedback task. Preview still runs `00004-sv8`/product `5686013`; Task 9 independent review and separate committed preview release remain pending. No deployment or provider action occurred in this task.
+
+Task 9 required validation: 196 tests passed with ResourceWarning treated as an error; compileall and git diff --check passed. Independent review and preview release remain pending.

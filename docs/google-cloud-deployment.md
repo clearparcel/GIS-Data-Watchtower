@@ -199,7 +199,7 @@ closing, over 40 seconds later refresh restored monitoring mode and “Choose a 
 IAB viewport reset to 1280px/page 1265px. Prior Chrome follow-up timeouts remain a tool
 limitation; Chrome cleanup is not claimed. Product head 5686013 and operational
 docs head c2c97e2 were pushed with both CI runs successful for each. Required manual
-local temporary cleanup remains open; the controller checks eventual final PR-head CI.
+local temporary cleanup was verified complete on 2026-10-06; the controller checks eventual final PR-head CI.
 
 
 ## Final committed preview release (2026-10-06)
@@ -221,8 +221,8 @@ the stable inventory product. Final desktop/mobile screenshots were inspected.
 
 The exact owned Cloud Build source upload was removed with its verified generation
 precondition; follow-up returned not found. The original local Task8 temporary
-folder remains pending user deletion because automatic approval review blocked
-local cleanup. No new raw file was created for this release. The preview still
+folder was deleted by the user; root verified Test-Path returned False on
+2026-10-06. Earlier automatic approval review denials remain historical. No new raw file was created for this release. The preview still
 requires manual fresh republication after 30 minutes; external healthz remains a
 Cloud Run frontend reserved-path limitation. Final browser follow-up availability
 is limited as described above. Production revisions remain 00006-82c/00011-t4l,
@@ -230,4 +230,4 @@ production bucket IAM etag CAQ= and only existing publisher scheduler unchanged.
 Scoped operational review found no new Critical/Important issues. Product head
 5686013 CI runs 37506186256/37506177179 and docs head c2c97e2 runs 37507753259/
 37507744905 succeeded. Evidence is pinned to these validated heads; the controller
-checks the final PR head after publishing documentation. Manual cleanup remains open.
+checks the final PR head after publishing documentation. Manual cleanup was verified complete on 2026-10-06.

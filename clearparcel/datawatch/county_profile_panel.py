@@ -9,6 +9,10 @@ from .public_values import safe_public_url
 GROUPS = (("mngac_public_parcels", "MN GAC Public Parcels"), ("mngeo_public_repository", "MnGeo Public County Repository"), ("county_arcgis_rest", "County ArcGIS REST"), ("county_download", "County Website Download"))
 PERCENT_COLORS = ["#1b2b40", "#263d59", "#315373", "#3c708f", "#4c9b7b"]
 NO_DATA_COLOR = "#151d2b"
+# Fixed classes shared by both map fills and legends; exactly 80 stays in 60-80.
+PERCENT_BINS = (("<20%", 20, False), ("20-40%", 40, False),
+                ("40-60%", 60, False), ("60-80%", 80, True),
+                (">80%", None, False))
 
 def profile_time(value: object) -> str:
     """Preserve calendar dates and convert only aware instants to Central."""
@@ -70,13 +74,18 @@ def _json(value: object) -> str:
 
 def percentage_color_js() -> str:
     """Shared percentage classifier; null is distinct from observed zero."""
-    return "function percentageColor(value){if(typeof value!=='number')return " + json.dumps(NO_DATA_COLOR) + ";const colors=" + json.dumps(PERCENT_COLORS) + ";const breaks=[25,50,75,90];return colors[breaks.filter(edge=>value>=edge).length]}"
+    classes = [{"upper": upper, "inclusive": inclusive, "color": color}
+               for color, (_, upper, inclusive) in zip(PERCENT_COLORS, PERCENT_BINS)]
+    return ("function percentageColor(value){if(typeof value!=='number'||!Number.isFinite(value))return "
+            + json.dumps(NO_DATA_COLOR) + ";const classes=" + json.dumps(classes)
+            + ";return classes.find(bin=>bin.upper===null||value<bin.upper||"
+              "(bin.inclusive&&value===bin.upper)).color}")
 
 
 def percentage_legend() -> str:
     """Use the same fixed breaks and colors as both maps."""
-    values = [(NO_DATA_COLOR, "No data"), *zip(PERCENT_COLORS, ["0–<25%", "25–<50%", "50–<75%", "75–<90%", "90–100%"])]
-    return '<div class="mngac-legend" aria-label="Map legend">' + ''.join(f'<span><i class="mngac-swatch" style="background:{color}"></i>{label}</span>' for color, label in values) + '</div>'
+    values = [(NO_DATA_COLOR, "No data"), *zip(PERCENT_COLORS, [label for label, _, _ in PERCENT_BINS])]
+    return '<div class="mngac-legend" aria-label="Map legend">' + ''.join(f'<span><i class="mngac-swatch" style="background:{color}"></i>{html.escape(label)}</span>' for color, label in values) + '</div>'
 
 def render_county_profile_panel(profiles: dict[str, dict]) -> str:
     """Return exact JSON profiles, trusted escaped templates and a native dialog."""

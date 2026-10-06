@@ -203,7 +203,7 @@ set grid children to `min-width: 0`, and bound height with internal scrolling.
 Do not rely on page refreshes that close a panel while it is being read.
 
 Keep "No data" visually distinct from zero. Use fixed, nonoverlapping percentage
-classes and a legend matching actual dark fills. The existing MN GAC markup
+classes <20%, 20-40%, 40-60%, 60-80%, >80% and a legend matching actual dark fills. Lower bounds are inclusive; upper bounds are exclusive except exactly 80 belongs to 60-80. The existing MN GAC markup
 uses light legend swatches even in public mode; reconcile swatches with the
 renderer. Boundary input is MnGeo EPSG:26915, simplified at 500m, rendered as
 SVG. No geometry, projection or area analysis changes are required.
@@ -282,5 +282,5 @@ scheduling disabled. Existing St. Louis optional QA fail-soft behavior remains.
 
 Tasks 1–6 have implemented and reviewed the schema, expanded evidence inventory,
 composition, safe metadata, shared panel and exports. Task 7 passed local acceptance and review;
-Task 8 preview revision `00003-xzg` passed live validation; independent final review and private temporary cleanup remain pending.
+Task 8 final preview revision `00004-sv8` (product `5686013`) passed live validation and scoped final review. The user deleted the original temporary folder; root verified its absence on 2026-10-06. Task 9 applies later direct browser feedback; independent review and a separate preview release remain pending.
 Implementation and research do not grant new provider authorization.

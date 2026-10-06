@@ -227,7 +227,7 @@ def _public_layout_v2(title: str, body: str, *, refresh_seconds: int = 30) -> st
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 {refresh_meta}<title>{_esc(title)}</title><style>{_PUBLIC_V2_CSS}</style></head><body>
 <header class="public-header">
-  <div><div class="brand-eyebrow">CLEARPARCEL GIS DATA WATCHTOWER</div><h1>Minnesota GIS Data Watchtower</h1></div>
+  <div><div class="brand-eyebrow">CLEARPARCEL GIS DATA WATCHTOWER</div><h1>Minnesota Open Data Watchtower</h1></div>
   <div class="live-state"><span class="live-dot"></span><span>PUBLIC · LIVE</span></div>
 </header>
 <main class="public-main">

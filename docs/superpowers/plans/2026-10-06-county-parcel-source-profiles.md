@@ -10,7 +10,7 @@
 
 **Spec:** [Approved design](../specs/2026-10-06-county-parcel-source-profiles-design.md), approved by the user on 2026-10-06.
 
-Status: **User approved on 2026-10-06; Subagent-driven execution selected. Tasks 1–7 implemented and reviewed. Task 8 isolated preview deployed and live validation passed; scoped task/final review passed, manual private cleanup pending.**
+Status: **User approved on 2026-10-06; Subagent-driven execution selected. Tasks 1–7 implemented and reviewed. Task 8 isolated preview deployed and live validation passed; scoped task/final review passed, manual private cleanup verified complete.**
 
 ## Global Constraints
 
@@ -185,11 +185,11 @@ Website Download`.
 - [x] Upload the validated sanitized snapshot only under an isolated preview namespace. Prefer existing preview-scoped read permissions. If a broader/security-sensitive grant would be necessary, prepare the exact object-scoped change and seek explicit approval; never grant the anonymous preview service raw aggregate/registry access.
 - [x] Keep the preview snapshot current by manually republishing from a fresh aggregate read when needed during QA, not by editing timestamps or introducing a scheduler. If a refresh is not possible, show the real overdue state and document the preview limitation.
 - [x] Before build, inspect `git status`, `git diff` and staged diff; require all intended product changes committed. Export `git archive HEAD` to a fresh temporary build directory and run Cloud Build from that directory only. Never submit the working directory containing private/untracked files.
-- [ ] Delete the temporary archive/build context after the release; scoped cleanup remains pending.
+- [x] Delete the temporary archive/build context after the release; user deletion of the original Task 8 folder was verified by root with Test-Path returning False on 2026-10-06. The cloud temporary source deletion was already verified.
 - [x] Deploy the built immutable image digest to the named preview service with the isolated sanitized object and required preview-only identity settings. Preserve production UI/service/publisher/data/configuration and all provider schedules.
 - [x] Query the deployed service/revision and live profile/export data; recompute coverage from its current aggregate rather than hard-coding 70. If still the validated baseline, require 70/87 = 59 + 24 - 13. Verify all panel groups, source-specific counts/dates, links, metric switching, keyboard behavior and 390px overflow on the actual preview.
-- [ ] Verify Cloud Run source-level results and aggregate provenance used in the snapshot; a successful container exit alone is insufficient. Confirm no source activation, production write, merge or scheduler change occurred. Delete all temporary raw/config/evidence artifacts.
-- [x] Update docs and PR #42 with architecture, actual review status, tests, revision and visual evidence; both PRs remain draft/unmerged. Product 5686013 and operational docs c2c97e2 were pushed and both CI runs passed for each. Controller verifies the eventual final PR head; temporary cleanup remains unchecked.
+- [x] Verify Cloud Run source-level results and aggregate provenance used in the snapshot; a successful container exit alone is insufficient. Confirm no source activation, production write, merge or scheduler change occurred. Delete all temporary raw/config/evidence artifacts.
+- [x] Update docs and PR #42 with architecture, actual review status, tests, revision and visual evidence; both PRs remain draft/unmerged. Product 5686013 and operational docs c2c97e2 were pushed and both CI runs passed for each. Controller verifies the eventual final PR head; temporary cleanup is verified complete.
 
 
 ## Concrete regression assertions
@@ -244,7 +244,7 @@ Selected execution: **Subagent-driven**, explicitly selected by the user on
 reviewers, preserving the approved privacy, provider and deployment constraints.
 Task 8 release/live checks and scoped final review passed; validated CI heads are recorded below. Manual cleanup remains pending. Astra has no approval.
 
-Task 8 historical initial state: revision `00003-xzg`, committed `b342b5d` immutable `f7134713…` image; dedicated preview storage and identity. Live 87-profile/400-product-row JSON/CSV/XLSX parity, 696 browser county activations, desktop/390px, actual 35/35 OK with cloud=31/local=4 and coverage 70=59+24-13 passed. External healthz is blocked by the Cloud Run frontend reserved path; no external HTTP 200 claim. Automatic approval review blocked verified raw-file cleanup; user assistance and final review are pending. See deployment/status release evidence.
+Task 8 historical initial state: revision `00003-xzg`, committed `b342b5d` immutable `f7134713…` image; dedicated preview storage and identity. Live 87-profile/400-product-row JSON/CSV/XLSX parity, 696 browser county activations, desktop/390px, actual 35/35 OK with cloud=31/local=4 and coverage 70=59+24-13 passed. External healthz is blocked by the Cloud Run frontend reserved path; no external HTTP 200 claim. At that historical stage automatic approval review blocked verified raw-file cleanup and user assistance/final review were pending; both were resolved as recorded in the Task 9 cleanup reconciliation below. See deployment/status release evidence.
 
 
 ## Final review product fixes and deployed preview
@@ -279,6 +279,20 @@ closing, over 40 seconds later refresh restored monitoring mode and “Choose a 
 IAB viewport reset to 1280px/page 1265px. Prior Chrome follow-up timeouts remain a tool
 limitation; Chrome cleanup is not claimed. Product head 5686013 and operational
 docs head c2c97e2 were pushed with both CI runs successful for each. Required manual
-local temporary cleanup remains open; the controller checks eventual final PR-head CI.
+local temporary cleanup was verified complete on 2026-10-06; the controller checks eventual final PR-head CI.
 
-Final Task 8 release: product `5686013`, revision `00004-sv8`, immutable `bbb526e8…` image; actual 350 category/product rows with 87-profile JSON/CSV/XLSX parity and 59 single official statewide products. No new raw disk copy. Required 193 tests passed. Final targeted browser checks and verified screenshots passed; controller fresh IAB verified refresh pause/resume and viewport reset after the Chrome follow-up timeout. Cloud temporary source removed; manual local cleanup remains pending.
+Final Task 8 release: product `5686013`, revision `00004-sv8`, immutable `bbb526e8…` image; actual 350 category/product rows with 87-profile JSON/CSV/XLSX parity and 59 single official statewide products. No new raw disk copy. Required 193 tests passed. Final targeted browser checks and verified screenshots passed; controller fresh IAB verified refresh pause/resume and viewport reset after the Chrome follow-up timeout. Cloud temporary source removed; manual local cleanup was verified complete on 2026-10-06.
+
+## Task 9 browser feedback (2026-10-06; review/release pending)
+
+Source now uses the shared public header `Minnesota Open Data Watchtower`. Both maps, summary modes and individual fields share <20%, 20-40%, 40-60%, 60-80%, >80% fill/legend definitions: lower bounds inclusive, upper bounds exclusive except exactly 80 belongs to 60-80. True zero uses the first class; unavailable observations retain No data. Monitoring-path colors remain categorical.
+
+Overview helpers distinguish all-type monitored dataset/service entries from unique counties with parcel observations. One statewide entry can cover many counties; overlapping paths count each county once. Derived counts, all 87 profiles, source identities, privacy, export contracts and provider holds are preserved.
+
+Root verified the user's deletion of `C:/Users/sgert/AppData/Local/Temp/watchtower-task8-b342b5d` with Test-Path returning False. The cloud temporary build object was already verified deleted. Historical automatic-review denials and the Benton archive incident remain recorded; old Chrome cleanup remains unverified, while root IAB viewport reset was verified. The active parent workflow continues this feedback task. Preview still runs `00004-sv8`/product `5686013`; Task 9 independent review and separate committed preview release remain pending. No deployment or provider action occurred in this task.
+
+- [x] Apply approved title, shared percentage classes and entry/county metric explanations.
+- [x] Reconcile verified Task 8 local/cloud cleanup while preserving historical denials.
+- [x] Run focused regressions and required validation: 196 tests, compileall, diff check passed.
+- [ ] Complete independent Task 9 review.
+- [ ] Build committed content and release separately to the existing preview; current revision stays `00004-sv8` until then.
