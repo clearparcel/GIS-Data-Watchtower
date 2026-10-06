@@ -163,3 +163,25 @@ external HTTP 200 health is not claimed. Production services/configuration are u
 Required validation: 186 tests, compileall and diff checks passed. Private temporary cleanup,
 final documentation push/CI and independent final review remain pending.
 See [resource isolation, validation and limitations](google-cloud-deployment.md#isolated-county-profile-preview-release-2026-10-06).
+
+
+## Final review product fixes (pending preview release)
+
+Public sanitation now projects typed source, worker, count, catalog and MN GAC
+leaves and completeness metrics. Raw completeness errors and unknown nested
+payloads are omitted; a second sanitation pass preserves the public result.
+All 59 inventories for the exact vetted MnGeo Plan Parcels Open official item
+carry `mn-state-parcels` identity and a consistent product name. Fifty newly
+linked inventories now retain their stable inventory IDs and approved links on
+the row receiving that county's current observed count. Historical membership
+cannot supply a missing observation or count; other products remain separate.
+
+Offline composition produces 87 profiles and 348 category/product rows both
+without observations and with a synthetic 59-member statewide observation.
+For the unchanged aggregate used by old preview `00003-xzg`, removing its 50
+duplicate rows projects 350 rows (400 minus 50). This is an offline projection,
+not fresh live acceptance or a fixed row-count requirement. The deployed
+`b342b5d` preview still has the previously measured 400 rows until a new committed
+build, isolated redeploy and actual live validation. The product fixes pass 193
+ResourceWarning-strict unittest tests, compileall and diff checks. Independent
+fix review and required manual private temporary cleanup remain pending.

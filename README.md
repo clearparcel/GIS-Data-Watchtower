@@ -23,6 +23,12 @@ ClearParcel also operates a read-only public dashboard at **https://gis-watchtow
 - Both county maps open the same complete profile with click, Enter or Space. Escape closes the dialog and returns focus; overview refresh pauses while reading. Desktop and 390px layouts wrap long source/evidence values. Public publication reporting is Current, Overdue or Unknown using the `/healthz` threshold, separately from provider health and source reporting.
 - Profile coverage includes all 87 counties. The current evidence has 16 fully reviewed category inventories and 15 complete composed profiles; blocked evidence and unresolved county-direct access remain explicit. Monitoring coverage is derived from current observations.
 
+Public snapshots use typed projections for source metrics, completeness, workers,
+counts and catalog facts; private diagnostics and arbitrary nested values are
+omitted. Matching official statewide products retain one vetted inventory identity,
+with current county observations joined by source ID. Export row counts derive
+from the composed inventory and observations, including empty-category rows.
+
 Watchtower is designed for **low-frequency, respectful monitoring**. It is not a bulk downloader or a scraper for human-facing property-search websites.
 
 ## Install

@@ -161,7 +161,7 @@
           "sources": [
             {
               "inventory_id": "aitkin:mngac_public_parcels:1",
-              "name": "Aitkin parcel dataset",
+              "name": "MnGeo Plan Parcels Open",
               "authority": "statewide",
               "dataset_type": "Statewide parcel compilation",
               "layer_id": null,
@@ -175,7 +175,8 @@
               "monitoring_decision": "not-assessed",
               "evidence": [
                 "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
-              ]
+              ],
+              "monitored_source_id": "mn-state-parcels"
             }
           ]
         },
@@ -453,7 +454,7 @@
           "sources": [
             {
               "inventory_id": "anoka:mngac_public_parcels:1",
-              "name": "Anoka parcel dataset",
+              "name": "MnGeo Plan Parcels Open",
               "authority": "statewide",
               "dataset_type": "Statewide parcel compilation",
               "layer_id": null,
@@ -467,7 +468,8 @@
               "monitoring_decision": "not-assessed",
               "evidence": [
                 "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
-              ]
+              ],
+              "monitored_source_id": "mn-state-parcels"
             }
           ]
         },
@@ -719,7 +721,7 @@
           "sources": [
             {
               "inventory_id": "becker:mngac_public_parcels:1",
-              "name": "Becker parcel dataset",
+              "name": "MnGeo Plan Parcels Open",
               "authority": "statewide",
               "dataset_type": "Statewide parcel compilation",
               "layer_id": null,
@@ -733,7 +735,8 @@
               "monitoring_decision": "not-assessed",
               "evidence": [
                 "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
-              ]
+              ],
+              "monitored_source_id": "mn-state-parcels"
             }
           ]
         },
@@ -1207,7 +1210,7 @@
           "sources": [
             {
               "inventory_id": "benton:mngac_public_parcels:1",
-              "name": "Benton parcel dataset",
+              "name": "MnGeo Plan Parcels Open",
               "authority": "statewide",
               "dataset_type": "Statewide parcel compilation",
               "layer_id": null,
@@ -1221,7 +1224,8 @@
               "monitoring_decision": "not-assessed",
               "evidence": [
                 "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
-              ]
+              ],
+              "monitored_source_id": "mn-state-parcels"
             }
           ]
         },
@@ -1447,7 +1451,7 @@
           "sources": [
             {
               "inventory_id": "big-stone:mngac_public_parcels:1",
-              "name": "Big Stone parcel dataset",
+              "name": "MnGeo Plan Parcels Open",
               "authority": "statewide",
               "dataset_type": "Statewide parcel compilation",
               "layer_id": null,
@@ -1461,7 +1465,8 @@
               "monitoring_decision": "not-assessed",
               "evidence": [
                 "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
-              ]
+              ],
+              "monitored_source_id": "mn-state-parcels"
             }
           ]
         },
@@ -2169,7 +2174,7 @@
           "sources": [
             {
               "inventory_id": "carlton:mngac_public_parcels:1",
-              "name": "Carlton parcel dataset",
+              "name": "MnGeo Plan Parcels Open",
               "authority": "statewide",
               "dataset_type": "Statewide parcel compilation",
               "layer_id": null,
@@ -2183,7 +2188,8 @@
               "monitoring_decision": "not-assessed",
               "evidence": [
                 "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
-              ]
+              ],
+              "monitored_source_id": "mn-state-parcels"
             }
           ]
         },
@@ -2439,7 +2445,7 @@
           "sources": [
             {
               "inventory_id": "carver:mngac_public_parcels:1",
-              "name": "Carver parcel dataset",
+              "name": "MnGeo Plan Parcels Open",
               "authority": "statewide",
               "dataset_type": "Statewide parcel compilation",
               "layer_id": null,
@@ -2453,7 +2459,8 @@
               "monitoring_decision": "not-assessed",
               "evidence": [
                 "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
-              ]
+              ],
+              "monitored_source_id": "mn-state-parcels"
             }
           ]
         },
@@ -2724,7 +2731,7 @@
           "sources": [
             {
               "inventory_id": "cass:mngac_public_parcels:1",
-              "name": "Cass parcel dataset",
+              "name": "MnGeo Plan Parcels Open",
               "authority": "statewide",
               "dataset_type": "Statewide parcel compilation",
               "layer_id": null,
@@ -2738,7 +2745,8 @@
               "monitoring_decision": "not-assessed",
               "evidence": [
                 "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
-              ]
+              ],
+              "monitored_source_id": "mn-state-parcels"
             }
           ]
         },
@@ -2963,7 +2971,7 @@
           "sources": [
             {
               "inventory_id": "chippewa:mngac_public_parcels:1",
-              "name": "Chippewa parcel dataset",
+              "name": "MnGeo Plan Parcels Open",
               "authority": "statewide",
               "dataset_type": "Statewide parcel compilation",
               "layer_id": null,
@@ -2977,7 +2985,8 @@
               "monitoring_decision": "not-assessed",
               "evidence": [
                 "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
-              ]
+              ],
+              "monitored_source_id": "mn-state-parcels"
             }
           ]
         },
@@ -3226,7 +3235,7 @@
           "sources": [
             {
               "inventory_id": "chisago:mngac_public_parcels:1",
-              "name": "Chisago parcel dataset",
+              "name": "MnGeo Plan Parcels Open",
               "authority": "statewide",
               "dataset_type": "Statewide parcel compilation",
               "layer_id": null,
@@ -3240,7 +3249,8 @@
               "monitoring_decision": "not-assessed",
               "evidence": [
                 "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
-              ]
+              ],
+              "monitored_source_id": "mn-state-parcels"
             }
           ]
         },
@@ -3474,7 +3484,7 @@
           "sources": [
             {
               "inventory_id": "clay:mngac_public_parcels:1",
-              "name": "Clay parcel dataset",
+              "name": "MnGeo Plan Parcels Open",
               "authority": "statewide",
               "dataset_type": "Statewide parcel compilation",
               "layer_id": null,
@@ -3488,7 +3498,8 @@
               "monitoring_decision": "not-assessed",
               "evidence": [
                 "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
-              ]
+              ],
+              "monitored_source_id": "mn-state-parcels"
             }
           ]
         },
@@ -3719,7 +3730,7 @@
           "sources": [
             {
               "inventory_id": "clearwater:mngac_public_parcels:1",
-              "name": "Clearwater parcel dataset",
+              "name": "MnGeo Plan Parcels Open",
               "authority": "statewide",
               "dataset_type": "Statewide parcel compilation",
               "layer_id": null,
@@ -3733,7 +3744,8 @@
               "monitoring_decision": "not-assessed",
               "evidence": [
                 "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
-              ]
+              ],
+              "monitored_source_id": "mn-state-parcels"
             }
           ]
         },
@@ -3960,7 +3972,7 @@
           "sources": [
             {
               "inventory_id": "cook:mngac_public_parcels:1",
-              "name": "Cook parcel dataset",
+              "name": "MnGeo Plan Parcels Open",
               "authority": "statewide",
               "dataset_type": "Statewide parcel compilation",
               "layer_id": null,
@@ -3974,7 +3986,8 @@
               "monitoring_decision": "not-assessed",
               "evidence": [
                 "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
-              ]
+              ],
+              "monitored_source_id": "mn-state-parcels"
             }
           ]
         },
@@ -4412,7 +4425,7 @@
           "sources": [
             {
               "inventory_id": "crow-wing:mngac_public_parcels:1",
-              "name": "Crow Wing parcel dataset",
+              "name": "MnGeo Plan Parcels Open",
               "authority": "statewide",
               "dataset_type": "Statewide parcel compilation",
               "layer_id": null,
@@ -4426,7 +4439,8 @@
               "monitoring_decision": "not-assessed",
               "evidence": [
                 "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
-              ]
+              ],
+              "monitored_source_id": "mn-state-parcels"
             }
           ]
         },
@@ -4680,7 +4694,7 @@
           "sources": [
             {
               "inventory_id": "dakota:mngac_public_parcels:1",
-              "name": "Dakota parcel dataset",
+              "name": "MnGeo Plan Parcels Open",
               "authority": "statewide",
               "dataset_type": "Statewide parcel compilation",
               "layer_id": null,
@@ -4694,7 +4708,8 @@
               "monitoring_decision": "not-assessed",
               "evidence": [
                 "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
-              ]
+              ],
+              "monitored_source_id": "mn-state-parcels"
             }
           ]
         },
@@ -5189,7 +5204,7 @@
           "sources": [
             {
               "inventory_id": "douglas:mngac_public_parcels:1",
-              "name": "Douglas parcel dataset",
+              "name": "MnGeo Plan Parcels Open",
               "authority": "statewide",
               "dataset_type": "Statewide parcel compilation",
               "layer_id": null,
@@ -5203,7 +5218,8 @@
               "monitoring_decision": "not-assessed",
               "evidence": [
                 "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
-              ]
+              ],
+              "monitored_source_id": "mn-state-parcels"
             }
           ]
         },
@@ -5697,7 +5713,7 @@
           "sources": [
             {
               "inventory_id": "fillmore:mngac_public_parcels:1",
-              "name": "Fillmore parcel dataset",
+              "name": "MnGeo Plan Parcels Open",
               "authority": "statewide",
               "dataset_type": "Statewide parcel compilation",
               "layer_id": null,
@@ -5711,7 +5727,8 @@
               "monitoring_decision": "not-assessed",
               "evidence": [
                 "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
-              ]
+              ],
+              "monitored_source_id": "mn-state-parcels"
             }
           ]
         },
@@ -6376,7 +6393,7 @@
           "sources": [
             {
               "inventory_id": "grant:mngac_public_parcels:1",
-              "name": "Grant parcel dataset",
+              "name": "MnGeo Plan Parcels Open",
               "authority": "statewide",
               "dataset_type": "Statewide parcel compilation",
               "layer_id": null,
@@ -6390,7 +6407,8 @@
               "monitoring_decision": "not-assessed",
               "evidence": [
                 "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
-              ]
+              ],
+              "monitored_source_id": "mn-state-parcels"
             }
           ]
         },
@@ -6639,7 +6657,7 @@
           "sources": [
             {
               "inventory_id": "hennepin:mngac_public_parcels:1",
-              "name": "Hennepin parcel dataset",
+              "name": "MnGeo Plan Parcels Open",
               "authority": "statewide",
               "dataset_type": "Statewide parcel compilation",
               "layer_id": null,
@@ -6653,7 +6671,8 @@
               "monitoring_decision": "not-assessed",
               "evidence": [
                 "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
-              ]
+              ],
+              "monitored_source_id": "mn-state-parcels"
             }
           ]
         },
@@ -6929,7 +6948,7 @@
           "sources": [
             {
               "inventory_id": "houston:mngac_public_parcels:1",
-              "name": "Houston parcel dataset",
+              "name": "MnGeo Plan Parcels Open",
               "authority": "statewide",
               "dataset_type": "Statewide parcel compilation",
               "layer_id": null,
@@ -6943,7 +6962,8 @@
               "monitoring_decision": "not-assessed",
               "evidence": [
                 "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
-              ]
+              ],
+              "monitored_source_id": "mn-state-parcels"
             }
           ]
         },
@@ -7459,7 +7479,7 @@
           "sources": [
             {
               "inventory_id": "isanti:mngac_public_parcels:1",
-              "name": "Isanti parcel dataset",
+              "name": "MnGeo Plan Parcels Open",
               "authority": "statewide",
               "dataset_type": "Statewide parcel compilation",
               "layer_id": null,
@@ -7473,7 +7493,8 @@
               "monitoring_decision": "not-assessed",
               "evidence": [
                 "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
-              ]
+              ],
+              "monitored_source_id": "mn-state-parcels"
             }
           ]
         },
@@ -7710,7 +7731,7 @@
           "sources": [
             {
               "inventory_id": "itasca:mngac_public_parcels:1",
-              "name": "Itasca parcel dataset",
+              "name": "MnGeo Plan Parcels Open",
               "authority": "statewide",
               "dataset_type": "Statewide parcel compilation",
               "layer_id": null,
@@ -7724,7 +7745,8 @@
               "monitoring_decision": "not-assessed",
               "evidence": [
                 "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
-              ]
+              ],
+              "monitored_source_id": "mn-state-parcels"
             }
           ]
         },
@@ -8769,7 +8791,7 @@
           "sources": [
             {
               "inventory_id": "koochiching:mngac_public_parcels:1",
-              "name": "Koochiching parcel dataset",
+              "name": "MnGeo Plan Parcels Open",
               "authority": "statewide",
               "dataset_type": "Statewide parcel compilation",
               "layer_id": null,
@@ -8783,7 +8805,8 @@
               "monitoring_decision": "not-assessed",
               "evidence": [
                 "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
-              ]
+              ],
+              "monitored_source_id": "mn-state-parcels"
             }
           ]
         },
@@ -9267,7 +9290,7 @@
           "sources": [
             {
               "inventory_id": "lake:mngac_public_parcels:1",
-              "name": "Lake parcel dataset",
+              "name": "MnGeo Plan Parcels Open",
               "authority": "statewide",
               "dataset_type": "Statewide parcel compilation",
               "layer_id": null,
@@ -9281,7 +9304,8 @@
               "monitoring_decision": "not-assessed",
               "evidence": [
                 "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
-              ]
+              ],
+              "monitored_source_id": "mn-state-parcels"
             }
           ]
         },
@@ -10178,7 +10202,7 @@
           "sources": [
             {
               "inventory_id": "lyon:mngac_public_parcels:1",
-              "name": "Lyon parcel dataset",
+              "name": "MnGeo Plan Parcels Open",
               "authority": "statewide",
               "dataset_type": "Statewide parcel compilation",
               "layer_id": null,
@@ -10192,7 +10216,8 @@
               "monitoring_decision": "not-assessed",
               "evidence": [
                 "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
-              ]
+              ],
+              "monitored_source_id": "mn-state-parcels"
             }
           ]
         },
@@ -11043,7 +11068,7 @@
           "sources": [
             {
               "inventory_id": "mcleod:mngac_public_parcels:1",
-              "name": "McLeod parcel dataset",
+              "name": "MnGeo Plan Parcels Open",
               "authority": "statewide",
               "dataset_type": "Statewide parcel compilation",
               "layer_id": null,
@@ -11057,7 +11082,8 @@
               "monitoring_decision": "not-assessed",
               "evidence": [
                 "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
-              ]
+              ],
+              "monitored_source_id": "mn-state-parcels"
             }
           ]
         },
@@ -11515,7 +11541,7 @@
           "sources": [
             {
               "inventory_id": "mille-lacs:mngac_public_parcels:1",
-              "name": "Mille Lacs parcel dataset",
+              "name": "MnGeo Plan Parcels Open",
               "authority": "statewide",
               "dataset_type": "Statewide parcel compilation",
               "layer_id": null,
@@ -11529,7 +11555,8 @@
               "monitoring_decision": "not-assessed",
               "evidence": [
                 "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
-              ]
+              ],
+              "monitored_source_id": "mn-state-parcels"
             }
           ]
         },
@@ -11755,7 +11782,7 @@
           "sources": [
             {
               "inventory_id": "morrison:mngac_public_parcels:1",
-              "name": "Morrison parcel dataset",
+              "name": "MnGeo Plan Parcels Open",
               "authority": "statewide",
               "dataset_type": "Statewide parcel compilation",
               "layer_id": null,
@@ -11769,7 +11796,8 @@
               "monitoring_decision": "not-assessed",
               "evidence": [
                 "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
-              ]
+              ],
+              "monitored_source_id": "mn-state-parcels"
             }
           ]
         },
@@ -12030,7 +12058,7 @@
           "sources": [
             {
               "inventory_id": "mower:mngac_public_parcels:1",
-              "name": "Mower parcel dataset",
+              "name": "MnGeo Plan Parcels Open",
               "authority": "statewide",
               "dataset_type": "Statewide parcel compilation",
               "layer_id": null,
@@ -12044,7 +12072,8 @@
               "monitoring_decision": "not-assessed",
               "evidence": [
                 "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
-              ]
+              ],
+              "monitored_source_id": "mn-state-parcels"
             }
           ]
         },
@@ -13120,7 +13149,7 @@
           "sources": [
             {
               "inventory_id": "olmsted:mngac_public_parcels:1",
-              "name": "Olmsted parcel dataset",
+              "name": "MnGeo Plan Parcels Open",
               "authority": "statewide",
               "dataset_type": "Statewide parcel compilation",
               "layer_id": null,
@@ -13134,7 +13163,8 @@
               "monitoring_decision": "not-assessed",
               "evidence": [
                 "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
-              ]
+              ],
+              "monitored_source_id": "mn-state-parcels"
             }
           ]
         },
@@ -13370,7 +13400,7 @@
           "sources": [
             {
               "inventory_id": "otter-tail:mngac_public_parcels:1",
-              "name": "Otter Tail parcel dataset",
+              "name": "MnGeo Plan Parcels Open",
               "authority": "statewide",
               "dataset_type": "Statewide parcel compilation",
               "layer_id": null,
@@ -13384,7 +13414,8 @@
               "monitoring_decision": "not-assessed",
               "evidence": [
                 "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
-              ]
+              ],
+              "monitored_source_id": "mn-state-parcels"
             }
           ]
         },
@@ -14032,7 +14063,7 @@
           "sources": [
             {
               "inventory_id": "pipestone:mngac_public_parcels:1",
-              "name": "Pipestone parcel dataset",
+              "name": "MnGeo Plan Parcels Open",
               "authority": "statewide",
               "dataset_type": "Statewide parcel compilation",
               "layer_id": null,
@@ -14046,7 +14077,8 @@
               "monitoring_decision": "not-assessed",
               "evidence": [
                 "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
-              ]
+              ],
+              "monitored_source_id": "mn-state-parcels"
             }
           ]
         },
@@ -14309,7 +14341,7 @@
           "sources": [
             {
               "inventory_id": "polk:mngac_public_parcels:1",
-              "name": "Polk parcel dataset",
+              "name": "MnGeo Plan Parcels Open",
               "authority": "statewide",
               "dataset_type": "Statewide parcel compilation",
               "layer_id": null,
@@ -14323,7 +14355,8 @@
               "monitoring_decision": "not-assessed",
               "evidence": [
                 "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
-              ]
+              ],
+              "monitored_source_id": "mn-state-parcels"
             }
           ]
         },
@@ -14579,7 +14612,7 @@
           "sources": [
             {
               "inventory_id": "pope:mngac_public_parcels:1",
-              "name": "Pope parcel dataset",
+              "name": "MnGeo Plan Parcels Open",
               "authority": "statewide",
               "dataset_type": "Statewide parcel compilation",
               "layer_id": null,
@@ -14593,7 +14626,8 @@
               "monitoring_decision": "not-assessed",
               "evidence": [
                 "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
-              ]
+              ],
+              "monitored_source_id": "mn-state-parcels"
             }
           ]
         },
@@ -14863,7 +14897,7 @@
           "sources": [
             {
               "inventory_id": "ramsey:mngac_public_parcels:1",
-              "name": "Ramsey parcel dataset",
+              "name": "MnGeo Plan Parcels Open",
               "authority": "statewide",
               "dataset_type": "Statewide parcel compilation",
               "layer_id": null,
@@ -14877,7 +14911,8 @@
               "monitoring_decision": "not-assessed",
               "evidence": [
                 "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
-              ]
+              ],
+              "monitored_source_id": "mn-state-parcels"
             }
           ]
         },
@@ -15545,7 +15580,7 @@
           "sources": [
             {
               "inventory_id": "renville:mngac_public_parcels:1",
-              "name": "Renville parcel dataset",
+              "name": "MnGeo Plan Parcels Open",
               "authority": "statewide",
               "dataset_type": "Statewide parcel compilation",
               "layer_id": null,
@@ -15559,7 +15594,8 @@
               "monitoring_decision": "not-assessed",
               "evidence": [
                 "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
-              ]
+              ],
+              "monitored_source_id": "mn-state-parcels"
             }
           ]
         },
@@ -15821,7 +15857,7 @@
           "sources": [
             {
               "inventory_id": "rice:mngac_public_parcels:1",
-              "name": "Rice parcel dataset",
+              "name": "MnGeo Plan Parcels Open",
               "authority": "statewide",
               "dataset_type": "Statewide parcel compilation",
               "layer_id": null,
@@ -15835,7 +15871,8 @@
               "monitoring_decision": "not-assessed",
               "evidence": [
                 "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
-              ]
+              ],
+              "monitored_source_id": "mn-state-parcels"
             }
           ]
         },
@@ -16511,7 +16548,7 @@
           "sources": [
             {
               "inventory_id": "scott:mngac_public_parcels:1",
-              "name": "Scott parcel dataset",
+              "name": "MnGeo Plan Parcels Open",
               "authority": "statewide",
               "dataset_type": "Statewide parcel compilation",
               "layer_id": null,
@@ -16525,7 +16562,8 @@
               "monitoring_decision": "not-assessed",
               "evidence": [
                 "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
-              ]
+              ],
+              "monitored_source_id": "mn-state-parcels"
             }
           ]
         },
@@ -16802,7 +16840,7 @@
           "sources": [
             {
               "inventory_id": "sherburne:mngac_public_parcels:1",
-              "name": "Sherburne parcel dataset",
+              "name": "MnGeo Plan Parcels Open",
               "authority": "statewide",
               "dataset_type": "Statewide parcel compilation",
               "layer_id": null,
@@ -16816,7 +16854,8 @@
               "monitoring_decision": "not-assessed",
               "evidence": [
                 "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
-              ]
+              ],
+              "monitored_source_id": "mn-state-parcels"
             }
           ]
         },
@@ -17284,7 +17323,7 @@
           "sources": [
             {
               "inventory_id": "st-louis:mngac_public_parcels:1",
-              "name": "St. Louis parcel dataset",
+              "name": "MnGeo Plan Parcels Open",
               "authority": "statewide",
               "dataset_type": "Statewide parcel compilation",
               "layer_id": null,
@@ -17298,7 +17337,8 @@
               "monitoring_decision": "not-assessed",
               "evidence": [
                 "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
-              ]
+              ],
+              "monitored_source_id": "mn-state-parcels"
             }
           ]
         },
@@ -17526,7 +17566,7 @@
           "sources": [
             {
               "inventory_id": "stearns:mngac_public_parcels:1",
-              "name": "Stearns parcel dataset",
+              "name": "MnGeo Plan Parcels Open",
               "authority": "statewide",
               "dataset_type": "Statewide parcel compilation",
               "layer_id": null,
@@ -17540,7 +17580,8 @@
               "monitoring_decision": "not-assessed",
               "evidence": [
                 "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
-              ]
+              ],
+              "monitored_source_id": "mn-state-parcels"
             }
           ]
         },
@@ -17766,7 +17807,7 @@
           "sources": [
             {
               "inventory_id": "steele:mngac_public_parcels:1",
-              "name": "Steele parcel dataset",
+              "name": "MnGeo Plan Parcels Open",
               "authority": "statewide",
               "dataset_type": "Statewide parcel compilation",
               "layer_id": null,
@@ -17780,7 +17821,8 @@
               "monitoring_decision": "not-assessed",
               "evidence": [
                 "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
-              ]
+              ],
+              "monitored_source_id": "mn-state-parcels"
             }
           ]
         },
@@ -18048,7 +18090,7 @@
           "sources": [
             {
               "inventory_id": "stevens:mngac_public_parcels:1",
-              "name": "Stevens parcel dataset",
+              "name": "MnGeo Plan Parcels Open",
               "authority": "statewide",
               "dataset_type": "Statewide parcel compilation",
               "layer_id": null,
@@ -18062,7 +18104,8 @@
               "monitoring_decision": "not-assessed",
               "evidence": [
                 "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
-              ]
+              ],
+              "monitored_source_id": "mn-state-parcels"
             }
           ]
         },
@@ -18738,7 +18781,7 @@
           "sources": [
             {
               "inventory_id": "traverse:mngac_public_parcels:1",
-              "name": "Traverse parcel dataset",
+              "name": "MnGeo Plan Parcels Open",
               "authority": "statewide",
               "dataset_type": "Statewide parcel compilation",
               "layer_id": null,
@@ -18752,7 +18795,8 @@
               "monitoring_decision": "not-assessed",
               "evidence": [
                 "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
-              ]
+              ],
+              "monitored_source_id": "mn-state-parcels"
             }
           ]
         },
@@ -18989,7 +19033,7 @@
           "sources": [
             {
               "inventory_id": "wabasha:mngac_public_parcels:1",
-              "name": "Wabasha parcel dataset",
+              "name": "MnGeo Plan Parcels Open",
               "authority": "statewide",
               "dataset_type": "Statewide parcel compilation",
               "layer_id": null,
@@ -19003,7 +19047,8 @@
               "monitoring_decision": "not-assessed",
               "evidence": [
                 "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
-              ]
+              ],
+              "monitored_source_id": "mn-state-parcels"
             }
           ]
         },
@@ -19478,7 +19523,7 @@
           "sources": [
             {
               "inventory_id": "waseca:mngac_public_parcels:1",
-              "name": "Waseca parcel dataset",
+              "name": "MnGeo Plan Parcels Open",
               "authority": "statewide",
               "dataset_type": "Statewide parcel compilation",
               "layer_id": null,
@@ -19492,7 +19537,8 @@
               "monitoring_decision": "not-assessed",
               "evidence": [
                 "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
-              ]
+              ],
+              "monitored_source_id": "mn-state-parcels"
             }
           ]
         },
@@ -19755,7 +19801,7 @@
           "sources": [
             {
               "inventory_id": "washington:mngac_public_parcels:1",
-              "name": "Washington parcel dataset",
+              "name": "MnGeo Plan Parcels Open",
               "authority": "statewide",
               "dataset_type": "Statewide parcel compilation",
               "layer_id": null,
@@ -19769,7 +19815,8 @@
               "monitoring_decision": "not-assessed",
               "evidence": [
                 "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
-              ]
+              ],
+              "monitored_source_id": "mn-state-parcels"
             }
           ]
         },
@@ -20223,7 +20270,7 @@
           "sources": [
             {
               "inventory_id": "wilkin:mngac_public_parcels:1",
-              "name": "Wilkin parcel dataset",
+              "name": "MnGeo Plan Parcels Open",
               "authority": "statewide",
               "dataset_type": "Statewide parcel compilation",
               "layer_id": null,
@@ -20237,7 +20284,8 @@
               "monitoring_decision": "not-assessed",
               "evidence": [
                 "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
-              ]
+              ],
+              "monitored_source_id": "mn-state-parcels"
             }
           ]
         },
@@ -20708,7 +20756,7 @@
           "sources": [
             {
               "inventory_id": "wright:mngac_public_parcels:1",
-              "name": "Wright parcel dataset",
+              "name": "MnGeo Plan Parcels Open",
               "authority": "statewide",
               "dataset_type": "Statewide parcel compilation",
               "layer_id": null,
@@ -20722,7 +20770,8 @@
               "monitoring_decision": "not-assessed",
               "evidence": [
                 "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
-              ]
+              ],
+              "monitored_source_id": "mn-state-parcels"
             }
           ]
         },
@@ -20987,7 +21036,7 @@
           "sources": [
             {
               "inventory_id": "yellow-medicine:mngac_public_parcels:1",
-              "name": "Yellow Medicine parcel dataset",
+              "name": "MnGeo Plan Parcels Open",
               "authority": "statewide",
               "dataset_type": "Statewide parcel compilation",
               "layer_id": null,
@@ -21001,7 +21050,8 @@
               "monitoring_decision": "not-assessed",
               "evidence": [
                 "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson"
-              ]
+              ],
+              "monitored_source_id": "mn-state-parcels"
             }
           ]
         },

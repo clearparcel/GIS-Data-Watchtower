@@ -245,3 +245,25 @@ reviewers, preserving the approved privacy, provider and deployment constraints.
 Task 8 release/live checks passed; private cleanup, final documentation push/CI and independent final review remain pending. Astra has no approval.
 
 Task 8 actual state: revision `00003-xzg`, committed `b342b5d` immutable `f7134713…` image; dedicated preview storage and identity. Live 87-profile/400-product-row JSON/CSV/XLSX parity, 696 browser county activations, desktop/390px, actual 35/35 OK with cloud=31/local=4 and coverage 70=59+24-13 passed. External healthz is blocked by the Cloud Run frontend reserved path; no external HTTP 200 claim. Automatic approval review blocked verified raw-file cleanup; user assistance and final review are pending. See deployment/status release evidence.
+
+
+## Final review product fixes (pending preview release)
+
+Public sanitation now projects typed source, worker, count, catalog and MN GAC
+leaves and completeness metrics. Raw completeness errors and unknown nested
+payloads are omitted; a second sanitation pass preserves the public result.
+All 59 inventories for the exact vetted MnGeo Plan Parcels Open official item
+carry `mn-state-parcels` identity and a consistent product name. Fifty newly
+linked inventories now retain their stable inventory IDs and approved links on
+the row receiving that county's current observed count. Historical membership
+cannot supply a missing observation or count; other products remain separate.
+
+Offline composition produces 87 profiles and 348 category/product rows both
+without observations and with a synthetic 59-member statewide observation.
+For the unchanged aggregate used by old preview `00003-xzg`, removing its 50
+duplicate rows projects 350 rows (400 minus 50). This is an offline projection,
+not fresh live acceptance or a fixed row-count requirement. The deployed
+`b342b5d` preview still has the previously measured 400 rows until a new committed
+build, isolated redeploy and actual live validation. The product fixes pass 193
+ResourceWarning-strict unittest tests, compileall and diff checks. Independent
+fix review and required manual private temporary cleanup remain pending.

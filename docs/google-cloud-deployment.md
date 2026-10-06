@@ -163,3 +163,25 @@ incur usage charges. Remove them only when the preview is retired; do not remove
 production resources. Automatic approval review blocked even individual verified
 raw temporary-file deletion. Private temporary cleanup remains pending user
 assistance; release completion is not claimed until cleanup is verified.
+
+
+## Final review product fixes (pending preview release)
+
+Public sanitation now projects typed source, worker, count, catalog and MN GAC
+leaves and completeness metrics. Raw completeness errors and unknown nested
+payloads are omitted; a second sanitation pass preserves the public result.
+All 59 inventories for the exact vetted MnGeo Plan Parcels Open official item
+carry `mn-state-parcels` identity and a consistent product name. Fifty newly
+linked inventories now retain their stable inventory IDs and approved links on
+the row receiving that county's current observed count. Historical membership
+cannot supply a missing observation or count; other products remain separate.
+
+Offline composition produces 87 profiles and 348 category/product rows both
+without observations and with a synthetic 59-member statewide observation.
+For the unchanged aggregate used by old preview `00003-xzg`, removing its 50
+duplicate rows projects 350 rows (400 minus 50). This is an offline projection,
+not fresh live acceptance or a fixed row-count requirement. The deployed
+`b342b5d` preview still has the previously measured 400 rows until a new committed
+build, isolated redeploy and actual live validation. The product fixes pass 193
+ResourceWarning-strict unittest tests, compileall and diff checks. Independent
+fix review and required manual private temporary cleanup remain pending.

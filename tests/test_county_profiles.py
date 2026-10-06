@@ -28,6 +28,51 @@ def compose(state=None, research=None):
 
 
 class CountyProfilesTests(unittest.TestCase):
+    def test_all_exact_official_statewide_products_join_one_identity(self):
+        research = load_parcel_access()
+        official = 'https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson'
+        matching = {name: item for name, record in research.items()
+            for item in record['source_inventory']['mngac_public_parcels']['sources']
+            if official in item.get('evidence', [])}
+        self.assertEqual(len(matching), 59)
+        members = {name: {'record_count': i} for i, name in enumerate(matching)}
+        members[next(iter(matching))]['record_count'] = None
+        state = {'sources': {'mn-state-parcels': {'category': 'Parcels', 'status': 'ok',
+            'checked_at': STAMP, 'feature_count': 999999,
+            'mngac_completeness': {'fields': {'PIN': {}}, 'counties': members}}}}
+        profiles = compose(state, research)
+        for name, item in matching.items():
+            slug = next(c['slug'] for c in COUNTIES if c['name'] == name)
+            rows = profiles[slug]['mngac_public_parcels']['sources']
+            self.assertEqual(len(rows), 1, name)
+            self.assertEqual(rows[0]['inventory_id'], item['inventory_id'])
+            self.assertEqual(rows[0]['monitored_source_id'], 'mn-state-parcels')
+            self.assertEqual(rows[0]['name'], 'MnGeo Plan Parcels Open')
+            self.assertEqual(rows[0]['approved_public_links'], item['approved_public_links'])
+            self.assertEqual(rows[0]['feature_count'], members[name]['record_count'])
+        # A genuine zero stays zero; missing current membership stays unobserved.
+        zero_name = list(matching)[1]
+        members[zero_name]['record_count'] = 0
+        removed = list(matching)[2]
+        del members[removed]
+        profiles = compose(state, research)
+        slug = next(c['slug'] for c in COUNTIES if c['name'] == removed)
+        self.assertEqual(profiles[slug]['mngac_public_parcels']['availability'], 'no')
+        self.assertIsNone(profiles[slug]['mngac_public_parcels']['sources'][0]['feature_count'])
+        self.assertFalse(profiles[slug]['monitoring']['active'])
+        missing = compose({}, research)
+        self.assertIsNone(missing[slug]['mngac_public_parcels']['sources'][0]['feature_count'])
+        self.assertEqual(missing[slug]['mngac_public_parcels']['availability'], 'unknown')
+        slug = next(c['slug'] for c in COUNTIES if c['name'] == zero_name)
+        self.assertEqual(profiles[slug]['mngac_public_parcels']['sources'][0]['feature_count'], 0)
+        # A different vetted inventory product is kept, with no borrowed facts.
+        extra = copy.deepcopy(matching[zero_name])
+        extra.update(inventory_id='different-product', monitored_source_id='different-source', name='Other statewide product')
+        research[zero_name]['source_inventory']['mngac_public_parcels']['sources'].append(extra)
+        rows = compose(state, research)[slug]['mngac_public_parcels']['sources']
+        self.assertEqual(len(rows), 2)
+        self.assertIsNone(next(row for row in rows if row['inventory_id'] == 'different-product')['feature_count'])
+
     def test_final_inventory_batch_preserves_policy_and_exact_observation_identity(self):
         research = load_parcel_access()
         empty = compose(research=research)
