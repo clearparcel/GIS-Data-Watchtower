@@ -10,7 +10,7 @@
 
 **Spec:** [Approved design](../specs/2026-10-06-county-parcel-source-profiles-design.md), approved by the user on 2026-10-06.
 
-Status: **User approved on 2026-10-06; Subagent-driven execution selected. Tasks 1–7 implemented and reviewed. Task 8 isolated preview deployed and live validation passed; private cleanup, task review and independent final review pending.**
+Status: **User approved on 2026-10-06; Subagent-driven execution selected. Tasks 1–7 implemented and reviewed. Task 8 isolated preview deployed and live validation passed; scoped task/final review passed, manual private cleanup pending.**
 
 ## Global Constraints
 
@@ -189,7 +189,7 @@ Website Download`.
 - [x] Deploy the built immutable image digest to the named preview service with the isolated sanitized object and required preview-only identity settings. Preserve production UI/service/publisher/data/configuration and all provider schedules.
 - [x] Query the deployed service/revision and live profile/export data; recompute coverage from its current aggregate rather than hard-coding 70. If still the validated baseline, require 70/87 = 59 + 24 - 13. Verify all panel groups, source-specific counts/dates, links, metric switching, keyboard behavior and 390px overflow on the actual preview.
 - [ ] Verify Cloud Run source-level results and aggregate provenance used in the snapshot; a successful container exit alone is insufficient. Confirm no source activation, production write, merge or scheduler change occurred. Delete all temporary raw/config/evidence artifacts.
-- [ ] Update docs and PR #42 with architecture, actual 87-county/category review status, tests, deployed revision and visual evidence. Keep both PRs draft/unmerged. Push final documentation and inspect CI for the actual branch head; report unresolved checks accurately.
+- [x] Update docs and PR #42 with architecture, actual review status, tests, revision and visual evidence; both PRs remain draft/unmerged. Product 5686013 and operational docs c2c97e2 were pushed and both CI runs passed for each. Controller verifies the eventual final PR head; temporary cleanup remains unchecked.
 
 
 ## Concrete regression assertions
@@ -242,7 +242,7 @@ Existing source exports are preserved with an explicitly named new county CSV.
 Selected execution: **Subagent-driven**, explicitly selected by the user on
 2026-10-06. Tasks run in this chat with isolated implementers and fresh task
 reviewers, preserving the approved privacy, provider and deployment constraints.
-Task 8 release/live checks passed; private cleanup, final documentation push/CI and independent final review remain pending. Astra has no approval.
+Task 8 release/live checks and scoped final review passed; validated CI heads are recorded below. Manual cleanup remains pending. Astra has no approval.
 
 Task 8 historical initial state: revision `00003-xzg`, committed `b342b5d` immutable `f7134713…` image; dedicated preview storage and identity. Live 87-profile/400-product-row JSON/CSV/XLSX parity, 696 browser county activations, desktop/390px, actual 35/35 OK with cloud=31/local=4 and coverage 70=59+24-13 passed. External healthz is blocked by the Cloud Run frontend reserved path; no external HTTP 200 claim. Automatic approval review blocked verified raw-file cleanup; user assistance and final review are pending. See deployment/status release evidence.
 
@@ -271,10 +271,14 @@ The 193-test ResourceWarning-strict suite passed (5.417s); compileall and diff
 checks passed. Final targeted browser checks passed 16 desktop overview cases
 and 48 mobile MN GAC cases across eight representative counties, with mobile
 keyboard focus, Escape/Space and internal scrolling. Final screenshot artifacts
-were separately captured, locally viewed and dimension-verified. A later browser
-follow-up batch and reconnect timed out, so final repeat refresh-retention and
-viewport-reset checks are not claimed; prior release/local acceptance is retained
-as historical evidence. Required manual local temporary cleanup remains open,
-as do operational-document review/push and actual new documentation-head CI.
+were separately captured, locally viewed and dimension-verified. A fresh controller
+IAB check verified all 87 targets, Aitkin's 43,024 statewide versus 42,996 direct
+records, four groups, keyboard/Escape focus return and mobile 390px page 375px/dialog client and scroll width 349px.
+Nondefault completeness mode and the open dialog survived over 40 seconds; after
+closing, over 40 seconds later refresh restored monitoring mode and “Choose a county”.
+IAB viewport reset to 1280px/page 1265px. Prior Chrome follow-up timeouts remain a tool
+limitation; Chrome cleanup is not claimed. Product head 5686013 and operational
+docs head c2c97e2 were pushed with both CI runs successful for each. Required manual
+local temporary cleanup remains open; the controller checks eventual final PR-head CI.
 
-Final Task 8 release: product `5686013`, revision `00004-sv8`, immutable `bbb526e8…` image; actual 350 category/product rows with 87-profile JSON/CSV/XLSX parity and 59 single official statewide products. No new raw disk copy. Required 193 tests passed. Final targeted browser checks and verified screenshots passed; follow-up browser availability limited repeat refresh/reset verification. Cloud temporary source removed; manual local cleanup remains pending.
+Final Task 8 release: product `5686013`, revision `00004-sv8`, immutable `bbb526e8…` image; actual 350 category/product rows with 87-profile JSON/CSV/XLSX parity and 59 single official statewide products. No new raw disk copy. Required 193 tests passed. Final targeted browser checks and verified screenshots passed; controller fresh IAB verified refresh pause/resume and viewport reset after the Chrome follow-up timeout. Cloud temporary source removed; manual local cleanup remains pending.

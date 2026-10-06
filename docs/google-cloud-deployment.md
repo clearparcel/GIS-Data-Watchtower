@@ -155,8 +155,8 @@ Production public/private revisions remain `00006-82c`/`00011-t4l`; the existing
 publisher scheduler remains enabled at `3,13,23,33,43,53 * * * *`, and provider
 scheduling remains disabled. Production publication can independently advance its
 object. No production write, provider check, activation, main push or merge
-occurred. PRs #39/#42 remain draft and unmerged. Independent final review and final
-documentation push/CI verification remain pending. Required validation: 186 tests
+occurred. PRs #39/#42 remain draft and unmerged. Scoped final review and validated product/docs CI heads are recorded below;
+manual temporary cleanup remains pending. Required validation: 186 tests
 passed with ResourceWarning as error (5.315s), compileall and diff checks passed.
 
 The dedicated preview bucket/object/identity and retained image are intended
@@ -191,11 +191,15 @@ The 193-test ResourceWarning-strict suite passed (5.417s); compileall and diff
 checks passed. Final targeted browser checks passed 16 desktop overview cases
 and 48 mobile MN GAC cases across eight representative counties, with mobile
 keyboard focus, Escape/Space and internal scrolling. Final screenshot artifacts
-were separately captured, locally viewed and dimension-verified. A later browser
-follow-up batch and reconnect timed out, so final repeat refresh-retention and
-viewport-reset checks are not claimed; prior release/local acceptance is retained
-as historical evidence. Required manual local temporary cleanup remains open,
-as do operational-document review/push and actual new documentation-head CI.
+were separately captured, locally viewed and dimension-verified. A fresh controller
+IAB check verified all 87 targets, Aitkin's 43,024 statewide versus 42,996 direct
+records, four groups, keyboard/Escape focus return and mobile 390px page 375px/dialog client and scroll width 349px.
+Nondefault completeness mode and the open dialog survived over 40 seconds; after
+closing, over 40 seconds later refresh restored monitoring mode and “Choose a county”.
+IAB viewport reset to 1280px/page 1265px. Prior Chrome follow-up timeouts remain a tool
+limitation; Chrome cleanup is not claimed. Product head 5686013 and operational
+docs head c2c97e2 were pushed with both CI runs successful for each. Required manual
+local temporary cleanup remains open; the controller checks eventual final PR-head CI.
 
 
 ## Final committed preview release (2026-10-06)
@@ -223,4 +227,7 @@ requires manual fresh republication after 30 minutes; external healthz remains a
 Cloud Run frontend reserved-path limitation. Final browser follow-up availability
 is limited as described above. Production revisions remain 00006-82c/00011-t4l,
 production bucket IAM etag CAQ= and only existing publisher scheduler unchanged.
-Final operational-document review/push and new-head CI are controller gates.
+Scoped operational review found no new Critical/Important issues. Product head
+5686013 CI runs 37506186256/37506177179 and docs head c2c97e2 runs 37507753259/
+37507744905 succeeded. Evidence is pinned to these validated heads; the controller
+checks the final PR head after publishing documentation. Manual cleanup remains open.

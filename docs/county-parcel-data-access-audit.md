@@ -763,12 +763,12 @@ profiles; 16 inventories have all four category reviews complete, with Aitkin's
 county-direct assessment still unresolved. Publication reporting is independently
 labeled Current/Overdue/Unknown using the publication health threshold; an overdue
 publication fails `/healthz` without removing county profiles or altering source
-check times. Task 8 live preview release passed the checks below; final review and private cleanup remain pending. The historical
+check times. Task 8 live preview release passed the checks below; scoped final review passed; private cleanup remains pending. The historical
 Benton unsupported archive-open incident above remains part of the audit.
 
 ## Live profile preview validation (2026-10-06)
 
-Preview revision `00003-xzg` composes all 87 counties from the actual sanitized aggregate: 70 active = 59 statewide + 24 direct - 13 overlap. All 35 source results are OK; cloud=31/local=4 with matching worker provenance. All 87 JSON profiles match county CSV and decoded XLSX; 400 actual category/product rows retain separate identities, dates, geometry and file facts. All county targets opened complete panels in eight map modes on the actual live browser; desktop/390px layouts passed. The four terms holds remain unmonitored; Winona fee access remains separate from its 25,538 statewide records. Research totals remain unchanged. See [isolated release details](google-cloud-deployment.md#final-committed-preview-release-2026-10-06); final review and private cleanup remain pending.
+Preview revision `00003-xzg` composes all 87 counties from the actual sanitized aggregate: 70 active = 59 statewide + 24 direct - 13 overlap. All 35 source results are OK; cloud=31/local=4 with matching worker provenance. All 87 JSON profiles match county CSV and decoded XLSX; 400 actual category/product rows retain separate identities, dates, geometry and file facts. All county targets opened complete panels in eight map modes on the actual live browser; desktop/390px layouts passed. The four terms holds remain unmonitored; Winona fee access remains separate from its 25,538 statewide records. Research totals remain unchanged. See [isolated release details](google-cloud-deployment.md#final-committed-preview-release-2026-10-06); scoped final review passed; private cleanup remains pending.
 
 
 ## Final review product fixes and deployed preview
@@ -795,8 +795,12 @@ The 193-test ResourceWarning-strict suite passed (5.417s); compileall and diff
 checks passed. Final targeted browser checks passed 16 desktop overview cases
 and 48 mobile MN GAC cases across eight representative counties, with mobile
 keyboard focus, Escape/Space and internal scrolling. Final screenshot artifacts
-were separately captured, locally viewed and dimension-verified. A later browser
-follow-up batch and reconnect timed out, so final repeat refresh-retention and
-viewport-reset checks are not claimed; prior release/local acceptance is retained
-as historical evidence. Required manual local temporary cleanup remains open,
-as do operational-document review/push and actual new documentation-head CI.
+were separately captured, locally viewed and dimension-verified. A fresh controller
+IAB check verified all 87 targets, Aitkin's 43,024 statewide versus 42,996 direct
+records, four groups, keyboard/Escape focus return and mobile 390px page 375px/dialog client and scroll width 349px.
+Nondefault completeness mode and the open dialog survived over 40 seconds; after
+closing, over 40 seconds later refresh restored monitoring mode and “Choose a county”.
+IAB viewport reset to 1280px/page 1265px. Prior Chrome follow-up timeouts remain a tool
+limitation; Chrome cleanup is not claimed. Product head 5686013 and operational
+docs head c2c97e2 were pushed with both CI runs successful for each. Required manual
+local temporary cleanup remains open; the controller checks eventual final PR-head CI.

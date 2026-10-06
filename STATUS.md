@@ -7,9 +7,9 @@ GIS Data Watchtower is public, MIT-licensed, and supports local, cloud, and hybr
 County profiles now compose all 87 canonical counties from one observation snapshot and the evidence inventory. Coverage counts include only parcel observations, deduplicate statewide/direct overlap, and preserve unknown counts, source health, and reporting freshness separately. Category research remains explicitly incomplete until reviewed.
 
 
-Overview and MN GAC maps now open one complete county source dialog for every canonical county. Overview offers monitoring-path and completeness coloring; both maps share fixed percentage colors and a separate no-data class. The dialog pauses page refresh, preserves date-only evidence, and displays unknown values explicitly. Local and live preview browser/mobile acceptance passed; final review remains pending.
+Overview and MN GAC maps now open one complete county source dialog for every canonical county. Overview offers monitoring-path and completeness coloring; both maps share fixed percentage colors and a separate no-data class. The dialog pauses page refresh, preserves date-only evidence, and displays unknown values explicitly. Local and live preview browser/mobile acceptance passed; scoped final review passed; manual cleanup remains pending.
 
-County JSON snapshots now include the composed parcel source profile. Statewide county/category CSV routes and the added County Access/Parcel Sources workbook sheets retain all 87 counties and unavailable values; the legacy monitored-source CSV remains compatible. Export regression, full unit validation and isolated preview deployment passed; final review remains pending.
+County JSON snapshots now include the composed parcel source profile. Statewide county/category CSV routes and the added County Access/Parcel Sources workbook sheets retain all 87 counties and unavailable values; the legacy monitored-source CSV remains compatible. Export regression, full unit validation and isolated preview deployment passed; scoped final review passed; manual cleanup remains pending.
 
 ## Validated capabilities
 
@@ -121,7 +121,7 @@ pending. County-direct classifications remain 82 resolved (58 free, 13 fee-based
 11 viewer-only), five unresolved, and 11 research holds. Runtime monitoring
 coverage continues to be derived from the supplied current aggregate; these local
 fixtures do not establish new live coverage. The live release below establishes
-current preview coverage; independent final review remains pending.
+current preview coverage; scoped final review passed, while manual cleanup remains pending.
 
 Required validation: 186 unittest tests passed with ResourceWarning treated as an
 error; compileall and `git diff --check` passed. Live acceptance is recorded below.
@@ -141,7 +141,7 @@ actual aggregate; no preview scheduler or provider polling was introduced.
 External `/healthz` returns a Google frontend 404, consistent with reserved paths;
 external HTTP 200 health is not claimed. Production services/configuration are unchanged.
 Required validation: 186 tests, compileall and diff checks passed. Private temporary cleanup,
-final documentation push/CI and independent final review remain pending.
+Scoped final review and validated CI heads are recorded below; manual cleanup remains pending.
 See [resource isolation, validation and limitations](docs/google-cloud-deployment.md#final-committed-preview-release-2026-10-06).
 
 
@@ -169,8 +169,12 @@ The 193-test ResourceWarning-strict suite passed (5.417s); compileall and diff
 checks passed. Final targeted browser checks passed 16 desktop overview cases
 and 48 mobile MN GAC cases across eight representative counties, with mobile
 keyboard focus, Escape/Space and internal scrolling. Final screenshot artifacts
-were separately captured, locally viewed and dimension-verified. A later browser
-follow-up batch and reconnect timed out, so final repeat refresh-retention and
-viewport-reset checks are not claimed; prior release/local acceptance is retained
-as historical evidence. Required manual local temporary cleanup remains open,
-as do operational-document review/push and actual new documentation-head CI.
+were separately captured, locally viewed and dimension-verified. A fresh controller
+IAB check verified all 87 targets, Aitkin's 43,024 statewide versus 42,996 direct
+records, four groups, keyboard/Escape focus return and mobile 390px page 375px/dialog client and scroll width 349px.
+Nondefault completeness mode and the open dialog survived over 40 seconds; after
+closing, over 40 seconds later refresh restored monitoring mode and “Choose a county”.
+IAB viewport reset to 1280px/page 1265px. Prior Chrome follow-up timeouts remain a tool
+limitation; Chrome cleanup is not claimed. Product head 5686013 and operational
+docs head c2c97e2 were pushed with both CI runs successful for each. Required manual
+local temporary cleanup remains open; the controller checks eventual final PR-head CI.
