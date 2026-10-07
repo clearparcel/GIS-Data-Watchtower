@@ -108,13 +108,24 @@ Scheduler entry remains the 10-minute sanitized publisher
 
 Public footer application identity is deployed to production revision `00010-75k`: **v0.1.0.dev0 · build 53748af · Production**. Data publication and provider observation times remain separate. See [release identity configuration](docs/release-policy.md).
 
-The earlier browser-feedback release remains historical evidence. The current production public revision is `00010-75k` from `53748af`; the current isolated preview is `00013-4lh`. See [the Address/Road release record](docs/release-gac-address-road-2026-10-07.md) and the earlier [browser-feedback verification](docs/public-ui-release-2026-10-07.md).
+The earlier browser-feedback release remains historical evidence. Production public and private services remain on release `53748af` at revisions `00010-75k` and `00018-vtw`. The isolated preview now serves v0.1.1 candidate revision `00017-s8b` at 100% traffic. See [the Address/Road release record](docs/release-gac-address-road-2026-10-07.md), the [v0.1.1 candidate record](docs/release-v0.1.1.md), and the earlier [browser-feedback verification](docs/public-ui-release-2026-10-07.md).
 
 Operational record updated: **2026-10-07** after the Address/Road release. One explicit cloud staging provider cycle was executed for validation; cloud scheduling remains disabled and the local daily task remains authoritative. Provider observation and public publication timestamps remain separate.
 
 Follow-up manual review corrections are **merged and deployed**: PR [44](https://github.com/clearparcel/GIS-Data-Watchtower/pull/44), merge `284cf0c`, addresses report/publication ordering, worker inventory retirement, dashboard profile isolation, process-owned local locks, unique atomic scratch and WMS/WFS query composition. Release source is `afa908d`, including the approved merge-status documentation. See [fixes and upgrade requirements](docs/review-fixes-2026-10-06.md).
 
 ## Recorded deployment and coverage
+
+PR [#51](https://github.com/clearparcel/GIS-Data-Watchtower/pull/51) merged
+the v0.1.1 candidate as `8099ee1`. Cloud Build produced immutable preview
+image `sha256:354da814dc0dc24137e4818e57761769ab13320cda9311d6088cb7662803eec1`.
+The isolated preview serves that image at 100% traffic and returned HTTP 200
+with candidate identity and the existing 70/87 coverage, 42.92% all-field and
+78.37% Mandatory metrics. The staging provider job now references the same
+image but was not executed after the update; its latest execution remains
+`gis-data-watchtower-staging-p9m94`. Production public/private services and
+provider schedules are unchanged. The multi-day gate in Issue #20 remains open;
+production deployment and tagging wait for required staging validation.
 
 The latest explicit cloud validation retained **35 aggregate sources = 31 cloud + 4 local**. The cloud cycle produced 30 OK cloud sources and one transient error on `mn-parcel-county-catalog`; all four retained local observations remained OK. A later read-only/no-save cloud retest of that catalog source succeeded, but the full aggregate intentionally preserves the original failure. Parcel monitoring coverage remains **70/87 counties = 59 statewide + 24 county-direct - 13 overlaps**; Address/Road GAC coverage is reported separately. Earlier all-green hybrid cycles remain historical validation evidence.
 
