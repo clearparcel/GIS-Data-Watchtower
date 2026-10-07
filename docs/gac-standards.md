@@ -181,6 +181,13 @@ Unscanned Conditional/Optional fields are labeled as schema-only rather than
 being assigned a false population value. County dashboards include
 Address/Road summary cards when the corresponding observations exist.
 
+Statewide Excel retains the legacy parcel `MNGAC` sheets and also adds normalized
+`GAC Standards`, `GAC Counties`, `GAC Fields`, and `GAC Detail` sheets with a
+`standard` column spanning parcel, address, and road. County JSON carries a
+generic `gac` block, county CSV includes Address/Road record, Mandatory-field,
+NG911, public-opt-in, and submission summaries, and county Excel includes the
+same normalized GAC sheets for available standards.
+
 ## Source retirement and freshness
 
 Hybrid full-fleet reports now write explicit source-retirement tombstones.

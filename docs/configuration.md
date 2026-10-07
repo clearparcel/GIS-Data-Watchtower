@@ -1,6 +1,6 @@
 # Configuration reference
 
-Last reviewed: **2026-10-05**
+Last reviewed: **2026-10-07**
 
 Start from `config/example_sources.json`. The public example is deliberately provider-neutral.
 
@@ -86,6 +86,10 @@ standard field is schema-checked, but routine population statistics are
 calculated only for Mandatory fields. `population_scope: "all"` is supported
 for deliberate deeper validation but is materially heavier and should not be
 enabled at routine production cadence without provider-specific validation.
+`text_population_mode` defaults to `nonblank`, using
+`COUNT(NULLIF(field,''))` so NULL and empty-string text values are unpopulated.
+A faster `non_null` mode exists for provider-specific diagnostics but may count
+empty strings as populated and is not the validated routine default.
 
 The source must expose the configured county field, an object-id field, and GAC
 field names. Standard fields are split into bounded grouped-statistics requests.

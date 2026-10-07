@@ -43,7 +43,9 @@ timeouts to force larger batches.
 Aggregate correctness work separates worker `last_report_at` from true
 all-clear `last_success_at` and records explicit source-retirement
 tombstones. The public publisher rejects disappearance of an existing source
-unless a newer retirement record authorizes it.
+unless a newer retirement record authorizes it. Read-only `check --no-save`
+does not create a state-file lock; saved checks retain normal lock behavior.
+This fixes targeted non-root Cloud Run diagnostics.
 
 Privacy-first PostHog integration is implemented as dormant/opt-in code:
 autocapture, Session Replay, automatic pageview/pageleave capture, exception

@@ -1,8 +1,10 @@
+import io
 import json
 import os
 import sys
 import unittest
 import urllib.parse
+import zipfile
 from pathlib import Path
 from unittest.mock import patch
 
@@ -11,7 +13,7 @@ sys.path.insert(0, str(ROOT))
 
 import clearparcel.datawatch.watch as watch
 from clearparcel.datawatch.analytics import posthog_config, posthog_csp_sources, posthog_html
-from clearparcel.datawatch.dashboard import render_mngac
+from clearparcel.datawatch.dashboard import _snapshot_csv, _snapshot_xlsx, render_mngac
 from clearparcel.datawatch.gac_standards import gac_defaults, load_gac_standard
 from clearparcel.datawatch.public_dashboard import sanitize_public_render_state
 from clearparcel.datawatch.public_publish import _snapshot_is_superseded
@@ -349,6 +351,70 @@ class GACStandardsTests(unittest.TestCase):
                 self.assertIn(text, page)
                 self.assertIn("NG911 participants", page)
                 self.assertIn(f"standard={key}", page)
+
+
+    def test_county_exports_include_generic_address_and_road_gac_data(self):
+        def payload(key, records, pct, open_flag):
+            schema = load_gac_standard(key)
+            first = next(x for x in schema["fields"] if x["inclusion"] == "Mandatory")
+            field_stats = {
+                "populated": records, "record_count": records, "percent": 100.0,
+            }
+            return {
+                "standard_key": key,
+                "standard": schema["standard"],
+                "population_scope": "mandatory",
+                "covered_counties": 1,
+                "record_count": records,
+                "field_count": len(schema["fields"]),
+                "mandatory_field_count": sum(x["inclusion"] == "Mandatory" for x in schema["fields"]),
+                "mandatory_population_percent": pct,
+                "fields": {
+                    first["field"]: {
+                        "label": first["label"], "section_name": first["section_name"],
+                        "inclusion": first["inclusion"], "data_type": first["data_type"],
+                        "present_in_source_schema": True, "population_scanned": True,
+                        "populated": records, "record_count": records, "percent": 100.0,
+                        "counties_with_values": 1, "counties_covered": 1,
+                    }
+                },
+                "county": {
+                    "record_count": records,
+                    "field_count": len(schema["fields"]),
+                    "mandatory_population_percent": pct,
+                    "fields": {first["field"]: field_stats},
+                },
+                "metadata": {
+                    "ng911_upload": True, "gac_open": open_flag,
+                    "submitted_at": "2026-05-20T00:00:00+00:00",
+                },
+            }
+
+        snapshot = {
+            "county": "Olmsted",
+            "status": "ok",
+            "actively_monitored": False,
+            "monitoring_path_label": "None",
+            "parcel_access": {},
+            "direct_sources": [],
+            "contacts": [],
+            "mngac": None,
+            "gac": {
+                "address": payload("address", 100, 97.21, True),
+                "road": payload("road", 50, 95.94, False),
+            },
+        }
+        csv_text = _snapshot_csv(snapshot)
+        self.assertIn("address_record_count", csv_text)
+        self.assertIn("road_mandatory_population_percent", csv_text)
+        self.assertIn("97.21", csv_text)
+        self.assertIn("95.94", csv_text)
+
+        xlsx = _snapshot_xlsx(snapshot)
+        with zipfile.ZipFile(io.BytesIO(xlsx)) as archive:
+            workbook = archive.read("xl/workbook.xml").decode("utf-8")
+        for sheet in ("GAC Standards", "GAC Counties", "GAC Fields", "GAC Detail"):
+            self.assertIn(sheet, workbook)
 
 
 class PostHogIntegrationTests(unittest.TestCase):

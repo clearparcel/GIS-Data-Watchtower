@@ -1475,6 +1475,31 @@ def render_county(config: dict, slug: str) -> str:
     body = f'<p><a href="/counties">← Minnesota counties</a></p>{export_links}<div class="grid"><div class="card"><div class="muted">County</div><h2>{_esc(county["name"])} County</h2></div><div class="card"><div class="muted">Monitoring coverage</div><div class="metric {_esc(info["status"])}">{_esc(_friendly_status(info["status"]).upper())}</div></div><div class="card"><div class="muted">Monitoring path</div><div class="metric" style="font-size:20px">{_esc(_monitoring_path_label(info))}</div></div><div class="card"><div class="muted">County-direct sources</div><div class="metric">{len(info["sources"])}</div></div></div><div class="grid">{source_cards}</div><br>{parcel_access_detail}<br>{mngac_html}<br>{gac_summary_html}<br><div class="card county-complete-profile">{complete_profile}</div><br>{contacts_html}'
     return _layout(f'{county["name"]} County — Watchtower', body, static=bool(config.get("_public_mode")), csrf_token=str(config.get("_csrf_token") or ""))
 
+def _gac_county_payload(state: dict, standard_key: str, county_name: str) -> dict | None:
+    data = _gac_data(state, standard_key)
+    if not isinstance(data, dict):
+        return None
+    metadata = (data.get("county_metadata") or {}).get(county_name)
+    county = (data.get("counties") or {}).get(county_name)
+    county = county if isinstance(county, dict) else None
+    return {
+        "standard_key": standard_key,
+        "standard": data.get("standard") or {},
+        "method": data.get("method"),
+        "population_scope": data.get("population_scope"),
+        "text_population_mode": data.get("text_population_mode"),
+        "covered_counties": data.get("covered_counties"),
+        "record_count": (county or {}).get("record_count"),
+        "field_count": data.get("field_count"),
+        "mandatory_field_count": data.get("mandatory_field_count"),
+        "field_population_percent": (county or {}).get("field_population_percent"),
+        "mandatory_population_percent": (county or {}).get("mandatory_population_percent"),
+        "fields": data.get("fields") or {},
+        "county": county,
+        "metadata": metadata if isinstance(metadata, dict) else {},
+    }
+
+
 def _county_snapshot(config: dict, slug: str, *, include_mngac: bool = True, state: dict | None = None,
                      profiles: dict | None = None, research: dict | None = None) -> dict | None:
     state = _dashboard_state(config) if state is None else state
@@ -1487,6 +1512,12 @@ def _county_snapshot(config: dict, slug: str, *, include_mngac: bool = True, sta
     catalog = info.get("catalog") or {}
     mngac_data, mngac_county = _mngac_county_record(state, county["name"])
     mngac_payload = None
+    gac_payload = {}
+    if include_mngac:
+        gac_payload = {
+            key: payload for key in standard_keys()
+            if (payload := _gac_county_payload(state, key, county["name"])) is not None
+        }
     if include_mngac and mngac_data:
         mngac_payload = {
             "standard": mngac_data.get("standard") or {},
@@ -1541,6 +1572,7 @@ def _county_snapshot(config: dict, slug: str, *, include_mngac: bool = True, sta
         "contact_source_url": (_load_county_contact_records().get(county["name"], {}) or {}).get("source_url"),
         "contact_verified": (_load_county_contact_records().get(county["name"], {}) or {}).get("verified"),
         "mngac": mngac_payload,
+        "gac": gac_payload,
         **_snapshot_time_fields(dt.datetime.now(dt.timezone.utc).isoformat(), "snapshot_created"),
     }
 
@@ -1648,7 +1680,9 @@ def _snapshot_csv(snapshot: dict) -> str:
                 "checked_at": source.get("checked_at"),
             }.items()})
         return out.getvalue()
-    fields = ["county","status","actively_monitored","monitoring_path","county_direct_access","statewide_open_access","county_direct_source_count","parcel_dataset_fee","fee_product","last_county_update","catalog_refresh_date","public_data_approved","parcel_data_url","parcel_viewer_url","worker_provenance","stale_source_count","contact_names","contact_source","contact_source_url","contact_verified","mngac_record_count","mngac_fields_with_values","mngac_field_count","mngac_field_population_percent","mngac_mandatory_population_percent"]
+    fields = ["county","status","actively_monitored","monitoring_path","county_direct_access","statewide_open_access","county_direct_source_count","parcel_dataset_fee","fee_product","last_county_update","catalog_refresh_date","public_data_approved","parcel_data_url","parcel_viewer_url","worker_provenance","stale_source_count","contact_names","contact_source","contact_source_url","contact_verified","mngac_record_count","mngac_fields_with_values","mngac_field_count","mngac_field_population_percent","mngac_mandatory_population_percent",
+              "address_record_count","address_mandatory_population_percent","address_ng911_participant","address_gac_public_opt_in","address_submitted_at",
+              "road_record_count","road_mandatory_population_percent","road_ng911_participant","road_gac_public_opt_in","road_submitted_at"]
     fields += ["profile_" + key for key in SUMMARY_FIELDS]
     writer = csv.DictWriter(out, fieldnames=fields)
     writer.writeheader()
@@ -1679,6 +1713,16 @@ def _snapshot_csv(snapshot: dict) -> str:
             "mngac_field_count": (((row.get("mngac") or {}).get("county") or {}).get("field_count")),
             "mngac_field_population_percent": (((row.get("mngac") or {}).get("county") or {}).get("field_population_percent")),
             "mngac_mandatory_population_percent": (((row.get("mngac") or {}).get("county") or {}).get("mandatory_population_percent")),
+            "address_record_count": ((((row.get("gac") or {}).get("address") or {}).get("county") or {}).get("record_count")),
+            "address_mandatory_population_percent": ((((row.get("gac") or {}).get("address") or {}).get("county") or {}).get("mandatory_population_percent")),
+            "address_ng911_participant": ((((row.get("gac") or {}).get("address") or {}).get("metadata") or {}).get("ng911_upload")),
+            "address_gac_public_opt_in": ((((row.get("gac") or {}).get("address") or {}).get("metadata") or {}).get("gac_open")),
+            "address_submitted_at": ((((row.get("gac") or {}).get("address") or {}).get("metadata") or {}).get("submitted_at")),
+            "road_record_count": ((((row.get("gac") or {}).get("road") or {}).get("county") or {}).get("record_count")),
+            "road_mandatory_population_percent": ((((row.get("gac") or {}).get("road") or {}).get("county") or {}).get("mandatory_population_percent")),
+            "road_ng911_participant": ((((row.get("gac") or {}).get("road") or {}).get("metadata") or {}).get("ng911_upload")),
+            "road_gac_public_opt_in": ((((row.get("gac") or {}).get("road") or {}).get("metadata") or {}).get("gac_open")),
+            "road_submitted_at": ((((row.get("gac") or {}).get("road") or {}).get("metadata") or {}).get("submitted_at")),
         }.items()})
     return out.getvalue()
 
@@ -1767,6 +1811,100 @@ def _mngac_xlsx_sheets(snapshot: dict) -> list[tuple[str, list[list]]]:
     return sheets
 
 
+def _gac_xlsx_sheets(snapshot: dict) -> list[tuple[str, list[list]]]:
+    gac = snapshot.get("gac")
+    if not isinstance(gac, dict) or not gac:
+        return []
+
+    standard_rows = [[
+        "Standard","Name","Version","Standard fields","Mandatory fields","Population scope",
+        "Counties represented","Record count","All-field population percent",
+        "Mandatory population percent","NG911 participants","GAC public opt-ins"
+    ]]
+    county_rows = [[
+        "Standard","County","Public records","All-field population percent",
+        "Mandatory population percent","Fields with values","Standard fields",
+        "NG911 participant","GAC public opt-in","Latest reported submission"
+    ]]
+    field_rows = [[
+        "Standard","Element","Field","Section","Inclusion","Data type","Schema present",
+        "Population scanned","Counties with values","Counties represented","Populated records",
+        "Record count","Statewide population percent","Median county population percent"
+    ]]
+    detail_rows = [[
+        "Standard","County","Field","Element","Inclusion","Population scanned",
+        "Populated records","Record count","Population percent"
+    ]]
+
+    for standard_key in standard_keys():
+        data = gac.get(standard_key)
+        if not isinstance(data, dict):
+            continue
+        schema = load_gac_standard(standard_key)
+        standard = data.get("standard") or schema.get("standard") or {}
+        metadata_summary = data.get("metadata_summary") or {}
+        standard_rows.append([
+            standard_key, standard.get("short_name") or standard.get("name"),
+            standard.get("version"), data.get("field_count") or len(schema.get("fields") or []),
+            data.get("mandatory_field_count"), data.get("population_scope"),
+            data.get("covered_counties"), data.get("record_count"),
+            data.get("field_population_percent"), data.get("mandatory_population_percent"),
+            metadata_summary.get("ng911_participants"), metadata_summary.get("gac_open_counties"),
+        ])
+
+        if isinstance(data.get("county"), dict) or data.get("metadata"):
+            county_name = snapshot.get("county")
+            county_items = [(county_name, data.get("county"), data.get("metadata") or {})]
+        else:
+            counties = data.get("counties") or {}
+            metadata = data.get("county_metadata") or {}
+            names = sorted(set(counties) | set(metadata))
+            county_items = [(name, counties.get(name), metadata.get(name) or {}) for name in names]
+
+        for county_name, county, metadata in county_items:
+            county = county if isinstance(county, dict) else {}
+            metadata = metadata if isinstance(metadata, dict) else {}
+            county_rows.append([
+                standard_key, county_name, county.get("record_count"),
+                county.get("field_population_percent"), county.get("mandatory_population_percent"),
+                county.get("fields_with_values"), county.get("field_count"),
+                metadata.get("ng911_upload"), metadata.get("gac_open"), metadata.get("submitted_at"),
+            ])
+
+        summaries = data.get("fields") or {}
+        for spec in schema.get("fields") or []:
+            field = str(spec.get("field") or "")
+            stats = summaries.get(field) or {}
+            field_rows.append([
+                standard_key, spec.get("label"), field, spec.get("section_name"),
+                spec.get("inclusion"), spec.get("data_type"),
+                stats.get("present_in_source_schema"),
+                stats.get("population_scanned"),
+                stats.get("counties_with_values"), stats.get("counties_covered"),
+                stats.get("populated"), stats.get("record_count"), stats.get("percent"),
+                stats.get("county_median_percent"),
+            ])
+
+        for county_name, county, _metadata in county_items:
+            county = county if isinstance(county, dict) else {}
+            fields = county.get("fields") or {}
+            for spec in schema.get("fields") or []:
+                field = str(spec.get("field") or "")
+                stats = fields.get(field) or {}
+                detail_rows.append([
+                    standard_key, county_name, field, spec.get("label"), spec.get("inclusion"),
+                    field in fields, stats.get("populated"), stats.get("record_count"),
+                    stats.get("percent"),
+                ])
+
+    return [
+        ("GAC Standards", standard_rows),
+        ("GAC Counties", county_rows),
+        ("GAC Fields", field_rows),
+        ("GAC Detail", detail_rows),
+    ]
+
+
 def _snapshot_xlsx(snapshot: dict) -> bytes:
     county_rows = [["County","Status","Actively monitored","Monitoring path","County-direct access","Statewide open access","County-direct source count","Parcel dataset fee","Fee product","Last county update","Catalog refresh date","Public data approved","Parcel data URL","Parcel viewer URL","Contact names","Contact source","Contact source URL","Contact verified"]]
     source_rows = [["County","Source","Status","Record count","Worker","Reporting","Stale source","Stale worker","Last successful check","Last checked"]]
@@ -1794,6 +1932,7 @@ def _snapshot_xlsx(snapshot: dict) -> bytes:
             source_rows.append([source.get("county"),source.get("name"),source.get("status"),source.get("feature_count"),source.get("worker"),source.get("reporting"),bool(source.get("stale")),bool(source.get("worker_stale")),source.get("last_success_at"),source.get("checked_at")])
     sheets=[("Counties",county_rows),("Sources",source_rows),("Contacts",contact_rows)]
     sheets.extend(_mngac_xlsx_sheets(snapshot))
+    sheets.extend(_gac_xlsx_sheets(snapshot))
     profiles = {row["parcel_source_profile"]["county"]["slug"]: row["parcel_source_profile"] for row in rows if row.get("parcel_source_profile")}
     sheets.extend(county_profile_xlsx_sheets(profiles))
     out=io.BytesIO()
