@@ -1,6 +1,9 @@
 # Versioning and release policy
 
-GIS Data Watchtower is currently **pre-1.0**. The package version is `0.1.0.dev0`.
+The current production runtime is **v0.1.0.dev0**. The repository is preparing
+**v0.1.1** as a pre-1.0 patch release; the candidate is not tagged or deployed.
+The deployed runtime version changes only after the candidate passes CI and
+required staging validation, is merged, and is deployed.
 
 ## Versioning
 
@@ -10,7 +13,10 @@ The project follows Semantic Versioning intent:
 - **minor**: backward-compatible capabilities or supported adapters;
 - **major**: incompatible configuration, storage-schema, CLI, or public-output contract changes.
 
-Before 1.0, minor releases may still include carefully documented breaking changes when necessary.
+Before 1.0, minor releases may include carefully documented breaking changes
+when necessary. Patch releases contain backward-compatible fixes and
+maintenance; major releases signal incompatible configuration, storage-schema,
+CLI, or public-output changes.
 
 ## Main branch
 

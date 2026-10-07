@@ -21,6 +21,17 @@ Start from `config/example_sources.json`. The public example is deliberately pro
 
 The supported history size key is `history_max_mb`. Older experimental keys such as `history_max_lines` and `history_max_bytes` are not supported.
 
+Cloud jobs persist both `history.jsonl` and its one retained rotated file,
+`history.jsonl.1`, using independent conditional object writes. The history is
+bounded to those two generations. The PowerShell helper installs editable and
+GCS dependencies under `constraints.txt`; update that lock deliberately when
+refreshing the supported runtime set.
+
+The repository example configuration is available to source and container
+users. A wheel installation without that repository tree must pass `--config`
+or set `CLEARPARCEL_WATCHTOWER_CONFIG`; the CLI reports this requirement before
+it attempts a check.
+
 ## Dashboard and aggregate keys
 
 | Key | Purpose | Default |
@@ -93,6 +104,11 @@ empty strings as populated and is not the validated routine default.
 
 The source must expose the configured county field, an object-id field, and GAC
 field names. Standard fields are split into bounded grouped-statistics requests.
+Any response marked `exceededTransferLimit` or any mismatch in county groups
+or record counts between field batches fails the configured quality check; it
+does not publish statewide percentages from partial results. A failed configured
+GAC check marks the source `warn` and retains the last successful GAC observation
+with its own `observed_at` time.
 `batch_size` is capped at 20, but **12 is the validated routine default**;
 full live scans with 20-field batches produced ArcGIS 503 wait-timeouts.
 Address and Road metadata may additionally report NG911 participation, GAC

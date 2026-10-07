@@ -52,6 +52,10 @@ def merge_states(base: dict | None, partial: dict, worker: str) -> dict:
                 retired_sources[source_id] = {"worker": worker, "retired_at": generated}
     for source_id, record in partial_sources.items():
         previous = merged_sources.get(source_id) or {}
+        tombstone = retired_sources.get(source_id) or {}
+        retired_at = _parse_time(tombstone.get("retired_at"))
+        if retired_at is not None and incoming_time <= retired_at:
+            continue
         seen = _parse_time(previous.get("last_report_at") or previous.get("checked_at"))
         if seen and seen >= incoming_time:
             continue

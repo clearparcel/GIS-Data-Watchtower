@@ -2,6 +2,8 @@
 
 Address/Road GAC monitoring, normalized exports, aggregation correctness and release hardening are **deployed** from merged commit `53748af`. Production public revision `00010-75k` displays **v0.1.0.dev0 · build 53748af · Production**; isolated preview `00013-4lh` displays Preview, and private dashboard `00018-vtw` preserves its audited IAP-protected wrapper. PostHog hooks are deployed dormant pending a dedicated project ([Issue #50](https://github.com/clearparcel/GIS-Data-Watchtower/issues/50)). See [the release record](docs/release-gac-address-road-2026-10-07.md).
 
+An unreleased **v0.1.1 candidate** is being prepared with the review fixes and packaging/dashboard updates described in [its release notes](docs/release-v0.1.1.md). The deployed version above remains current until the candidate passes CI and required staging validation, is merged, and is deployed.
+
 [![CI](https://github.com/clearparcel/GIS-Data-Watchtower/actions/workflows/watchtower-ci.yml/badge.svg)](https://github.com/clearparcel/GIS-Data-Watchtower/actions/workflows/watchtower-ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
@@ -30,6 +32,12 @@ counts and catalog facts; private diagnostics and arbitrary nested values are
 omitted. Matching official statewide products retain one vetted inventory identity,
 with current county observations joined by source ID. Export row counts derive
 from the composed inventory and observations, including empty-category rows.
+Rendered public exports reuse a single bounded cache for each sanitized snapshot
+generation. When storage refresh fails, the dashboard serves the last-known
+snapshot with a stale banner while `/healthz` remains unhealthy. CI supply-chain
+evidence inventories the built runtime image's Python and Debian packages and
+records its image ID as the artifact subject; constraints are labeled as
+dependency input metadata.
 
 Watchtower is designed for **low-frequency, respectful monitoring**. It is not a bulk downloader or a scraper for human-facing property-search websites.
 

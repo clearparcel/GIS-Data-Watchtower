@@ -234,11 +234,14 @@ class HybridReadinessTests(unittest.TestCase):
                 ):
                     Path(config[key]).parent.mkdir(parents=True, exist_ok=True)
                     Path(config[key]).write_text(content, encoding="utf-8")
+                Path(config["history_file"]).with_suffix(".jsonl.1").write_text(
+                    "retained archive\n", encoding="utf-8"
+                )
                 return result
             with patch.object(cloud_job, "backend_from_env", return_value=fake),                  patch.object(cloud_job, "check_sources", side_effect=fake_check),                  patch.object(cloud_job, "publish_worker_result", return_value=None),                  patch.dict(os.environ, {"WATCHTOWER_WORKDIR": str(root / "work")}, clear=False):
                 cloud_job.run_cloud_job(cfg)
         self.assertFalse(fake.unconditional)
-        self.assertEqual({name for name, _ in fake.conditional}, {"state.json","history.jsonl","alerts.json","alerts.txt"})
+        self.assertEqual({name for name, _ in fake.conditional}, {"state.json","history.jsonl","history.jsonl.1","alerts.json","alerts.txt"})
         self.assertTrue(all(version == 7 for _, version in fake.conditional))
 
     def test_competing_gcs_publishers_preserve_both_workers(self):

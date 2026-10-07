@@ -38,6 +38,8 @@ jobs:
           docker run --rm watchtower-ci --help
           docker run --rm --entrypoint python watchtower-ci -c "from clearparcel.datawatch.build_info import application_identity; assert application_identity()['revision'] == '${{ github.sha }}'"
           docker image inspect watchtower-ci --format '{{.Id}}' > watchtower-image-id.txt
+          docker run --rm --entrypoint python watchtower-ci -c "import importlib.metadata,json,platform,sys; json.dump({'python':platform.python_version(),'components':[{'name':d.metadata.get('Name') or d.name,'version':d.version} for d in importlib.metadata.distributions()]},sys.stdout)" > watchtower-runtime-python.json
+          docker run --rm --entrypoint dpkg-query watchtower-ci -W -f='${binary:Package}\t${Version}\n' > watchtower-runtime-os.tsv
 
       - name: Scan container for fixable high/critical vulnerabilities
         if: matrix.os == 'ubuntu-24.04' && matrix.python-version == '3.14'
@@ -56,6 +58,9 @@ jobs:
           python scripts/generate_supply_chain.py \
             --revision "${{ github.sha }}" \
             --base-image "python:3.13-slim@sha256:bf44cdfcb76cd3b41e879bc058fc37ec5872002ccfde7fcb765e218cde0cd79c" \
+            --image-digest "$(cat watchtower-image-id.txt)" \
+            --runtime-inventory watchtower-runtime-python.json \
+            --os-inventory watchtower-runtime-os.tsv \
             --sbom watchtower-sbom.cdx.json \
             --provenance watchtower-provenance.json
 

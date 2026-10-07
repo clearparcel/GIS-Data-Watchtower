@@ -4,6 +4,8 @@ Hybrid deployments may run different source sets from cloud and local workers. E
 
 A complete `scope.type=fleet` report retires omitted sources owned by that worker, provided their observation is not newer than the report. Filtered `scope.type=source` and legacy reports without scope remain additive. A filtered check does not establish a complete inventory; retirement occurs on the next complete report. Other workers' observations remain intact.
 
+Retirement tombstones also apply across worker identities: an incoming source observation at or before `retired_at` is ignored, even when its worker has no newer heartbeat. This keeps the private aggregate and the public publisher's anti-resurrection check consistent when a source ID is reassigned or a delayed worker report arrives.
+
 Each merged source records its worker provenance, last report time, and last successful observation time. Aggregate state also records per-worker check time, last-success time, counts, and telemetry.
 
 ## Safe concurrent publishing
@@ -11,6 +13,8 @@ Each merged source records its worker provenance, last report time, and last suc
 Shared aggregate writes use compare-and-swap semantics. Google Cloud Storage deployments use object-generation preconditions. Local filesystem deployments use an OS-owned lock plus a unique temporary file and atomic replacement, verifying that the object has not changed since it was read. The lock file persists; the lock itself is released on descriptor closure or process termination. A conflicting writer reloads the latest aggregate, merges again, and retries. Aggregate scratch is unique per invocation and removed on success or failure. Custom storage backends must implement atomic conditional uploads; the base backend fails closed.
 
 The local backend requires a filesystem that supports Windows byte locks or POSIX `flock` and atomic replacement. Verify these guarantees before using a network/shared filesystem. All writers of shared objects must use conditional uploads.
+
+Cloud jobs persist the bounded two-generation history as `history.jsonl` and `history.jsonl.1`. The rotated archive has its own object generation precondition. A conflict on either history object fails the job rather than uploading stale history. Retention is intentionally limited to the active file and one archive; operators should export older history before raising the local rotation limit.
 
 Set `WATCHTOWER_AGGREGATE_OBJECT` (or deployment-specific `aggregate_object`) to opt into publishing. Storage remains cloud-neutral: local filesystem is the default backend and GCS is optional.
 

@@ -154,6 +154,60 @@ class GACStandardsTests(unittest.TestCase):
             for stat in statistics
         ))
 
+    def test_statistics_truncation_fails_closed(self):
+        fields = ["OBJECTID", "CO_NAME", "ADD_ID"]
+        response = {"exceededTransferLimit": True, "features": [{
+            "attributes": {"CO_NAME": "Aitkin", "record_count": 100, "p0": 100}
+        }]}
+        with patch.object(watch, "_json_request", return_value=(response, {"status": 200})):
+            with self.assertRaisesRegex(RuntimeError, "exceeded the provider transfer limit"):
+                watch._arcgis_gac_completeness(
+                    "https://example.invalid/FeatureServer/0", fields, "OBJECTID", 30,
+                    standard_key="address",
+                )
+
+    def test_statistics_batches_must_agree_on_counties_and_denominators(self):
+        schema = {"standard": {"key": "address"}, "fields": [
+            {"field": "ADD_ID", "inclusion": "Mandatory", "data_type": "Integer"},
+            {"field": "ANUMBER", "inclusion": "Mandatory", "data_type": "Integer"},
+        ]}
+        defaults = {"routine_batch_size": 1, "routine_population_scope": "mandatory",
+                    "routine_text_population_mode": "nonblank", "county_name_field": "CO_NAME",
+                    "county_code_field": None, "grouping_note": "test"}
+        responses = [
+            {"features": [{"attributes": {"CO_NAME": "Aitkin", "record_count": 100, "p0": 100}}]},
+            {"features": [{"attributes": {"CO_NAME": "Aitkin", "record_count": 101, "p0": 100}}]},
+        ]
+        with patch.object(watch, "load_gac_standard", return_value=schema), \
+             patch.object(watch, "gac_defaults", return_value=defaults), \
+             patch.object(watch, "_json_request", side_effect=[(x, {"status": 200}) for x in responses]):
+            with self.assertRaisesRegex(RuntimeError, "inconsistent county groups or record counts"):
+                watch._arcgis_gac_completeness(
+                    "https://example.invalid/FeatureServer/0", ["OBJECTID", "CO_NAME", "ADD_ID", "ANUMBER"],
+                    "OBJECTID", 30, standard_key="address", batch_size=1,
+                )
+
+    def test_mandatory_full_uses_exact_counts_not_rounded_percentages(self):
+        schema = {"standard": {"key": "address"}, "fields": [
+            {"field": "ADD_ID", "inclusion": "Mandatory", "data_type": "Integer"},
+        ]}
+        defaults = {"routine_batch_size": 1, "routine_population_scope": "mandatory",
+                    "routine_text_population_mode": "nonblank", "county_name_field": "CO_NAME",
+                    "county_code_field": None, "grouping_note": "test"}
+        response = {"features": [{"attributes": {
+            "CO_NAME": "Aitkin", "record_count": 100000, "p0": 99999,
+        }}]}
+        with patch.object(watch, "load_gac_standard", return_value=schema), \
+             patch.object(watch, "gac_defaults", return_value=defaults), \
+             patch.object(watch, "_json_request", return_value=(response, {"status": 200})):
+            result = watch._arcgis_gac_completeness(
+                "https://example.invalid/FeatureServer/0", ["OBJECTID", "CO_NAME", "ADD_ID"],
+                "OBJECTID", 30, standard_key="address",
+            )
+        county = result["counties"]["Aitkin"]
+        self.assertEqual(county["fields"]["ADD_ID"]["percent"], 100.0)
+        self.assertEqual(county["mandatory_fields_full"], 0)
+
     def test_road_excludes_non_minnesota_groups_and_normalizes_saint_louis(self):
         response = {"features": [
             {"attributes": {"CO_NAME_L": "Saint Louis", "record_count": 10, "p0": 10}},

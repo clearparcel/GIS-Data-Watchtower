@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import datetime as dt
+import hashlib
 import json
-import math
 import os
 import threading
 import time
@@ -17,228 +17,45 @@ from clearparcel.datawatch.dashboard import (
     _county_monitoring_counts,
     _county_profiles,
     _dashboard_state,
-    _esc,
     _health_status,
     _gac_data,
-    _mngac_csv,
     _mngac_data,
     _mngac_map_svg,
-    _snapshot_csv,
-    _snapshot_xlsx,
     _statewide_snapshot,
     _status_class,
-    _layout,
     render_counties,
     render_county,
     render_mngac,
 )
+from clearparcel.datawatch.dashboard_exports import _mngac_csv, _snapshot_csv, _snapshot_xlsx
+from clearparcel.datawatch.dashboard_templates import _esc, _layout
+from clearparcel.datawatch.dashboard_routes import dispatch_snapshot_exports
 from clearparcel.datawatch.parcel_access import load_parcel_access
 from clearparcel.datawatch.county_profile_exports import county_profiles_csv, parcel_sources_csv
 from clearparcel.datawatch.county_profiles import county_profile_counts, _latest, _timestamp
 from clearparcel.datawatch.county_profile_panel import render_county_profile_panel, percentage_legend, percentage_color_js, research_summary
 from clearparcel.datawatch.storage import backend_from_env
-from clearparcel.datawatch.public_values import safe_public_url, sanitize_source_metadata, _metadata_text
+from clearparcel.datawatch.public_values import sanitize_source_metadata
+from clearparcel.datawatch.build_info import application_identity
 from clearparcel.datawatch.gac_standards import normalize_standard_key
 from clearparcel.datawatch.analytics import posthog_csp_sources
 
 
-def _public_count(value: object) -> int | None:
-    return value if type(value) is int and value >= 0 else None
-
-
-def _public_number(value: object) -> int | float | None:
-    return value if (type(value) is int and value >= 0) or (type(value) is float and math.isfinite(value) and value >= 0) else None
-
-
-def _public_status(value: object) -> str | None:
-    return value if isinstance(value, str) and value in {'ok', 'warn', 'error', 'unknown', 'unsupported'} else None
-
-
-def _public_date(value: object) -> str | None:
-    if not isinstance(value, str) or not _metadata_text(value, 80):
-        return None
-    try:
-        dt.datetime.fromisoformat(value.replace('Z', '+00:00'))
-    except ValueError:
-        return None
-    return value
-
-
-def _catalog_date(value: object) -> int | str | None:
-    return value if type(value) is int and 0 <= value <= 253402300799999 else _public_date(value)
-
-
-def _approval(value: object) -> str | bool | None:
-    return value if type(value) is bool or isinstance(value, str) and value.lower() in {'true', 'false', 'yes', 'no'} else None
-
-
-def _project(record: object, schema: dict) -> dict:
-    """Project known leaves through their types; never copy arbitrary objects."""
-    if not isinstance(record, dict):
-        return {}
-    return {key: value for key, validate in schema.items()
-            if (value := validate(record.get(key))) is not None}
-
-
-def _records(value: object) -> dict:
-    return value if isinstance(value, dict) else {}
-
-
-_SOURCE_SCHEMA = {
-    **{key: _metadata_text for key in ('id', 'name', 'provider', 'category', 'worker', 'county_slug')},
-    **{key: _public_date for key in ('checked_at', 'last_success_at', 'last_report_at')},
-    **{key: _public_count for key in ('feature_count', 'field_count', 'parcel_id_null_count',
-        'duplicate_id_extra_rows', 'null_geometry_count')},
-    **{key: _public_number for key in ('geometry_sample_multipart_percent', 'geometry_sample_avg_vertices', 'elapsed_ms')},
-    'status': _public_status,
-}
-_WORKER_SCHEMA = {**{key: _public_date for key in ('checked_at', 'last_success_at', 'last_report_at')},
-                  'overall': _public_status, 'source_count': _public_count}
-_COMPLETENESS_SCHEMA = {'field': _metadata_text, 'missing': _public_count, 'populated': _public_count,
-                        'complete_percent': _public_number, 'status': _public_status}
-
-
-def _sanitize_completeness(value: object) -> dict:
-    return {key: _project(record, _COMPLETENESS_SCHEMA)
-            for key, record in _records(value).items()
-            if key in ('parcel_id', 'owner', 'site_address', 'mailing_address') and isinstance(record, dict)}
-
-
-def _sanitize_catalog_records(records: object) -> dict:
-    schema = {'gac_open_approval': _approval, 'acqdate': _catalog_date, 'rundate': _catalog_date,
-              'data_url': safe_public_url, 'viewer_url': safe_public_url}
-    return {county: _project(record, schema) for county, record in _records(records).items()
-            if _metadata_text(county) and isinstance(record, dict)}
-
-
-def _sanitize_mngac(data: dict | None) -> dict | None:
-    if not isinstance(data, dict):
-        return None
-    field_schema = {
-        **{key: _metadata_text for key in ('label', 'section_name', 'inclusion', 'data_type')},
-        'section': _public_count,
-        'present_in_source_schema': lambda value: value if type(value) is bool else None,
-        'population_scanned': lambda value: value if type(value) is bool else None,
-        **{key: _public_count for key in (
-            'populated', 'record_count', 'counties_with_values', 'counties_covered',
-        )},
-        **{key: _public_number for key in ('percent', 'county_median_percent')},
-    }
-    county_schema = {
-        **{key: _public_count for key in (
-            'record_count', 'fields_with_values', 'field_count', 'scanned_field_count',
-            'scanned_fields_with_values', 'mandatory_fields_full', 'mandatory_field_count',
-        )},
-        'population_scope': _metadata_text,
-        **{key: _public_number for key in ('field_population_percent', 'mandatory_population_percent')},
-    }
-    metadata_schema = {
-        **{key: _metadata_text for key in ('county_name', 'county_code', 'county_fips')},
-        'gac_open': lambda value: value if type(value) is bool else None,
-        'ng911_upload': lambda value: value if type(value) is bool else None,
-        'submitted_at': _public_date,
-    }
-
-    def fields(records):
-        return {name: _project(record, field_schema) for name, record in _records(records).items()
-                if _metadata_text(name, 128) and isinstance(record, dict)}
-
-    public = _project(data, {
-        'method': _metadata_text,
-        'standard_key': _metadata_text,
-        'population_scope': _metadata_text,
-        'text_population_mode': _metadata_text,
-        **{key: _public_count for key in (
-            'record_count', 'field_count', 'scanned_field_count', 'covered_counties',
-            'mandatory_field_count', 'excluded_county_groups',
-            'source_feature_count', 'ungrouped_record_count',
-        )},
-        **{key: _public_number for key in ('field_population_percent', 'mandatory_population_percent')},
-    })
-    standard = data.get('standard')
-    public['standard'] = _project(
-        standard,
-        {'key': _metadata_text, 'name': _metadata_text, 'short_name': _metadata_text,
-         'version': _metadata_text, 'published': _public_date, 'published_at': _public_date},
-    )
-    link = safe_public_url(standard.get('source_url')) if isinstance(standard, dict) else None
-    if link:
-        public['standard']['source_url'] = link
-    public['fields'] = fields(data.get('fields'))
-    public['counties'] = {}
-    counties = data.get('counties')
-    for county, record in (counties if isinstance(counties, dict) else {}).items():
-        if _metadata_text(county) and isinstance(record, dict):
-            public['counties'][county] = {**_project(record, county_schema), 'fields': fields(record.get('fields'))}
-    metadata = data.get('county_metadata')
-    if isinstance(metadata, dict):
-        public['county_metadata'] = {
-            county: _project(record, metadata_schema)
-            for county, record in metadata.items()
-            if _metadata_text(county) and isinstance(record, dict)
-        }
-    metadata_summary = data.get('metadata_summary')
-    if isinstance(metadata_summary, dict):
-        public['metadata_summary'] = _project(
-            metadata_summary,
-            {key: _public_count for key in (
-                'metadata_counties', 'ng911_participants', 'gac_open_counties',
-                'represented_without_gac_open', 'gac_open_without_representation',
-            )},
-        )
-    missing = data.get('source_schema_missing_fields')
-    if isinstance(missing, list):
-        public['source_schema_missing_fields'] = [name for name in missing if _metadata_text(name, 128)]
-    return public if public.get("fields") and public.get("counties") else None
-
-
-_sanitize_gac = _sanitize_mngac
-
-
-def sanitize_public_render_state(state: dict) -> dict:
-    """Reduce aggregate state to facts intentionally safe for anonymous display."""
-    public = {key: validate(state.get(key)) for key, validate in {
-        'schema_version': _public_count, 'generated_at': _public_date,
-        'public_published_at': _public_date, 'overall': _public_status}.items()}
-    public.update(counts=_project(state.get('counts'), {key: _public_count for key in ('ok', 'warn', 'error')}),
-                  workers={}, sources={}, retired_sources={})
-    for source_id, record in _records(state.get('retired_sources')).items():
-        if _metadata_text(source_id) and isinstance(record, dict):
-            public['retired_sources'][source_id] = _project(
-                record, {'worker': _metadata_text, 'retired_at': _public_date}
-            )
-
-    for worker_name, worker in _records(state.get('workers')).items():
-        if _metadata_text(worker_name) and isinstance(worker, dict):
-            public['workers'][worker_name] = _project(worker, _WORKER_SCHEMA)
-
-    for source_id, source in _records(state.get('sources')).items():
-        if not _metadata_text(source_id) or not isinstance(source, dict):
-            continue
-        summary = _project(source, _SOURCE_SCHEMA)
-        summary['id'] = summary.get('id') or source_id
-        summary['status'] = summary.get('status') or 'unknown'
-        changes = source.get('changes')
-        summary['change_count'] = len(changes) if isinstance(changes, list) else (_public_count(source.get('change_count')) or 0)
-        if isinstance(source.get('completeness_profiles'), dict):
-            summary['completeness_profiles'] = _sanitize_completeness(source['completeness_profiles'])
-        metadata = sanitize_source_metadata(source)
-        if metadata:
-            summary['public_metadata'] = metadata
-
-        if source_id == "mn-parcel-county-catalog":
-            summary["county_records"] = _sanitize_catalog_records(source.get("county_records"))
-
-        gac = _sanitize_gac(source.get("gac_completeness"))
-        if gac:
-            summary["gac_completeness"] = gac
-        mngac = _sanitize_mngac(source.get("mngac_completeness"))
-        if mngac:
-            summary["mngac_completeness"] = mngac
-
-        public["sources"][str(source_id)] = summary
-
-    return public
+from clearparcel.datawatch.public_projection import (
+    _approval,
+    _catalog_date,
+    _project,
+    _public_count,
+    _public_date,
+    _public_number,
+    _public_status,
+    _records,
+    _sanitize_catalog_records,
+    _sanitize_completeness,
+    _sanitize_gac,
+    _sanitize_mngac,
+    sanitize_public_render_state,
+)
 
 
 def _publication_max_age_seconds() -> int:
@@ -541,7 +358,17 @@ class _PublicStateCache:
         self.object_name = os.environ.get("WATCHTOWER_AGGREGATE_OBJECT", "aggregate-state.json")
         self.refresh_seconds = max(5, min(int(os.environ.get("WATCHTOWER_PUBLIC_REFRESH_SECONDS", "30")), 300))
         self._last_refresh = 0.0
-        self._lock = threading.Lock()
+        self._last_attempt = 0.0
+        self._refresh_lock = threading.Lock()
+        self._export_lock = threading.Lock()
+        self._snapshot_key = None
+        self._snapshot_value = None
+        self._xlsx_value = None
+        self.last_refresh_error = False
+
+    @property
+    def stale(self) -> bool:
+        return self.last_refresh_error
 
     @property
     def config(self) -> dict:
@@ -559,10 +386,17 @@ class _PublicStateCache:
         now = time.monotonic()
         if not force and self.public_path.is_file() and now - self._last_refresh < self.refresh_seconds:
             return
-        with self._lock:
-            now = time.monotonic()
-            if not force and self.public_path.is_file() and now - self._last_refresh < self.refresh_seconds:
+        # Back off after storage errors and let concurrent requests use the
+        # last-known snapshot while one refresh is in flight.
+        if not force and self.public_path.is_file() and now - self._last_attempt < self.refresh_seconds:
+            return
+        if not self._refresh_lock.acquire(blocking=False):
+            if self.public_path.is_file():
                 return
+            self._refresh_lock.acquire()
+        try:
+            now = time.monotonic()
+            self._last_attempt = now
             if not self.storage.download(self.object_name, self.raw_path):
                 raise FileNotFoundError(f"aggregate object not found: {self.object_name}")
             raw = json.loads(self.raw_path.read_text(encoding="utf-8"))
@@ -571,6 +405,39 @@ class _PublicStateCache:
             tmp.write_text(json.dumps(public, ensure_ascii=False), encoding="utf-8")
             tmp.replace(self.public_path)
             self._last_refresh = now
+            self.last_refresh_error = False
+        except Exception:
+            self.last_refresh_error = True
+            if not self.public_path.is_file():
+                raise
+        finally:
+            self._refresh_lock.release()
+
+    def _ensure_snapshot(self) -> dict:
+        state_bytes = self.public_path.read_bytes()
+        identity = application_identity()
+        key = hashlib.sha256(
+            state_bytes + str(identity.get("revision")).encode() + str(identity.get("version")).encode()
+        ).hexdigest()
+        if key != self._snapshot_key:
+            self._snapshot_value = _statewide_snapshot(self.config)
+            self._xlsx_value = None
+            self._snapshot_key = key
+        return self._snapshot_value
+
+    def snapshot(self) -> dict:
+        with self._export_lock:
+            return self._ensure_snapshot()
+
+    def snapshot_xlsx(self) -> bytes:
+        with self._export_lock:
+            snapshot = self._ensure_snapshot()
+            if self._xlsx_value is None:
+                rendered = _snapshot_xlsx(snapshot)
+                if len(rendered) > 32 * 1024 * 1024:
+                    raise RuntimeError("rendered public export exceeds cache size limit")
+                self._xlsx_value = rendered
+            return self._xlsx_value
 
 
 def _public_request_timeout_seconds() -> int:
@@ -589,6 +456,13 @@ def serve_public(host: str = "0.0.0.0", port: int = 8080) -> None:
 
     class Handler(BaseHTTPRequestHandler):
         def _send(self, status: int, content: str, content_type: str = "text/html; charset=utf-8"):
+            if cache.stale and content_type.startswith("text/html"):
+                content = content.replace(
+                    "<main class=\"public-main\">",
+                    '<main class="public-main"><div class="mngac-note warn" role="status">'
+                    'Showing a cached public snapshot because the latest storage refresh failed.</div>',
+                    1,
+                )
             raw = content.encode("utf-8")
             self.send_response(status)
             self.send_header("Content-Type", content_type)
@@ -632,6 +506,9 @@ def serve_public(host: str = "0.0.0.0", port: int = 8080) -> None:
                     cache.refresh()
                     state = json.loads(cache.public_path.read_text(encoding="utf-8"))
                     healthy, payload = _publication_health(state, max_age_seconds=max_publication_age_seconds)
+                    if cache.stale:
+                        healthy = False
+                        payload = {**payload, "status": "stale", "refresh_failed": True}
                     return self._send(200 if healthy else 503, json.dumps(payload, separators=(",", ":")), "application/json; charset=utf-8")
                 except Exception:
                     return self._send(503, '{"status":"unavailable"}', "application/json; charset=utf-8")
@@ -642,6 +519,15 @@ def serve_public(host: str = "0.0.0.0", port: int = 8080) -> None:
                 return self._send(503, "Dashboard data is temporarily unavailable.", "text/plain; charset=utf-8")
 
             config = cache.config
+            if dispatch_snapshot_exports(
+                self,
+                parsed.path,
+                parsed.query,
+                statewide_snapshot=cache.snapshot,
+                county_snapshot=lambda slug: _county_snapshot(config, slug),
+                statewide_xlsx=cache.snapshot_xlsx,
+            ):
+                return
             if parsed.path == "/":
                 return self._send(200, render_public_dashboard(config))
             if parsed.path == "/counties":
@@ -663,40 +549,10 @@ def serve_public(host: str = "0.0.0.0", port: int = 8080) -> None:
             if parsed.path == "/api/state":
                 return self._send(200, cache.public_path.read_text(encoding="utf-8"), "application/json; charset=utf-8")
             if parsed.path in ("/county-profiles.csv", "/parcel-sources.csv"):
-                snap = _statewide_snapshot(config)
+                snap = cache.snapshot()
                 profiles = {row["parcel_source_profile"]["county"]["slug"]: row["parcel_source_profile"] for row in snap["counties"]}
                 export = county_profiles_csv if parsed.path == "/county-profiles.csv" else parcel_sources_csv
                 return self._send(200, export(profiles), "text/csv; charset=utf-8")
-            if parsed.path == "/snapshot.json":
-                return self._send(200, json.dumps(_statewide_snapshot(config), indent=2), "application/json; charset=utf-8")
-            if parsed.path == "/snapshot.csv":
-                return self._send(200, _snapshot_csv(_statewide_snapshot(config)), "text/csv; charset=utf-8")
-            if parsed.path == "/snapshot.xlsx":
-                return self._send_bytes(
-                    200,
-                    _snapshot_xlsx(_statewide_snapshot(config)),
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    "watchtower-snapshot.xlsx",
-                )
-            if parsed.path == "/county-snapshot.json":
-                slug = urllib.parse.parse_qs(parsed.query).get("slug", [""])[0]
-                snap = _county_snapshot(config, slug)
-                return self._send(200 if snap else 404, json.dumps(snap or {"error": "county not found"}, indent=2), "application/json; charset=utf-8")
-            if parsed.path == "/county-snapshot.csv":
-                slug = urllib.parse.parse_qs(parsed.query).get("slug", [""])[0]
-                snap = _county_snapshot(config, slug)
-                return self._send(200 if snap else 404, _snapshot_csv(snap) if snap else "county not found", "text/csv; charset=utf-8")
-            if parsed.path == "/county-snapshot.xlsx":
-                slug = urllib.parse.parse_qs(parsed.query).get("slug", [""])[0]
-                snap = _county_snapshot(config, slug)
-                if not snap:
-                    return self._send(404, "county not found", "text/plain; charset=utf-8")
-                return self._send_bytes(
-                    200,
-                    _snapshot_xlsx(snap),
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    f"{slug}-watchtower.xlsx",
-                )
             if parsed.path in ("/mngac.json", "/mngac.csv"):
                 try:
                     standard_key = normalize_standard_key(

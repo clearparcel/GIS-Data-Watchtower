@@ -12,7 +12,7 @@ from pathlib import Path
 from unittest.mock import patch
 from urllib.parse import parse_qs, urlencode, urlsplit
 
-from clearparcel.datawatch import dashboard, watch
+from clearparcel.datawatch import dashboard, dashboard_counties, dashboard_exports, dashboard_routes, dashboard_templates, dashboard_views, public_dashboard, public_projection, watch
 from clearparcel.datawatch.aggregate import merge_states, publish_partial
 from clearparcel.datawatch.file_lock import FileLock, atomic_write
 from clearparcel.datawatch import storage as storage_module
@@ -26,6 +26,107 @@ def report(hour, sources, scope="fleet"):
 
 
 class ReviewRegressions(unittest.TestCase):
+    def test_dashboard_county_views_keep_compatibility_wrappers(self):
+        with patch.object(dashboard_counties, "render_counties", return_value="county index") as index:
+            self.assertEqual(dashboard.render_counties({"x": 1}), "county index")
+            index.assert_called_once_with({"x": 1})
+        with patch.object(dashboard_counties, "render_county", return_value="county detail") as detail:
+            self.assertEqual(dashboard.render_county({"x": 1}, "olmsted"), "county detail")
+            detail.assert_called_once_with({"x": 1}, "olmsted")
+        with patch.object(dashboard_views, "render_dashboard", return_value="overview") as overview:
+            self.assertEqual(dashboard.render_dashboard({"x": 1}), "overview")
+            overview.assert_called_once_with({"x": 1})
+        with patch.object(dashboard_views, "render_source", return_value="source detail") as source:
+            self.assertEqual(dashboard.render_source({"x": 1}, "source-1"), "source detail")
+            source.assert_called_once_with({"x": 1}, "source-1")
+
+    def test_dashboard_projection_and_export_helpers_keep_compatibility_imports(self):
+        self.assertIs(dashboard._snapshot_csv, dashboard_exports._snapshot_csv)
+        self.assertIs(dashboard._snapshot_xlsx, dashboard_exports._snapshot_xlsx)
+        self.assertIs(dashboard._layout, dashboard_templates._layout)
+        self.assertIs(dashboard._public_layout_v2, dashboard_templates._public_layout_v2)
+        self.assertIs(public_dashboard.sanitize_public_render_state,
+                      public_projection.sanitize_public_render_state)
+
+    def test_shared_snapshot_routes_preserve_missing_county_and_cached_workbook_behavior(self):
+        sent = []
+
+        class Handler:
+            def _send(self, *args):
+                sent.append(("text", args))
+
+            def _send_bytes(self, *args):
+                sent.append(("bytes", args))
+
+        handler = Handler()
+        self.assertTrue(dashboard_routes.dispatch_snapshot_exports(
+            handler, "/county-snapshot.json", "slug=aitkin",
+            statewide_snapshot=lambda: {"scope": "state"},
+            county_snapshot=lambda slug: {"county": slug},
+        ))
+        self.assertEqual(sent.pop(), (
+            "text", (200, '{\n  "county": "aitkin"\n}', "application/json; charset=utf-8")
+        ))
+
+        cached_workbook = b"cached-workbook"
+        self.assertTrue(dashboard_routes.dispatch_snapshot_exports(
+            handler, "/snapshot.xlsx", "",
+            statewide_snapshot=lambda: {"scope": "state"},
+            county_snapshot=lambda slug: None,
+            statewide_xlsx=lambda: cached_workbook,
+        ))
+        self.assertEqual(sent.pop()[1][1], cached_workbook)
+
+        self.assertTrue(dashboard_routes.dispatch_snapshot_exports(
+            handler, "/county-snapshot.xlsx", "slug=missing",
+            statewide_snapshot=lambda: {"scope": "state"},
+            county_snapshot=lambda slug: None,
+        ))
+        self.assertEqual(sent.pop(), (
+            "text", (404, "county not found", "text/plain; charset=utf-8")
+        ))
+        self.assertFalse(dashboard_routes.dispatch_snapshot_exports(
+            handler, "/refresh", "",
+            statewide_snapshot=lambda: {}, county_snapshot=lambda slug: None,
+        ))
+
+    def test_private_dashboard_configures_absolute_request_deadline(self):
+        captured = {}
+        class ServerConstructed(Exception):
+            pass
+        def construct(*args, **kwargs):
+            captured.update(kwargs)
+            raise ServerConstructed
+        with patch.object(dashboard, "_dashboard_auth", return_value=("", "")), \
+             patch.object(dashboard, "_BoundedThreadingHTTPServer", side_effect=construct), \
+             self.assertRaises(ServerConstructed):
+            dashboard.serve({"state_file": "unused.json", "sources": [],
+                             "dashboard_request_timeout_seconds": 17})
+        self.assertEqual(captured["request_timeout"], 17)
+
+    def test_failed_configured_gac_check_warns_and_keeps_last_success(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            good = {"observation_status": "complete", "observed_at": "2026-10-06T10:00:00+00:00",
+                    "fields": {"ADD_ID": {"percent": 100.0}}, "counties": {"Aitkin": {}}}
+            (root / "state.json").write_text(json.dumps({"sources": {
+                "addresses": {"gac_completeness": good}
+            }}), encoding="utf-8")
+            config = {
+                "state_file": str(root / "state.json"), "history_file": str(root / "history.jsonl"),
+                "sources": [{"id": "addresses", "name": "Addresses", "kind": "arcgis_layer",
+                             "url": "https://example.invalid/0"}],
+            }
+            details = {"field_names": ["OBJECTID"], "problems": [], "gac_completeness": None,
+                       "gac_check_status": "error", "gac_check_error": "TimeoutError: timed out"}
+            with patch.object(watch, "_source_check", return_value=details):
+                result = watch.check_sources(config, save=False)
+        source = result["sources"]["addresses"]
+        self.assertEqual(source["status"], "warn")
+        self.assertEqual(result["overall"], "warn")
+        self.assertEqual(source["gac_completeness"]["observed_at"], "2026-10-06T10:00:00+00:00")
+        self.assertEqual(source["gac_check_status"], "error")
+
     def test_missing_or_invalid_report_time_cannot_bypass_ordering(self):
         state = merge_states({}, report(12, {"a": {"status": "error"}}), "cloud")
         for value in (None, "", "invalid"):
@@ -183,6 +284,14 @@ class ReviewRegressions(unittest.TestCase):
         state = merge_states(state, report(12, {}), "cloud")
         self.assertEqual(set(state["sources"]), {"local"})
         self.assertEqual(state["workers"]["cloud"]["source_count"], 0)
+
+    def test_delayed_cross_worker_report_cannot_resurrect_retired_source(self):
+        state = merge_states({}, report(10, {"shared": {"status": "ok"}}), "cloud")
+        state = merge_states(state, report(12, {}), "cloud")
+        merged = merge_states(state, report(11, {"shared": {"status": "ok"}}), "local")
+        self.assertNotIn("shared", merged["sources"])
+        self.assertEqual(merged["retired_sources"]["shared"]["retired_at"], report(12, {})["generated_at"])
+        self.assertFalse(_snapshot_is_superseded(merged, state))
 
     def test_filtered_and_legacy_reports_do_not_retire_other_sources(self):
         for scope in ("source", None):
