@@ -426,13 +426,13 @@ class PostHogIntegrationTests(unittest.TestCase):
 
     def test_token_alone_does_not_enable_analytics_without_ip_discard_confirmation(self):
         with patch.dict(os.environ, {
-            "WATCHTOWER_POSTHOG_PROJECT_TOKEN": "phc_test_watchtower_123456789",
+            "WATCHTOWER_POSTHOG_PROJECT_TOKEN": "watchtower_test_project_token_123456789",
         }, clear=True):
             self.assertIsNone(posthog_config())
 
     def test_analytics_uses_privacy_first_configuration(self):
         env = {
-            "WATCHTOWER_POSTHOG_PROJECT_TOKEN": "phc_test_watchtower_123456789",
+            "WATCHTOWER_POSTHOG_PROJECT_TOKEN": "watchtower_test_project_token_123456789",
             "WATCHTOWER_POSTHOG_HOST": "https://us.i.posthog.com",
             "WATCHTOWER_POSTHOG_IP_DISCARD_CONFIRMED": "true",
         }
@@ -453,7 +453,7 @@ class PostHogIntegrationTests(unittest.TestCase):
 
     def test_analytics_rejects_non_https_host(self):
         env = {
-            "WATCHTOWER_POSTHOG_PROJECT_TOKEN": "phc_test_watchtower_123456789",
+            "WATCHTOWER_POSTHOG_PROJECT_TOKEN": "watchtower_test_project_token_123456789",
             "WATCHTOWER_POSTHOG_HOST": "http://posthog.example.com",
             "WATCHTOWER_POSTHOG_IP_DISCARD_CONFIRMED": "true",
         }
