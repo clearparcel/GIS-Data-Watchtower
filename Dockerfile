@@ -6,6 +6,9 @@ WORKDIR /app
 COPY pyproject.toml README.md LICENSE ./
 COPY clearparcel ./clearparcel
 COPY config ./config
+ARG WATCHTOWER_BUILD_REVISION=""
+ARG WATCHTOWER_BUILD_ENVIRONMENT="development"
+RUN python -c "import json,os,re,pathlib; r=os.environ['WATCHTOWER_BUILD_REVISION']; e=os.environ['WATCHTOWER_BUILD_ENVIRONMENT']; assert not r or re.fullmatch(r'[0-9a-f]{40}|[0-9a-f]{64}',r), 'Invalid source revision'; assert e in ('preview','production','development'), 'Invalid build environment'; pathlib.Path('clearparcel/datawatch/build_info.json').write_text(json.dumps({'revision':r,'environment':e}),encoding='utf-8')"
 RUN pip install --no-cache-dir ".[gcs]"
 USER 65532:65532
 ENTRYPOINT ["watchtower"]

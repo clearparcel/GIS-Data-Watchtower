@@ -1,5 +1,7 @@
 # Current project status
 
+Public footer application identity is implemented for the next preview build: canonical package version, baked source commit and Preview/Production/Development label. Data publication and provider observation times remain separate. See [release identity configuration](release-policy.md).
+
 Browser feedback changes are **published to the isolated preview**, with production unchanged: mandatory-field map classes below 50%, 50–60%, 60–70%, above 70%; clarified publication/check freshness and research progress; linked branding and readable evidence. See [the feedback record](browser-feedback-2026-10-07.md). Preview revision `00010-tmt` serves product commit `feb285b`; the production release described below retains its deployed behavior until separately approved.
 
 Operational record updated: **2026-10-07** after the user-approved follow-up release. Provider observations remain dated; this deployment did not re-poll GIS providers.

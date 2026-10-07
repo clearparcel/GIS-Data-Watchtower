@@ -105,7 +105,7 @@ CI tests Windows and Ubuntu on Python 3.12, 3.13, and 3.14, plus a Linux contain
 - [`docs/hybrid-execution.md`](docs/hybrid-execution.md) and [`docs/hybrid-aggregation.md`](docs/hybrid-aggregation.md) — hybrid worker model
 - [`docs/mngac-completeness.md`](docs/mngac-completeness.md) — Minnesota GAC field-population methodology, county map, and exports
 - [`docs/data-watchtower-provider-compliance.md`](docs/data-watchtower-provider-compliance.md) — respectful-use methodology and known provider constraints
-- [`docs/release-policy.md`](docs/release-policy.md) — versioning and release policy
+- [`docs/release-policy.md`](docs/release-policy.md) — versioning, release policy and the public footer's package version, baked source commit and build environment
 
 ## Cloud deployment
 

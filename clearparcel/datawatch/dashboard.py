@@ -25,6 +25,7 @@ from clearparcel.datawatch.parcel_access import access_label, load_parcel_access
 from clearparcel.datawatch.county_profile_panel import render_county_profile_panel, render_county_profile_body, percentage_legend, percentage_color_js, profile_time, research_summary, PERCENT_COLORS, NO_DATA_COLOR
 from clearparcel.datawatch.county_profile_exports import county_profiles_csv, parcel_sources_csv, county_profile_xlsx_sheets, county_profile_summary, SUMMARY_FIELDS
 from clearparcel.datawatch.public_values import spreadsheet_cell
+from clearparcel.datawatch.build_info import application_identity
 from clearparcel.datawatch.county_profiles import FreshnessPolicy, compose_county_profiles, county_profile_counts
 
 COUNTIES_FILE = Path(__file__).with_name("minnesota_counties.json")
@@ -201,6 +202,9 @@ window.watchtowerRefresh={pause,resume};resume();})();
 
 def _public_layout_v2(title: str, body: str, *, refresh_seconds: int = 30) -> str:
     refresh_meta = _refresh_script(refresh_seconds)
+    identity = application_identity()
+    build_label = identity["revision"][:7] or "unknown"
+    release_label = f'v{identity["version"]} · build {build_label} · {identity["environment"].title()}'
     logo_src = "data:image/webp;base64," + base64.b64encode(Path(__file__).with_name("clearparcel-logo.webp").read_bytes()).decode("ascii")
     lower = title.lower()
     active = "mngac" if "gac" in lower else "sources" if "source" in lower else "counties" if "county" in lower or "counties" in lower else "overview"
@@ -238,7 +242,7 @@ def _public_layout_v2(title: str, body: str, *, refresh_seconds: int = 30) -> st
   </nav>
   <div class="page-kicker"><div class="eyebrow">PUBLIC DATA INTELLIGENCE</div><h2>{_esc(page_name)}</h2><p>{_esc(subtitle)}</p></div>
   {body}
-  <footer class="public-footnote"><span><a class="footer-brand" href="https://clear-parcel.com" aria-label="ClearParcel home"><img src="{logo_src}" alt="ClearParcel" width="120" height="42"></a> · Public read-only view</span><span>Monitoring results are informational and source-dependent.</span></footer>
+  <footer class="public-footnote"><span><a class="footer-brand" href="https://clear-parcel.com" aria-label="ClearParcel home"><img src="{logo_src}" alt="ClearParcel" width="120" height="42"></a> · Public read-only view</span><span><strong class="application-version" title="Source revision: {_esc(identity['revision'] or 'unknown')}">{_esc(release_label)}</strong><br>Monitoring results are informational and source-dependent.</span></footer>
 </main></body></html>"""
 
 def _layout(title: str, body: str, *, refresh_seconds: int = 30, static: bool = False, csrf_token: str = "") -> str:

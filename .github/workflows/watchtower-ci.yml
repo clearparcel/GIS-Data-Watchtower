@@ -32,5 +32,6 @@ jobs:
       - name: Container smoke test
         if: matrix.os == 'ubuntu-24.04' && matrix.python-version == '3.14'
         run: |
-          docker build -t watchtower-ci .
+          docker build --build-arg WATCHTOWER_BUILD_REVISION=${{ github.sha }} -t watchtower-ci .
           docker run --rm watchtower-ci --help
+          docker run --rm --entrypoint python watchtower-ci -c "from clearparcel.datawatch.build_info import application_identity; assert application_identity()['revision'] == '${{ github.sha }}'"
