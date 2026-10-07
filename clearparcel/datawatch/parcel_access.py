@@ -9,7 +9,7 @@ from urllib.parse import urlsplit
 from .public_values import safe_public_url, public_access_classification, safe_geometry_type, safe_file_type
 
 DIRECT_CLASSIFICATIONS = {
-    "free-parcel-data": "Free parcel data",
+    "free-parcel-data": "Open parcel data",
     "fee-based-parcel-data": "Fee-based parcel data",
     "parcel-viewer-only": "Parcel viewer only",
     "request-restricted": "Parcel data by request / restricted",

@@ -1,5 +1,7 @@
 # GIS Data Watchtower
 
+Browser feedback changes and application identity are **deployed to production**: mandatory-field map classes below 50%, 50–60%, 60–70%, above 70%; clarified publication/check freshness and research progress; linked branding and readable evidence. Production public revision `00009-tbt` serves product commit `cf06a07`, displaying **v0.1.0.dev0 · build cf06a07 · Production**. Preview `00011-hkl` retains the Preview label. See [production release verification](docs/public-ui-release-2026-10-07.md).
+
 [![CI](https://github.com/clearparcel/GIS-Data-Watchtower/actions/workflows/watchtower-ci.yml/badge.svg)](https://github.com/clearparcel/GIS-Data-Watchtower/actions/workflows/watchtower-ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
@@ -103,7 +105,7 @@ CI tests Windows and Ubuntu on Python 3.12, 3.13, and 3.14, plus a Linux contain
 - [`docs/hybrid-execution.md`](docs/hybrid-execution.md) and [`docs/hybrid-aggregation.md`](docs/hybrid-aggregation.md) — hybrid worker model
 - [`docs/mngac-completeness.md`](docs/mngac-completeness.md) — Minnesota GAC field-population methodology, county map, and exports
 - [`docs/data-watchtower-provider-compliance.md`](docs/data-watchtower-provider-compliance.md) — respectful-use methodology and known provider constraints
-- [`docs/release-policy.md`](docs/release-policy.md) — versioning and release policy
+- [`docs/release-policy.md`](docs/release-policy.md) — versioning, release policy and the public footer's package version, baked source commit and build environment
 
 ## Cloud deployment
 

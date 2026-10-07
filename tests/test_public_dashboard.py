@@ -14,6 +14,51 @@ from clearparcel.datawatch.public_dashboard import (
 
 
 class PublicDashboardTests(unittest.TestCase):
+    def test_feedback_uses_check_times_and_keeps_missing_success_unknown(self):
+        from unittest.mock import patch
+        now = dt.datetime.now(dt.timezone.utc)
+        old = (now - dt.timedelta(days=2)).isoformat()
+        recent = (now - dt.timedelta(minutes=10)).isoformat()
+        state = sanitize_public_render_state(self._state())
+        state['generated_at'] = now.isoformat()
+        for source in state['sources'].values():
+            source['checked_at'] = old
+        state['workers'] = {'local': {'checked_at': recent, 'last_report_at': recent, 'source_count': 2, 'overall': 'error'}}
+        with patch('clearparcel.datawatch.public_dashboard._dashboard_state', return_value=state):
+            page = render_public_dashboard({'_public_mode': True})
+        self.assertIn('Latest provider check in this snapshot', page)
+        self.assertIn('2 days ago', page)
+        self.assertIn('Source reporting: 2 overdue', page)
+        self.assertIn('Reporting on time', page)
+        self.assertIn('Last successful provider check</span><strong>—', page)
+        self.assertIn('does not check GIS providers again', page)
+        state['sources'] = {'missing': {'checked_at': None}, 'invalid': {'checked_at': 'invalid'}}
+        with patch('clearparcel.datawatch.public_dashboard._dashboard_state', return_value=state):
+            page = render_public_dashboard({'_public_mode': True})
+        self.assertIn('Source reporting: 0 overdue · 2 without a check time', page)
+
+    def test_feedback_mandatory_map_research_brand_and_record_format(self):
+        from unittest.mock import patch
+        state = sanitize_public_render_state(self._state())
+        county = state['sources']['mn-state-parcels']['mngac_completeness']['counties']['Olmsted']
+        county.update(field_population_percent=10, mandatory_population_percent=80)
+        state['sources']['county-parcels-direct']['feature_count'] = 42996
+        with patch('clearparcel.datawatch.public_dashboard._dashboard_state', return_value=state), patch('clearparcel.datawatch.dashboard._dashboard_state', return_value=state):
+            page = render_public_dashboard({'_public_mode': True})
+            county_page = render_county({'_public_mode': True}, 'olmsted')
+            index = render_counties({'_public_mode': True})
+        self.assertIn('"pct": 80', page)
+        self.assertIn('Mandatory-field population', page)
+        self.assertIn('87/87 counties researched', page)
+        self.assertIn('87/87 counties researched', index)
+        self.assertIn('Open parcel data', index)
+        self.assertNotIn('Free parcel data', index)
+        self.assertIn('href="https://clear-parcel.com"', page)
+        self.assertIn('src="data:image/webp;base64,', page)
+        self.assertIn('<strong>Records:</strong> 42,996', county_page)
+        self.assertIn('Official evidence and findings', county_page)
+        self.assertIn('Read detailed research notes', county_page)
+
     def test_public_source_distinguishes_zero_counts_from_unknown(self):
         from unittest.mock import patch
         for value, expected in ((0, '0'), (None, '—')):

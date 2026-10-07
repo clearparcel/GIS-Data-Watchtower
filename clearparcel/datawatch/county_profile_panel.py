@@ -4,14 +4,36 @@ import datetime as dt
 import html
 import json
 from zoneinfo import ZoneInfo
+from urllib.parse import urlsplit
 from .public_values import safe_public_url
 
 GROUPS = (("mngac_public_parcels", "MN GAC Public Parcels"), ("mngeo_public_repository", "MnGeo Public County Repository"), ("county_arcgis_rest", "County ArcGIS REST"), ("county_download", "County Website Download"))
 PERCENT_COLORS = ["#1b2b40", "#315373", "#3c708f", "#4c9b7b"]
 NO_DATA_COLOR = "#151d2b"
-# Fixed classes shared by both map fills and legends; exactly 70 stays in 50-70.
-PERCENT_BINS = (("<30%", 30, False), ("30% - 50%", 50, False),
-                ("50% - 70%", 70, True), (">70%", None, False))
+# Fixed classes shared by both map fills and legends; exactly 60 and 70 stay in 60-70.
+PERCENT_BINS = (("<50%", 50, False), ("50% - 60%", 60, False),
+                ("60% - 70%", 70, True), (">70%", None, False))
+
+
+def research_summary(profiles: dict[str, dict]) -> str:
+    reviewed = sum(bool(p.get('research', {}).get('review_date')) for p in profiles.values())
+    complete = sum(p.get('research', {}).get('complete') is True for p in profiles.values())
+    return (f'<p><strong>{reviewed}/{len(profiles)} counties researched.</strong> '
+            f'{complete}/{len(profiles)} complete county profiles.</p>'
+            '<p class="subtext">A complete profile requires resolved evidence across all four parcel-source categories. '
+            'Counties with blocked access, unclear terms, or unresolved products have been researched, '
+            'but their profiles remain Research incomplete. Research does not authorize monitoring.</p>')
+
+
+def _evidence_details(items: list[dict]) -> str:
+    rows = []
+    for item in items:
+        url = safe_public_url(item.get('href') or item.get('url'))
+        if url:
+            rows.append(f'<li><a href="{_esc(url)}" target="_blank" rel="noopener">'
+                        f'{_esc(urlsplit(url).hostname)}</a><p>{_esc(item.get("label") or "Official evidence")}</p></li>')
+    return ('<details class="profile-evidence"><summary>Official evidence and findings ('
+            + str(len(rows)) + ')</summary><ul>' + ''.join(rows) + '</ul></details>') if rows else '<p>Official evidence is not available.</p>'
 
 def profile_time(value: object) -> str:
     """Preserve calendar dates and convert only aware instants to Central."""
@@ -62,9 +84,9 @@ def render_county_profile_body(profile: dict) -> str:
             body += '<p>Official product links: ' + _links(source.get("approved_public_links") or []) + '</p></article>'
         body += '</section>'
     body += '<section><h3>Access and research evidence</h3>' + _rows([("County-direct classification", access.get("detailed_classification")), ("Dataset fee", access.get("dataset_fee")), ("Fee product", access.get("fee_product")), ("Monitoring decision", access.get("monitoring_decision")), ("Research status", "Complete" if research.get("complete") else "Research incomplete"), ("Research review", profile_time(research.get("review_date"))), ("Successful county observation", profile_time(monitoring.get("last_success_at"))), ("Aggregate generated", profile_time(monitoring.get("aggregate_generated_at")))])
-    body += '<p>' + _links(research.get("evidence_links") or access.get("evidence_links") or []) + '</p></section>'
+    body += _evidence_details(research.get("evidence_links") or access.get("evidence_links") or []) + '</section>'
     if profile.get("comments"):
-        body += '<section><h3>Comments</h3>' + ''.join('<p>' + _esc(comment) + '</p>' for comment in profile['comments']) + '</section>'
+        body += '<section><h3>Research notes</h3><details class="profile-evidence"><summary>Read detailed research notes</summary><ul>' + ''.join('<li>' + _esc(note.strip()) + '</li>' for comment in profile['comments'] for note in comment.split(' · ') if note.strip()) + '</ul></details></section>'
     body += f'<p><a href="/county?slug={_esc(county.get("slug"))}">Open county dashboard →</a></p>'
     return body
 

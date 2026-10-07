@@ -31,7 +31,7 @@ Issues = "https://github.com/clearparcel/GIS-Data-Watchtower/issues"
 Documentation = "https://github.com/clearparcel/GIS-Data-Watchtower/tree/main/docs"
 
 [tool.setuptools.package-data]
-"clearparcel.datawatch" = ["*.json"]
+"clearparcel.datawatch" = ["*.json", "*.webp"]
 
 [tool.setuptools.packages.find]
 include = ["clearparcel*"]

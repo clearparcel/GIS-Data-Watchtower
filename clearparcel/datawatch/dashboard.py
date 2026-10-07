@@ -22,9 +22,10 @@ from clearparcel.datawatch.watch import check_sources, load_history, load_state
 from clearparcel.datawatch.transport import RequestDeadline
 from clearparcel.datawatch.aggregate import with_freshness
 from clearparcel.datawatch.parcel_access import access_label, load_parcel_access, statewide_access_label
-from clearparcel.datawatch.county_profile_panel import render_county_profile_panel, render_county_profile_body, percentage_legend, percentage_color_js, profile_time, PERCENT_COLORS, NO_DATA_COLOR
+from clearparcel.datawatch.county_profile_panel import render_county_profile_panel, render_county_profile_body, percentage_legend, percentage_color_js, profile_time, research_summary, PERCENT_COLORS, NO_DATA_COLOR
 from clearparcel.datawatch.county_profile_exports import county_profiles_csv, parcel_sources_csv, county_profile_xlsx_sheets, county_profile_summary, SUMMARY_FIELDS
 from clearparcel.datawatch.public_values import spreadsheet_cell
+from clearparcel.datawatch.build_info import application_identity
 from clearparcel.datawatch.county_profiles import FreshnessPolicy, compose_county_profiles, county_profile_counts
 
 COUNTIES_FILE = Path(__file__).with_name("minnesota_counties.json")
@@ -169,7 +170,7 @@ a:focus-visible,button:focus-visible,summary:focus-visible,input:focus-visible,s
 .metric{font-size:27px;font-weight:800;line-height:1.05;letter-spacing:-.5px;margin-top:4px}.muted{color:var(--muted)}.subtext{display:block;color:var(--muted);font-size:11px;line-height:1.45;margin-top:6px}.ok{color:var(--green)}.warn{color:var(--amber)}.error{color:var(--red)}.catalog{color:var(--blue)}.not-configured,.needs-source{color:var(--muted)}
 .status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:currentColor;margin-right:7px}.pill{display:inline-flex;align-items:center;height:24px;padding:4px 9px;border:1px solid var(--line);border-radius:999px;font-size:10px;text-transform:uppercase;font-weight:800}.pill.ok{border-color:#2d7155}.pill.warn,.pill.catalog{border-color:#705b2d}.pill.error{border-color:#773944}
 .section-head{display:flex;align-items:end;justify-content:space-between;gap:16px;margin:28px 2px 12px}.section-head h2{margin:0;font-size:18px}.section-head p,.section-head span{margin:3px 0 0;color:var(--muted);font-size:11px}.section-head>a{font-size:11px;font-weight:700}
-.activity-strip{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px}.worker-card{display:grid;grid-template-columns:1fr auto;gap:10px 18px}.worker-card h3{margin:0}.worker-meta{display:flex;gap:14px}.worker-meta div{min-width:90px}.worker-meta .muted,.worker-meta span{display:block;font-size:9px}.worker-meta strong{display:block;margin-top:3px;font-size:13px;overflow-wrap:anywhere}
+.activity-strip{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px}.worker-card{display:grid;grid-template-columns:1fr;gap:10px 18px}.worker-card h3{margin:0}.worker-meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.worker-meta div{min-width:90px}.worker-meta .muted,.worker-meta span{display:block;font-size:9px}.worker-meta strong{display:block;margin-top:3px;font-size:13px;overflow-wrap:anywhere}
 .summary-v2{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;margin-bottom:30px}.summary-v2 .card{padding:16px 18px}.summary-v2 .metric{font-size:24px}.summary-v2 .muted{font-size:11px}
 .hero-panel{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(300px,.75fr);gap:14px;margin-bottom:26px}.hero-copy{padding:22px}.hero-copy h2{font-size:24px;margin:0 0 8px}.hero-copy p{color:#c4cede;max-width:720px;margin:0 0 18px}.hero-actions{display:flex;gap:8px;flex-wrap:wrap}.hero-actions a{display:inline-flex;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:#121a27;color:#c4d1e5;font-weight:700}.hero-actions a.primary{border-color:#315078;color:#dceaff;background:#101827}
 .hero-stat{display:grid;grid-template-columns:1fr 1fr;gap:8px}.hero-stat>div{background:var(--panel2);border:1px solid #ffffff0d;border-radius:10px;padding:13px}.hero-stat small{display:block;color:var(--muted);font-size:9px;letter-spacing:.07em;text-transform:uppercase}.hero-stat b{display:block;font-size:19px;margin-top:4px}
@@ -180,7 +181,7 @@ table{width:100%;border-collapse:collapse;background:transparent}th,td{padding:1
 .mngac-controls{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:14px}.mngac-controls label{display:grid;gap:4px;font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
 .mngac-layout{display:grid;grid-template-columns:minmax(360px,1.35fr) minmax(260px,.65fr);gap:14px;align-items:start}.mngac-map-panel{background:#0b111b;border:1px solid var(--line);border-radius:11px;padding:10px;min-width:0}.mngac-map{display:block;width:100%;height:auto;max-height:690px}.mngac-county{fill:#1b2636;stroke:#51647e;stroke-width:1.1;vector-effect:non-scaling-stroke;cursor:pointer;transition:fill .12s ease,stroke .12s ease,stroke-width .12s ease}.mngac-county:hover,.mngac-county:focus{stroke:#d7e8ff;stroke-width:2.2;outline:none}.mngac-county.selected{stroke:#fff;stroke-width:3}.mngac-detail{min-height:220px}.mngac-detail h3{margin-bottom:4px}.mngac-kpi{font-size:25px;font-weight:800}.mngac-legend{display:flex;flex-wrap:wrap;gap:7px 12px;margin:10px 0 0;font-size:10px;color:var(--muted)}.mngac-legend span{display:inline-flex;align-items:center;gap:5px}.mngac-swatch{width:13px;height:13px;border-radius:3px;border:1px solid #ffffff33;display:inline-block}.mngac-note{border-left:3px solid var(--blue);padding:10px 12px;background:#0e1622;border-radius:0 8px 8px 0;color:#aeb9ca;margin:12px 0}.mngac-table-wrap{overflow-x:auto}.mngac-field-select{background:none;color:var(--blue);padding:0;border:0;text-align:left;font:inherit;cursor:pointer}.mngac-field-select:hover{text-decoration:underline}
 code{font-size:11px;color:#b9c6d8}.technical summary,.diagnostics summary{cursor:pointer;font-weight:700;color:var(--blue);padding:4px 0}.diagnostics{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);margin:18px 0}.flat-note{padding:20px 4px;color:var(--muted);font-size:12px}
-.public-footnote{margin:30px 2px 0;padding-top:16px;border-top:1px solid var(--line);color:#66778f;font-size:10px;display:flex;justify-content:space-between;gap:20px}.public-footnote strong{color:#8da4c4}
+.public-footnote{margin:30px 2px 0;padding-top:16px;border-top:1px solid var(--line);color:#66778f;font-size:10px;display:flex;justify-content:space-between;gap:20px}.public-footnote strong{color:#8da4c4}.footer-brand{display:inline-flex;vertical-align:middle}.footer-brand img{width:120px;height:42px;object-fit:contain}.profile-evidence{margin:12px 0;padding:12px;border:1px solid var(--line);border-radius:8px}.profile-evidence summary{cursor:pointer;color:var(--blue);font-weight:600}.profile-evidence li{margin:12px 0;overflow-wrap:anywhere}.profile-evidence p{max-width:80ch}.county-complete-profile section{border-top:1px solid var(--line);padding-top:16px;margin-top:20px}.county-complete-profile dl{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:12px}.county-complete-profile dd{margin:4px 0}.county-complete-profile dt{color:var(--muted);font-size:12px}
 @media(max-width:1050px){.summary-v2{grid-template-columns:repeat(3,minmax(0,1fr))}.primary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.hero-panel{grid-template-columns:1fr}.mngac-layout{grid-template-columns:1fr}.definition-grid{grid-template-columns:1fr}}
 @media(max-width:760px){.public-header{height:74px;padding:13px 14px}.public-header h1{font-size:20px}.brand-eyebrow{font-size:8px}.live-state span:last-child{display:none}.public-main{padding:0 12px 76px}.public-tabs{top:74px;overflow-x:auto;margin:0 -12px 18px;padding:0 12px}.public-tabs a{padding:12px 10px 10px}.public-tools{margin-left:4px}.summary-v2{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.grid,.primary-grid,.worker-grid,.activity-strip{grid-template-columns:1fr;gap:9px}.card{padding:14px}.hero-copy{padding:16px}.hero-copy h2{font-size:21px}.hero-stat{grid-template-columns:1fr 1fr}.section-head{margin-top:22px}.section-head span{display:none}.filters{display:grid;grid-template-columns:1fr}.filters input,.filters select{width:100%;min-width:0}#counties thead,#datasets thead,.contacts-table thead,.history-table thead,#mngac-fields thead,#county-mngac-fields thead{display:none}#counties,#counties tbody,#counties tr,#counties td,#datasets,#datasets tbody,#datasets tr,#datasets td,.contacts-table,.contacts-table tbody,.contacts-table tr,.contacts-table td,.history-table,.history-table tbody,.history-table tr,.history-table td,#mngac-fields,#mngac-fields tbody,#mngac-fields tr,#mngac-fields td,#county-mngac-fields,#county-mngac-fields tbody,#county-mngac-fields tr,#county-mngac-fields td{display:block;width:100%}#counties tr,#datasets tr,.contacts-table tr,.history-table tr,#mngac-fields tr,#county-mngac-fields tr{padding:10px 0;border-bottom:1px solid #1b2535}#counties td,#datasets td,.contacts-table td,.history-table td,#mngac-fields td,#county-mngac-fields td{border:0;padding:4px 2px;white-space:normal;overflow-wrap:anywhere}.worker-card{grid-template-columns:1fr}.worker-meta{display:grid;grid-template-columns:1fr 1fr}.definition-list{grid-template-columns:1fr;gap:2px}.definition-list dd{margin-bottom:8px}.mngac-controls label,.mngac-controls select{width:100%}.public-footnote{flex-direction:column;gap:4px}}
 @media(max-width:430px){.summary-v2{grid-template-columns:1fr 1fr}.summary-v2 .card{padding:12px}.summary-v2 .metric{font-size:21px}.hero-stat{grid-template-columns:1fr 1fr}.public-export summary{padding:7px 8px}.page-kicker{padding-top:18px}.page-kicker h2{font-size:23px}}
@@ -194,13 +195,17 @@ def _refresh_script(seconds: int) -> str:
     return """<script>
 (function(){let timer=null;const delay=""" + str(int(seconds)*1000) + """;
 function pause(){clearTimeout(timer);timer=null}
-function resume(){pause();timer=setTimeout(()=>{if(document.getElementById('county-profile-dialog')?.open){resume();return}location.reload()},delay)}
+function resume(){pause();timer=setTimeout(()=>{if(document.getElementById('county-profile-dialog')?.open||document.querySelector('.profile-evidence[open]')){resume();return}location.reload()},delay)}
 window.watchtowerRefresh={pause,resume};resume();})();
 </script>"""
 
 
 def _public_layout_v2(title: str, body: str, *, refresh_seconds: int = 30) -> str:
     refresh_meta = _refresh_script(refresh_seconds)
+    identity = application_identity()
+    build_label = identity["revision"][:7] or "unknown"
+    release_label = f'v{identity["version"]} · build {build_label} · {identity["environment"].title()}'
+    logo_src = "data:image/webp;base64," + base64.b64encode(Path(__file__).with_name("clearparcel-logo.webp").read_bytes()).decode("ascii")
     lower = title.lower()
     active = "mngac" if "gac" in lower else "sources" if "source" in lower else "counties" if "county" in lower or "counties" in lower else "overview"
     tabs = [
@@ -237,7 +242,7 @@ def _public_layout_v2(title: str, body: str, *, refresh_seconds: int = 30) -> st
   </nav>
   <div class="page-kicker"><div class="eyebrow">PUBLIC DATA INTELLIGENCE</div><h2>{_esc(page_name)}</h2><p>{_esc(subtitle)}</p></div>
   {body}
-  <footer class="public-footnote"><span><strong>ClearParcel</strong> · Public read-only view</span><span>Monitoring results are informational and source-dependent.</span></footer>
+  <footer class="public-footnote"><span><a class="footer-brand" href="https://clear-parcel.com" aria-label="ClearParcel home"><img src="{logo_src}" alt="ClearParcel" width="120" height="42"></a> · Public read-only view</span><span><strong class="application-version" title="Source revision: {_esc(identity['revision'] or 'unknown')}">{_esc(release_label)}</strong><br>Monitoring results are informational and source-dependent.</span></footer>
 </main></body></html>"""
 
 def _layout(title: str, body: str, *, refresh_seconds: int = 30, static: bool = False, csrf_token: str = "") -> str:
@@ -756,7 +761,7 @@ def render_mngac(config: dict) -> str:
 
     options = [
         '<option value="__overall__">All 91 fields — row population rate</option>',
-        '<option value="__mandatory__">Mandatory fields — row population rate</option>',
+        '<option value="__mandatory__" selected>Mandatory fields — row population rate</option>',
         '<option value="__fields_with_values__">Fields with any values — share of standard fields</option>',
     ]
     last_section = None
@@ -849,7 +854,7 @@ def render_mngac(config: dict) -> str:
     </div>
     <div class="card mngac-detail" id="mngac-detail" aria-live="polite">
       <div class="muted">Selected county</div><h3 id="mngac-county-name">Select a county</h3>
-      <div class="muted" id="mngac-metric-label">All 91 fields — row population rate</div>
+      <div class="muted" id="mngac-metric-label">Mandatory fields — row population rate</div>
       <div class="mngac-kpi" id="mngac-county-value">—</div>
       <div id="mngac-county-detail" class="subtext">Click a county on the map.</div>
       <p><a id="mngac-county-link" href="/counties" style="display:none">Open county dashboard →</a></p>
@@ -946,7 +951,6 @@ def render_counties(config: dict) -> str:
     research = load_parcel_access()
     profiles = _county_profiles(config, state, research)
     counties = [_county_status(config, x, state, profiles=profiles, research=research) for x in _load_counties()]
-    research_count = sum(p["research"]["complete"] for p in profiles.values())
     active_count = sum(1 for x in counties if x["actively_monitored"])
     direct_count = sum(1 for x in counties if "county-direct" in x["monitoring_paths"])
     mngeo_count = sum(1 for x in counties if "mngeo-open" in x["monitoring_paths"])
@@ -986,7 +990,7 @@ def render_counties(config: dict) -> str:
         '<div class="filters"><input id="cq" placeholder="Filter counties…" oninput="filterCounties()"><select id="cs" onchange="filterCounties()"><option value="">All coverage types</option><option value="ok">Actively checked</option><option value="catalog">MnGeo catalog only</option><option value="needs-source">No active parcel monitoring</option><option value="not-configured">No source information yet</option><option value="warn">Needs attention</option><option value="error">Check failed</option></select></div>' \
         f'<table id="counties"><thead><tr><th>County</th><th>Monitoring coverage<br><span class="subtext">Health and active monitoring path</span></th><th>County-direct access<br><span class="subtext">Evidence-backed county access</span></th><th>Statewide open access<br><span class="subtext">Current MnGeo Plan Parcels Open coverage</span></th><th>County-direct sources<br><span class="subtext">County-specific sources actively checked</span></th></tr></thead><tbody>{rows}</tbody></table></div>' \
         "<script>function filterCounties(){const q=document.getElementById('cq').value.toLowerCase(),s=document.getElementById('cs').value;document.querySelectorAll('#counties tbody tr').forEach(r=>r.style.display=(!q||r.dataset.name.includes(q))&&(!s||r.dataset.status===s)?'':'none')}</script>"
-    body += f'<div class="card"><h2>Parcel source research</h2><p>{research_count}/{len(profiles)} complete county profiles. Blocked and unresolved evidence remains Research incomplete.</p></div>'
+    body += f'<div class="card"><h2>Parcel source research</h2>{research_summary(profiles)}</div>'
     return _layout("Minnesota Counties — GIS Data Watchtower", '<p><a href="/">← Watchtower overview</a></p>'+body, static=bool(config.get("_public_mode")), csrf_token=str(config.get("_csrf_token") or ""))
 
 
@@ -1116,7 +1120,7 @@ def render_county(config: dict, slug: str) -> str:
         )
     for src in info["sources"]:
         checked = _format_public_time_compact(src.get("checked_at")) if config.get("_public_mode") else _esc(src.get("checked_at", "—"))
-        source_cards += f'<div class="card"><h3>{_esc(src.get("name"))}</h3><p><strong>Status:</strong> {_esc(_friendly_status(src.get("status") or "unknown"))}<br><strong>Records:</strong> {_esc(src.get("feature_count","—"))}<br><strong>Provided by:</strong> {_esc(src.get("provider","—"))}<br><strong>Last checked:</strong> {checked}</p></div>'
+        source_cards += f'<div class="card"><h3>{_esc(src.get("name"))}</h3><p><strong>Status:</strong> {_esc(_friendly_status(src.get("status") or "unknown"))}<br><strong>Records:</strong> {_esc(f"{src.get("feature_count"):,}" if isinstance(src.get("feature_count"), int) else "—")}<br><strong>Provided by:</strong> {_esc(src.get("provider","—"))}<br><strong>Last checked:</strong> {checked}</p></div>'
     catalog = info.get("catalog") or {}
     if not source_cards and catalog:
         approval = str(catalog.get("gac_open_approval") or "—")
@@ -1151,7 +1155,7 @@ def render_county(config: dict, slug: str) -> str:
     verified_text = f' Verified {_esc(contact_record.get("verified"))}.' if contact_record.get("verified") else ""
     contacts_html = f'<div class="card"><h2>County GIS contacts</h2><p class="muted"><strong>Contact source:</strong> {contact_source}. {contact_source_note}{verified_text}</p><table class="contacts-table"><thead><tr><th>Name</th><th>Title</th><th>Department</th><th>Phone</th><th>Email</th></tr></thead><tbody>{contact_rows}</tbody></table></div>'
     export_links = f'<p><a href="/county-snapshot.csv?slug={urllib.parse.quote(slug)}">Download county snapshot (CSV)</a> · <a href="/county-snapshot.xlsx?slug={urllib.parse.quote(slug)}">Download county snapshot (Excel)</a> · <a href="/county-snapshot.json?slug={urllib.parse.quote(slug)}">Download county snapshot (JSON)</a></p>'
-    body = f'<p><a href="/counties">← Minnesota counties</a></p>{export_links}<div class="grid"><div class="card"><div class="muted">County</div><h2>{_esc(county["name"])} County</h2></div><div class="card"><div class="muted">Monitoring coverage</div><div class="metric {_esc(info["status"])}">{_esc(_friendly_status(info["status"]).upper())}</div></div><div class="card"><div class="muted">Monitoring path</div><div class="metric" style="font-size:20px">{_esc(_monitoring_path_label(info))}</div></div><div class="card"><div class="muted">County-direct sources</div><div class="metric">{len(info["sources"])}</div></div></div><div class="grid">{source_cards}</div><br>{parcel_access_detail}<br>{mngac_html}<br><div class="card">{complete_profile}</div><br>{contacts_html}'
+    body = f'<p><a href="/counties">← Minnesota counties</a></p>{export_links}<div class="grid"><div class="card"><div class="muted">County</div><h2>{_esc(county["name"])} County</h2></div><div class="card"><div class="muted">Monitoring coverage</div><div class="metric {_esc(info["status"])}">{_esc(_friendly_status(info["status"]).upper())}</div></div><div class="card"><div class="muted">Monitoring path</div><div class="metric" style="font-size:20px">{_esc(_monitoring_path_label(info))}</div></div><div class="card"><div class="muted">County-direct sources</div><div class="metric">{len(info["sources"])}</div></div></div><div class="grid">{source_cards}</div><br>{parcel_access_detail}<br>{mngac_html}<br><div class="card county-complete-profile">{complete_profile}</div><br>{contacts_html}'
     return _layout(f'{county["name"]} County — Watchtower', body, static=bool(config.get("_public_mode")), csrf_token=str(config.get("_csrf_token") or ""))
 
 def _county_snapshot(config: dict, slug: str, *, include_mngac: bool = True, state: dict | None = None,
@@ -1742,13 +1746,13 @@ def build_static_site(config: dict, output_dir: str | Path) -> dict:
             f'<td><span class="pill {_status_class(src.get("status","unknown"))}">{_esc(_health_status(src.get("status","unknown")))}</span></td>'
             f'<td>{_esc(src.get("provider") or "—")}</td>'
             f'<td>{_esc(src.get("category") or "—")}</td>'
-            f'<td>{_esc(src.get("feature_count","—"))}</td>'
+            f'<td>{_esc(f"{src.get("feature_count"):,}" if isinstance(src.get("feature_count"), int) else "—")}</td>'
             f'<td>{_esc(src.get("change_count", 0))}</td><td>{_esc(src.get("checked_at","—"))}</td></tr>'
         )
         detail = f'<p><a href="index.html">← All data sources</a></p><div class="grid">' \
             f'<div class="card"><div class="muted">Data source</div><h2>{_esc(src.get("name") or sid)}</h2></div>' \
             f'<div class="card"><div class="muted">Status</div><div class="metric {_status_class(src.get("status","unknown"))}">{_esc(_health_status(src.get("status","unknown")))}</div></div>' \
-            f'<div class="card"><div class="muted">Record count</div><div class="metric">{_esc(src.get("feature_count","—"))}</div></div></div>' \
+            f'<div class="card"><div class="muted">Record count</div><div class="metric">{_esc(f"{src.get("feature_count"):,}" if isinstance(src.get("feature_count"), int) else "—")}</div></div></div>' \
             f'<div class="card"><h2>About this data</h2><p><strong>Provided by:</strong> {_esc(src.get("provider") or "—")}<br>' \
             f'<strong>Data type:</strong> {_esc(src.get("category") or "—")}<br><strong>Last checked:</strong> {_esc(src.get("checked_at") or "—")}<br>' \
             f'<strong>Changes found this check:</strong> {_esc(src.get("change_count", 0))}</p></div>'
