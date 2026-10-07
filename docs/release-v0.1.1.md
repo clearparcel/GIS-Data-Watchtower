@@ -24,8 +24,9 @@ production runtime remains `v0.1.0.dev0` until all release gates pass.
 ## Validation and release gates
 
 The required ResourceWarning-strict test suite, `compileall`, current-status
-synchronization, and `git diff --check` must pass on the final candidate commit.
-The full CI matrix has not yet run for this candidate.
+synchronization, and `git diff --check` passed on the candidate commit. GitHub
+CI also passed all six Windows/Linux Python 3.12/3.13/3.14 test lanes and the
+security job; CodeQL passed on PR #51 on 2026-10-07.
 
 Private staging validation remains required for the aggregation, cloud-history,
 and provider-statistics changes. Issue #20's multi-day hybrid validation gate
