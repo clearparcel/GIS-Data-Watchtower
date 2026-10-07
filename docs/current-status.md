@@ -1,5 +1,7 @@
 # Current project status
 
+Browser feedback changes are prepared for review, **not deployed**: mandatory-field map classes below 50%, 50–60%, 60–70%, above 70%; clarified publication/check freshness and research progress; linked branding and readable evidence. See [the feedback record](browser-feedback-2026-10-07.md). The production release described below retains its deployed behavior until separately approved.
+
 Operational record updated: **2026-10-07** after the user-approved follow-up release. Provider observations remain dated; this deployment did not re-poll GIS providers.
 
 Follow-up manual review corrections are **merged and deployed**: PR [44](https://github.com/clearparcel/GIS-Data-Watchtower/pull/44), merge `284cf0c`, addresses report/publication ordering, worker inventory retirement, dashboard profile isolation, process-owned local locks, unique atomic scratch and WMS/WFS query composition. Release source is `afa908d`, including the approved merge-status documentation. See [fixes and upgrade requirements](review-fixes-2026-10-06.md).

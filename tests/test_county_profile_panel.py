@@ -26,7 +26,7 @@ class CountyProfilePanelTests(unittest.TestCase):
         source={'name':'Two products', 'feature_count':0, 'provider_updated_at':'2026-01-02', 'county_acquired_at':'2026-02-03', 'catalog_refreshed_at':'2026-03-04', 'checked_at':'2026-04-05', 'last_success_at':'2026-05-06', 'approved_public_links':[{'href':'https://example.com/product','label':'Product'}, {'href':'javascript:alert(1)','label':'Unsafe'}]}
         profile={'county':{'name':'Test','slug':'test'}, 'county_download':{'sources':[source]}, 'research':{'review_date':'2026-06-07'}, 'comments':['A supported comment']}
         body=render_county_profile_body(profile)
-        for label in ('Provider update', 'County acquisition','Catalog refresh','Watchtower check','Successful observation','Research review','Feature count','Comments'):
+        for label in ('Provider update', 'County acquisition','Catalog refresh','Watchtower check','Successful observation','Research review','Feature count','Research notes'):
             self.assertIn(label, body)
         self.assertIn('<dd>0</dd>',body)
         self.assertIn('target="_blank" rel="noopener"',body)
@@ -49,7 +49,7 @@ class CountyProfilePanelTests(unittest.TestCase):
     @unittest.skipUnless(shutil.which("node"), "JavaScript boundary execution requires Node.js")
     def test_percentage_class_boundaries_and_legend_match_emitted_javascript(self):
         from clearparcel.datawatch.county_profile_panel import percentage_color_js, percentage_legend, PERCENT_COLORS, NO_DATA_COLOR
-        values = [0, 0.001, 29.999, 30, 30.001, 49.999, 50, 50.001,
+        values = [0, 0.001, 49.999, 50, 50.001, 59.999, 60, 60.001,
                   69.999, 70, 70.001, 100, None, "", "30"]
         expected = [PERCENT_COLORS[i] for i in [0, 0, 0, 1, 1, 1, 2, 2,
                     2, 2, 3, 3]] + [NO_DATA_COLOR] * 3
@@ -63,5 +63,5 @@ class CountyProfilePanelTests(unittest.TestCase):
         self.assertEqual(PERCENT_COLORS, ["#1b2b40", "#315373", "#3c708f", "#4c9b7b"])
         self.assertEqual(legend.count('class="mngac-swatch"'), 5)
         for color, label in zip([NO_DATA_COLOR] + PERCENT_COLORS,
-                                ["No data", "<30%", "30% - 50%", "50% - 70%", ">70%"]):
+                                ["No data", "<50%", "50% - 60%", "60% - 70%", ">70%"]):
             self.assertIn(f'background:{color}"></i>{label}</span>', legend)
