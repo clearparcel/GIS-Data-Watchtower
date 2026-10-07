@@ -23,6 +23,7 @@ class SupplyChainTests(unittest.TestCase):
         self.assertIn("python:3.13-slim@sha256:", dockerfile)
         self.assertIn("COPY pyproject.toml README.md LICENSE constraints.txt", dockerfile)
         self.assertIn("--constraint constraints.txt", dockerfile)
+        self.assertIn("pip uninstall -y pip setuptools", dockerfile)
 
     def test_ci_emits_supply_chain_artifacts(self):
         workflow = (ROOT / ".github" / "workflows" / "watchtower-ci.yml").read_text(encoding="utf-8")
