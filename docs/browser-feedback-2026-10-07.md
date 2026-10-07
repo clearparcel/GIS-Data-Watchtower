@@ -1,6 +1,6 @@
 # Browser feedback changes — October 7, 2026
 
-These changes are prepared on a feature branch; they are not a production release.
+These changes were published to the existing isolated hosted preview on October 7 with explicit user approval. They are not a production release.
 
 - The overview uses the latest valid source `checked_at`, rather than aggregate generation time, for its latest provider check. It explains publication, provider checks, and provider dataset updates separately. Source overdue counts use the configured reporting window; missing check times remain unknown. Worker reports and successful checks are labeled separately, without treating a report as a success.
 - Source entries and unique county coverage are explained together. One statewide source can cover multiple counties; county-direct and statewide coverage overlap. Healthy counts describe the last stored checks, rather than claiming current provider health.
@@ -14,4 +14,16 @@ These changes are prepared on a feature branch; they are not a production releas
 
 Read-only checks on October 7 found public worker reports and source checks still dated October 6, despite a current public publication. The local daily task completed successfully at 5:00 AM CDT and stored 26 OK results locally. Its launcher runs a local check, without an execution-profile publication step. This shows that a successful local run does not establish that its results reached the unified aggregate read by the public publisher. The public aggregate contains a different, 35-entry cloud/local inventory.
 
-No provider check, production aggregate write, scheduling change, or deployment was performed for this UI task. Connecting the authoritative local daily results to the public reporting pipeline requires separate operational work and scoped approval for any production changes; simply copying the 26-entry local state over the hybrid aggregate would discard inventory and provenance.
+No provider check, production aggregate write, or scheduling change was performed for this UI task. The separately approved preview deployment is described below. Connecting the authoritative local daily results to the public reporting pipeline requires separate operational work and scoped approval for any production changes; simply copying the 26-entry local state over the hybrid aggregate would discard inventory and provenance.
+
+## Hosted preview release
+
+Source `feb285bb825d86c08774f434ebc0972442648b86` from PR #47 was built by Cloud Build `21a72f31-ef41-46c4-a209-8eb713a0c5cb` (SUCCESS). The existing preview revision `gis-data-watchtower-public-v2-preview-00010-tmt` is Ready at 100% traffic, pinned to `sha256:06ea68e9d80c69fcbccab33720b9c63ff894d7ca1dc9f36bfe3c58a3759d38f5`. The prior revision `00009-nws` is retained for rollback.
+
+[Open the hosted preview](https://gis-data-watchtower-public-v2-preview-237020802969.us-central1.run.app/).
+
+The runtime pod specification is unchanged except image; entrypoint, identity, environment, ingress and IAM are preserved. The dedicated sanitized object generation `1791311397132173` and public source state are unchanged: 35 stored OK observations with cloud=31/local=4 provenance, publication dated October 6. This is a code-only release, not fresh provider validation. Production public `00008-lzd` and private `00013-fnn` specifications, revisions and traffic were verified unchanged.
+
+Validation: 252 ResourceWarning-strict local tests, compilation and whitespace checks passed. Overview, county index, Aitkin and MN GAC pages returned 200 with the revised UI. Browser checks confirmed the four classes, Aitkin mandatory-field population of 57.14%, loaded embedded logo, 87/87 researched count and no document overflow. Stored-state equality and forbidden-field validation passed. No merge, production write, provider job execution or scheduling change occurred.
+
+The task-owned Cloud Build source upload was removed with an exact generation-match condition after release verification. Temporary local build contexts and service/configuration snapshots were removed; the deployed image and rollback revision are retained.
