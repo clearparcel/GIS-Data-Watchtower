@@ -1,8 +1,8 @@
 # GIS Data Watchtower
 
-Address/Road GAC monitoring, normalized exports, aggregation correctness and release hardening are **deployed** from merged commit `53748af`. Production public revision `00010-75k` displays **v0.1.0.dev0 · build 53748af · Production**; isolated preview `00013-4lh` displays Preview, and private dashboard `00018-vtw` preserves its audited IAP-protected wrapper. PostHog hooks are deployed dormant pending a dedicated project ([Issue #50](https://github.com/clearparcel/GIS-Data-Watchtower/issues/50)). See [the release record](docs/release-gac-address-road-2026-10-07.md).
+GIS Data Watchtower **v0.1.1** is deployed to production from merged code commit `8099ee1`. Production public revision `00011-b9c` serves the public dashboard, private dashboard revision `00019-c9l` preserves its audited IAP wrapper, and the sanitized publisher job uses the v0.1.1 image. The multi-day staging gate was explicitly waived by the user for this rollout and remains incomplete; provider scheduling is unchanged, and PostHog remains dormant pending a dedicated project ([Issue #50](https://github.com/clearparcel/GIS-Data-Watchtower/issues/50)). See [the release record](docs/release-v0.1.1.md).
 
-An unreleased **v0.1.1 candidate** is being prepared with the review fixes and packaging/dashboard updates described in [its release notes](docs/release-v0.1.1.md). The deployed version above remains current until the candidate passes CI and required staging validation, is merged, and is deployed.
+The v0.1.1 release contains the review fixes and packaging/dashboard updates described in [its release record](docs/release-v0.1.1.md). The required staging gate did not pass before deployment; the user explicitly authorized the one-release exception.
 
 [![CI](https://github.com/clearparcel/GIS-Data-Watchtower/actions/workflows/watchtower-ci.yml/badge.svg)](https://github.com/clearparcel/GIS-Data-Watchtower/actions/workflows/watchtower-ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
