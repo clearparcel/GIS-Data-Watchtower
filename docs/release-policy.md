@@ -1,9 +1,12 @@
 # Versioning and release policy
 
-The current production runtime is **v0.1.0.dev0**. The repository is preparing
-**v0.1.1** as a pre-1.0 patch release; the candidate is not tagged or deployed.
-The deployed runtime version changes only after the candidate passes CI and
-required staging validation, is merged, and is deployed.
+The current production runtime is **v0.1.1**, built from merged code commit
+`8099ee18ec48714b33a9e998b414ea9ee0cf7d8e`. The user explicitly authorized
+waiving the required multi-day staging gate for this rollout on 2026-10-07;
+that gate remains incomplete and is not recorded as passed. For future releases,
+the deployed runtime changes after CI and applicable staging validation pass,
+or after a separately documented owner-authorized exception, followed by merge
+and deployment.
 
 ## Versioning
 
