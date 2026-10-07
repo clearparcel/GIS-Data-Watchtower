@@ -18,6 +18,16 @@ No provider check, production aggregate write, or scheduling change was performe
 
 ## Hosted preview release
 
+### Visible application version follow-up
+
+With explicit user design and preview-publication approval, product commit `cf06a07cc60265bea402aaf5a8fbf42c0009614c` adds a shared public footer label: **v0.1.0.dev0 · build cf06a07 · Preview**. The full source commit appears in its tooltip. Container builds bake commit and environment into packaged JSON; package metadata supplies the canonical version. Source runs without build metadata show an unknown development build. See [versioning and build arguments](release-policy.md).
+
+Cloud Build `7f2e3819-1fce-4a4c-9590-e86fa1de8ba7` passed, including a packaged identity and rendered-footer assertion. Preview `00011-hkl` is Ready at 100% traffic, pinned to `sha256:a21cc05d8acca181d8d0991506b5d254dcb672f72ade289e404993ee8acd7729`. Prior `00010-tmt` remains available for rollback. All four public page types displayed the correct short and full identity; browser verification confirmed the visible footer and no horizontal overflow. All 254 strict tests, compilation, whitespace checks and six CI jobs passed.
+
+Preview pod settings, IAM, ingress, sanitized state and object generation `1791311397132173` are unchanged. Production public and private service specifications, revisions, traffic and IAM are unchanged. No provider polling, scheduling, merge or production deployment occurred.
+
+### Initial browser feedback publication
+
 Source `feb285bb825d86c08774f434ebc0972442648b86` from PR #47 was built by Cloud Build `21a72f31-ef41-46c4-a209-8eb713a0c5cb` (SUCCESS). The existing preview revision `gis-data-watchtower-public-v2-preview-00010-tmt` is Ready at 100% traffic, pinned to `sha256:06ea68e9d80c69fcbccab33720b9c63ff894d7ca1dc9f36bfe3c58a3759d38f5`. The prior revision `00009-nws` is retained for rollback.
 
 [Open the hosted preview](https://gis-data-watchtower-public-v2-preview-237020802969.us-central1.run.app/).
