@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from clearparcel.datawatch import dashboard as _dashboard
+from clearparcel.datawatch.dashboard_summary import catalog_summary
+from clearparcel.datawatch.county_profile_panel import profile_time
 
 
 def render_counties(config: dict) -> str:
@@ -12,19 +14,15 @@ def render_counties(config: dict) -> str:
     direct_count = sum(1 for x in counties if "county-direct" in x["monitoring_paths"])
     mngeo_count = sum(1 for x in counties if "mngeo-open" in x["monitoring_paths"])
     status_counts = {}
-    age_buckets = {"0–30 days": 0, "31–90 days": 0, "91–365 days": 0, "Over 1 year": 0, "No date": 0}
+    catalog = catalog_summary(state, [county["name"] for county in counties])
+    age_buckets = catalog["buckets"]
+    catalog_notice = ("Retained older catalog after failed check. " if catalog["retained"] else "")
+    catalog_notice += "Catalog observation: " + profile_time(catalog["observed_at"])
+    catalog_notice += " (inferred from last success)" if catalog["time_inferred"] else ""
+    catalog_notice += "; latest attempt: " + profile_time(catalog["latest_attempt_at"])
     mngac = _dashboard._mngac_data(state)
     for x in counties:
         status_counts[x["status"]] = status_counts.get(x["status"], 0) + 1
-        record = x.get("catalog") or {}
-        d = _dashboard._parse_time(_dashboard._format_arcgis_date(record.get("acqdate")))
-        if not d:
-            age_buckets["No date"] += 1
-        else:
-            if d.tzinfo is None: d = d.replace(tzinfo=_dashboard.dt.timezone.utc)
-            days = max(0, (_dashboard.dt.datetime.now(_dashboard.dt.timezone.utc) - d).days)
-            bucket = "0–30 days" if days <= 30 else "31–90 days" if days <= 90 else "91–365 days" if days <= 365 else "Over 1 year"
-            age_buckets[bucket] += 1
     rows = "".join(
         f'<tr data-name="{_dashboard._esc(x["name"].lower())}" data-status="{_dashboard._esc(x["status"])}">'
         f'<td><a href="/county?slug={_dashboard.urllib.parse.quote(x["slug"])}"><strong>{_dashboard._esc(x["name"])} County</strong></a></td>'
@@ -43,7 +41,7 @@ def render_counties(config: dict) -> str:
     else:
         mngac_card = '<div class="card"><h2>MN GAC field completeness</h2><p class="muted">A statewide completeness observation has not been stored yet.</p><p><a href="/mngac">Open MN GAC completeness →</a></p></div><br>'
     body = f'<div class="grid"><div class="card"><div class="muted">Minnesota counties</div><div class="metric">{len(counties)}</div><span class="subtext">Counties represented in the statewide county dashboard index.</span></div><div class="card"><div class="muted">Counties actively checked</div><div class="metric">{active_count}</div><span class="subtext">Actively monitored through a county-direct source, MnGeo Plan Parcels Open, or both.</span></div><div class="card"><div class="muted">County-direct checks</div><div class="metric">{direct_count}</div><span class="subtext">Counties with at least one county-specific source actively checked.</span></div><div class="card"><div class="muted">MnGeo open coverage</div><div class="metric">{mngeo_count}</div><span class="subtext">Counties represented in the current Plan Parcels Open observation.</span></div></div>' + mngac_card + \
-        f'<div class="grid"><div class="card">{_dashboard._bar_chart([( _dashboard._friendly_status(k), v) for k,v in sorted(status_counts.items())], title="County monitoring coverage")}<span class="subtext">A county is actively checked when Watchtower observes it through a county-specific source, the statewide MnGeo open-parcels source, or both.</span></div><div class="card">{_dashboard._bar_chart(list(age_buckets.items()), title="MnGeo parcel update age")}<span class="subtext">Age of the county acquisition/update date reported in the MnGeo parcel catalog; this is not Watchtower check time.</span></div></div><div class="card"><h2>Minnesota county dashboards</h2><p class="muted">Monitoring coverage, county-direct parcel access, and statewide open access are separate. A county can require payment for its county-supplied dataset while also being freely available through MnGeo Plan Parcels Open.</p><p class="subtext">Use Export in the page toolbar for statewide Excel, CSV, or JSON.</p>' \
+        f'<div class="grid"><div class="card">{_dashboard._bar_chart([( _dashboard._friendly_status(k), v) for k,v in sorted(status_counts.items())], title="County monitoring coverage")}<span class="subtext">A county is actively checked when Watchtower observes it through a county-specific source, the statewide MnGeo open-parcels source, or both.</span></div><div class="card">{_dashboard._bar_chart(list(age_buckets.items()), title="MnGeo parcel update age")}<span class="subtext">Age of the county acquisition/update date reported in the MnGeo parcel catalog; this is not Watchtower check time. {_dashboard._esc(catalog_notice)}</span></div></div><div class="card"><h2>Minnesota county dashboards</h2><p class="muted">Monitoring coverage, county-direct parcel access, and statewide open access are separate. A county can require payment for its county-supplied dataset while also being freely available through MnGeo Plan Parcels Open.</p><p class="subtext">Use Export in the page toolbar for statewide Excel, CSV, or JSON.</p>' \
         '<div class="filters"><input id="cq" aria-label="Filter counties" placeholder="Filter counties…" oninput="filterCounties()"><select id="cs" aria-label="Filter by county monitoring coverage" onchange="filterCounties()"><option value="">All coverage types</option><option value="ok">Actively checked</option><option value="catalog">MnGeo catalog only</option><option value="needs-source">No active parcel monitoring</option><option value="not-configured">No source information yet</option><option value="warn">Needs attention</option><option value="error">Check failed</option></select></div>' \
         f'<table id="counties"><thead><tr><th>County</th><th>Monitoring coverage<br><span class="subtext">Health and active monitoring path</span></th><th>County-direct access<br><span class="subtext">Evidence-backed county access</span></th><th>Statewide open access<br><span class="subtext">Current MnGeo Plan Parcels Open coverage</span></th><th>County-direct sources<br><span class="subtext">County-specific sources actively checked</span></th></tr></thead><tbody>{rows}</tbody></table></div>' \
         "<script>function filterCounties(){const q=document.getElementById('cq').value.toLowerCase(),s=document.getElementById('cs').value;document.querySelectorAll('#counties tbody tr').forEach(r=>r.style.display=(!q||r.dataset.name.includes(q))&&(!s||r.dataset.status===s)?'':'none')}</script>"

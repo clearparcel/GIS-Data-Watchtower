@@ -18,6 +18,10 @@ def _public_status(value: object) -> str | None:
     return value if isinstance(value, str) and value in {'ok', 'warn', 'error', 'unknown', 'unsupported'} else None
 
 
+def _observation_status(value: object) -> str | None:
+    return value if isinstance(value, str) and value in {'complete', 'partial', 'error', 'unsupported', 'unknown'} else None
+
+
 def _public_date(value: object) -> str | None:
     if not isinstance(value, str) or not _metadata_text(value, 80):
         return None
@@ -57,6 +61,9 @@ _SOURCE_SCHEMA = {
     'status': _public_status,
     'gac_check_status': _public_status,
     'gac_check_error': lambda value: _metadata_text(value, 280),
+    'catalog_observed_at': _public_date,
+    **{key: lambda value: value if type(value) is bool else None
+       for key in ('catalog_retained', 'catalog_time_inferred')},
 }
 _WORKER_SCHEMA = {**{key: _public_date for key in ('checked_at', 'last_success_at', 'last_report_at')},
                   'overall': _public_status, 'source_count': _public_count}
@@ -113,6 +120,8 @@ def _sanitize_mngac(data: dict | None) -> dict | None:
 
     public = _project(data, {
         'method': _metadata_text,
+        'observed_at': _public_date,
+        'observation_status': _observation_status,
         'standard_key': _metadata_text,
         'population_scope': _metadata_text,
         'text_population_mode': _metadata_text,

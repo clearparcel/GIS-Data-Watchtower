@@ -79,7 +79,7 @@ class PublicDashboardTests(unittest.TestCase):
         self.assertIn('Public publication reporting: Overdue', page)
         self.assertIn('complete county profiles', page)
         self.assertIn('Healthy', page)
-        self.assertIn('county-profile-data', page)
+        self.assertIn('/api/county-profile?', page)
         with patch('clearparcel.datawatch.dashboard._dashboard_state', return_value=state):
             self.assertIn('complete county profiles', render_counties({'_public_mode': True}))
         with patch.dict('os.environ', {'WATCHTOWER_PUBLIC_MAX_PUBLICATION_AGE_SECONDS': '86400'}), patch('clearparcel.datawatch.public_dashboard._dashboard_state', return_value=state):
@@ -107,7 +107,7 @@ class PublicDashboardTests(unittest.TestCase):
         self.assertIn('Statewide completeness is unavailable', page)
         self.assertIn('These statistics are separate from county-direct monitoring', page)
 
-    def test_both_maps_embed_all_87_complete_profiles(self):
+    def test_both_public_maps_lazy_load_all_87_county_targets(self):
         import re
         from unittest.mock import patch
         from clearparcel.datawatch.dashboard import render_mngac, _county_profiles
@@ -118,16 +118,12 @@ class PublicDashboardTests(unittest.TestCase):
         for renderer in (render_public_dashboard, render_mngac):
             with patch('clearparcel.datawatch.dashboard._dashboard_state', return_value=state), patch('clearparcel.datawatch.public_dashboard._dashboard_state', return_value=state):
                 page = renderer({'_public_mode': True})
-            data = json.loads(re.search(r'<script type="application/json" id="county-profile-data">(.*?)</script>', page, re.S).group(1))
-            self.assertEqual(data, expected)
-            self.assertEqual(len(data), 87)
+            self.assertNotIn('id="county-profile-data"', page)
+            self.assertNotIn('<template data-profile=', page)
+            self.assertIn('/api/county-profile?', page)
             slugs = re.findall(r'<path class="mngac-county"[^>]*data-slug="([^"]+)"', page)
             self.assertEqual(set(slugs), set(expected))
             self.assertEqual(len(slugs), 87)
-            for profile in data.values():
-                for key, label in GROUPS:
-                    self.assertIn(key, profile)
-                    self.assertIn(label, page)
             self.assertIn('dialog.showModal()', page)
             self.assertIn("event.key==='Enter'||event.key===' '", page)
             self.assertNotIn('http-equiv="refresh"', page)
@@ -140,7 +136,7 @@ class PublicDashboardTests(unittest.TestCase):
         with patch('clearparcel.datawatch.dashboard._dashboard_state', return_value={}):
             page=render_mngac({'_public_mode':True})
         self.assertEqual(len(re.findall(r'<path class="mngac-county"',page)),87)
-        self.assertIn('id="county-profile-data"',page)
+        self.assertIn('/api/county-profile?',page)
         self.assertIn('style="fill:#151d2b"',page)
 
     def test_county_detail_uses_complete_composed_profile(self):

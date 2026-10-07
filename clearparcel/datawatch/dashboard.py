@@ -138,9 +138,12 @@ def _source_config_map(config: dict) -> dict:
 
 def _dashboard_state(config: dict) -> dict:
     """Load unified aggregate state when configured, then annotate freshness."""
-    path = config.get("aggregate_state_file") or config["state_file"]
+    state = config.get("_render_state")
+    if state is None:
+        path = config.get("aggregate_state_file") or config["state_file"]
+        state = load_state(path)
     return with_freshness(
-        load_state(path),
+        state,
         worker_stale_minutes=int(config.get("worker_stale_minutes", 1560)),
         source_stale_minutes=int(config.get("source_stale_minutes", 1560)),
     )
@@ -728,7 +731,7 @@ def build_static_site(config: dict, output_dir: str | Path) -> dict:
             f'<div class="card"><h2>About this data</h2><p><strong>Provided by:</strong> {_esc(src.get("provider") or "—")}<br>' \
             f'<strong>Data type:</strong> {_esc(src.get("category") or "—")}<br><strong>Last checked:</strong> {_esc(src.get("checked_at") or "—")}<br>' \
             f'<strong>Changes found this check:</strong> {_esc(src.get("change_count", 0))}</p></div>'
-        (output / filename).write_text(_layout(f'Watchtower — {src.get("name") or sid}', detail, refresh_seconds=300, static=True), encoding="utf-8")
+        (output / filename).write_text(_layout(f'Watchtower — {src.get("name") or sid}', detail, refresh_seconds=300, static=True, public_summary=False), encoding="utf-8")
 
     body = f'<div class="grid"><div class="card"><div class="muted">Overall status</div><div class="metric {_status_class(public.get("overall","unknown"))}">{_esc(_health_status(public.get("overall","unknown")))}</div></div>' \
         f'<div class="card"><div class="muted">Data sources</div><div class="metric">{len(sources)}</div><span class="subtext">Total source observations currently represented in the unified Watchtower state.</span></div>' \
@@ -736,7 +739,7 @@ def build_static_site(config: dict, output_dir: str | Path) -> dict:
         f'<div class="card"><div class="muted">Warnings / errors</div><div class="metric">{counts.get("warn",0)} / {counts.get("error",0)}</div></div></div>' \
         f'<div class="card"><div class="muted">Last checked</div><strong>{_esc(public.get("generated_at","No saved observation"))}</strong></div><br>' \
         '<div class="card"><h2>Data being watched</h2><table><thead><tr><th>Data source</th><th>Status</th><th>Provided by</th><th>Type</th><th>Records</th><th>Changes found</th><th>Last checked</th></tr></thead><tbody>' + "".join(rows) + "</tbody></table></div>"
-    page = _layout("GIS Data Watchtower", body, refresh_seconds=300, static=True)
+    page = _layout("GIS Data Watchtower", body, refresh_seconds=300, static=True, public_summary=False)
     (output / "index.html").write_text(page, encoding="utf-8")
     (output / "state.json").write_text(json.dumps(public, indent=2), encoding="utf-8")
     return {"output_dir": str(output), "source_count": len(sources), "files": len(sources) + 2}

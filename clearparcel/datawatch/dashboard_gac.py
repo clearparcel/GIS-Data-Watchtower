@@ -67,7 +67,7 @@ def _render_gac_standard(config: dict, standard_key: str) -> str:
         )
         return _dashboard._layout(
             f'{standard.get("short_name") or "MN GAC"} Completeness — GIS Data Watchtower',
-            body, refresh_seconds=300, static=bool(config.get("_public_mode")),
+            body, refresh_seconds=30 if config.get("_public_mode") else 300, static=bool(config.get("_public_mode")),
             csrf_token=str(config.get("_csrf_token") or "")
         )
 
@@ -97,7 +97,7 @@ def _render_gac_standard(config: dict, standard_key: str) -> str:
         f'{_dashboard._esc((source or {}).get("gac_check_error") or "Showing the last successful observation.")}</div>'
         if (source or {}).get("gac_check_status") in {"error", "unsupported"} else ""
     )
-    observed_at = data.get("observed_at") or (source or {}).get("last_success_at") or (source or {}).get("checked_at")
+    observed_at = data.get("observed_at") or (source or {}).get("last_success_at") or ((source or {}).get("checked_at") if (source or {}).get("status") == "ok" else None)
     metadata = data.get("county_metadata") or {}
     ng911_count = sum(1 for x in metadata.values() if isinstance(x, dict) and x.get("ng911_upload") is True)
     gac_open_count = sum(1 for x in metadata.values() if isinstance(x, dict) and x.get("gac_open") is True)
@@ -260,7 +260,7 @@ def _render_gac_standard(config: dict, standard_key: str) -> str:
 """
     return _dashboard._layout(
         f'{standard.get("short_name") or "MN GAC"} Completeness — GIS Data Watchtower',
-        body, refresh_seconds=0, static=bool(config.get("_public_mode")),
+        body, refresh_seconds=30 if config.get("_public_mode") else 0, static=bool(config.get("_public_mode")),
         csrf_token=str(config.get("_csrf_token") or "")
     )
 
@@ -270,8 +270,11 @@ def render_mngac(config: dict, standard_key: str = "parcel") -> str:
         return _render_gac_standard(config, standard_key)
     state = _dashboard._dashboard_state(config)
     data = _dashboard._mngac_data(state)
-    profiles = _dashboard._county_profiles(config, state, _dashboard.load_parcel_access())
-    profile_panel = _dashboard.render_county_profile_panel(profiles)
+    research = _dashboard.load_parcel_access()
+    profiles = _dashboard._county_profiles(config, state, research)
+    from .dashboard_summary import summary_for
+    revision = summary_for(config, state, profiles=profiles, research=research)["content_revision"] if config.get("_public_mode") else None
+    profile_panel = _dashboard.render_county_profile_panel(profiles, revision=revision)
     publication = f'<p>Public publication: {_dashboard._esc(profile_time(state.get("public_published_at")))}</p>'
     schema = _dashboard._load_mngac_schema()
     standard = schema.get("standard") or {}
@@ -293,7 +296,7 @@ def render_mngac(config: dict, standard_key: str = "parcel") -> str:
             'Once the configured MnGeo statewide parcel check records it, this page will show county and field statistics.</p></div>'
             + _dashboard._mngac_map_svg().replace('class="mngac-county"', f'class="mngac-county" style="fill:{NO_DATA_COLOR}"') + percentage_legend() + publication + profile_panel
         )
-        return _dashboard._layout("MN GAC Completeness — GIS Data Watchtower", body, refresh_seconds=300, static=bool(config.get("_public_mode")), csrf_token=str(config.get("_csrf_token") or ""))
+        return _dashboard._layout("MN GAC Completeness — GIS Data Watchtower", body, refresh_seconds=30 if config.get("_public_mode") else 300, static=bool(config.get("_public_mode")), csrf_token=str(config.get("_csrf_token") or ""))
 
     covered = int(data.get("covered_counties") or 0)
     uncovered = max(0, total_counties - covered)
@@ -303,7 +306,7 @@ def render_mngac(config: dict, standard_key: str = "parcel") -> str:
     overall_pct = data.get("field_population_percent")
     mandatory_pct = data.get("mandatory_population_percent")
     source_id, source = _dashboard._mngac_source(state)
-    observed_at = data.get("observed_at") or (source or {}).get("last_success_at") or (source or {}).get("checked_at")
+    observed_at = data.get("observed_at") or (source or {}).get("last_success_at") or ((source or {}).get("checked_at") if (source or {}).get("status") == "ok" else None)
     standard_url = _dashboard._safe_url((data.get("standard") or {}).get("source_url") or standard.get("source_url"))
     standard_link = (
         f'<a href="{_dashboard._esc(standard_url)}" target="_blank" rel="noopener">official MN GAC Parcel Data Standard</a>'
@@ -498,7 +501,7 @@ def render_mngac(config: dict, standard_key: str = "parcel") -> str:
 {publication}
 {profile_panel}
 """
-    return _dashboard._layout("MN GAC Completeness — GIS Data Watchtower", body, refresh_seconds=0, static=bool(config.get("_public_mode")), csrf_token=str(config.get("_csrf_token") or ""))
+    return _dashboard._layout("MN GAC Completeness — GIS Data Watchtower", body, refresh_seconds=30 if config.get("_public_mode") else 0, static=bool(config.get("_public_mode")), csrf_token=str(config.get("_csrf_token") or ""))
 
 def _render_county_mngac(state: dict, county: dict) -> str:
     data, stats = _dashboard._mngac_county_record(state, str(county.get("name") or ""))

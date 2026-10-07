@@ -260,3 +260,7 @@ honestly. Historical statewide findings remain separate from current observed
 membership. Public classification is `OPEN` for verified free machine-readable
 access, `FEE BASED` for county-direct dataset fees, and `AMBIGUOUS` for incomplete
 or viewer-only findings; free statewide access does not override a direct fee.
+
+## Observation and dashboard contracts
+
+Catalog retention timestamps/flags, public GAC observation time, compact read-only summary and revision-bound county routes, and private worker identity/receipt semantics are documented in [October 7 remediation](watchtower-remediation-2026-10-07.md). These additions do not change provider cadence or execution-profile assignments.

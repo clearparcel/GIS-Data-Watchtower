@@ -37,3 +37,7 @@ On 2026-10-06, the same path was validated after adding nine approved county-dir
 Public snapshot publication uses a unique temporary directory beneath the configured workdir for each invocation. Downloaded private aggregates and sanitized scratch files are removed on success and failure. The environment publisher constructs two GCS clients using the same process application default credentials; separate deployment service identities are configured outside this function.
 
 Publication also uses destination compare-and-swap, retrying up to eight conflicts. Older fleet, worker or retained-source timestamps cannot replace the current public snapshot. An unchanged observation may be republished to renew publication freshness without implying a provider check. Skips return `published=false` and `reason=superseded`. Publication timestamps never move backward. See [follow-up fixes and upgrade procedure](review-fixes-2026-10-06.md).
+
+## Observation receipts
+
+[Offline hybrid receipts](watchtower-remediation-2026-10-07.md#hybrid-candidate-and-validation-preparation) compare already captured reports, aggregate, and sanitized snapshot. Catalog retained-payload time and GAC metric time survive public projection; publication-only updates remain distinct from provider observations. CAS and worker/source ordering behavior remain unchanged.

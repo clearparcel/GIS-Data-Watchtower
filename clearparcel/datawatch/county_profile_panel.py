@@ -18,8 +18,12 @@ PERCENT_BINS = (("<50%", 50, False), ("50% - 60%", 60, False),
 def research_summary(profiles: dict[str, dict]) -> str:
     reviewed = sum(bool(p.get('research', {}).get('review_date')) for p in profiles.values())
     complete = sum(p.get('research', {}).get('complete') is True for p in profiles.values())
+    statuses = [status for p in profiles.values() for status in p.get('research', {}).get('category_review_statuses', {}).values()]
+    blocked = statuses.count('blocked')
+    assessed = statuses.count('reviewed') + statuses.count('not-found')
     return (f'<p><strong>{reviewed}/{len(profiles)} counties researched.</strong> '
             f'{complete}/{len(profiles)} complete county profiles.</p>'
+            f'<p>{assessed}/{len(statuses)} category slots reviewed; {blocked} blocked. Reviewed categories and complete profiles are separate measures.</p>'
             '<p class="subtext">A complete profile requires resolved evidence across all four parcel-source categories. '
             'Counties with blocked access, unclear terms, or unresolved products have been researched, '
             'but their profiles remain Research incomplete. Research does not authorize monitoring.</p>')
@@ -88,7 +92,7 @@ def render_county_profile_body(profile: dict) -> str:
     if profile.get("comments"):
         body += '<section><h3>Research notes</h3><details class="profile-evidence"><summary>Read detailed research notes</summary><ul>' + ''.join('<li>' + _esc(note.strip()) + '</li>' for comment in profile['comments'] for note in comment.split(' · ') if note.strip()) + '</ul></details></section>'
     body += f'<p><a href="/county?slug={_esc(county.get("slug"))}">Open county dashboard →</a></p>'
-    return body
+    return '<div class="county-profile">' + body + '</div>'
 
 def _json(value: object) -> str:
     return json.dumps(value, ensure_ascii=False).replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
@@ -108,30 +112,54 @@ def percentage_legend() -> str:
     values = [(NO_DATA_COLOR, "No data"), *zip(PERCENT_COLORS, [label for label, _, _ in PERCENT_BINS])]
     return '<div class="mngac-legend" aria-label="Map legend">' + ''.join(f'<span><i class="mngac-swatch" style="background:{color}"></i>{html.escape(label)}</span>' for color, label in values) + '</div>'
 
-def render_county_profile_panel(profiles: dict[str, dict]) -> str:
-    """Return exact JSON profiles, trusted escaped templates and a native dialog."""
-    templates = ''.join(f'<template data-profile="{_esc(slug)}">{render_county_profile_body(profile)}</template>' for slug, profile in profiles.items())
-    return '<script type="application/json" id="county-profile-data">' + _json(profiles) + '</script>' + templates + r'''
+def render_county_profile_panel(profiles: dict[str, dict], *, revision: str | None = None) -> str:
+    """Public dialogs load one escaped fragment; offline/private views use templates."""
+    templates = (''.join(f'<template data-profile="{_esc(slug)}">{render_county_profile_body(profile)}</template>'
+                         for slug, profile in profiles.items()) if revision is None else '')
+    return templates + ('<span hidden data-content-revision="' + _esc(revision) + '"></span>' if revision else '') + r'''
 <style>
 #county-profile-dialog{color:#e0e7f2;background:#0d1522;border:1px solid #52647c;border-radius:14px;width:min(940px,calc(100vw - 24px));max-width:calc(100vw - 24px);max-height:90dvh;overflow-y:auto;padding:0;box-sizing:border-box}#county-profile-dialog::backdrop{background:#020710bb}#county-profile-dialog .profile-toolbar{position:sticky;top:0;z-index:2;display:flex;justify-content:flex-end;background:#0d1522;padding:10px;border-bottom:1px solid #33445a}#county-profile-dialog button{color:#fff;background:#263d59;border:1px solid #74869b;border-radius:6px;padding:8px 14px}#county-profile-content{padding:18px;overflow-wrap:anywhere}#county-profile-dialog section{border-top:1px solid #33445a;margin-top:18px;padding-top:12px}#county-profile-dialog dl{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}#county-profile-dialog dl>div{min-width:0}#county-profile-dialog dt{font-size:12px;color:#a9b9ce}#county-profile-dialog dd{margin:4px 0;font-size:14px}#county-profile-dialog .profile-source{padding:12px;background:#131e2e;border:1px solid #33445a;border-radius:8px;margin:12px 0}#county-profile-dialog a{color:#8bbdff}#county-profile-dialog h4{margin:0 0 12px}@media(max-width:600px){#county-profile-dialog dl{grid-template-columns:minmax(0,1fr)}#county-profile-content{padding:12px}}
 </style>
-<dialog id="county-profile-dialog" aria-labelledby="county-profile-title"><div class="profile-toolbar"><button type="button" id="county-profile-close" autofocus>Close ×</button></div><div id="county-profile-content"></div></dialog>
+<dialog id="county-profile-dialog" aria-label="County parcel source profile"><div class="profile-toolbar"><button type="button" id="county-profile-close" autofocus>Close ×</button></div><div id="county-profile-content"></div></dialog>
 <script>
 (function(){
   const dialog=document.getElementById('county-profile-dialog'),content=document.getElementById('county-profile-content');
-  let opener=null,scroll=0;
-  function openCounty(target){
+  let opener=null,scroll=0,request=0;
+  const fragments=new Map();
+  async function openCounty(target){
     const template=[...document.querySelectorAll('template[data-profile]')].find(t=>t.dataset.profile===target.dataset.slug);
-    if(!template)return;
-    opener=target;scroll=window.scrollY;content.replaceChildren(template.content.cloneNode(true));
-    window.watchtowerRefresh?.pause();dialog.showModal();dialog.scrollTop=0;document.getElementById('county-profile-close').focus();
+    const slug=target.dataset.slug;if(!slug)return;
+    opener=target;scroll=window.scrollY;const current=++request;
+    window.watchtowerRefresh?.suspend('county-dialog');
+    if(!dialog.open)dialog.showModal();dialog.scrollTop=0;document.getElementById('county-profile-close').focus();
+    if(template){content.replaceChildren(template.content.cloneNode(true));return}
+    content.textContent='Loading county profile…';
+    try{
+      let revision=window.watchtowerContentRevision||document.querySelector('[data-content-revision]')?.dataset.contentRevision;
+      const fetchFragment=async()=>{
+        const response=await fetch('/api/county-profile?slug='+encodeURIComponent(slug)+'&revision='+encodeURIComponent(revision||''));
+        return response;
+      };
+      let response,cacheKey=slug+':'+revision;
+      if(!fragments.has(cacheKey)){
+        response=await fetchFragment();
+        if(response.status===409){const fresh=await fetch('/api/summary',{cache:'no-cache'});if(!fresh.ok)throw new Error();revision=(await fresh.json()).content_revision;cacheKey=slug+':'+revision;response=await fetchFragment()}
+        if(!response.ok)throw new Error();
+        const html=await response.text();
+        // Only server-rendered, escaped same-origin fragments enter this parser.
+        const parsed=new DOMParser().parseFromString(html,'text/html');
+        if(!parsed.querySelector('.county-profile'))throw new Error();
+        fragments.set(cacheKey,parsed.body);
+      }
+      if(current===request&&dialog.open)content.replaceChildren(...[...fragments.get(cacheKey).childNodes].map(node=>node.cloneNode(true)));
+    }catch(e){if(current===request&&dialog.open){content.textContent='County details are temporarily unavailable. ';const link=document.createElement('a');link.href='/county?slug='+encodeURIComponent(slug);link.textContent='Open county page';content.append(link)}}
   }
   document.querySelectorAll('.mngac-county').forEach(target=>{
     target.addEventListener('click',()=>openCounty(target));
     target.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();openCounty(target)}});
   });
   document.getElementById('county-profile-close').addEventListener('click',()=>dialog.close());
-  dialog.addEventListener('close',()=>{opener?.focus({preventScroll:true});window.scrollTo(0,scroll);window.watchtowerRefresh?.resume()});
+  dialog.addEventListener('close',()=>{request++;opener?.focus({preventScroll:true});window.scrollTo(0,scroll);window.watchtowerRefresh?.release('county-dialog')});
   dialog.addEventListener('keydown',event=>{
     if(event.key!=='Tab')return;
     const targets=[...dialog.querySelectorAll('button,a[href]')],first=targets[0],last=targets[targets.length-1];
