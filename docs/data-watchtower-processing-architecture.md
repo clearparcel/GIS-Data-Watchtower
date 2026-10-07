@@ -44,11 +44,28 @@ The dashboard is a **consumer of persisted state**, not the authoritative schedu
 
 The built-in private dashboard can display local or aggregate state and produce JSON, CSV, and Excel snapshots. ClearParcel also operates a separate read-only public renderer. It reads only the sanitized public aggregate produced by a separate allowlist publisher, and does not expose the private dashboard's provider connections or state-changing controls. HTML refreshes read saved state; they do not poll GIS providers.
 
+Typed anonymous-state projection lives in `public_projection.py`, shared by
+publication and public rendering. Snapshot CSV and Excel builders live in
+`dashboard_exports.py`; the dashboard module re-exports their existing helper
+names for compatibility. Private/public page shells and the refresh script live
+in `dashboard_templates.py`, with their dashboard helper names also preserved.
+The shared snapshot JSON, CSV, and Excel routes use `dashboard_routes.py`;
+private authentication and public cache behavior stay in their respective
+servers. GAC standard and county renderers live in `dashboard_gac.py`. County
+index and detail views live in `dashboard_counties.py`, and the overview and
+source detail views live in `dashboard_views.py`. `dashboard.py` preserves their
+compatibility wrappers and shared county profile and state helpers.
+
 Both static-site publication and the hosted public renderer omit detailed change payloads, fingerprints, tracked values, operational provider URLs, provenance details, worker telemetry, and other private diagnostics.
 
 ### Minnesota GAC completeness
 
 For a standardized Minnesota parcel layer, the monitoring engine can calculate MN GAC parcel-field population summaries with bounded ArcGIS grouped-statistics requests. The stored observation contains record-weighted statewide field summaries plus per-county counts and percentages; it does not download or republish parcel rows. The private dashboard consumes that stored observation for the `/mngac` interactive county map, county-page field tables, and JSON/CSV/Excel exports.
+
+Configured GAC query failures affect source health even when layer metadata is
+available. Truncated grouped statistics and inconsistent batch denominators
+are rejected. The latest failed check is reported separately, while the most
+recent successful quality observation remains available with its own timestamp.
 
 The computation keeps **field population** separate from **standards compliance**. Conditional, If Available, and Optional fields may legitimately be blank, and counties absent from MnGeo Plan Parcels Open are represented as **No data**, not 0%.
 

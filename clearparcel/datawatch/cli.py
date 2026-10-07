@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -9,11 +10,12 @@ from clearparcel.datawatch.dashboard import build_static_site, serve
 from clearparcel.datawatch.watch import _safe_diagnostic, check_sources, load_config, load_history, load_state
 
 
-def _default_config() -> Path:
-    env = __import__("os").environ.get("CLEARPARCEL_WATCHTOWER_CONFIG")
+def _default_config() -> Path | None:
+    env = os.environ.get("CLEARPARCEL_WATCHTOWER_CONFIG")
     if env:
         return Path(env).expanduser()
-    return Path(__file__).resolve().parents[2] / "config" / "example_sources.json"
+    repository_example = Path(__file__).resolve().parents[2] / "config" / "example_sources.json"
+    return repository_example if repository_example.is_file() else None
 
 
 def _render(report: dict) -> str:
@@ -75,6 +77,11 @@ def main() -> int:
                        else 'Skipped superseded public Watchtower snapshot')
             print(json.dumps(result, indent=2) if args.json else message)
             return 0
+        if args.config is None:
+            raise FileNotFoundError(
+                "No default Watchtower config is available in this installation. "
+                "Pass --config PATH or set CLEARPARCEL_WATCHTOWER_CONFIG."
+            )
         config = load_config(args.config)
         if args.command == "check":
             result = check_sources(config, source_filter=args.source, save=not args.no_save, execution_profile=args.execution_profile)

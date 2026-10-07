@@ -3,9 +3,11 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
-from clearparcel.datawatch.dashboard import _layout, render_counties, render_county
+from clearparcel.datawatch.dashboard import _layout, render_counties, render_county, render_mngac
 from clearparcel.datawatch.public_dashboard import (
+    _PublicStateCache,
     _publication_health,
     render_public_dashboard,
     render_public_source,
@@ -330,7 +332,7 @@ class PublicDashboardTests(unittest.TestCase):
             self.assertIn("2 via MnGeo open parcels", page)
             self.assertIn("1 via county-direct sources", page)
             self.assertIn('id="mngac-map"', page)
-            self.assertIn("PUBLIC · LIVE", page)
+            self.assertIn("PUBLIC · READ ONLY", page)
             self.assertNotIn('class="sidebar"', page)
 
     def test_public_source_marks_data_sources_tab_active(self):
@@ -349,7 +351,7 @@ class PublicDashboardTests(unittest.TestCase):
                 "_public_mode": True,
             }
             page = render_public_source(config, "county-parcels-direct")
-            self.assertIn('class="active">Data Sources</a>', page)
+            self.assertIn('class="active" aria-current="page">Data Sources</a>', page)
             self.assertIn("Data Source — County Parcels", page)
 
     def test_public_overview_uses_v2_shell_and_interactive_map(self):
@@ -375,6 +377,52 @@ class PublicDashboardTests(unittest.TestCase):
             self.assertIn('id="mngac-map"', page)
             self.assertNotIn('class="sidebar"', page)
 
+    def test_public_map_exposes_county_buttons_and_a_labeled_list_alternative(self):
+        from clearparcel.datawatch.dashboard import _mngac_map_svg
+        svg = _mngac_map_svg()
+        self.assertIn('role="group" aria-label="Interactive Minnesota county map"', svg)
+        self.assertIn('role="button"', svg)
+        state = sanitize_public_render_state(self._state())
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            state_file = root / "state.json"
+            history = root / "history.jsonl"
+            state_file.write_text(json.dumps(state), encoding="utf-8")
+            history.write_text("", encoding="utf-8")
+            page = render_mngac({"state_file": str(state_file), "history_file": str(history),
+                                 "sources": [], "_public_mode": True})
+        self.assertIn('id="mngac-county-select"', page)
+        self.assertIn("Choose county", page)
+
+    def test_public_cache_serves_last_snapshot_and_caches_rendered_export(self):
+        class Storage:
+            def __init__(self):
+                self.fail = False
+            def download(self, name, destination):
+                if self.fail:
+                    return False
+                Path(destination).write_text(json.dumps(PublicDashboardTests()._state()), encoding="utf-8")
+                return True
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            storage = Storage()
+            with patch.dict("os.environ", {"WATCHTOWER_PUBLIC_WORKDIR": str(root),
+                                            "WATCHTOWER_PUBLIC_REFRESH_SECONDS": "5"}):
+                with patch("clearparcel.datawatch.public_dashboard.backend_from_env", return_value=storage):
+                    cache = _PublicStateCache()
+            cache.refresh(force=True)
+            saved = cache.public_path.read_bytes()
+            storage.fail = True
+            cache.refresh(force=True)
+            self.assertTrue(cache.stale)
+            self.assertEqual(cache.public_path.read_bytes(), saved)
+            with patch("clearparcel.datawatch.public_dashboard._statewide_snapshot", return_value={"sources": []}) as snapshot, \
+                 patch("clearparcel.datawatch.public_dashboard._snapshot_xlsx", return_value=b"xlsx") as export:
+                self.assertEqual(cache.snapshot_xlsx(), b"xlsx")
+                self.assertEqual(cache.snapshot_xlsx(), b"xlsx")
+            self.assertEqual(snapshot.call_count, 1)
+            self.assertEqual(export.call_count, 1)
+
     def test_public_source_uses_sources_tab_and_readable_timestamp(self):
         raw = self._state()
         public = sanitize_public_render_state(raw)
@@ -392,7 +440,7 @@ class PublicDashboardTests(unittest.TestCase):
                 "_public_mode": True,
             }
             page = render_public_source(config, "county-parcels-direct")
-            self.assertIn('<a href="/#datasets" class="active">Data Sources</a>', page)
+            self.assertIn('<a href="/#datasets" class="active" aria-current="page">Data Sources</a>', page)
             self.assertNotIn(raw["sources"]["county-parcels-direct"]["checked_at"], page)
 
     def test_private_layout_does_not_use_public_v2_shell(self):

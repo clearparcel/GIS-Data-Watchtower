@@ -830,6 +830,7 @@ def _arcgis_gac_completeness(
     effective_batch_size = defaults["routine_batch_size"] if batch_size is None else batch_size
     batch_size = max(1, min(int(effective_batch_size), 20))
     counties: dict[str, dict] = {}
+    county_denominators: dict[str, tuple[str | None, int]] | None = None
     query_count = 0
     excluded_county_names: set[str] = set()
     for offset in range(0, len(scanned_specs), batch_size):
@@ -865,6 +866,9 @@ def _arcgis_gac_completeness(
         query_url = url.rstrip("/") + "/query?" + urllib.parse.urlencode(params)
         data, _ = _json_request(query_url, timeout, prefer_curl=prefer_curl)
         query_count += 1
+        if data.get("exceededTransferLimit") is True:
+            raise RuntimeError("GAC statistics response exceeded the provider transfer limit")
+        batch_denominators: dict[str, tuple[str | None, int]] = {}
         for feature in data.get("features") or []:
             attrs = feature.get("attributes") or {}
             raw_county_name = str(attrs.get(county_field) or "").strip()
@@ -881,13 +885,16 @@ def _arcgis_gac_completeness(
                 int(attrs.get("record_count") or 0),
                 label=f"{county_name} GAC {standard_key} row count",
             )
+            county_code = (str(attrs.get(code_field) or "").strip() or None) if code_field else None
+            if county_name in batch_denominators:
+                raise RuntimeError(f"duplicate GAC county group in statistics response: {county_name}")
+            batch_denominators[county_name] = (county_code, record_count)
             entry = counties.setdefault(county_name, {
                 "county_name": county_name,
-                "county_code": (str(attrs.get(code_field) or "").strip() or None) if code_field else None,
+                "county_code": county_code,
                 "record_count": record_count,
                 "fields": {},
             })
-            entry["record_count"] = record_count
             for alias, spec in aliases.items():
                 raw = attrs.get(alias)
                 populated = 0 if raw is None else int(raw)
@@ -898,6 +905,10 @@ def _arcgis_gac_completeness(
                     "record_count": record_count,
                     "percent": pct,
                 }
+        if county_denominators is None:
+            county_denominators = batch_denominators
+        elif batch_denominators != county_denominators:
+            raise RuntimeError("GAC statistics batches returned inconsistent county groups or record counts")
 
 
     all_field_count = len(specs)
@@ -931,7 +942,9 @@ def _arcgis_gac_completeness(
             None if not mandatory_possible else round(mandatory_populated / mandatory_possible * 100.0, 2)
         )
         entry["mandatory_fields_full"] = sum(
-            1 for field in mandatory_fields if (fields.get(field) or {}).get("percent") == 100.0
+            1 for field in mandatory_fields
+            if record_count > 0
+            and int((fields.get(field) or {}).get("populated") or 0) == record_count
         )
         entry["mandatory_field_count"] = len(mandatory_fields)
 
@@ -1033,6 +1046,7 @@ def _arcgis_gac_completeness(
         ),
         "counties": counties,
         "fields": field_summaries,
+        "observation_status": "complete",
     }
 
 
@@ -1113,6 +1127,8 @@ def _arcgis_gac_metadata(
     }
     query_url = url.rstrip("/") + "/query?" + urllib.parse.urlencode(params)
     data, _ = _json_request(query_url, timeout, prefer_curl=prefer_curl)
+    if data.get("exceededTransferLimit") is True:
+        raise RuntimeError("GAC participation metadata response exceeded the provider transfer limit")
     counties = {}
     for feature in data.get("features") or []:
         attrs = feature.get("attributes") or {}
@@ -1281,14 +1297,13 @@ def _arcgis_layer(source: dict, timeout: int) -> dict:
                     "gac_open_without_representation": len(open_counties - represented),
                 }
             result[output_key] = completeness
+            result[output_key]["observed_at"] = dt.datetime.now(dt.timezone.utc).isoformat()
         except ProviderRateLimitError:
             raise
         except Exception as exc:
-            result[output_key] = {
-                "standard_key": standard_key,
-                "status": "unsupported",
-                "error": _safe_diagnostic(exc),
-            }
+            result["gac_check_status"] = "unsupported" if isinstance(exc, ValueError) else "error"
+            result["gac_check_error"] = _safe_diagnostic(exc)
+            result[output_key] = None
     if source.get("parcel_quality"):
         id_field, confidence = _parcel_id_candidate(result["field_names"])
         result["parcel_id_field"] = id_field
@@ -1606,6 +1621,7 @@ def _observation_fingerprint(details: dict) -> str:
     volatile = {
         "http_status", "transport", "problems", "elapsed_ms", "attempts",
         "checked_at", "changes", "error", "observation_fingerprint",
+        "gac_check_status", "gac_check_error",
     }
     stable = {k: v for k, v in details.items() if k not in volatile}
     return _hash_json(stable)
@@ -1862,10 +1878,17 @@ def _check_sources_unlocked(
         elapsed_ms = int((dt.datetime.now(dt.timezone.utc) - started).total_seconds() * 1000)
         if details is not None:
             try:
+                if details.get("gac_check_status"):
+                    previous = previous_sources.get(source["id"], {})
+                    for quality_key in ("gac_completeness", "mngac_completeness"):
+                        if quality_key in details and isinstance(previous.get(quality_key), dict):
+                            details[quality_key] = previous[quality_key]
                 details["observation_fingerprint"] = _observation_fingerprint(details)
                 changes = _compare(previous_sources.get(source["id"]), details, source)
                 problems = details.get("problems", [])
-                status = "error" if problems else ("warn" if any(x["severity"] == "warn" for x in changes) else "ok")
+                gac_failures = ([details.get("gac_check_error") or "configured GAC quality check failed"]
+                                if details.get("gac_check_status") in {"error", "unsupported"} else [])
+                status = "error" if problems else ("warn" if gac_failures or any(x["severity"] == "warn" for x in changes) else "ok")
                 records[source["id"]] = {
                     "id": source["id"],
                     "name": source["name"],
@@ -1888,6 +1911,8 @@ def _check_sources_unlocked(
                     **details,
                     "changes": changes,
                 }
+                if gac_failures:
+                    records[source["id"]]["problems"] = list(problems) + gac_failures
             except Exception as exc:
                 # Malformed provider-derived values must fail only this source;
                 # they must never abort later sources or fleet publication.
@@ -1916,6 +1941,15 @@ def _check_sources_unlocked(
                 "error": _safe_diagnostic(f"{type(last_error).__name__}: {last_error}"),
                 "changes": [],
             }
+            quality_key = "gac_completeness" if source.get("gac_completeness") else (
+                "mngac_completeness" if source.get("mngac_completeness") else None
+            )
+            if quality_key:
+                previous_quality = previous_sources.get(source["id"], {}).get(quality_key)
+                if isinstance(previous_quality, dict):
+                    records[source["id"]][quality_key] = previous_quality
+                records[source["id"]]["gac_check_status"] = "error"
+                records[source["id"]]["gac_check_error"] = records[source["id"]]["error"]
     counts = {
         status: sum(1 for x in records.values() if x["status"] == status)
         for status in ("ok", "warn", "error")

@@ -13,7 +13,7 @@ $venvPython = Join-Path $venv 'Scripts\python.exe'
 Push-Location $Root
 try {
     $installTarget = if ($Gcs) { '.[gcs]' } else { '.' }
-    & $venvPython -m pip install --disable-pip-version-check -e $installTarget
+    & $venvPython -m pip install --disable-pip-version-check --constraint (Join-Path $Root 'constraints.txt') -e $installTarget
     if ($LASTEXITCODE -ne 0) { throw "Watchtower package installation failed with exit code $LASTEXITCODE" }
 
     & $venvPython -m clearparcel.datawatch --config (Join-Path $Root 'config\example_sources.json') status --json | Out-Null
@@ -26,3 +26,4 @@ try {
 }
 Write-Host "Watchtower virtual environment ready: $venv"
 if ($Gcs) { Write-Host "Google Cloud Storage support installed." }
+Write-Host "To refresh the pinned runtime dependency set, update constraints.txt deliberately and rerun this script."

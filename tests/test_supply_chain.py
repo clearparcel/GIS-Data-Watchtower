@@ -1,14 +1,25 @@
 import json
+import io
+import os
 import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 class SupplyChainTests(unittest.TestCase):
+    def test_cli_requires_actionable_config_for_wheel_install_without_repo_tree(self):
+        from clearparcel.datawatch.cli import main
+        stderr = io.StringIO()
+        with patch.dict(os.environ, {}, clear=True), patch.object(Path, "is_file", return_value=False), \
+             patch("sys.argv", ["watchtower", "status"]), patch("sys.stderr", stderr):
+            self.assertEqual(main(), 2)
+        self.assertIn("Pass --config PATH or set CLEARPARCEL_WATCHTOWER_CONFIG", stderr.getvalue())
+
     def test_runtime_dependencies_are_exactly_constrained(self):
         lines = [
             line.strip() for line in (ROOT / "constraints.txt").read_text(encoding="utf-8").splitlines()
@@ -47,6 +58,12 @@ class SupplyChainTests(unittest.TestCase):
             root = Path(td)
             sbom = root / "sbom.json"
             provenance = root / "provenance.json"
+            runtime = root / "runtime.json"
+            os_inventory = root / "os.tsv"
+            runtime.write_text(json.dumps({"python": "3.13.11", "components": [
+                {"name": "example-lib", "version": "1.2.3"},
+            ]}), encoding="utf-8")
+            os_inventory.write_text("ca-certificates\t2025.1\ncurl\t8.1\n", encoding="utf-8")
             revision = "a" * 40
             subprocess.run(
                 [
@@ -55,6 +72,9 @@ class SupplyChainTests(unittest.TestCase):
                     "--constraints", str(ROOT / "constraints.txt"),
                     "--revision", revision,
                     "--base-image", "python:3.13-slim@sha256:" + "b" * 64,
+                    "--image-digest", "sha256:" + "c" * 64,
+                    "--runtime-inventory", str(runtime),
+                    "--os-inventory", str(os_inventory),
                     "--sbom", str(sbom),
                     "--provenance", str(provenance),
                 ],
@@ -64,9 +84,14 @@ class SupplyChainTests(unittest.TestCase):
             prov_data = json.loads(provenance.read_text(encoding="utf-8"))
             self.assertEqual(sbom_data["bomFormat"], "CycloneDX")
             self.assertEqual(sbom_data["specVersion"], "1.6")
-            self.assertGreaterEqual(len(sbom_data["components"]), 20)
+            self.assertEqual(len(sbom_data["components"]), 3)
+            self.assertIn({"name": "clearparcel:artifact_subject", "value": "sha256:" + "c" * 64}, sbom_data["metadata"]["properties"])
+            self.assertIn({"name": "clearparcel:constraints_inventory_scope", "value": "dependency-input-only"}, sbom_data["metadata"]["properties"])
             self.assertEqual(prov_data["source_revision"], revision)
-            self.assertEqual(prov_data["locked_python_components"], len(sbom_data["components"]))
+            self.assertEqual(prov_data["runtime_python_components"], 1)
+            self.assertEqual(prov_data["runtime_os_components"], 2)
+            self.assertEqual(prov_data["runtime_python"], "3.13.11")
+            self.assertNotEqual(prov_data["runtime_python"], prov_data["build_host_python"])
 
 
 if __name__ == "__main__":

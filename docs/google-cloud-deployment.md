@@ -10,7 +10,7 @@ GIS Data Watchtower can run as a scheduled **Cloud Run Job** while retaining the
 
 Cloud Scheduler → Cloud Run Job → GIS providers → Google Cloud Storage
 
-The job downloads the last saved state/history into ephemeral `/tmp`, performs one bounded Watchtower run, then uploads the resulting artifacts back to Cloud Storage. Dashboard hosting remains separate from provider polling.
+The job downloads the last saved state/history into ephemeral `/tmp`, performs one bounded Watchtower run, then uploads the resulting artifacts back to Cloud Storage. Both the active `history.jsonl` and the retained `history.jsonl.1` archive use generation preconditions. Dashboard hosting remains separate from provider polling.
 
 ## Required environment
 
