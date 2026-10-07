@@ -21,6 +21,7 @@ from pathlib import Path
 from clearparcel.datawatch.public_values import provider_edit_timestamp
 from clearparcel.datawatch.transport import RequestDeadline, PinnedURL, resolve_addresses, effective_proxy, guarded_opener
 from clearparcel.datawatch.file_lock import FileLock
+from clearparcel.datawatch.gac_standards import canonical_minnesota_county, gac_defaults, load_gac_standard, normalize_standard_key
 
 class ProviderRateLimitError(RuntimeError):
     """Provider explicitly asked the client to slow down."""
@@ -706,19 +707,46 @@ def _field_completeness(url: str, field: str, total: int | None, timeout: int, *
 
 
 def _load_mngac_schema() -> dict:
-    return json.loads(MNGAC_FIELDS_FILE.read_text(encoding="utf-8"))
+    """Backward-compatible parcel-standard loader."""
+    return load_gac_standard("parcel")
 
 
-def _mngac_population_expression(field_spec: dict, actual_field: str) -> str:
+def _gac_population_expression(field_spec: dict, actual_field: str, *, standard_key: str = "parcel") -> str:
     if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", actual_field):
-        raise ValueError(f"unsafe MNGAC field name: {actual_field}")
+        raise ValueError(f"unsafe GAC field name: {actual_field}")
     data_type = str(field_spec.get("data_type") or "").lower()
     canonical = str(field_spec.get("field") or "").upper()
     if "text" in data_type:
         return f"CASE WHEN {actual_field} IS NULL OR {actual_field} = '' THEN 0 ELSE 1 END"
-    if canonical in _MNGAC_NUMERIC_NO_VALUE_FIELDS:
+    if standard_key == "parcel" and canonical in _MNGAC_NUMERIC_NO_VALUE_FIELDS:
         return f"CASE WHEN {actual_field} IS NULL OR {actual_field} = 0 OR {actual_field} = -9999 THEN 0 ELSE 1 END"
     return f"CASE WHEN {actual_field} IS NULL THEN 0 ELSE 1 END"
+
+
+def _mngac_population_expression(field_spec: dict, actual_field: str) -> str:
+    """Backward-compatible parcel expression helper."""
+    return _gac_population_expression(field_spec, actual_field, standard_key="parcel")
+
+
+def _gac_statistic(
+    field_spec: dict,
+    actual_field: str,
+    standard_key: str,
+    *,
+    text_population_mode: str = "nonblank",
+) -> tuple[str, str]:
+    """Return the provider statistic type/expression for one standard field."""
+    if standard_key == "parcel":
+        return "sum", _gac_population_expression(field_spec, actual_field, standard_key="parcel")
+    if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", actual_field):
+        raise ValueError(f"unsafe GAC field name: {actual_field}")
+    if "text" in str(field_spec.get("data_type") or "").lower():
+        if text_population_mode == "non_null":
+            return "count", actual_field
+        if text_population_mode == "nonblank":
+            return "count", f"NULLIF({actual_field}, '')"
+        raise ValueError("GAC text_population_mode must be non_null or nonblank")
+    return "count", actual_field
 
 
 def _median(values: list[float]) -> float | None:
@@ -731,31 +759,60 @@ def _median(values: list[float]) -> float | None:
     return round((clean[mid - 1] + clean[mid]) / 2.0, 2)
 
 
-def _arcgis_mngac_completeness(
+
+
+def _arcgis_gac_completeness(
     url: str,
     field_names: list[str],
     object_id_field: str | None,
     timeout: int,
     *,
+    standard_key: str = "parcel",
     prefer_curl: bool = False,
-    batch_size: int = 12,
+    batch_size: int | None = None,
+    county_name_field: str | None = None,
+    county_code_field: str | None = None,
+    population_scope: str | None = None,
+    text_population_mode: str | None = None,
 ) -> dict:
-    """Calculate bounded county/field population statistics for the MN GAC parcel schema.
+    """Calculate bounded county/field population statistics for an MN GAC schema.
 
-    This intentionally measures *population*, not full standards compliance. Conditional,
-    If Available, and Optional fields may be correctly blank for many records.
+    Parcel retains the established all-field expression strategy. Address and Road
+    default to provider-friendly Mandatory-field population using native grouped
+    COUNT statistics; text fields use COUNT(NULLIF(field,'')) so null and empty
+    string values are both unpopulated. All standard fields remain schema-checked.
     """
-    schema = _load_mngac_schema()
+    standard_key = normalize_standard_key(standard_key)
+    schema = load_gac_standard(standard_key)
+    defaults = gac_defaults(standard_key)
     specs = list(schema.get("fields") or [])
-    by_lower = {str(name).lower(): str(name) for name in field_names}
-    county_field = by_lower.get("co_name")
-    code_field = by_lower.get("co_code")
-    oid_field = object_id_field or by_lower.get("objectid")
-    if not county_field or not code_field or not oid_field:
-        raise RuntimeError("MNGAC completeness requires CO_NAME, CO_CODE, and an object-id field")
+    if standard_key == "parcel":
+        scope = "all"
+        text_mode = "nonblank"
+        if population_scope not in (None, "", "all"):
+            raise ValueError("parcel GAC population_scope must be all")
+    else:
+        scope = str(population_scope or defaults["routine_population_scope"]).strip().lower()
+        if scope not in {"mandatory", "all"}:
+            raise ValueError("GAC population_scope must be mandatory or all")
+        text_mode = str(text_population_mode or defaults["routine_text_population_mode"]).strip().lower()
+        if text_mode not in {"non_null", "nonblank"}:
+            raise ValueError("GAC text_population_mode must be non_null or nonblank")
 
-    present_specs = []
-    missing_fields = []
+    by_lower = {str(name).lower(): str(name) for name in field_names}
+    configured_county = county_name_field or defaults["county_name_field"]
+    configured_code = defaults["county_code_field"] if county_code_field is None else county_code_field
+    county_field = by_lower.get(str(configured_county).lower())
+    code_field = by_lower.get(str(configured_code).lower()) if configured_code else None
+    oid_field = object_id_field or by_lower.get("objectid")
+    if not county_field or not oid_field or (configured_code and not code_field):
+        required = f"{configured_county}"
+        if configured_code:
+            required += f", {configured_code}"
+        raise RuntimeError(f"GAC {standard_key} completeness requires {required} and an object-id field")
+
+    present_specs: list[tuple[dict, str]] = []
+    missing_fields: list[str] = []
     for spec in specs:
         actual = by_lower.get(str(spec.get("field") or "").lower())
         if actual:
@@ -763,29 +820,43 @@ def _arcgis_mngac_completeness(
         else:
             missing_fields.append(str(spec.get("field") or ""))
 
-    batch_size = max(1, min(int(batch_size or 12), 20))
+    scanned_specs = (
+        present_specs
+        if scope == "all"
+        else [(spec, actual) for spec, actual in present_specs if spec.get("inclusion") == "Mandatory"]
+    )
+    scanned_fields = {str(spec.get("field") or "") for spec, _ in scanned_specs}
+
+    effective_batch_size = defaults["routine_batch_size"] if batch_size is None else batch_size
+    batch_size = max(1, min(int(effective_batch_size), 20))
     counties: dict[str, dict] = {}
     query_count = 0
-    for offset in range(0, len(present_specs), batch_size):
-        batch = present_specs[offset:offset + batch_size]
+    excluded_county_names: set[str] = set()
+    for offset in range(0, len(scanned_specs), batch_size):
+        batch = scanned_specs[offset:offset + batch_size]
         stats = [{
             "statisticType": "count",
             "onStatisticField": oid_field,
             "outStatisticFieldName": "record_count",
         }]
-        aliases = {}
+        aliases: dict[str, dict] = {}
         for idx, (spec, actual) in enumerate(batch):
             alias = f"p{idx}"
             aliases[alias] = spec
+            statistic_type, statistic_field = _gac_statistic(
+                spec, actual, standard_key, text_population_mode=text_mode
+            )
             stats.append({
-                "statisticType": "sum",
-                "onStatisticField": _mngac_population_expression(spec, actual),
+                "statisticType": statistic_type,
+                "onStatisticField": statistic_field,
                 "outStatisticFieldName": alias,
             })
+        group_fields = [county_field] + ([code_field] if code_field else [])
+        grouped_fields = ",".join(group_fields)
         params = {
             "where": "1=1",
-            "groupByFieldsForStatistics": f"{county_field},{code_field}",
-            "outFields": f"{county_field},{code_field}",
+            "groupByFieldsForStatistics": grouped_fields,
+            "outFields": grouped_fields,
             "outStatistics": json.dumps(stats, separators=(",", ":")),
             "returnGeometry": "false",
             "orderByFields": county_field,
@@ -796,13 +867,23 @@ def _arcgis_mngac_completeness(
         query_count += 1
         for feature in data.get("features") or []:
             attrs = feature.get("attributes") or {}
-            county_name = str(attrs.get(county_field) or "").strip()
+            raw_county_name = str(attrs.get(county_field) or "").strip()
+            county_name = (
+                raw_county_name
+                if standard_key == "parcel"
+                else canonical_minnesota_county(raw_county_name)
+            )
             if not county_name:
+                if raw_county_name:
+                    excluded_county_names.add(raw_county_name)
                 continue
-            record_count = _validated_provider_count(int(attrs.get("record_count") or 0), label=f"{county_name} MNGAC row count")
+            record_count = _validated_provider_count(
+                int(attrs.get("record_count") or 0),
+                label=f"{county_name} GAC {standard_key} row count",
+            )
             entry = counties.setdefault(county_name, {
                 "county_name": county_name,
-                "county_code": str(attrs.get(code_field) or "").strip() or None,
+                "county_code": (str(attrs.get(code_field) or "").strip() or None) if code_field else None,
                 "record_count": record_count,
                 "fields": {},
             })
@@ -818,34 +899,59 @@ def _arcgis_mngac_completeness(
                     "percent": pct,
                 }
 
+
     all_field_count = len(specs)
     mandatory_fields = [x["field"] for x in specs if x.get("inclusion") == "Mandatory"]
     for entry in counties.values():
         record_count = int(entry.get("record_count") or 0)
         fields = entry["fields"]
-        populated_cells = sum(int((fields.get(x["field"]) or {}).get("populated") or 0) for x in specs)
-        possible_cells = record_count * all_field_count
-        mandatory_populated = sum(int((fields.get(field) or {}).get("populated") or 0) for field in mandatory_fields)
+        scanned_populated_cells = sum(
+            int((fields.get(field) or {}).get("populated") or 0) for field in scanned_fields
+        )
+        mandatory_populated = sum(
+            int((fields.get(field) or {}).get("populated") or 0) for field in mandatory_fields
+        )
         mandatory_possible = record_count * len(mandatory_fields)
-        entry["fields_with_values"] = sum(1 for x in specs if int((fields.get(x["field"]) or {}).get("populated") or 0) > 0)
         entry["field_count"] = all_field_count
-        entry["field_population_percent"] = None if not possible_cells else round(populated_cells / possible_cells * 100.0, 2)
-        entry["mandatory_population_percent"] = None if not mandatory_possible else round(mandatory_populated / mandatory_possible * 100.0, 2)
+        entry["scanned_field_count"] = len(scanned_fields)
+        entry["population_scope"] = scope
+        entry["scanned_fields_with_values"] = sum(
+            1 for field in scanned_fields if int((fields.get(field) or {}).get("populated") or 0) > 0
+        )
+        if scope == "all":
+            possible_cells = record_count * all_field_count
+            entry["fields_with_values"] = entry["scanned_fields_with_values"]
+            entry["field_population_percent"] = (
+                None if not possible_cells else round(scanned_populated_cells / possible_cells * 100.0, 2)
+            )
+        else:
+            entry["fields_with_values"] = None
+            entry["field_population_percent"] = None
+        entry["mandatory_population_percent"] = (
+            None if not mandatory_possible else round(mandatory_populated / mandatory_possible * 100.0, 2)
+        )
         entry["mandatory_fields_full"] = sum(
             1 for field in mandatory_fields if (fields.get(field) or {}).get("percent") == 100.0
         )
         entry["mandatory_field_count"] = len(mandatory_fields)
 
-    field_summaries = {}
     total_records = sum(int(x.get("record_count") or 0) for x in counties.values())
+    field_summaries: dict[str, dict] = {}
     for spec in specs:
         field = spec["field"]
-        populated = sum(int((x["fields"].get(field) or {}).get("populated") or 0) for x in counties.values())
-        percentages = [
-            (x["fields"].get(field) or {}).get("percent")
-            for x in counties.values()
-            if isinstance((x["fields"].get(field) or {}).get("percent"), (int, float))
-        ]
+        scanned = field in scanned_fields
+        populated = (
+            sum(int((x["fields"].get(field) or {}).get("populated") or 0) for x in counties.values())
+            if scanned else None
+        )
+        percentages = (
+            [
+                (x["fields"].get(field) or {}).get("percent")
+                for x in counties.values()
+                if isinstance((x["fields"].get(field) or {}).get("percent"), (int, float))
+            ]
+            if scanned else []
+        )
         field_summaries[field] = {
             "label": spec.get("label"),
             "section": spec.get("section"),
@@ -853,11 +959,20 @@ def _arcgis_mngac_completeness(
             "inclusion": spec.get("inclusion"),
             "data_type": spec.get("data_type"),
             "present_in_source_schema": field not in missing_fields,
-            "populated": populated if field not in missing_fields else None,
-            "record_count": total_records if field not in missing_fields else None,
-            "percent": None if field in missing_fields or total_records == 0 else round(populated / total_records * 100.0, 2),
-            "counties_with_values": sum(1 for x in counties.values() if int((x["fields"].get(field) or {}).get("populated") or 0) > 0),
-            "counties_covered": len(counties),
+            "population_scanned": scanned,
+            "populated": populated if scanned and field not in missing_fields else None,
+            "record_count": total_records if scanned and field not in missing_fields else None,
+            "percent": (
+                None if not scanned or field in missing_fields or total_records == 0
+                else round(int(populated or 0) / total_records * 100.0, 2)
+            ),
+            "counties_with_values": (
+                sum(
+                    1 for x in counties.values()
+                    if int((x["fields"].get(field) or {}).get("populated") or 0) > 0
+                ) if scanned else None
+            ),
+            "counties_covered": len(counties) if scanned else None,
             "county_median_percent": _median(percentages),
         }
 
@@ -865,27 +980,155 @@ def _arcgis_mngac_completeness(
         int((entry["fields"].get(field) or {}).get("populated") or 0)
         for entry in counties.values() for field in mandatory_fields
     )
-    return {
-        "standard": schema.get("standard") or {},
-        "method": "ArcGIS grouped statistics; text blanks and nulls are unpopulated; standard tax/value fields that define 0 as No value and -9999 as No data treat both as unpopulated.",
-        "covered_counties": len(counties),
-        "record_count": total_records,
-        "field_count": all_field_count,
-        "mandatory_field_count": len(mandatory_fields),
-        "source_schema_missing_fields": missing_fields,
-        "statistics_queries": query_count,
-        "field_population_percent": None if not total_records or not all_field_count else round(
+    if standard_key == "parcel":
+        method = (
+            "ArcGIS grouped statistics; text blanks and nulls are unpopulated. "
+            "Standard parcel tax/value fields that define 0 as No value and -9999 "
+            "as No data treat both as unpopulated."
+        )
+    else:
+        text_rule = (
+            "NULL values are unpopulated; empty strings may count as populated"
+            if text_mode == "non_null"
+            else "NULL and empty-string text values are unpopulated"
+        )
+        method = (
+            f"{scope.title()}-field population using bounded ArcGIS grouped counts; "
+            f"{text_rule}. All standard fields remain schema-checked."
+        )
+    overall_population = None
+    if scope == "all" and total_records and all_field_count:
+        overall_population = round(
             sum(
                 int((entry["fields"].get(spec["field"]) or {}).get("populated") or 0)
                 for entry in counties.values() for spec in specs
-            ) / (total_records * all_field_count) * 100.0, 2
-        ),
-        "mandatory_population_percent": None if not total_records or not mandatory_fields else round(
-            mandatory_populated_cells / (total_records * len(mandatory_fields)) * 100.0, 2
+            ) / (total_records * all_field_count) * 100.0,
+            2,
+        )
+    return {
+        "standard_key": standard_key,
+        "standard": schema.get("standard") or {},
+        "method": method,
+        "population_scope": scope,
+        "text_population_mode": text_mode,
+        "county_grouping": {
+            "name_field": county_field,
+            "code_field": code_field,
+            "note": defaults["grouping_note"],
+        },
+        "covered_counties": len(counties),
+        "record_count": total_records,
+        "field_count": all_field_count,
+        "scanned_field_count": len(scanned_fields),
+        "mandatory_field_count": len(mandatory_fields),
+        "source_schema_missing_fields": missing_fields,
+        "statistics_queries": query_count,
+        "excluded_county_groups": len(excluded_county_names),
+        "excluded_county_names": sorted(excluded_county_names),
+        "field_population_percent": overall_population,
+        "mandatory_population_percent": (
+            None if not total_records or not mandatory_fields else round(
+                mandatory_populated_cells / (total_records * len(mandatory_fields)) * 100.0, 2
+            )
         ),
         "counties": counties,
         "fields": field_summaries,
     }
+
+
+def _arcgis_mngac_completeness(
+    url: str,
+    field_names: list[str],
+    object_id_field: str | None,
+    timeout: int,
+    *,
+    prefer_curl: bool = False,
+    batch_size: int = 12,
+) -> dict:
+    """Backward-compatible parcel completeness wrapper."""
+    return _arcgis_gac_completeness(
+        url,
+        field_names,
+        object_id_field,
+        timeout,
+        standard_key="parcel",
+        prefer_curl=prefer_curl,
+        batch_size=batch_size,
+    )
+
+
+def _gac_bool(value) -> bool | None:
+    if type(value) is bool:
+        return value
+    text = str(value or "").strip().lower()
+    if text in {"true", "yes", "y", "1"}:
+        return True
+    if text in {"false", "no", "n", "0"}:
+        return False
+    return None
+
+
+def _gac_datetime(value) -> str | None:
+    if value is None or type(value) is bool:
+        return None
+    try:
+        if isinstance(value, (int, float)) or str(value).strip().isdigit():
+            number = float(value)
+            if number <= 0:
+                return None
+            if number > 10_000_000_000:
+                number /= 1000.0
+            return dt.datetime.fromtimestamp(number, tz=dt.timezone.utc).isoformat()
+        parsed = dt.datetime.fromisoformat(str(value).strip().replace("Z", "+00:00"))
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=dt.timezone.utc)
+        return parsed.astimezone(dt.timezone.utc).isoformat()
+    except (ValueError, TypeError, OSError, OverflowError):
+        return None
+
+
+def _arcgis_gac_metadata(
+    url: str,
+    timeout: int,
+    *,
+    standard_key: str,
+    prefer_curl: bool = False,
+) -> dict:
+    """Read bounded county participation/submission metadata from MnGeo's metadata layer."""
+    standard_key = normalize_standard_key(standard_key)
+    defaults = gac_defaults(standard_key)
+    submission_field = defaults.get("metadata_submission_field")
+    requested = [
+        "agency_county", "county_name", "county_code", "county_fips",
+        "gac_open", "ng911_upload",
+    ]
+    if submission_field:
+        requested.append(str(submission_field))
+    params = {
+        "where": "1=1",
+        "outFields": ",".join(requested),
+        "returnGeometry": "false",
+        "orderByFields": "county_name",
+        "f": "json",
+    }
+    query_url = url.rstrip("/") + "/query?" + urllib.parse.urlencode(params)
+    data, _ = _json_request(query_url, timeout, prefer_curl=prefer_curl)
+    counties = {}
+    for feature in data.get("features") or []:
+        attrs = feature.get("attributes") or {}
+        raw_county_name = str(attrs.get("county_name") or attrs.get("agency_county") or "").strip()
+        county_name = canonical_minnesota_county(raw_county_name)
+        if not county_name:
+            continue
+        counties[county_name] = {
+            "county_name": county_name,
+            "county_code": str(attrs.get("county_code") or "").strip() or None,
+            "county_fips": str(attrs.get("county_fips") or "").strip() or None,
+            "gac_open": _gac_bool(attrs.get("gac_open")),
+            "ng911_upload": _gac_bool(attrs.get("ng911_upload")),
+            "submitted_at": _gac_datetime(attrs.get(submission_field)) if submission_field else None,
+        }
+    return counties
 
 
 def _arcgis_geometry_sample(url: str, timeout: int, *, sample_size: int = 250, prefer_curl: bool = False) -> dict:
@@ -969,23 +1212,80 @@ def _arcgis_layer(source: dict, timeout: int) -> dict:
         result['editing_info'] = {'lastEditDate': editing['lastEditDate']}
     if source.get("count"):
         result["feature_count"] = _arcgis_count_query(source["url"], "1=1", timeout, prefer_curl=bool(source.get("prefer_curl")))
-    if source.get("mngac_completeness"):
-        settings = source.get("mngac_completeness")
+    gac_settings = source.get("gac_completeness")
+    legacy_mngac = source.get("mngac_completeness")
+    if gac_settings or legacy_mngac:
+        modern = bool(gac_settings)
+        settings = gac_settings if modern else legacy_mngac
         if not isinstance(settings, dict):
             settings = {}
+        standard_key = normalize_standard_key(settings.get("standard") if modern else "parcel")
+        output_key = "gac_completeness" if modern else "mngac_completeness"
+        gac_timeout = int(settings.get("timeout_seconds", max(timeout, 60)))
         try:
-            result["mngac_completeness"] = _arcgis_mngac_completeness(
-                source["url"],
-                result["field_names"],
-                result.get("object_id_field"),
-                int(settings.get("timeout_seconds", max(timeout, 60))),
-                prefer_curl=bool(source.get("prefer_curl")),
-                batch_size=int(settings.get("batch_size", 12)),
-            )
+            if modern:
+                completeness = _arcgis_gac_completeness(
+                    source["url"],
+                    result["field_names"],
+                    result.get("object_id_field"),
+                    gac_timeout,
+                    standard_key=standard_key,
+                    prefer_curl=bool(source.get("prefer_curl")),
+                    batch_size=(
+                        int(settings["batch_size"]) if "batch_size" in settings
+                        else int(gac_defaults(standard_key)["routine_batch_size"])
+                    ),
+                    county_name_field=settings.get("county_name_field"),
+                    county_code_field=settings.get("county_code_field"),
+                    population_scope=settings.get("population_scope"),
+                    text_population_mode=settings.get("text_population_mode"),
+                )
+            else:
+                completeness = _arcgis_mngac_completeness(
+                    source["url"],
+                    result["field_names"],
+                    result.get("object_id_field"),
+                    gac_timeout,
+                    prefer_curl=bool(source.get("prefer_curl")),
+                    batch_size=int(settings.get("batch_size", 12)),
+                )
+            metadata_url = str(settings.get("metadata_url") or "").strip()
+            if metadata_url:
+                completeness["county_metadata"] = _arcgis_gac_metadata(
+                    metadata_url,
+                    gac_timeout,
+                    standard_key=standard_key,
+                    prefer_curl=bool(source.get("prefer_curl")),
+                )
+            if isinstance(result.get("feature_count"), int):
+                completeness["source_feature_count"] = result["feature_count"]
+                completeness["ungrouped_record_count"] = max(
+                    0, result["feature_count"] - int(completeness.get("record_count") or 0)
+                )
+            metadata = completeness.get("county_metadata") or {}
+            represented = set(completeness.get("counties") or {})
+            if isinstance(metadata, dict) and metadata:
+                open_counties = {
+                    name for name, row in metadata.items()
+                    if isinstance(row, dict) and row.get("gac_open") is True
+                }
+                ng911_counties = {
+                    name for name, row in metadata.items()
+                    if isinstance(row, dict) and row.get("ng911_upload") is True
+                }
+                completeness["metadata_summary"] = {
+                    "metadata_counties": len(metadata),
+                    "ng911_participants": len(ng911_counties),
+                    "gac_open_counties": len(open_counties),
+                    "represented_without_gac_open": len(represented - open_counties),
+                    "gac_open_without_representation": len(open_counties - represented),
+                }
+            result[output_key] = completeness
         except ProviderRateLimitError:
             raise
         except Exception as exc:
-            result["mngac_completeness"] = {
+            result[output_key] = {
+                "standard_key": standard_key,
                 "status": "unsupported",
                 "error": _safe_diagnostic(exc),
             }
@@ -1736,10 +2036,19 @@ def check_sources(
     save: bool = True,
     execution_profile: str | None = None,
 ) -> dict:
+    if not save:
+        try:
+            return _check_sources_unlocked(
+                config, source_filter=source_filter, save=False, execution_profile=execution_profile
+            )
+        finally:
+            if tracemalloc.is_tracing():
+                tracemalloc.stop()
+
     state_path = Path(config["state_file"])
     run_lock = _acquire_run_lock(state_path, int(config.get("run_lock_stale_seconds", 7200)))
     try:
-        return _check_sources_unlocked(config, source_filter=source_filter, save=save, execution_profile=execution_profile)
+        return _check_sources_unlocked(config, source_filter=source_filter, save=True, execution_profile=execution_profile)
     finally:
         if tracemalloc.is_tracing():
             tracemalloc.stop()

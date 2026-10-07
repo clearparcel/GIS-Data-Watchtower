@@ -1,0 +1,24 @@
+# Resolved 2026-10-07 for the Watchtower runtime.
+# Refresh deliberately when dependencies are upgraded; CI installs through this file.
+google-cloud-storage==3.16.0
+google-api-core==2.41.0
+google-auth==2.60.0
+google-cloud-core==2.8.0
+google-crc32c==1.9.0
+google-resumable-media==2.11.0
+googleapis-common-protos==1.75.5
+opentelemetry-api==1.45.1
+proto-plus==1.29.0
+protobuf==7.36.2
+requests==2.34.2
+charset-normalizer==3.5.2
+idna==3.20
+urllib3==2.8.0
+certifi==2026.7.22
+cryptography==50.0.2
+cffi==2.1.1
+pyasn1-modules==0.4.2
+pyasn1==0.6.4
+typing-extensions==4.16.0
+tzdata==2026.5
+pycparser==3.0

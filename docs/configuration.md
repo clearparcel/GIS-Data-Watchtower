@@ -1,6 +1,6 @@
 # Configuration reference
 
-Last reviewed: **2026-10-05**
+Last reviewed: **2026-10-07**
 
 Start from `config/example_sources.json`. The public example is deliberately provider-neutral.
 
@@ -58,18 +58,94 @@ Optional common controls include:
 
 ArcGIS layer checks may use `count`, `expected_geometry`, `expected_wkid`, `required_fields`, `parcel_quality`, `geometry_sample`, and `geometry_sample_size`.
 
-For a layer that follows the Minnesota GAC parcel-transfer schema, `mngac_completeness` enables grouped field-population statistics. It may be `true` for defaults or an object such as:
+Minnesota GAC completeness is implemented by a shared standards engine. New
+sources use `gac_completeness` with `standard` set to `parcel`, `address`, or
+`road`. Existing parcel deployments using `mngac_completeness` remain supported
+for backward compatibility.
 
 ```json
-"mngac_completeness": {
+"gac_completeness": {
+  "standard": "address",
   "timeout_seconds": 90,
-  "batch_size": 12
+  "batch_size": 12,
+  "population_scope": "mandatory",
+  "metadata_url": "https://enterprise.gisdata.mn.gov/aghost/rest/services/us_mn_state_mngeo/loc_addresses_open/FeatureServer/1"
 }
 ```
 
-The source must expose `CO_NAME`, `CO_CODE`, an object-id field, and GAC field names. Watchtower batches the standard fields into bounded grouped-statistics requests; the current 91-field MnGeo layer uses eight requests at the default batch size. See [`mngac-completeness.md`](mngac-completeness.md) for methodology and interpretation.
+Parcel retains `CO_NAME` / `CO_CODE`. Address defaults to canonicalized
+`CO_NAME` grouping, while Road defaults to canonicalized `CO_NAME_L` so
+each statewide road segment contributes to one Minnesota county denominator.
+Address/Road county-code fields remain schema-checked but are not used for
+grouping because code anomalies can split one named county into multiple
+provider statistics groups. The grouping fields may be overridden only when a
+deployment has an evidence-backed compatible schema.
+
+For Address and Road, `population_scope` defaults to `mandatory`: every
+standard field is schema-checked, but routine population statistics are
+calculated only for Mandatory fields. `population_scope: "all"` is supported
+for deliberate deeper validation but is materially heavier and should not be
+enabled at routine production cadence without provider-specific validation.
+`text_population_mode` defaults to `nonblank`, using
+`COUNT(NULLIF(field,''))` so NULL and empty-string text values are unpopulated.
+A faster `non_null` mode exists for provider-specific diagnostics but may count
+empty strings as populated and is not the validated routine default.
+
+The source must expose the configured county field, an object-id field, and GAC
+field names. Standard fields are split into bounded grouped-statistics requests.
+`batch_size` is capped at 20, but **12 is the validated routine default**;
+full live scans with 20-field batches produced ArcGIS 503 wait-timeouts.
+Address and Road metadata may additionally report NG911 participation, GAC
+public-data opt-in, and latest submission time. See
+[`gac-standards.md`](gac-standards.md) for the complete methodology and
+[`mngac-completeness.md`](mngac-completeness.md) for the parcel-specific
+historical methodology.
 
 Adapter-specific keys include `expected_layers` for WMS, `expected_feature_types`/`version` for WFS, `query`/`expected_columns`/`tracked_values` for Soil Data Access, and `expected_content_type` for `http_file`. The `http_file` adapter performs a HEAD-only check and tracks ETag, Last-Modified, Content-Length, and content type without downloading the file body.
+
+## Public PostHog analytics
+
+Browser analytics are **disabled unless** both the Watchtower project token and
+the explicit IP-discard confirmation are configured. The intended deployment
+uses a dedicated Watchtower PostHog project rather than sharing unrelated
+application analytics.
+
+- `WATCHTOWER_POSTHOG_PROJECT_TOKEN` — browser-safe PostHog project token.
+- `WATCHTOWER_POSTHOG_HOST` — HTTPS ingestion origin; defaults to
+  `https://us.i.posthog.com`.
+- `WATCHTOWER_POSTHOG_SCRIPT_URL` — optional explicit HTTPS
+  `.../array.js` loader URL for a compatible PostHog deployment.
+- `WATCHTOWER_POSTHOG_IP_DISCARD_CONFIRMED=true` — required activation gate;
+  set it only after the dedicated PostHog project's **Discard client IP data**
+  setting has been enabled and verified.
+
+A token alone does not activate analytics. Watchtower requires both the project
+token and the explicit IP-discard confirmation.
+
+When enabled, Watchtower deliberately configures explicit custom events only:
+autocapture, automatic pageviews/pageleaves, exception capture, Session Replay
+and feature-flag requests are disabled. Browser persistence is memory-only,
+person profiles are identified-only, Watchtower never calls `identify()`, and a
+pre-send filter removes automatic URL/referrer properties.
+
+Client IP discard is controlled by the PostHog organization/project setting,
+not by the JavaScript SDK. Do not activate Watchtower analytics until its
+dedicated project has **Discard client IP data** enabled. The public CSP adds
+only the configured PostHog script and ingestion origins, and only while the
+token is configured.
+
+## Dependency and build reproducibility
+
+`constraints.txt` pins the resolved Python runtime dependency set. Docker builds
+use that constraint file and pin the Python base image by OCI digest. CI runs a
+pinned dependency vulnerability audit, CodeQL analysis, and a Trivy scan that
+fails on fixable High/Critical container findings. The container lane also
+generates CycloneDX SBOM and build-provenance JSON files and uploads them with
+the built image ID as a workflow artifact.
+
+The lock and base-image digest are deliberate release inputs. Refresh them in a
+reviewed dependency-update change rather than allowing an ordinary rebuild to
+silently select different Python packages or a different base image.
 
 ## Path environment overrides
 

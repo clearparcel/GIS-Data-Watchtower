@@ -16,7 +16,7 @@ ClearParcel also operates a read-only public dashboard at **https://gis-watchtow
 - selected public GIS catalogs and query APIs
 - record-count and schema changes
 - parcel-ID and attribute completeness signals
-- Minnesota GAC parcel-field population statistics and interactive county comparison
+- Minnesota GAC Parcel, Address Point, and Road Centerline field-population statistics with interactive county comparison
 - evidence-backed Minnesota county-direct parcel access plus separate MnGeo statewide open coverage and active-monitoring paths
 - bounded geometry samples
 - source response and processing history
@@ -73,6 +73,14 @@ See `docs/data-watchtower-provider-compliance.md` for the project's provider-use
 
 Watchtower stores derived monitoring observations in the configured local or cloud storage backend. Public/static outputs are intentionally sanitized and do not expose internal service fingerprints, tracked values, operational URLs, or raw parcel-owner records.
 
+Optional public PostHog analytics remain disabled unless both a dedicated
+Watchtower project token and the explicit IP-discard confirmation setting are
+configured. When enabled, Watchtower uses explicit anonymous events only:
+autocapture, Session Replay, automatic pageview/pageleave capture, exception
+capture, feature-flag requests, persistent browser identity, and explicit user
+identification are disabled. Client-IP discard must be enabled and verified on
+the dedicated PostHog project before production activation.
+
 ## County GIS contact provenance
 
 Minnesota county contact information follows an explicit source-precedence rule. The official county government website is checked first. When that site provides additional or changed usable GIS, mapping, or land-records contact information, the county website is authoritative. When the official county site does not provide additional or changed usable contact information, Watchtower retains the Minnesota Geospatial Information Office (MnGeo) County GIS Contacts directory as the fallback. The dashboard and exports identify which source is in use and the verification date.
@@ -87,11 +95,11 @@ Do not report security vulnerabilities in public issues. See `SECURITY.md`.
 
 ```bash
 python -W error::ResourceWarning -m unittest discover -s tests -q
-python -m compileall -q clearparcel tests
+python -m compileall -q clearparcel tests scripts
 git diff --check
 ```
 
-CI tests Windows and Ubuntu on Python 3.12, 3.13, and 3.14, plus a Linux container smoke test.
+CI tests Windows and Ubuntu on Python 3.12, 3.13, and 3.14, plus a Linux container smoke test. Runtime Python dependencies are constrained in `constraints.txt`, the container base image is digest-pinned, and CI runs a pinned dependency audit, CodeQL analysis, and Trivy high/critical container scan. The Linux container lane also uploads CycloneDX SBOM, build provenance, and image-ID evidence.
 
 ## Project documentation
 
@@ -103,7 +111,8 @@ CI tests Windows and Ubuntu on Python 3.12, 3.13, and 3.14, plus a Linux contain
 - [`docs/public-dashboard-hosting.md`](docs/public-dashboard-hosting.md) — public Google Cloud serving architecture and security boundary
 - [`docs/county-parcel-data-access-audit.md`](docs/county-parcel-data-access-audit.md) — parcel-access audit, classifications, evidence methodology, and direct-source findings; offline county profiles cover all 87 counties; all category reviews have been attempted, while blocked and unresolved evidence remains explicit
 - [`docs/hybrid-execution.md`](docs/hybrid-execution.md) and [`docs/hybrid-aggregation.md`](docs/hybrid-aggregation.md) — hybrid worker model
-- [`docs/mngac-completeness.md`](docs/mngac-completeness.md) — Minnesota GAC field-population methodology, county map, and exports
+- [`docs/gac-standards.md`](docs/gac-standards.md) — shared Minnesota GAC Parcel, Address Point, and Road Centerline monitoring methodology
+- [`docs/mngac-completeness.md`](docs/mngac-completeness.md) — parcel-specific Minnesota GAC field-population history, county map, and exports
 - [`docs/data-watchtower-provider-compliance.md`](docs/data-watchtower-provider-compliance.md) — respectful-use methodology and known provider constraints
 - [`docs/release-policy.md`](docs/release-policy.md) — versioning, release policy and the public footer's package version, baked source commit and build environment
 

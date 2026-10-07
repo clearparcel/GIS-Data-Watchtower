@@ -36,7 +36,9 @@ def merge_states(base: dict | None, partial: dict, worker: str) -> dict:
     if incoming_time is None:
         raise ValueError("worker report requires a valid generated_at")
     workers = deepcopy(base.get("workers") or {})
-    previous_worker_time = _parse_time((workers.get(worker) or {}).get("last_report_at")
+    retired_sources = deepcopy(base.get("retired_sources") or {})
+    previous_worker = workers.get(worker) or {}
+    previous_worker_time = _parse_time(previous_worker.get("last_report_at")
                                        or (workers.get(worker) or {}).get("checked_at"))
     if previous_worker_time and incoming_time <= previous_worker_time:
         return base
@@ -47,6 +49,7 @@ def merge_states(base: dict | None, partial: dict, worker: str) -> dict:
             seen = _parse_time(record.get("last_report_at") or record.get("checked_at"))
             if record.get("worker") == worker and source_id not in partial_sources and (seen is None or seen <= incoming_time):
                 del merged_sources[source_id]
+                retired_sources[source_id] = {"worker": worker, "retired_at": generated}
     for source_id, record in partial_sources.items():
         previous = merged_sources.get(source_id) or {}
         seen = _parse_time(previous.get("last_report_at") or previous.get("checked_at"))
@@ -54,6 +57,7 @@ def merge_states(base: dict | None, partial: dict, worker: str) -> dict:
             continue
         record["status"] = _normalized_status(record.get("status"))
         record["worker"] = worker
+        retired_sources.pop(source_id, None)
         record["last_report_at"] = generated
         if record.get("status") == "ok":
             record["last_success_at"] = generated
@@ -65,13 +69,15 @@ def merge_states(base: dict | None, partial: dict, worker: str) -> dict:
         status: sum(1 for row in merged_sources.values() if row.get("status") == status)
         for status in ("ok", "warn", "error")
     }
-    # A successful report publication is the worker heartbeat, even when sources fail.
+    # Report publication is the worker heartbeat even when one or more sources fail.
+    # Keep that clock separate from the most recent all-clear worker run.
+    worker_status = _normalized_status(partial.get("overall"))
     workers[worker] = {
         "checked_at": generated,
         "last_report_at": generated,
-        "last_success_at": generated,
+        "last_success_at": generated if worker_status == "ok" else previous_worker.get("last_success_at"),
         "source_count": len(partial_sources),
-        "overall": _normalized_status(partial.get("overall")),
+        "overall": worker_status,
         "counts": partial.get("counts") or {},
         "telemetry": partial.get("telemetry") or {},
     }
@@ -84,6 +90,7 @@ def merge_states(base: dict | None, partial: dict, worker: str) -> dict:
         "counts": counts,
         "sources": merged_sources,
         "workers": workers,
+        "retired_sources": retired_sources,
     }
 
 

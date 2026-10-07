@@ -21,9 +21,11 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install
-        run: python -m pip install --disable-pip-version-check -e .
+        run: python -m pip install --disable-pip-version-check --constraint constraints.txt -e ".[gcs]"
       - name: Compile
-        run: python -m compileall -q clearparcel tests
+        run: python -m compileall -q clearparcel tests scripts
+      - name: Status documentation sync
+        run: python scripts/sync_current_status.py --check
       - name: Test
         run: python -W error::ResourceWarning -m unittest discover -s tests -q
       - name: CLI smoke test
@@ -35,3 +37,54 @@ jobs:
           docker build --build-arg WATCHTOWER_BUILD_REVISION=${{ github.sha }} -t watchtower-ci .
           docker run --rm watchtower-ci --help
           docker run --rm --entrypoint python watchtower-ci -c "from clearparcel.datawatch.build_info import application_identity; assert application_identity()['revision'] == '${{ github.sha }}'"
+          docker image inspect watchtower-ci --format '{{.Id}}' > watchtower-image-id.txt
+
+      - name: Scan container for fixable high/critical vulnerabilities
+        if: matrix.os == 'ubuntu-24.04' && matrix.python-version == '3.14'
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: watchtower-ci
+          format: table
+          exit-code: '1'
+          ignore-unfixed: 'true'
+          severity: HIGH,CRITICAL
+          timeout: 5m
+
+      - name: Generate supply-chain evidence
+        if: matrix.os == 'ubuntu-24.04' && matrix.python-version == '3.14'
+        run: |
+          python scripts/generate_supply_chain.py \
+            --revision "${{ github.sha }}" \
+            --base-image "python:3.13-slim@sha256:bf44cdfcb76cd3b41e879bc058fc37ec5872002ccfde7fcb765e218cde0cd79c" \
+            --sbom watchtower-sbom.cdx.json \
+            --provenance watchtower-provenance.json
+
+      - name: Upload supply-chain evidence
+        if: matrix.os == 'ubuntu-24.04' && matrix.python-version == '3.14'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: watchtower-supply-chain-${{ github.sha }}
+          path: |
+            watchtower-sbom.cdx.json
+            watchtower-provenance.json
+            watchtower-image-id.txt
+          if-no-files-found: error
+
+  security:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Dependency vulnerability audit
+        uses: pypa/gh-action-pip-audit@1220774d901786e6f652ae159f7b6bc8fea6d266 # v1.1.0
+        with:
+          inputs: constraints.txt
+          no-deps: true
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4
+        with:
+          languages: python
+      - name: Analyze with CodeQL
+        uses: github/codeql-action/analyze@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4

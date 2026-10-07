@@ -1269,7 +1269,7 @@ class DataWatchTests(unittest.TestCase):
 
     def test_watchtower_ci_covers_standalone_package_without_live_provider_check(self):
         workflow = (TOOLS_ROOT / ".github" / "workflows" / "watchtower-ci.yml").read_text(encoding="utf-8")
-        self.assertIn("pip install --disable-pip-version-check -e .", workflow)
+        self.assertIn("pip install --disable-pip-version-check --constraint constraints.txt -e \".[gcs]\"", workflow)
         self.assertIn("unittest discover -s tests", workflow)
         self.assertIn("ubuntu-24.04", workflow)
         self.assertIn('"3.14"', workflow)

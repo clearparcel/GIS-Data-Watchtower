@@ -19,6 +19,7 @@ from clearparcel.datawatch.dashboard import (
     _dashboard_state,
     _esc,
     _health_status,
+    _gac_data,
     _mngac_csv,
     _mngac_data,
     _mngac_map_svg,
@@ -37,6 +38,8 @@ from clearparcel.datawatch.county_profiles import county_profile_counts, _latest
 from clearparcel.datawatch.county_profile_panel import render_county_profile_panel, percentage_legend, percentage_color_js, research_summary
 from clearparcel.datawatch.storage import backend_from_env
 from clearparcel.datawatch.public_values import safe_public_url, sanitize_source_metadata, _metadata_text
+from clearparcel.datawatch.gac_standards import normalize_standard_key
+from clearparcel.datawatch.analytics import posthog_csp_sources
 
 
 def _public_count(value: object) -> int | None:
@@ -115,22 +118,49 @@ def _sanitize_mngac(data: dict | None) -> dict | None:
         **{key: _metadata_text for key in ('label', 'section_name', 'inclusion', 'data_type')},
         'section': _public_count,
         'present_in_source_schema': lambda value: value if type(value) is bool else None,
-        **{key: _public_count for key in ('populated', 'record_count', 'counties_with_values', 'counties_covered')},
+        'population_scanned': lambda value: value if type(value) is bool else None,
+        **{key: _public_count for key in (
+            'populated', 'record_count', 'counties_with_values', 'counties_covered',
+        )},
         **{key: _public_number for key in ('percent', 'county_median_percent')},
     }
-    county_schema = {**{key: _public_count for key in ('record_count', 'fields_with_values', 'field_count',
-        'mandatory_fields_full', 'mandatory_field_count')},
-        **{key: _public_number for key in ('field_population_percent', 'mandatory_population_percent')}}
+    county_schema = {
+        **{key: _public_count for key in (
+            'record_count', 'fields_with_values', 'field_count', 'scanned_field_count',
+            'scanned_fields_with_values', 'mandatory_fields_full', 'mandatory_field_count',
+        )},
+        'population_scope': _metadata_text,
+        **{key: _public_number for key in ('field_population_percent', 'mandatory_population_percent')},
+    }
+    metadata_schema = {
+        **{key: _metadata_text for key in ('county_name', 'county_code', 'county_fips')},
+        'gac_open': lambda value: value if type(value) is bool else None,
+        'ng911_upload': lambda value: value if type(value) is bool else None,
+        'submitted_at': _public_date,
+    }
 
     def fields(records):
         return {name: _project(record, field_schema) for name, record in _records(records).items()
                 if _metadata_text(name, 128) and isinstance(record, dict)}
 
-    public = _project(data, {'method': _metadata_text,
-        **{key: _public_count for key in ('record_count', 'field_count', 'covered_counties', 'mandatory_field_count')},
-        **{key: _public_number for key in ('field_population_percent', 'mandatory_population_percent')}})
+    public = _project(data, {
+        'method': _metadata_text,
+        'standard_key': _metadata_text,
+        'population_scope': _metadata_text,
+        'text_population_mode': _metadata_text,
+        **{key: _public_count for key in (
+            'record_count', 'field_count', 'scanned_field_count', 'covered_counties',
+            'mandatory_field_count', 'excluded_county_groups',
+            'source_feature_count', 'ungrouped_record_count',
+        )},
+        **{key: _public_number for key in ('field_population_percent', 'mandatory_population_percent')},
+    })
     standard = data.get('standard')
-    public['standard'] = _project(standard, {'name': _metadata_text, 'version': _metadata_text, 'published_at': _public_date})
+    public['standard'] = _project(
+        standard,
+        {'key': _metadata_text, 'name': _metadata_text, 'short_name': _metadata_text,
+         'version': _metadata_text, 'published': _public_date, 'published_at': _public_date},
+    )
     link = safe_public_url(standard.get('source_url')) if isinstance(standard, dict) else None
     if link:
         public['standard']['source_url'] = link
@@ -140,10 +170,29 @@ def _sanitize_mngac(data: dict | None) -> dict | None:
     for county, record in (counties if isinstance(counties, dict) else {}).items():
         if _metadata_text(county) and isinstance(record, dict):
             public['counties'][county] = {**_project(record, county_schema), 'fields': fields(record.get('fields'))}
+    metadata = data.get('county_metadata')
+    if isinstance(metadata, dict):
+        public['county_metadata'] = {
+            county: _project(record, metadata_schema)
+            for county, record in metadata.items()
+            if _metadata_text(county) and isinstance(record, dict)
+        }
+    metadata_summary = data.get('metadata_summary')
+    if isinstance(metadata_summary, dict):
+        public['metadata_summary'] = _project(
+            metadata_summary,
+            {key: _public_count for key in (
+                'metadata_counties', 'ng911_participants', 'gac_open_counties',
+                'represented_without_gac_open', 'gac_open_without_representation',
+            )},
+        )
     missing = data.get('source_schema_missing_fields')
     if isinstance(missing, list):
         public['source_schema_missing_fields'] = [name for name in missing if _metadata_text(name, 128)]
     return public if public.get("fields") and public.get("counties") else None
+
+
+_sanitize_gac = _sanitize_mngac
 
 
 def sanitize_public_render_state(state: dict) -> dict:
@@ -152,7 +201,12 @@ def sanitize_public_render_state(state: dict) -> dict:
         'schema_version': _public_count, 'generated_at': _public_date,
         'public_published_at': _public_date, 'overall': _public_status}.items()}
     public.update(counts=_project(state.get('counts'), {key: _public_count for key in ('ok', 'warn', 'error')}),
-                  workers={}, sources={})
+                  workers={}, sources={}, retired_sources={})
+    for source_id, record in _records(state.get('retired_sources')).items():
+        if _metadata_text(source_id) and isinstance(record, dict):
+            public['retired_sources'][source_id] = _project(
+                record, {'worker': _metadata_text, 'retired_at': _public_date}
+            )
 
     for worker_name, worker in _records(state.get('workers')).items():
         if _metadata_text(worker_name) and isinstance(worker, dict):
@@ -175,6 +229,9 @@ def sanitize_public_render_state(state: dict) -> dict:
         if source_id == "mn-parcel-county-catalog":
             summary["county_records"] = _sanitize_catalog_records(source.get("county_records"))
 
+        gac = _sanitize_gac(source.get("gac_completeness"))
+        if gac:
+            summary["gac_completeness"] = gac
         mngac = _sanitize_mngac(source.get("mngac_completeness"))
         if mngac:
             summary["mngac_completeness"] = mngac
@@ -541,10 +598,18 @@ def serve_public(host: str = "0.0.0.0", port: int = 8080) -> None:
             self.send_header("X-Frame-Options", "DENY")
             self.send_header("Referrer-Policy", "no-referrer")
             self.send_header("X-Robots-Tag", "noindex, nofollow")
+            analytics_sources = posthog_csp_sources()
+            script_src = "script-src 'self' 'unsafe-inline'"
+            connect_src = "connect-src 'self'"
+            if analytics_sources:
+                script_origin, api_origin = analytics_sources
+                script_src += f" {script_origin}"
+                connect_src += f" {api_origin}"
             self.send_header(
                 "Content-Security-Policy",
-                "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; "
-                "img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'",
+                "default-src 'self'; style-src 'self' 'unsafe-inline'; "
+                + script_src + "; " + connect_src
+                + "; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'",
             )
             self.end_headers()
             self.wfile.write(raw)
@@ -585,7 +650,13 @@ def serve_public(host: str = "0.0.0.0", port: int = 8080) -> None:
                 slug = urllib.parse.parse_qs(parsed.query).get("slug", [""])[0]
                 return self._send(200, render_county(config, slug))
             if parsed.path == "/mngac":
-                return self._send(200, render_mngac(config))
+                try:
+                    standard_key = normalize_standard_key(
+                        urllib.parse.parse_qs(parsed.query).get("standard", ["parcel"])[0]
+                    )
+                except ValueError:
+                    return self._send(400, "Unsupported GAC standard", "text/plain; charset=utf-8")
+                return self._send(200, render_mngac(config, standard_key))
             if parsed.path == "/source":
                 source_id = urllib.parse.parse_qs(parsed.query).get("id", [""])[0]
                 return self._send(200, render_public_source(config, source_id))
@@ -626,12 +697,25 @@ def serve_public(host: str = "0.0.0.0", port: int = 8080) -> None:
                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     f"{slug}-watchtower.xlsx",
                 )
-            if parsed.path == "/mngac.json":
-                data = _mngac_data(_dashboard_state(config))
-                return self._send(200 if data else 404, json.dumps(data or {"error": "MNGAC completeness data unavailable"}, indent=2), "application/json; charset=utf-8")
-            if parsed.path == "/mngac.csv":
-                data = _mngac_data(_dashboard_state(config))
-                return self._send(200 if data else 404, _mngac_csv(data) if data else "MNGAC completeness data unavailable", "text/csv; charset=utf-8")
+            if parsed.path in ("/mngac.json", "/mngac.csv"):
+                try:
+                    standard_key = normalize_standard_key(
+                        urllib.parse.parse_qs(parsed.query).get("standard", ["parcel"])[0]
+                    )
+                except ValueError:
+                    return self._send(400, "Unsupported GAC standard", "text/plain; charset=utf-8")
+                data = _gac_data(_dashboard_state(config), standard_key)
+                if parsed.path == "/mngac.json":
+                    return self._send(
+                        200 if data else 404,
+                        json.dumps(data or {"error": "GAC completeness data unavailable"}, indent=2),
+                        "application/json; charset=utf-8",
+                    )
+                return self._send(
+                    200 if data else 404,
+                    _mngac_csv(data) if data else "GAC completeness data unavailable",
+                    "text/csv; charset=utf-8",
+                )
             return self._send(404, "Not found", "text/plain; charset=utf-8")
 
         def do_POST(self):
