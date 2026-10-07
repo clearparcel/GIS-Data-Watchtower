@@ -1,6 +1,6 @@
 # Browser feedback changes — October 7, 2026
 
-These changes were published to the existing isolated hosted preview on October 7 with explicit user approval. They are not a production release.
+These changes were first published to the existing isolated hosted preview on October 7 with explicit user approval. After preview review, the user separately approved [production deployment](public-ui-release-2026-10-07.md); production now serves the same product commit with a Production identity label.
 
 - The overview uses the latest valid source `checked_at`, rather than aggregate generation time, for its latest provider check. It explains publication, provider checks, and provider dataset updates separately. Source overdue counts use the configured reporting window; missing check times remain unknown. Worker reports and successful checks are labeled separately, without treating a report as a success.
 - Source entries and unique county coverage are explained together. One statewide source can cover multiple counties; county-direct and statewide coverage overlap. Healthy counts describe the last stored checks, rather than claiming current provider health.

@@ -1,6 +1,6 @@
 # GIS Data Watchtower
 
-Browser feedback changes are **published to the isolated preview**, with production unchanged: mandatory-field map classes below 50%, 50–60%, 60–70%, above 70%; clarified publication/check freshness and research progress; linked branding and readable evidence. See [the feedback record](docs/browser-feedback-2026-10-07.md). Preview revision `00010-tmt` serves product commit `feb285b`; the production release described below retains its deployed behavior until separately approved.
+Browser feedback changes and application identity are **deployed to production**: mandatory-field map classes below 50%, 50–60%, 60–70%, above 70%; clarified publication/check freshness and research progress; linked branding and readable evidence. Production public revision `00009-tbt` serves product commit `cf06a07`, displaying **v0.1.0.dev0 · build cf06a07 · Production**. Preview `00011-hkl` retains the Preview label. See [production release verification](docs/public-ui-release-2026-10-07.md).
 
 [![CI](https://github.com/clearparcel/GIS-Data-Watchtower/actions/workflows/watchtower-ci.yml/badge.svg)](https://github.com/clearparcel/GIS-Data-Watchtower/actions/workflows/watchtower-ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
