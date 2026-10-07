@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import datetime as dt
 import json
-import os
 import random
+import tempfile
 import time
 from copy import deepcopy
 from pathlib import Path
 
 from .storage import StorageConflictError
+from .file_lock import atomic_write
 
 _ALLOWED_STATUS = {"ok", "warn", "error"}
 
@@ -30,9 +31,27 @@ def merge_states(base: dict | None, partial: dict, worker: str) -> dict:
     base = deepcopy(base or {})
     merged_sources = deepcopy(base.get("sources") or {})
     partial_sources = deepcopy(partial.get("sources") or {})
-    generated = partial.get("generated_at") or dt.datetime.now(dt.timezone.utc).isoformat()
+    generated = partial.get("generated_at")
+    incoming_time = _parse_time(generated)
+    if incoming_time is None:
+        raise ValueError("worker report requires a valid generated_at")
+    workers = deepcopy(base.get("workers") or {})
+    previous_worker_time = _parse_time((workers.get(worker) or {}).get("last_report_at")
+                                       or (workers.get(worker) or {}).get("checked_at"))
+    if previous_worker_time and incoming_time <= previous_worker_time:
+        return base
+    if (partial.get("scope") or {}).get("type") == "fleet":
+        # A complete report is authoritative only for this worker's inventory.
+        # Legacy and filtered reports remain additive, including shared IDs.
+        for source_id, record in list(merged_sources.items()):
+            seen = _parse_time(record.get("last_report_at") or record.get("checked_at"))
+            if record.get("worker") == worker and source_id not in partial_sources and (seen is None or seen <= incoming_time):
+                del merged_sources[source_id]
     for source_id, record in partial_sources.items():
         previous = merged_sources.get(source_id) or {}
+        seen = _parse_time(previous.get("last_report_at") or previous.get("checked_at"))
+        if seen and seen >= incoming_time:
+            continue
         record["status"] = _normalized_status(record.get("status"))
         record["worker"] = worker
         record["last_report_at"] = generated
@@ -46,7 +65,6 @@ def merge_states(base: dict | None, partial: dict, worker: str) -> dict:
         status: sum(1 for row in merged_sources.values() if row.get("status") == status)
         for status in ("ok", "warn", "error")
     }
-    workers = deepcopy(base.get("workers") or {})
     # A successful report publication is the worker heartbeat, even when sources fail.
     workers[worker] = {
         "checked_at": generated,
@@ -57,9 +75,11 @@ def merge_states(base: dict | None, partial: dict, worker: str) -> dict:
         "counts": partial.get("counts") or {},
         "telemetry": partial.get("telemetry") or {},
     }
+    previous_generated = _parse_time(base.get("generated_at"))
+    fleet_generated = base["generated_at"] if previous_generated and previous_generated > incoming_time else generated
     return {
         "schema_version": max(int(base.get("schema_version") or 2), int(partial.get("schema_version") or 2), 3),
-        "generated_at": generated,
+        "generated_at": fleet_generated,
         "overall": "error" if counts["error"] else "warn" if counts["warn"] else "ok",
         "counts": counts,
         "sources": merged_sources,
@@ -99,9 +119,9 @@ def with_freshness(state: dict, *, worker_stale_minutes: int = 1560, source_stal
 def publish_partial(storage, name: str, partial: dict, worker: str, workdir: Path, *, retries: int = 8) -> dict:
     """Publish with compare-and-swap retry so competing workers cannot overwrite each other."""
     workdir.mkdir(parents=True, exist_ok=True)
-    base_path = workdir / f".{worker}-aggregate-base.json"
-    output_path = workdir / f".{worker}-aggregate-next.json"
-    try:
+    with tempfile.TemporaryDirectory(prefix="watchtower-aggregate-", dir=workdir) as scratch:
+        base_path = Path(scratch) / "base.json"
+        output_path = Path(scratch) / "next.json"
         for attempt in range(retries):
             exists, version = storage.download_versioned(name, base_path)
             base = load_json(base_path) if exists else {}
@@ -115,12 +135,6 @@ def publish_partial(storage, name: str, partial: dict, worker: str, workdir: Pat
                     raise
                 time.sleep(min(0.5, 0.02 * (2 ** attempt)) + random.random() * 0.02)
         raise StorageConflictError(f"unable to publish aggregate after {retries} attempts")
-    finally:
-        for scratch in (base_path, output_path):
-            try:
-                scratch.unlink()
-            except FileNotFoundError:
-                pass
 
 
 def load_json(path: Path) -> dict:
@@ -136,7 +150,4 @@ def load_json(path: Path) -> dict:
 
 
 def save_json(path: Path, document: dict) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(path.suffix + f".{os.getpid()}.tmp")
-    tmp.write_text(json.dumps(document, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    tmp.replace(path)
+    atomic_write(path, (json.dumps(document, indent=2, ensure_ascii=False) + "\n").encode("utf-8"))

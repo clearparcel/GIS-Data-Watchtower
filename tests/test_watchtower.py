@@ -873,7 +873,10 @@ class DataWatchTests(unittest.TestCase):
             with patch.object(datawatch, '_check_sources_unlocked', side_effect=RuntimeError('boom')):
                 with self.assertRaisesRegex(RuntimeError, 'boom'):
                     datawatch.check_sources(config, save=False)
-            self.assertFalse(state.with_suffix('.json.lock').exists())
+            # The persistent sidecar must keep its inode; successful reacquisition
+            # proves the failed check released its process-owned lock.
+            lock = datawatch._acquire_run_lock(state)
+            datawatch._release_run_lock(lock)
 
     def test_watchtower_runtime_paths_can_be_overridden_for_cloud_runtime(self):
         import tempfile
@@ -1232,8 +1235,8 @@ class DataWatchTests(unittest.TestCase):
 
     def test_hybrid_aggregation_preserves_other_workers(self):
         from clearparcel.datawatch.aggregate import merge_states
-        base={"schema_version":2,"generated_at":"old","sources":{"local":{"id":"local","status":"ok","feature_count":4,"worker":"local"}},"workers":{"local":{"checked_at":"old","source_count":1}}}
-        partial={"schema_version":2,"generated_at":"new","overall":"ok","counts":{"ok":1,"warn":0,"error":0},"telemetry":{"wall_ms":10},"sources":{"cloud":{"id":"cloud","status":"ok","feature_count":8}}}
+        base={"schema_version":2,"generated_at":"2026-10-06T10:00:00+00:00","sources":{"local":{"id":"local","status":"ok","feature_count":4,"worker":"local"}},"workers":{"local":{"checked_at":"2026-10-06T10:00:00+00:00","source_count":1}}}
+        partial={"schema_version":2,"generated_at":"2026-10-06T11:00:00+00:00","overall":"ok","counts":{"ok":1,"warn":0,"error":0},"telemetry":{"wall_ms":10},"sources":{"cloud":{"id":"cloud","status":"ok","feature_count":8}}}
         merged=merge_states(base,partial,"cloud")
         self.assertEqual(set(merged["sources"]),{"local","cloud"})
         self.assertEqual(merged["sources"]["local"]["worker"],"local")
@@ -1244,7 +1247,7 @@ class DataWatchTests(unittest.TestCase):
     def test_hybrid_aggregation_replaces_only_worker_observations(self):
         from clearparcel.datawatch.aggregate import merge_states
         base={"sources":{"a":{"id":"a","status":"error","worker":"cloud"},"b":{"id":"b","status":"ok","worker":"local"}}}
-        partial={"generated_at":"new","overall":"ok","counts":{"ok":1},"sources":{"a":{"id":"a","status":"ok"}}}
+        partial={"generated_at":"2026-10-06T11:00:00+00:00","overall":"ok","counts":{"ok":1},"sources":{"a":{"id":"a","status":"ok"}}}
         merged=merge_states(base,partial,"cloud")
         self.assertEqual(merged["sources"]["a"]["status"],"ok")
         self.assertEqual(merged["sources"]["b"]["status"],"ok")

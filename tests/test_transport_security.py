@@ -396,7 +396,9 @@ class CurlReviewRegressionTests(unittest.TestCase):
             return self._run_result(200, 0, json.dumps(layer).encode())(command, **kwargs)
         config = {'state_file': 'unused-state.json', 'history_file': 'unused-history.jsonl', 'retries': 3,
                   'sources': [{'id': 'rate', 'name': 'Rate', 'kind': 'arcgis_layer', 'url': 'https://provider.example/0', 'prefer_curl': True, 'parcel_quality': True}]}
-        with patch.object(watch, 'load_state', return_value={'sources': {}}), patch.object(watch.shutil, 'which', return_value='curl'), patch.object(watch.subprocess, 'run', side_effect=run) as requests, patch.object(watch.time, 'sleep'), patch.object(watch, '_arcgis_duplicate_id_summary') as duplicates:
+        import tempfile
+        with tempfile.TemporaryDirectory() as td, patch.object(watch, 'load_state', return_value={'sources': {}}), patch.object(watch.shutil, 'which', return_value='curl'), patch.object(watch.subprocess, 'run', side_effect=run) as requests, patch.object(watch.time, 'sleep'), patch.object(watch, '_arcgis_duplicate_id_summary') as duplicates:
+            config['state_file'] = str(Path(td) / 'state.json')
             result = watch.check_sources(config, save=False)
         self.assertEqual(requests.call_count, 2)
         self.assertEqual(result['sources']['rate']['attempts'], 1)
