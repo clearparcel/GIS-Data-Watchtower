@@ -1,8 +1,8 @@
 # Google Cloud deployment
 
-The approved October 7 browser-feedback preview serves `feb285b` on isolated revision `00010-tmt`. Production remains on the application release below. See [preview verification](browser-feedback-2026-10-07.md#hosted-preview-release).
+Current application release: merged commit `53748af5e3ee8a1a205595b070142b537c1b0280`; isolated preview `00013-4lh`, production public `00010-75k`, and private dashboard `00018-vtw` are serving 100% traffic. Staging and publisher jobs use universal digest `sha256:20bdbbb967012dfee1b7de3b57ddd17ed3dbd5c197762e8d9c9d6beb3bdfb10f`; the private derivative uses `sha256:15459106816fc7ea71467fa97b46d38dcb25c45fbc04f695f3041a380b5fdcc3`. See [the Address/Road release record](release-gac-address-road-2026-10-07.md).
 
-Latest application release: merged commit `afa908d`, preview `00009-nws`, production public `00008-lzd`, private `00013-fnn`; publisher and staging job images updated with existing runtime/security settings. The separately approved sanitized publisher validation succeeded; no GIS-provider job was executed. See [the October 7 release record](release-2026-10-07.md). Older deployment evidence below remains explicitly dated.
+The cloud staging registry is Secret Manager version 9 with the existing 35 source IDs. Address/Road GAC checks are active in staging and public output, but authoritative GIS-provider scheduling remains local: Cloud Scheduler still contains only the 10-minute sanitized publisher. PostHog remains dormant pending Issue #50.
 
 GIS Data Watchtower can run as a scheduled **Cloud Run Job** while retaining the same CLI and monitoring engine used locally.
 

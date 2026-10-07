@@ -1,6 +1,6 @@
 # GIS Data Watchtower
 
-Browser feedback changes and application identity are **deployed to production**: mandatory-field map classes below 50%, 50–60%, 60–70%, above 70%; clarified publication/check freshness and research progress; linked branding and readable evidence. Production public revision `00009-tbt` serves product commit `cf06a07`, displaying **v0.1.0.dev0 · build cf06a07 · Production**. Preview `00011-hkl` retains the Preview label. See [production release verification](docs/public-ui-release-2026-10-07.md).
+Address/Road GAC monitoring, normalized exports, aggregation correctness and release hardening are **deployed** from merged commit `53748af`. Production public revision `00010-75k` displays **v0.1.0.dev0 · build 53748af · Production**; isolated preview `00013-4lh` displays Preview, and private dashboard `00018-vtw` preserves its audited IAP-protected wrapper. PostHog hooks are deployed dormant pending a dedicated project ([Issue #50](https://github.com/clearparcel/GIS-Data-Watchtower/issues/50)). See [the release record](docs/release-gac-address-road-2026-10-07.md).
 
 [![CI](https://github.com/clearparcel/GIS-Data-Watchtower/actions/workflows/watchtower-ci.yml/badge.svg)](https://github.com/clearparcel/GIS-Data-Watchtower/actions/workflows/watchtower-ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
