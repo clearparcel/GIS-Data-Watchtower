@@ -4,13 +4,22 @@
 
 ## Approved Address/Road, observability and hardening work — 2026-10-07
 
-Implementation is in progress on feature branch
-`feat/gac-address-road-posthog-20261007`; these changes are **not yet merged or
-deployed**. The earlier public UI/source-control gap is resolved: PR
+The implementation is **merged to protected `main` but not deployed to
+production**. PR [#48](https://github.com/clearparcel/GIS-Data-Watchtower/pull/48)
+merged at `53748af5e3ee8a1a205595b070142b537c1b0280`. Its merge-commit CI run
+[#310](https://github.com/clearparcel/GIS-Data-Watchtower/actions/runs/37657720916)
+passed all seven jobs: the six Windows/Ubuntu Python 3.12-3.14 lanes plus the
+security job. The Linux 3.14 lane passed container smoke testing and the
+High/Critical Trivy gate after runtime `pip`/build tooling was removed; the
+dependency audit and CodeQL also passed. CI uploaded
+`watchtower-supply-chain-53748af5e3ee8a1a205595b070142b537c1b0280`
+with CycloneDX SBOM, build provenance and image-ID evidence.
+
+The earlier public UI/source-control gap is also resolved: PR
 [#47](https://github.com/clearparcel/GIS-Data-Watchtower/pull/47) was marked
 ready and merged through protected `main` at
 `943bce019af0979d1cb2d62c01507c2a84b4673f`. Production's already-deployed
-product commit is now reachable from protected main.
+product commit is therefore reachable from protected main.
 
 The implementation adds a shared GAC standards engine while preserving legacy
 parcel configuration. Packaged official-schema inventories cover **53 Address
