@@ -7,7 +7,8 @@ import tempfile
 from pathlib import Path
 
 from clearparcel.datawatch.public_dashboard import sanitize_public_render_state, sanitize_source_metadata
-from clearparcel.datawatch.storage import GCSStorage, StorageBackend
+from clearparcel.datawatch.storage import GCSStorage, StorageBackend, StorageConflictError
+from clearparcel.datawatch.aggregate import _parse_time
 
 
 _FORBIDDEN_PUBLIC_KEYS = {
@@ -55,6 +56,26 @@ def validate_public_state(state: dict) -> None:
                 raise RuntimeError('public snapshot contains invalid public_metadata')
 
 
+def _snapshot_is_superseded(candidate: dict, current: dict) -> bool:
+    """Refuse rollback of known fleet, worker, or retained source observations."""
+    def older(new, old):
+        old_time, new_time = _parse_time(old), _parse_time(new)
+        return old_time is not None and (new_time is None or new_time < old_time)
+    if older(candidate.get("generated_at"), current.get("generated_at")):
+        return True
+    for name, worker in (current.get("workers") or {}).items():
+        incoming = (candidate.get("workers") or {}).get(name) or {}
+        if older(incoming.get("last_report_at") or incoming.get("checked_at"),
+                 worker.get("last_report_at") or worker.get("checked_at")):
+            return True
+    for name, source in (current.get("sources") or {}).items():
+        incoming = (candidate.get("sources") or {}).get(name)
+        if incoming is not None and older(incoming.get("last_report_at") or incoming.get("checked_at"),
+                                          source.get("last_report_at") or source.get("checked_at")):
+            return True
+    return False
+
+
 def publish_public_snapshot(
     source: StorageBackend,
     destination: StorageBackend,
@@ -76,16 +97,32 @@ def publish_public_snapshot(
 
         raw = json.loads(raw_path.read_text(encoding="utf-8"))
         public = sanitize_public_render_state(raw)
-        public["public_published_at"] = dt.datetime.now(dt.timezone.utc).isoformat()
         validate_public_state(public)
-
-        temp = public_path.with_suffix(".tmp")
-        temp.write_text(json.dumps(public, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-        temp.replace(public_path)
-        destination.upload(destination_object, public_path)
+        current_path = scratch_root / "destination.json"
+        published = False
+        for attempt in range(8):
+            try:
+                exists, version = destination.download_versioned(destination_object, current_path)
+                current = json.loads(current_path.read_text(encoding="utf-8")) if exists else {}
+                if _snapshot_is_superseded(public, current):
+                    public = current
+                    break
+                public["public_published_at"] = dt.datetime.now(dt.timezone.utc).isoformat()
+                # Keep the publication clock monotonic when hosts have clock skew.
+                previous_time = _parse_time(current.get("public_published_at"))
+                if previous_time and previous_time > _parse_time(public["public_published_at"]):
+                    public["public_published_at"] = current["public_published_at"]
+                public_path.write_text(json.dumps(public, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+                destination.upload_if_version(destination_object, public_path, version)
+                published = True
+                break
+            except StorageConflictError:
+                if attempt == 7:
+                    raise
 
         return {
-            "published": True,
+            "published": published,
+            "reason": "published" if published else "superseded",
             "public_published_at": public.get("public_published_at"),
             "generated_at": public.get("generated_at"),
             "overall": public.get("overall"),

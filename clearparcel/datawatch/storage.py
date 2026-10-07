@@ -3,9 +3,9 @@ from __future__ import annotations
 import abc
 import hashlib
 import os
-import random
-import time
 from pathlib import Path
+
+from .file_lock import FileLock, atomic_write
 
 
 class StorageConflictError(RuntimeError):
@@ -27,7 +27,7 @@ class StorageBackend(abc.ABC):
         return exists, token
 
     def upload_if_version(self, name: str, source: Path, version: str | int | None) -> None:
-        self.upload(name, source)
+        raise NotImplementedError("storage backend must implement atomic version-conditional uploads")
 
 
 class LocalStorage(StorageBackend):
@@ -63,32 +63,16 @@ class LocalStorage(StorageBackend):
 
     def upload(self, name: str, source: Path) -> None:
         destination = self._path(name)
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        tmp = destination.with_suffix(destination.suffix + ".tmp")
-        tmp.write_bytes(source.read_bytes())
-        tmp.replace(destination)
+        with FileLock(destination.with_suffix(destination.suffix + ".lock"), timeout=10):
+            atomic_write(destination, source.read_bytes())
 
     def upload_if_version(self, name: str, source: Path, version: str | int | None) -> None:
         destination = self._path(name)
         destination.parent.mkdir(parents=True, exist_ok=True)
-        lock = destination.with_suffix(destination.suffix + ".lock")
-        deadline = time.monotonic() + 10
-        while True:
-            try:
-                lock.mkdir()
-                break
-            except FileExistsError:
-                if time.monotonic() >= deadline:
-                    raise TimeoutError(f"timed out waiting for aggregate lock: {lock}")
-                time.sleep(0.02 + random.random() * 0.03)
-        try:
+        with FileLock(destination.with_suffix(destination.suffix + ".lock"), timeout=10):
             if self._token(destination) != version:
                 raise StorageConflictError(f"object changed while updating: {name}")
-            tmp = destination.with_suffix(destination.suffix + f".{os.getpid()}.tmp")
-            tmp.write_bytes(source.read_bytes())
-            tmp.replace(destination)
-        finally:
-            lock.rmdir()
+            atomic_write(destination, source.read_bytes())
 
 
 class GCSStorage(StorageBackend):

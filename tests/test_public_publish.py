@@ -92,7 +92,7 @@ class PublicPublishTests(unittest.TestCase):
                 destination = LocalStorage(root / 'destination')
                 workdir = root / 'work'
                 target = ('clearparcel.datawatch.public_publish.validate_public_state' if failure == 'validation'
-                          else 'clearparcel.datawatch.storage.LocalStorage.upload')
+                          else 'clearparcel.datawatch.storage.LocalStorage.upload_if_version')
                 with patch(target, side_effect=RuntimeError('injected failure')):
                     with self.assertRaisesRegex(RuntimeError, 'injected failure'):
                         publish_public_snapshot(source, destination, workdir=workdir)

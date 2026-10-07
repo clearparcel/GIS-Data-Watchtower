@@ -1,12 +1,16 @@
 # Hybrid aggregation
 
-Hybrid deployments may run different source sets from cloud and local workers. Each worker produces a partial result. The aggregation layer merges only the observations present in that partial result and preserves observations produced by other workers.
+Hybrid deployments may run different source sets from cloud and local workers. Each worker produces a timestamped result. Reports require a valid `generated_at`; a report no newer than that worker's accepted heartbeat is ignored. Source observations newer than an incoming report remain intact, including shared IDs checked by another worker. Fleet time never moves backward.
+
+A complete `scope.type=fleet` report retires omitted sources owned by that worker, provided their observation is not newer than the report. Filtered `scope.type=source` and legacy reports without scope remain additive. A filtered check does not establish a complete inventory; retirement occurs on the next complete report. Other workers' observations remain intact.
 
 Each merged source records its worker provenance, last report time, and last successful observation time. Aggregate state also records per-worker check time, last-success time, counts, and telemetry.
 
 ## Safe concurrent publishing
 
-Shared aggregate writes use compare-and-swap semantics. Google Cloud Storage deployments use object-generation preconditions. Local/shared-filesystem deployments use a short-lived lock plus an atomic replacement and verify that the object has not changed since it was read. A conflicting writer reloads the latest aggregate, merges again, and retries. This prevents a cloud and local worker finishing at nearly the same time from silently deleting one another's observations.
+Shared aggregate writes use compare-and-swap semantics. Google Cloud Storage deployments use object-generation preconditions. Local filesystem deployments use an OS-owned lock plus a unique temporary file and atomic replacement, verifying that the object has not changed since it was read. The lock file persists; the lock itself is released on descriptor closure or process termination. A conflicting writer reloads the latest aggregate, merges again, and retries. Aggregate scratch is unique per invocation and removed on success or failure. Custom storage backends must implement atomic conditional uploads; the base backend fails closed.
+
+The local backend requires a filesystem that supports Windows byte locks or POSIX `flock` and atomic replacement. Verify these guarantees before using a network/shared filesystem. All writers of shared objects must use conditional uploads.
 
 Set `WATCHTOWER_AGGREGATE_OBJECT` (or deployment-specific `aggregate_object`) to opt into publishing. Storage remains cloud-neutral: local filesystem is the default backend and GCS is optional.
 
@@ -27,3 +31,5 @@ As of 2026-10-05, the hardened aggregation path had been validated with a real h
 On 2026-10-06, the same path was validated after adding nine approved county-direct parcel sources to private staging. The cloud profile completed **31/31 OK**, the local profile completed **4/4 OK**, and a generation-protected merge produced **35/35 OK** with worker provenance preserved. The resulting county coverage model is **70/87 actively checked** (59 MnGeo, 24 county-direct, 13 overlap). The remaining release gate is multi-day parallel observation; authoritative provider scheduling changes still require explicit approval.
 
 Public snapshot publication uses a unique temporary directory beneath the configured workdir for each invocation. Downloaded private aggregates and sanitized scratch files are removed on success and failure. The environment publisher constructs two GCS clients using the same process application default credentials; separate deployment service identities are configured outside this function.
+
+Publication also uses destination compare-and-swap, retrying up to eight conflicts. Older fleet, worker or retained-source timestamps cannot replace the current public snapshot. An unchanged observation may be republished to renew publication freshness without implying a provider check. Skips return `published=false` and `reason=superseded`. Publication timestamps never move backward. See [follow-up fixes and upgrade procedure](review-fixes-2026-10-06.md).

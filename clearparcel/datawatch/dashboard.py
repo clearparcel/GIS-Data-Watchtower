@@ -1841,8 +1841,21 @@ class _BoundedThreadingHTTPServer(ThreadingHTTPServer):
             self._connection_slots.release()
 
 
+def _dashboard_execution_profile(config: dict) -> str | None:
+    value = os.environ.get("WATCHTOWER_EXECUTION_PROFILE", config.get("dashboard_execution_profile"))
+    if value is not None:
+        value = str(value).strip().lower()
+        if value not in ("cloud", "local"):
+            raise ValueError("dashboard execution profile must be cloud or local")
+        return value
+    if any(source.get("execution_profiles") for source in config.get("sources", [])):
+        raise ValueError("profiled dashboard sources require WATCHTOWER_EXECUTION_PROFILE or dashboard_execution_profile")
+    return None
+
+
 def serve(config: dict, host: str = "127.0.0.1", port: int = 8765) -> None:
     auth_password, auth_username = _dashboard_auth(config, host)
+    execution_profile = _dashboard_execution_profile(config)
     csrf_token = secrets.token_urlsafe(32)
     config["_csrf_token"] = csrf_token
     refresh_lock = threading.Lock()
@@ -1859,7 +1872,7 @@ def serve(config: dict, host: str = "127.0.0.1", port: int = 8765) -> None:
             return
         try:
             refresh_state["last_started"] = now
-            check_sources(config, save=True)
+            check_sources(config, save=True, execution_profile=execution_profile)
         finally:
             refresh_lock.release()
 

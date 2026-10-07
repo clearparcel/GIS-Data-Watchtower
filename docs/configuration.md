@@ -16,7 +16,7 @@ Start from `config/example_sources.json`. The public example is deliberately pro
 | `alerts_file` | Structured alert output | optional |
 | `alerts_text_file` | Human-readable alert output | optional |
 | `history_max_mb` | Rotate history when this approximate size is reached | `10` |
-| `run_lock_stale_seconds` | Age at which an abandoned local run lock may be recovered | `7200` |
+| `run_lock_stale_seconds` | Legacy compatibility key; ignored by process-owned locks. Process termination releases the lock immediately; age never transfers ownership. | `7200` |
 | `sources` | Source definitions | `[]` |
 
 The supported history size key is `history_max_mb`. Older experimental keys such as `history_max_lines` and `history_max_bytes` are not supported.
@@ -30,6 +30,7 @@ The supported history size key is `history_max_mb`. Older experimental keys such
 | `worker_stale_minutes` | Worker freshness threshold | `1560` |
 | `source_stale_minutes` | Source freshness threshold | `1560` |
 | `dashboard_refresh_cooldown_seconds` | Minimum interval between built-in manual refresh actions | `300` |
+| `dashboard_execution_profile` | Built-in dashboard refresh profile (`cloud` or `local`); required when sources have profile assignments. `WATCHTOWER_EXECUTION_PROFILE` overrides this value. Invalid values fail startup. | unset |
 | `dashboard_request_timeout_seconds` | Built-in dashboard socket timeout | `10` |
 | `dashboard_max_connections` | Built-in dashboard concurrent handler bound | `32` |
 | `public_dashboard.internet_exposure` | Marks a deployment as Internet-exposed; authentication is then required | `false` |

@@ -2,6 +2,8 @@
 
 Operational record updated: **2026-10-06** after the user-approved merge and application release. Provider observations remain dated; this deployment did not re-poll GIS providers.
 
+Follow-up manual review corrections are on a feature branch and **not deployed**: report/publication ordering, worker inventory retirement, dashboard profile isolation, process-owned local locks, unique atomic scratch and WMS/WFS query composition. See [fixes and upgrade requirements](docs/review-fixes-2026-10-06.md). The deployed release below remains unchanged.
+
 ## Recorded deployment and coverage
 
 The latest recorded hybrid staging cycle passed **31 cloud + 4 local = 35 sources**, all healthy with worker provenance. Parcel monitoring covered **70/87 counties = 59 statewide + 24 county-direct - 13 overlaps**. These recorded observations do not establish present live health. The earlier 22-cloud/26-total cycle is historical.

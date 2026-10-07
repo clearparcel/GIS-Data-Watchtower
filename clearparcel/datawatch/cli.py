@@ -71,7 +71,9 @@ def main() -> int:
         if args.command == "public-publish":
             from clearparcel.datawatch.public_publish import publish_public_snapshot_from_env
             result = publish_public_snapshot_from_env()
-            print(json.dumps(result, indent=2) if args.json else f'Published {result["source_count"]} public Watchtower sources')
+            message = (f'Published {result["source_count"]} public Watchtower sources' if result["published"]
+                       else 'Skipped superseded public Watchtower snapshot')
+            print(json.dumps(result, indent=2) if args.json else message)
             return 0
         config = load_config(args.config)
         if args.command == "check":

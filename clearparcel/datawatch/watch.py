@@ -20,6 +20,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from clearparcel.datawatch.public_values import provider_edit_timestamp
 from clearparcel.datawatch.transport import RequestDeadline, PinnedURL, resolve_addresses, effective_proxy, guarded_opener
+from clearparcel.datawatch.file_lock import FileLock
 
 class ProviderRateLimitError(RuntimeError):
     """Provider explicitly asked the client to slow down."""
@@ -1129,12 +1130,22 @@ def _arcgis_image(source: dict, timeout: int) -> dict:
 def _local_name(tag: str) -> str:
     return tag.rsplit("}", 1)[-1]
 
+def _capabilities_url(url: str, parameters: dict) -> str:
+    parts = urllib.parse.urlsplit(url)
+    overridden = {key.lower() for key in parameters}
+    query = [(key, value) for key, value in urllib.parse.parse_qsl(parts.query, keep_blank_values=True)
+             if key.lower() not in overridden]
+    query.extend(parameters.items())
+    return urllib.parse.urlunsplit((parts.scheme, parts.netloc, parts.path,
+                                   urllib.parse.urlencode(query), ""))
+
+
 def _wms(source: dict, timeout: int) -> dict:
-    query = urllib.parse.urlencode({
+    query = {
         "service": "WMS",
         "request": "GetCapabilities",
-    })
-    body, meta = _request(source["url"].rstrip("?") + "?" + query, timeout, prefer_curl=bool(source.get("prefer_curl")))
+    }
+    body, meta = _request(_capabilities_url(source["url"], query), timeout, prefer_curl=bool(source.get("prefer_curl")))
     root = ET.fromstring(body)
     names = sorted({
         (element.text or "").strip()
@@ -1155,13 +1166,13 @@ def _wms(source: dict, timeout: int) -> dict:
     }
 
 def _wfs(source: dict, timeout: int) -> dict:
-    query = urllib.parse.urlencode({
+    query = {
         "SERVICE": "WFS",
         "VERSION": source.get("version", "1.1.0"),
         "REQUEST": "GetCapabilities",
-    })
+    }
     body, meta = _request(
-        source["url"].rstrip("?") + "?" + query,
+        _capabilities_url(source["url"], query),
         timeout,
         prefer_curl=bool(source.get("prefer_curl")),
     )
@@ -1489,34 +1500,19 @@ class WatchtowerRunLockedError(RuntimeError):
     pass
 
 
-def _acquire_run_lock(state_path: Path, stale_seconds: int = 7200) -> Path:
+def _acquire_run_lock(state_path: Path, stale_seconds: int = 7200) -> FileLock:
+    # Retain the configuration argument for compatibility; age never transfers
+    # ownership. The OS releases the lock when the owning process exits.
     lock = state_path.with_suffix(state_path.suffix + ".lock")
-    lock.parent.mkdir(parents=True, exist_ok=True)
-    if lock.exists():
-        try:
-            age = time.time() - lock.stat().st_mtime
-            if age > stale_seconds:
-                lock.unlink()
-        except OSError:
-            pass
     try:
-        fd = os.open(str(lock), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-    except FileExistsError as exc:
+        return FileLock(lock).acquire()
+    except TimeoutError as exc:
         raise WatchtowerRunLockedError(f"another Watchtower check is already running: {lock}") from exc
-    try:
-        os.write(fd, f"pid={os.getpid()}\nstarted={dt.datetime.now(dt.timezone.utc).isoformat()}\n".encode("utf-8"))
-    finally:
-        os.close(fd)
-    return lock
 
 
-def _release_run_lock(lock: Path | None) -> None:
-    if lock is None:
-        return
-    try:
-        lock.unlink()
-    except FileNotFoundError:
-        pass
+def _release_run_lock(lock: FileLock | None) -> None:
+    if lock is not None:
+        lock.close()
 
 
 def _check_sources_unlocked(
