@@ -214,6 +214,23 @@ class ReviewRegressions(unittest.TestCase):
             finally:
                 watch._release_run_lock(owner)
 
+    def test_no_save_check_does_not_acquire_state_lock(self):
+        config = {"state_file": "/datawatch/state.json", "sources": []}
+        with patch.object(watch, "_acquire_run_lock") as acquire, patch.object(
+            watch, "_check_sources_unlocked", return_value={"overall": "ok", "sources": {}}
+        ) as check:
+            result = watch.check_sources(
+                config, source_filter="mn-state-roads", save=False, execution_profile="cloud"
+            )
+        acquire.assert_not_called()
+        check.assert_called_once_with(
+            config,
+            source_filter="mn-state-roads",
+            save=False,
+            execution_profile="cloud",
+        )
+        self.assertEqual(result["overall"], "ok")
+
     def test_run_lock_recovers_immediately_after_process_termination(self):
         with tempfile.TemporaryDirectory() as td:
             state = Path(td) / "state.json"

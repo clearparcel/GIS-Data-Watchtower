@@ -2036,10 +2036,19 @@ def check_sources(
     save: bool = True,
     execution_profile: str | None = None,
 ) -> dict:
+    if not save:
+        try:
+            return _check_sources_unlocked(
+                config, source_filter=source_filter, save=False, execution_profile=execution_profile
+            )
+        finally:
+            if tracemalloc.is_tracing():
+                tracemalloc.stop()
+
     state_path = Path(config["state_file"])
     run_lock = _acquire_run_lock(state_path, int(config.get("run_lock_stale_seconds", 7200)))
     try:
-        return _check_sources_unlocked(config, source_filter=source_filter, save=save, execution_profile=execution_profile)
+        return _check_sources_unlocked(config, source_filter=source_filter, save=True, execution_profile=execution_profile)
     finally:
         if tracemalloc.is_tracing():
             tracemalloc.stop()
