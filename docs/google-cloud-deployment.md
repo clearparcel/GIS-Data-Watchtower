@@ -1,6 +1,6 @@
 # Google Cloud deployment
 
-Latest application release: merged commit `32852a8`, preview `00008-dv5`, production public `00007-glp`, private `00012-2sn`; publisher and staging job images updated with existing runtime settings. See [the October 6 release record](release-2026-10-06.md). Older deployment evidence below remains explicitly dated.
+Latest application release: merged commit `afa908d`, preview `00009-nws`, production public `00008-lzd`, private `00013-fnn`; publisher and staging job images updated with existing runtime/security settings. The separately approved sanitized publisher validation succeeded; no GIS-provider job was executed. See [the October 7 release record](release-2026-10-07.md). Older deployment evidence below remains explicitly dated.
 
 GIS Data Watchtower can run as a scheduled **Cloud Run Job** while retaining the same CLI and monitoring engine used locally.
 

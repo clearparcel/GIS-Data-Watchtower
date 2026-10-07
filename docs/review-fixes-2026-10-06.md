@@ -1,6 +1,6 @@
 # Manual review follow-up fixes
 
-The user approved merge and deployment. PR [44](https://github.com/clearparcel/GIS-Data-Watchtower/pull/44) merged at `284cf0c9695c3704a5e33c4ba88b4c16e2543771` on 2026-10-07 at 04:18:53 UTC (October 6 local time), with no protection bypass. These corrections have **not been deployed**: both local Google Cloud CLI and Cloud Run connector require reauthentication. The recorded application release remains `32852a8`; deployment facts live in [current status](current-status.md). This follow-up used manual code inspection and offline regressions, without Deep Scan or GIS-provider requests.
+The user approved merge and deployment. PR [44](https://github.com/clearparcel/GIS-Data-Watchtower/pull/44) merged at `284cf0c9695c3704a5e33c4ba88b4c16e2543771` on 2026-10-07 at 04:18:53 UTC (October 6 local time), with no protection bypass. These corrections are **deployed** from `afa908d` after the user restored the existing Google Cloud CLI account through remote browser consent. See the [October 7 release record](release-2026-10-07.md) and [current status](current-status.md). This follow-up used manual code inspection and offline regressions, without Deep Scan or GIS-provider requests.
 
 ## Corrected findings
 
@@ -21,7 +21,7 @@ Worker timestamps assume reasonably synchronized clocks. Future timestamps are n
 
 The original 230-test baseline passed. Eleven initial regressions reproduced the defects before implementation. Additional regressions cover invalid timestamps, duplicates and retirement, component-level publication ordering, profile validation, lock ownership, legacy-directory refusal, same-worker overlap and bounded publication retries. Independent bounded code review identified an additional mixed-writer gap: unconditional local uploads could interrupt a CAS write. A regression reproduced that gap and both local write APIs now share the same lock. Process-termination and event-controlled concurrency tests run against the actual local backend. Required validation includes the full ResourceWarning-strict unit suite, compilation and whitespace checks, plus hosted Windows/Linux CI before merge.
 
-No fresh Cloud Run or IAM validation is claimed: local gcloud authentication requires reauthentication. This task makes no credential, deployment, provider-policy or scheduling changes.
+The October 7 rollout verified service readiness, unchanged runtime/IAM/ingress/IAP and schedules, live public metrics and export parity. Authentication was restored to the existing account; no new credentials, accounts or IAM grants were created. One separately approved sanitized publisher run passed. No provider-policy or scheduling changes were made; existing source observations remain dated.
 
 Local validation on Python 3.14: **250 tests passed** with `-W error::ResourceWarning` (8.901 seconds before merge, 9.120 seconds on the actual merge); `python -m compileall -q clearparcel tests` and `git diff --check` passed. Hosted push and PR CI both passed all six Python 3.12/3.13/3.14 Windows/Linux jobs on reviewed head `2019c1d`, including the kernel-lock crash/concurrency cases and Linux container smoke test.
 
