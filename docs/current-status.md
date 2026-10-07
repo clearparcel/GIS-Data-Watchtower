@@ -1,14 +1,14 @@
 # Current project status
 
-Operational record updated: **2026-10-06** after the user-approved merge and application release. Provider observations remain dated; this deployment did not re-poll GIS providers.
+Operational record updated: **2026-10-07** after the user-approved follow-up release. Provider observations remain dated; this deployment did not re-poll GIS providers.
 
-Follow-up manual review corrections are **merged, not deployed**: PR [44](https://github.com/clearparcel/GIS-Data-Watchtower/pull/44), merge `284cf0c`, addresses report/publication ordering, worker inventory retirement, dashboard profile isolation, process-owned local locks, unique atomic scratch and WMS/WFS query composition. Deployment is awaiting Google Cloud reauthentication; the CLI and Cloud Run connector both reject refresh. See [fixes and upgrade requirements](review-fixes-2026-10-06.md). The deployed release below remains unchanged.
+Follow-up manual review corrections are **merged and deployed**: PR [44](https://github.com/clearparcel/GIS-Data-Watchtower/pull/44), merge `284cf0c`, addresses report/publication ordering, worker inventory retirement, dashboard profile isolation, process-owned local locks, unique atomic scratch and WMS/WFS query composition. Release source is `afa908d`, including the approved merge-status documentation. See [fixes and upgrade requirements](review-fixes-2026-10-06.md).
 
 ## Recorded deployment and coverage
 
 The latest recorded hybrid staging cycle passed **31 cloud + 4 local = 35 sources**, all healthy with worker provenance. Parcel monitoring covered **70/87 counties = 59 statewide + 24 county-direct - 13 overlaps**. These recorded observations do not establish present live health. The earlier 22-cloud/26-total cycle is historical.
 
-The reviewed application release is merged commit `32852a8`: isolated preview `00008-dv5`, production public `00007-glp`, and private dashboard `00012-2sn`, each Ready at 100% traffic. Publisher and staging worker job images use the same release; their runtime settings and schedules are unchanged. See [release verification](release-2026-10-06.md). The preview retains its older sanitized publication; production publication advances through the existing publisher. Publication age remains separate from actual source observation time and provider health.
+The reviewed application release is merged commit `afa908d`: isolated preview `00009-nws`, production public `00008-lzd`, and private dashboard `00013-fnn`, each Ready at 100% traffic. Publisher and staging worker job images use the same release; runtime settings, IAM, ingress, IAP and schedules are preserved. One separately approved publisher run passed on the new image; the provider job was not executed. See [release verification](release-2026-10-07.md). The preview retains its older sanitized publication; production publication advances through the existing publisher. Publication age remains separate from actual source observation time and provider health.
 
 The public service reads only the sanitized public aggregate. A separate publisher reads the private unified aggregate, applies typed allowlists and forbidden-field validation, and writes the public object. Its recorded 10-minute schedule performs no provider polling. Authoritative cloud GIS-provider scheduling remains disabled; the existing local production schedule remains authoritative pending the multi-day parallel validation gate and explicit approval.
 
