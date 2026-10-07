@@ -27,6 +27,8 @@ from clearparcel.datawatch.county_profile_exports import county_profiles_csv, pa
 from clearparcel.datawatch.public_values import spreadsheet_cell
 from clearparcel.datawatch.build_info import application_identity
 from clearparcel.datawatch.county_profiles import FreshnessPolicy, compose_county_profiles, county_profile_counts
+from clearparcel.datawatch.gac_standards import gac_defaults, load_gac_standard, normalize_standard_key, standard_keys
+from clearparcel.datawatch.analytics import posthog_html
 
 COUNTIES_FILE = Path(__file__).with_name("minnesota_counties.json")
 COUNTY_CONTACTS_FILE = Path(__file__).with_name("minnesota_county_contacts.json")
@@ -226,12 +228,18 @@ def _public_layout_v2(title: str, body: str, *, refresh_seconds: int = 30) -> st
     subtitle = {
         "overview": "Availability, freshness, and structure of Minnesota public GIS data.",
         "counties": "County profiles, parcel availability, monitoring coverage, and GIS contact references.",
-        "mngac": "Field population across the Minnesota GAC parcel-transfer standard and all 87 counties.",
+        "mngac": "Field population across Minnesota GAC parcel, address-point, and road-centerline standards.",
         "sources": "Public source health and high-level structural observations.",
     }.get(active, "Minnesota public GIS data, summarized for practical exploration.")
+    analytics_script = posthog_html(
+        page=page_name,
+        version=identity["version"],
+        build=build_label,
+        environment=identity["environment"],
+    )
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-{refresh_meta}<title>{_esc(title)}</title><style>{_PUBLIC_V2_CSS}</style></head><body>
+{refresh_meta}{analytics_script}<title>{_esc(title)}</title><style>{_PUBLIC_V2_CSS}</style></head><body>
 <header class="public-header">
   <div><div class="brand-eyebrow">CLEARPARCEL GIS DATA WATCHTOWER</div><h1>Minnesota Open Data Watchtower</h1></div>
   <div class="live-state"><span class="live-dot"></span><span>PUBLIC · LIVE</span></div>
@@ -458,8 +466,9 @@ code{{font-size:12px;overflow-wrap:anywhere}}
 
 
 def _load_mngac_schema() -> dict:
+    """Backward-compatible parcel standard loader."""
     try:
-        return json.loads(MNGAC_FIELDS_FILE.read_text(encoding="utf-8"))
+        return load_gac_standard("parcel")
     except (OSError, json.JSONDecodeError):
         return {"standard": {}, "fields": []}
 
@@ -471,18 +480,44 @@ def _load_county_boundaries() -> dict:
         return {"source": {}, "counties": []}
 
 
-def _mngac_source(state: dict) -> tuple[str | None, dict | None]:
+def _gac_source(state: dict, standard_key: str = "parcel") -> tuple[str | None, dict | None]:
+    standard_key = normalize_standard_key(standard_key)
     for source_id, source in (state.get("sources") or {}).items():
-        data = source.get("mngac_completeness")
-        if isinstance(data, dict) and data.get("fields") and data.get("counties"):
-            return source_id, source
+        data = source.get("gac_completeness")
+        if isinstance(data, dict):
+            key = str(data.get("standard_key") or (data.get("standard") or {}).get("key") or "").lower()
+            if key == standard_key and data.get("fields") and data.get("counties"):
+                return source_id, source
+        if standard_key == "parcel":
+            legacy = source.get("mngac_completeness")
+            if isinstance(legacy, dict) and legacy.get("fields") and legacy.get("counties"):
+                return source_id, source
     return None, None
 
 
+def _gac_data(state: dict, standard_key: str = "parcel") -> dict | None:
+    standard_key = normalize_standard_key(standard_key)
+    _, source = _gac_source(state, standard_key)
+    if not isinstance(source, dict):
+        return None
+    data = source.get("gac_completeness")
+    if isinstance(data, dict):
+        key = str(data.get("standard_key") or (data.get("standard") or {}).get("key") or "").lower()
+        if key == standard_key and data.get("fields"):
+            return data
+    if standard_key == "parcel":
+        legacy = source.get("mngac_completeness")
+        if isinstance(legacy, dict) and legacy.get("fields"):
+            return legacy
+    return None
+
+
+def _mngac_source(state: dict) -> tuple[str | None, dict | None]:
+    return _gac_source(state, "parcel")
+
+
 def _mngac_data(state: dict) -> dict | None:
-    _, source = _mngac_source(state)
-    data = (source or {}).get("mngac_completeness")
-    return data if isinstance(data, dict) and data.get("fields") else None
+    return _gac_data(state, "parcel")
 
 
 def _county_slug_map() -> dict[str, str]:
@@ -724,7 +759,237 @@ def _bar_chart(items: list[tuple[str, float]], *, title: str, suffix: str = "") 
     return f'<h3>{_esc(title)}</h3><div class="bars">{rows}</div>'
 
 
-def render_mngac(config: dict) -> str:
+
+def _gac_standard_selector(active: str) -> str:
+    labels = {"parcel": "Parcels", "address": "Address Points", "road": "Road Centerlines"}
+    links = []
+    for key in standard_keys():
+        cls = "primary" if key == active else ""
+        links.append(
+            f'<a class="{cls}" href="/mngac?standard={_esc(key)}">{_esc(labels[key])}</a>'
+        )
+    return (
+        '<div class="card"><div class="muted">MN GAC standard</div>'
+        '<div class="hero-actions" style="margin-top:8px">' + "".join(links) + '</div></div><br>'
+    )
+
+
+def _render_gac_standard(config: dict, standard_key: str) -> str:
+    standard_key = normalize_standard_key(standard_key)
+    state = _dashboard_state(config)
+    data = _gac_data(state, standard_key)
+    schema = load_gac_standard(standard_key)
+    defaults = gac_defaults(standard_key)
+    standard = schema.get("standard") or {}
+    all_counties = _load_counties()
+    total_counties = len(all_counties)
+    selector = _gac_standard_selector(standard_key)
+    publication = f'<p>Public publication: {_esc(profile_time(state.get("public_published_at")))}</p>'
+    if not data:
+        body = (
+            selector
+            + '<p><a href="/counties">← Minnesota counties</a></p>'
+            + f'<div class="card"><h2>{_esc(standard.get("short_name") or "MN GAC")} data is not available yet</h2>'
+            + f'<p>The configured {_esc(defaults["dataset_label"])} source has not published a stored '
+              'GAC completeness observation. No 0% values are inferred from absence.</p></div>'
+            + _mngac_map_svg().replace(
+                'class="mngac-county"',
+                f'class="mngac-county" style="fill:{NO_DATA_COLOR}"'
+            )
+            + percentage_legend() + publication
+        )
+        return _layout(
+            f'{standard.get("short_name") or "MN GAC"} Completeness — GIS Data Watchtower',
+            body, refresh_seconds=300, static=bool(config.get("_public_mode")),
+            csrf_token=str(config.get("_csrf_token") or "")
+        )
+
+    covered = int(data.get("covered_counties") or 0)
+    record_count = data.get("record_count")
+    field_count = int(data.get("field_count") or len(schema.get("fields") or []))
+    mandatory_count = int(data.get("mandatory_field_count") or 0)
+    text_population_mode = str(data.get("text_population_mode") or "nonblank")
+    overall_pct = data.get("field_population_percent")
+    mandatory_pct = data.get("mandatory_population_percent")
+    population_scope = str(
+        data.get("population_scope") or ("all" if isinstance(overall_pct, (int, float)) else "mandatory")
+    ).lower()
+    scanned_field_count = int(
+        data.get("scanned_field_count")
+        or (field_count if population_scope == "all" else mandatory_count)
+    )
+    scan_note = (
+        f"Population is scanned for all {field_count} standard fields."
+        if population_scope == "all"
+        else f"Provider-safe default: population is scanned for the {mandatory_count} Mandatory fields only; "
+             f"all {field_count} standard fields are still schema-checked."
+    )
+    _, source = _gac_source(state, standard_key)
+    observed_at = (source or {}).get("checked_at") or (source or {}).get("last_success_at")
+    metadata = data.get("county_metadata") or {}
+    ng911_count = sum(1 for x in metadata.values() if isinstance(x, dict) and x.get("ng911_upload") is True)
+    gac_open_count = sum(1 for x in metadata.values() if isinstance(x, dict) and x.get("gac_open") is True)
+    standard_url = _safe_url((data.get("standard") or {}).get("source_url") or standard.get("source_url"))
+    standard_link = (
+        f'<a href="{_esc(standard_url)}" target="_blank" rel="noopener">'
+        f'{_esc(standard.get("short_name") or standard.get("name") or "official standard")}</a>'
+        if standard_url else _esc(standard.get("short_name") or "official MN GAC standard")
+    )
+
+    options = []
+    if isinstance(overall_pct, (int, float)):
+        options.append(f'<option value="__overall__">All {field_count} fields — row population rate</option>')
+    options.append('<option value="__mandatory__" selected>Mandatory fields — row population rate</option>')
+    if population_scope == "all":
+        options.append('<option value="__fields_with_values__">Fields with any values — share of standard fields</option>')
+    last_section = None
+    summaries = data.get("fields") or {}
+    field_rows = []
+    for spec in schema.get("fields") or []:
+        section_name = str(spec.get("section_name") or "Other")
+        if section_name != last_section:
+            if last_section is not None:
+                options.append("</optgroup>")
+            options.append(f'<optgroup label="{_esc(section_name)}">')
+            last_section = section_name
+        field = str(spec.get("field") or "")
+        stats = summaries.get(field) or {}
+        scanned = stats.get("population_scanned") is not False and stats.get("record_count") is not None
+        if scanned:
+            options.append(
+                f'<option value="{_esc(field)}">{_esc(spec.get("section"))}.{_esc(spec.get("order"))} '
+                f'{_esc(spec.get("label"))} ({_esc(field)}) — {_esc(spec.get("inclusion"))}</option>'
+            )
+        populated = stats.get("populated")
+        total = stats.get("record_count")
+        pct = stats.get("percent")
+        median = stats.get("county_median_percent")
+        field_control = (
+            f'<button type="button" class="mngac-field-select" data-field="{_esc(field)}">'
+            f'<strong>{_esc(spec.get("label"))}</strong><br><code>{_esc(field)}</code></button>'
+            if scanned else
+            f'<strong>{_esc(spec.get("label"))}</strong><br><code>{_esc(field)}</code>'
+            '<br><span class="subtext">Schema checked · population not scanned in this routine observation</span>'
+        )
+        field_rows.append(
+            f'<tr data-name="{_esc((str(spec.get("label") or "")+" "+field).lower())}" '
+            f'data-inclusion="{_esc(spec.get("inclusion") or "")}">'
+            f'<td>{field_control}</td>'
+            f'<td>{_esc(section_name)}</td><td>{_esc(spec.get("inclusion"))}</td>'
+            f'<td>{_esc(f"{populated:,}" if isinstance(populated,int) else "—")} / '
+            f'{_esc(f"{total:,}" if isinstance(total,int) else "—")}</td>'
+            f'<td><strong>{_esc(f"{pct:.2f}%" if isinstance(pct,(int,float)) else "—")}</strong></td>'
+            f'<td>{_esc(f"{median:.2f}%" if isinstance(median,(int,float)) else "—")}</td></tr>'
+        )
+    if last_section is not None:
+        options.append("</optgroup>")
+
+    counties_payload = {}
+    slug_map = _county_slug_map()
+    for county in all_counties:
+        name = str(county.get("name") or "")
+        stats = (data.get("counties") or {}).get(name)
+        meta = metadata.get(name) if isinstance(metadata, dict) else None
+        entry = {"slug": slug_map.get(name), "metadata": meta if isinstance(meta, dict) else {}}
+        if isinstance(stats, dict):
+            entry.update({
+                "record_count": stats.get("record_count"),
+                "field_population_percent": stats.get("field_population_percent"),
+                "mandatory_population_percent": stats.get("mandatory_population_percent"),
+                "fields_with_values": stats.get("fields_with_values"),
+                "field_count": stats.get("field_count"),
+                "fields": stats.get("fields") or {},
+            })
+        else:
+            entry["available"] = False
+        counties_payload[name] = entry
+    payload = {
+        "standard_key": standard_key,
+        "record_label": defaults["record_label"],
+        "dataset_label": defaults["dataset_label"],
+        "field_count": field_count,
+        "scanned_field_count": scanned_field_count,
+        "population_scope": population_scope,
+        "counties": counties_payload,
+        "fields": summaries,
+    }
+    payload_json = json.dumps(payload, separators=(",", ":"), ensure_ascii=False).replace("</", "<\\/")
+    export_q = urllib.parse.urlencode({"standard": standard_key})
+    record_label = defaults["record_label"]
+    map_svg = _mngac_map_svg()
+    text_rule_note = (
+        "Routine text population is non-null based; empty strings may count as populated in this lightweight observation."
+        if text_population_mode == "non_null"
+        else "Text population excludes both NULL and empty-string values."
+    )
+    body = f"""
+{selector}
+<p><a href="/counties">← Minnesota counties</a> ·
+<a href="/mngac.csv?{export_q}" data-ph-event="export" data-ph-format="csv">Download field summary (CSV)</a> ·
+<a href="/mngac.json?{export_q}" data-ph-event="export" data-ph-format="json">Download GAC data (JSON)</a></p>
+<div class="grid primary-grid">
+  <div class="card"><div class="muted">Standard fields</div><div class="metric">{field_count}</div><span class="subtext">{_esc(standard.get("short_name") or standard.get("name"))} v{_esc(standard.get("version") or "—")}. {_esc(scan_note)}</span></div>
+  <div class="card"><div class="muted">Counties represented</div><div class="metric">{covered}/{total_counties}</div><span class="subtext">{_esc(defaults["dataset_label"])} public records in this snapshot.</span></div>
+  <div class="card"><div class="muted">NG911 participants</div><div class="metric">{ng911_count if metadata else "—"}/{total_counties}</div><span class="subtext">Participation reported by MnGeo metadata; separate from public-data opt-in.</span></div>
+  <div class="card"><div class="muted">GAC public opt-in</div><div class="metric">{gac_open_count if metadata else "—"}/{total_counties}</div><span class="subtext">Counties marked open in MnGeo metadata; separate from NG911 participation.</span></div>
+</div>
+<div class="activity-strip">
+  <div class="card"><div class="muted">Open {_esc(record_label)}</div><div class="metric">{_esc(f"{record_count:,}" if isinstance(record_count,int) else "—")}</div><span class="subtext">Records used for the current population statistics.</span></div>
+  <div class="card"><div class="muted">Mandatory-field fill rate</div><div class="metric">{_esc(f"{mandatory_pct:.2f}%" if isinstance(mandatory_pct,(int,float)) else "—")}</div><span class="subtext">{mandatory_count} Mandatory fields; population is descriptive, not a compliance grade.</span></div>
+</div>
+<div class="mngac-note"><strong>Interpretation:</strong> this measures whether standardized fields contain values; it is <strong>not a standards-compliance score</strong>. Conditional and Optional fields can legitimately be blank. {_esc(text_rule_note)} For public NG911-derived layers, NG911 participation and GAC public-data opt-in are separate facts. Source: {standard_link}. Observation: {_format_time_pair(observed_at)}. {_esc(defaults["grouping_note"])}</div>
+<div class="card">
+  <div class="section-head"><div><h2>Interactive Minnesota county map</h2><p>Select a field or summary statistic, then select a county.</p></div></div>
+  <div class="mngac-controls"><label>Map statistic<select id="mngac-metric">{"".join(options)}</select></label></div>
+  <div class="mngac-layout">
+    <div class="mngac-map-panel">{map_svg}{percentage_legend()}</div>
+    <div class="card mngac-detail" id="mngac-detail" aria-live="polite">
+      <div class="muted">Selected county</div><h3 id="mngac-county-name">Select a county</h3>
+      <div class="muted" id="mngac-metric-label">Mandatory fields — row population rate</div>
+      <div class="mngac-kpi" id="mngac-county-value">—</div>
+      <div id="mngac-county-detail" class="subtext">Click a county on the map.</div>
+      <p><a id="mngac-county-link" href="/counties" style="display:none">Open county dashboard →</a></p>
+    </div>
+  </div>
+</div>
+<div class="section-head"><div><h2>Statewide field completeness</h2><p>{_esc(standard.get("short_name") or standard.get("name"))} population across represented {_esc(record_label)}. Fields outside the current {_esc(population_scope)} scan remain visible for schema coverage but are not assigned a population percentage.</p></div></div>
+<div class="card">
+  <div class="filters">
+    <input id="mngac-q" placeholder="Filter standard fields…" aria-label="Filter MN GAC fields">
+    <select id="mngac-inclusion" aria-label="Filter inclusion category"><option value="">All inclusion categories</option><option>Mandatory</option><option>Conditional</option><option>If Available</option><option>Optional</option></select>
+  </div>
+  <div class="mngac-table-wrap"><table id="mngac-fields"><thead><tr><th>Field</th><th>Section</th><th>Inclusion</th><th>Populated records</th><th>Statewide population</th><th>Median county populated %</th></tr></thead><tbody>{"".join(field_rows)}</tbody></table></div>
+</div>
+<script type="application/json" id="mngac-data">{payload_json}</script>
+<script>
+(function(){{
+ const root=document,data=JSON.parse(root.getElementById('mngac-data').textContent),
+ metric=root.getElementById('mngac-metric'),paths=[...root.querySelectorAll('.mngac-county')],
+ q=root.getElementById('mngac-q'),inc=root.getElementById('mngac-inclusion');let selected=null;
+ function meta(k){{if(k==='__overall__')return {{label:'All '+data.field_count+' fields — row population rate'}};if(k==='__mandatory__')return {{label:'Mandatory fields — row population rate'}};if(k==='__fields_with_values__')return {{label:'Fields with any values — share of standard fields'}};return data.fields[k]||{{label:k}}}}
+ function value(n,k){{const c=data.counties[n];if(!c||c.available===false)return null;if(k==='__overall__')return c.field_population_percent;if(k==='__mandatory__')return c.mandatory_population_percent;if(k==='__fields_with_values__')return typeof c.fields_with_values==='number'&&c.field_count?Math.round(c.fields_with_values/c.field_count*10000)/100:null;const f=(c.fields||{{}})[k];return f&&typeof f.percent==='number'?f.percent:null}}
+ {percentage_color_js()}
+ function explain(n,k){{const c=data.counties[n]||{{}},m=c.metadata||{{}},v=value(n,k),parts=[];if(c.available===false){{if(m.ng911_upload===true&&m.gac_open===false)parts.push('NG911 participant; not opted into this public GAC layer.');else if(m.gac_open===true)parts.push('GAC public opt-in is recorded, but no public records were observed in this snapshot.');else parts.push('No public records were observed in this snapshot.')}}else parts.push((c.record_count==null?'Unknown':Number(c.record_count).toLocaleString())+' '+data.record_label+' represented.');if(m.submitted_at)parts.push('Latest reported submission: '+new Date(m.submitted_at).toLocaleDateString()+'.');return parts.join(' ')}}
+ function show(n){{selected=n;paths.forEach(p=>p.classList.toggle('selected',p.dataset.county===n));const k=metric.value,v=value(n,k),c=data.counties[n]||{{}},mm=meta(k);root.getElementById('mngac-county-name').textContent=n+' County';root.getElementById('mngac-metric-label').textContent=mm.label||k;root.getElementById('mngac-county-value').textContent=typeof v==='number'?v.toFixed(2)+'%':'No data';root.getElementById('mngac-county-detail').textContent=explain(n,k);const a=root.getElementById('mngac-county-link');if(c.slug){{a.href='/county?slug='+encodeURIComponent(c.slug);a.style.display='inline'}}else a.style.display='none'}}
+ function update(){{const k=metric.value,mm=meta(k);paths.forEach(p=>{{const v=value(p.dataset.county,k);p.style.fill=percentageColor(v);p.setAttribute('aria-label',p.dataset.county+' County, '+(mm.label||k)+', '+(typeof v==='number'?v.toFixed(2)+'%':'no data'))}});if(selected)show(selected)}}
+ paths.forEach(p=>{{p.addEventListener('click',()=>show(p.dataset.county));p.addEventListener('keydown',e=>{{if(e.key==='Enter'||e.key===' '){{e.preventDefault();show(p.dataset.county)}}}})}});
+ metric.addEventListener('change',update);root.querySelectorAll('.mngac-field-select').forEach(b=>b.addEventListener('click',()=>{{metric.value=b.dataset.field;update();root.getElementById('mngac-map').scrollIntoView({{behavior:'smooth',block:'center'}})}}));
+ function filter(){{const t=(q.value||'').toLowerCase(),c=inc.value;root.querySelectorAll('#mngac-fields tbody tr').forEach(r=>r.style.display=(!t||r.dataset.name.includes(t))&&(!c||r.dataset.inclusion===c)?'':'none')}}q.addEventListener('input',filter);inc.addEventListener('change',filter);update();
+}})();
+</script>
+{publication}
+"""
+    return _layout(
+        f'{standard.get("short_name") or "MN GAC"} Completeness — GIS Data Watchtower',
+        body, refresh_seconds=0, static=bool(config.get("_public_mode")),
+        csrf_token=str(config.get("_csrf_token") or "")
+    )
+
+
+def render_mngac(config: dict, standard_key: str = "parcel") -> str:
+    standard_key = normalize_standard_key(standard_key)
+    if standard_key != "parcel":
+        return _render_gac_standard(config, standard_key)
     state = _dashboard_state(config)
     data = _mngac_data(state)
     profiles = _county_profiles(config, state, load_parcel_access())
@@ -734,8 +999,9 @@ def render_mngac(config: dict) -> str:
     standard = schema.get("standard") or {}
     all_counties = _load_counties()
     total_counties = len(all_counties)
+    selector = _gac_standard_selector("parcel")
     if not data:
-        body = (
+        body = selector + (
             '<p><a href="/counties">← Minnesota counties</a></p>'
             '<div class="card"><h2>MN GAC completeness data is not available yet</h2>'
             '<p>The statewide parcel source has not published a stored MNGAC completeness observation. '
@@ -830,8 +1096,8 @@ def render_mngac(config: dict) -> str:
     }
     payload_json = json.dumps(payload, separators=(",", ":"), ensure_ascii=False).replace("</", "<\\/")
     map_svg = _mngac_map_svg()
-    body = f"""
-<p><a href="/counties">← Minnesota counties</a> · <a href="/mngac.csv">Download field summary (CSV)</a> · <a href="/mngac.json">Download MN GAC data (JSON)</a> · <a href="/snapshot.xlsx">Statewide Excel with MN GAC sheets</a></p>
+    body = selector + f"""
+<p><a href="/counties">← Minnesota counties</a> · <a href="/mngac.csv?standard=parcel" data-ph-event="export" data-ph-format="csv">Download field summary (CSV)</a> · <a href="/mngac.json?standard=parcel" data-ph-event="export" data-ph-format="json">Download MN GAC data (JSON)</a> · <a href="/snapshot.xlsx" data-ph-event="export" data-ph-format="xlsx">Statewide Excel with MN GAC sheets</a></p>
 <div class="grid primary-grid">
   <div class="card"><div class="muted">Standard fields</div><div class="metric">{field_count}</div><span class="subtext">{_esc(standard.get("name") or "MN GAC Parcel Data Standard")} v{_esc(standard.get("version") or "—")}.</span></div>
   <div class="card"><div class="muted">Counties represented</div><div class="metric">{covered}/{total_counties}</div><span class="subtext">Counties currently represented in MnGeo Plan Parcels Open.</span></div>
@@ -1048,6 +1314,56 @@ def _county_mngac_summary(state: dict, county: dict) -> dict:
     }
 
 
+
+def _render_county_gac_summaries(state: dict, county: dict) -> str:
+    name = str(county.get("name") or "")
+    cards = []
+    for standard_key in ("address", "road"):
+        schema = load_gac_standard(standard_key)
+        defaults = gac_defaults(standard_key)
+        data = _gac_data(state, standard_key)
+        label = schema.get("standard", {}).get("short_name") or standard_key.title()
+        if not data:
+            cards.append(
+                f'<div class="card"><h3>{_esc(label)}</h3>'
+                '<p class="muted">A stored statewide completeness observation is not available yet.</p>'
+                f'<p><a href="/mngac?standard={_esc(standard_key)}">Open statewide standard →</a></p></div>'
+            )
+            continue
+        stats = (data.get("counties") or {}).get(name)
+        meta = (data.get("county_metadata") or {}).get(name) or {}
+        if isinstance(stats, dict):
+            record_count = stats.get("record_count")
+            mandatory = stats.get("mandatory_population_percent")
+            availability = (
+                f'{record_count:,} {defaults["record_label"]}' if isinstance(record_count, int)
+                else f'Public {defaults["record_label"]} represented'
+            )
+            fill = f'{mandatory:.2f}%' if isinstance(mandatory, (int, float)) else "—"
+        elif meta.get("ng911_upload") is True and meta.get("gac_open") is False:
+            availability = "NG911 participant · not opted into public GAC data"
+            fill = "No public data"
+        elif meta.get("gac_open") is True:
+            availability = "GAC public opt-in recorded · no records observed"
+            fill = "No data"
+        else:
+            availability = "Not represented in the public statewide layer"
+            fill = "No data"
+        submitted = profile_time(meta.get("submitted_at")) if meta.get("submitted_at") else "Not available"
+        cards.append(
+            f'<div class="card"><h3>{_esc(label)}</h3>'
+            f'<p><strong>Public representation:</strong> {_esc(availability)}'
+            f'<br><strong>Mandatory-field fill:</strong> {_esc(fill)}'
+            f'<br><strong>Latest reported submission:</strong> {_esc(submitted)}</p>'
+            f'<p><a href="/mngac?standard={_esc(standard_key)}">Open statewide standard →</a></p></div>'
+        )
+    return (
+        '<div class="section-head"><div><h2>Address and road GAC status</h2>'
+        '<p>NG911 participation, public-data opt-in and field population are reported separately.</p>'
+        '</div></div><div class="grid">' + "".join(cards) + '</div>'
+    )
+
+
 def render_county(config: dict, slug: str) -> str:
     state = _dashboard_state(config)
     county = next((x for x in _load_counties() if x.get("slug") == slug), None)
@@ -1058,6 +1374,7 @@ def render_county(config: dict, slug: str) -> str:
     info = _county_status(config, county, state, profiles=profiles, research=research)
     complete_profile = render_county_profile_body(profiles[slug])
     mngac_html = _render_county_mngac(state, county)
+    gac_summary_html = _render_county_gac_summaries(state, county)
     parcel_access = info.get("parcel_access")
     direct_access_label = access_label(parcel_access)
     live_mngac = _mngac_data(state)
@@ -1155,7 +1472,7 @@ def render_county(config: dict, slug: str) -> str:
     verified_text = f' Verified {_esc(contact_record.get("verified"))}.' if contact_record.get("verified") else ""
     contacts_html = f'<div class="card"><h2>County GIS contacts</h2><p class="muted"><strong>Contact source:</strong> {contact_source}. {contact_source_note}{verified_text}</p><table class="contacts-table"><thead><tr><th>Name</th><th>Title</th><th>Department</th><th>Phone</th><th>Email</th></tr></thead><tbody>{contact_rows}</tbody></table></div>'
     export_links = f'<p><a href="/county-snapshot.csv?slug={urllib.parse.quote(slug)}">Download county snapshot (CSV)</a> · <a href="/county-snapshot.xlsx?slug={urllib.parse.quote(slug)}">Download county snapshot (Excel)</a> · <a href="/county-snapshot.json?slug={urllib.parse.quote(slug)}">Download county snapshot (JSON)</a></p>'
-    body = f'<p><a href="/counties">← Minnesota counties</a></p>{export_links}<div class="grid"><div class="card"><div class="muted">County</div><h2>{_esc(county["name"])} County</h2></div><div class="card"><div class="muted">Monitoring coverage</div><div class="metric {_esc(info["status"])}">{_esc(_friendly_status(info["status"]).upper())}</div></div><div class="card"><div class="muted">Monitoring path</div><div class="metric" style="font-size:20px">{_esc(_monitoring_path_label(info))}</div></div><div class="card"><div class="muted">County-direct sources</div><div class="metric">{len(info["sources"])}</div></div></div><div class="grid">{source_cards}</div><br>{parcel_access_detail}<br>{mngac_html}<br><div class="card county-complete-profile">{complete_profile}</div><br>{contacts_html}'
+    body = f'<p><a href="/counties">← Minnesota counties</a></p>{export_links}<div class="grid"><div class="card"><div class="muted">County</div><h2>{_esc(county["name"])} County</h2></div><div class="card"><div class="muted">Monitoring coverage</div><div class="metric {_esc(info["status"])}">{_esc(_friendly_status(info["status"]).upper())}</div></div><div class="card"><div class="muted">Monitoring path</div><div class="metric" style="font-size:20px">{_esc(_monitoring_path_label(info))}</div></div><div class="card"><div class="muted">County-direct sources</div><div class="metric">{len(info["sources"])}</div></div></div><div class="grid">{source_cards}</div><br>{parcel_access_detail}<br>{mngac_html}<br>{gac_summary_html}<br><div class="card county-complete-profile">{complete_profile}</div><br>{contacts_html}'
     return _layout(f'{county["name"]} County — Watchtower', body, static=bool(config.get("_public_mode")), csrf_token=str(config.get("_csrf_token") or ""))
 
 def _county_snapshot(config: dict, slug: str, *, include_mngac: bool = True, state: dict | None = None,
@@ -1264,6 +1581,7 @@ def _statewide_snapshot(config: dict) -> dict:
         "workers": state.get("workers") or {},
         "counties": counties,
         "mngac": _mngac_data(state),
+        "gac": {key: data for key in standard_keys() if (data := _gac_data(state, key)) is not None},
     }
 
 
@@ -1278,7 +1596,13 @@ def _mngac_csv(data: dict | None) -> str:
     writer.writeheader()
     if not isinstance(data, dict):
         return out.getvalue()
-    schema = _load_mngac_schema()
+    try:
+        standard_key = normalize_standard_key(
+            data.get("standard_key") or (data.get("standard") or {}).get("key") or "parcel"
+        )
+        schema = load_gac_standard(standard_key)
+    except (ValueError, OSError, json.JSONDecodeError):
+        schema = _load_mngac_schema()
     summaries = data.get("fields") or {}
     for spec in schema.get("fields") or []:
         field = str(spec.get("field") or "")
@@ -1547,7 +1871,7 @@ def render_dashboard(config: dict) -> str:
 <div class="worker-meta">
 <div><span class="muted">Sources</span><strong>{_esc(source_count if source_count is not None else "—")}</strong></div>
 <div><span class="muted">Run time</span><strong>{_esc(duration_text)}</strong></div>
-<div><span class="muted">Last success</span><strong style="font-size:13px">{_format_time_pair(worker.get("last_success_at") or worker.get("checked_at"))}</strong></div>
+<div><span class="muted">Last success</span><strong style="font-size:13px">{_format_time_pair(worker.get("last_success_at"))}</strong></div>
 </div></div>""")
     body = f"""<div class="grid primary-grid">
 <div class="card"><div class="muted">Overall health</div><div class="metric {_status_class(state.get('overall','unknown'))}">{_esc(_health_status(state.get('overall','unknown')))}</div><span class="subtext">Combined health of all cloud and local source checks.</span></div>
@@ -1586,7 +1910,7 @@ def render_dashboard(config: dict) -> str:
 <td>{_esc(f"{current_count:,}" if isinstance(current_count,int) else current_count or '—')}<br><span class="{delta_class}">{_esc(delta_text)}</span></td>
 <td>{_esc(stats.get('change_age_days') if stats.get('change_age_days') is not None else '—')}</td>
 <td>{_esc(stats.get('success_rate') if stats.get('success_rate') is not None else '—')}%<br><span class="muted">{_esc(stats.get('consecutive_ok'))} consecutive</span></td>
-<td>{_esc(src.get('elapsed_ms','—'))} ms</td><td>{_format_time_pair(src.get('last_success_at') or src.get('checked_at'))}</td></tr>""")
+<td>{_esc(src.get('elapsed_ms','—'))} ms</td><td>{_format_time_pair(src.get('last_success_at'))}</td></tr>""")
     options = "".join(f'<option value="{_esc(x)}">{_esc(x)}</option>' for x in categories)
     run_history = load_history(config, limit=60).get("entries", [])
     run_wall = [((x.get("telemetry") or {}).get("wall_ms") or 0) / 1000.0 for x in run_history if (x.get("telemetry") or {}).get("wall_ms") is not None]
@@ -1680,7 +2004,7 @@ def render_source(config: dict, source_id: str) -> str:
 <div class="section-head"><div><h2>About this data</h2><p>Operational source facts first; low-level adapter and coordinate details remain expandable below.</p></div></div>
 <div class="definition-grid">
 <div class="definition-group"><h3>Source</h3><dl class="definition-list">
-<dt>Provided by</dt><dd>{_esc(provider)}</dd><dt>Data type</dt><dd>{_esc(category)}</dd><dt>Checked by</dt><dd>{_esc(src.get('worker') or 'local/default')} worker</dd><dt>Reporting</dt><dd>{_esc(src.get('reporting') or 'current')}</dd><dt>Last successful check</dt><dd>{_format_time_pair(src.get('last_success_at') or src.get('checked_at'))}</dd><dt>Changes this check</dt><dd>{len(changes)}</dd><dt>Last change found</dt><dd>{_format_time_pair(stats.get('last_change')) if stats.get('last_change') else 'Not yet recorded'}</dd>
+<dt>Provided by</dt><dd>{_esc(provider)}</dd><dt>Data type</dt><dd>{_esc(category)}</dd><dt>Checked by</dt><dd>{_esc(src.get('worker') or 'local/default')} worker</dd><dt>Reporting</dt><dd>{_esc(src.get('reporting') or 'current')}</dd><dt>Last successful check</dt><dd>{_format_time_pair(src.get('last_success_at'))}</dd><dt>Changes this check</dt><dd>{len(changes)}</dd><dt>Last change found</dt><dd>{_format_time_pair(stats.get('last_change')) if stats.get('last_change') else 'Not yet recorded'}</dd>
 </dl></div>
 <div class="definition-group"><h3>Parcel quality</h3><dl class="definition-list">
 <dt>Records</dt><dd>{source_count_text}</dd><dt>Information fields</dt><dd>{_esc(src.get('field_count','—'))}</dd><dt>Parcel ID field</dt><dd>{_esc(src.get('parcel_id_field','Not identified'))} ({_esc(src.get('parcel_id_confidence','none'))} confidence)</dd><dt>Missing parcel IDs</dt><dd>{_esc(src.get('parcel_id_null_count','Not checked'))}</dd><dt>Duplicate-ID extra rows</dt><dd>{_esc(src.get('duplicate_id_extra_rows','Not checked'))}</dd><dt>Missing mapped shape</dt><dd>{_esc(src.get('null_geometry_count','Not checked'))}</dd>
@@ -1962,14 +2286,27 @@ def serve(config: dict, host: str = "127.0.0.1", port: int = 8765) -> None:
                 if not snap:
                     return self._send(404, "county not found", "text/plain; charset=utf-8")
                 return self._send_bytes(200, _snapshot_xlsx(snap), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", f"{slug}-watchtower.xlsx")
-            if parsed.path == "/mngac":
-                return self._send(200, render_mngac(config))
-            if parsed.path == "/mngac.json":
-                data = _mngac_data(_dashboard_state(config))
-                return self._send(200 if data else 404, json.dumps(data or {"error":"MNGAC completeness data unavailable"}, indent=2), "application/json; charset=utf-8")
-            if parsed.path == "/mngac.csv":
-                data = _mngac_data(_dashboard_state(config))
-                return self._send(200 if data else 404, _mngac_csv(data), "text/csv; charset=utf-8")
+            if parsed.path in ("/mngac", "/mngac.json", "/mngac.csv"):
+                try:
+                    standard_key = normalize_standard_key(
+                        urllib.parse.parse_qs(parsed.query).get("standard", ["parcel"])[0]
+                    )
+                except ValueError:
+                    return self._send(400, "Unsupported GAC standard", "text/plain; charset=utf-8")
+                if parsed.path == "/mngac":
+                    return self._send(200, render_mngac(config, standard_key))
+                data = _gac_data(_dashboard_state(config), standard_key)
+                if parsed.path == "/mngac.json":
+                    return self._send(
+                        200 if data else 404,
+                        json.dumps(data or {"error": "GAC completeness data unavailable"}, indent=2),
+                        "application/json; charset=utf-8",
+                    )
+                return self._send(
+                    200 if data else 404,
+                    _mngac_csv(data) if data else "GAC completeness data unavailable",
+                    "text/csv; charset=utf-8",
+                )
             if parsed.path == "/counties":
                 return self._send(200, render_counties(config))
             if parsed.path == "/county":

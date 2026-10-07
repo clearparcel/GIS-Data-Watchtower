@@ -70,8 +70,26 @@ def _snapshot_is_superseded(candidate: dict, current: dict) -> bool:
             return True
     for name, source in (current.get("sources") or {}).items():
         incoming = (candidate.get("sources") or {}).get(name)
-        if incoming is not None and older(incoming.get("last_report_at") or incoming.get("checked_at"),
-                                          source.get("last_report_at") or source.get("checked_at")):
+        source_seen = source.get("last_report_at") or source.get("checked_at")
+        if incoming is None:
+            tombstone = (candidate.get("retired_sources") or {}).get(name)
+            if not isinstance(tombstone, dict) or older(tombstone.get("retired_at"), source_seen):
+                return True
+        elif older(incoming.get("last_report_at") or incoming.get("checked_at"), source_seen):
+            return True
+    for name, tombstone in (current.get("retired_sources") or {}).items():
+        retired_at = tombstone.get("retired_at") if isinstance(tombstone, dict) else None
+        incoming = (candidate.get("sources") or {}).get(name)
+        incoming_tombstone = (candidate.get("retired_sources") or {}).get(name)
+        if incoming is not None:
+            incoming_at = incoming.get("last_report_at") or incoming.get("checked_at")
+            if _parse_time(retired_at) is not None and (
+                _parse_time(incoming_at) is None or _parse_time(incoming_at) <= _parse_time(retired_at)
+            ):
+                return True
+        elif not isinstance(incoming_tombstone, dict) or older(
+            incoming_tombstone.get("retired_at"), retired_at
+        ):
             return True
     return False
 

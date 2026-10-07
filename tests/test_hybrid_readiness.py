@@ -121,13 +121,19 @@ class HybridReadinessTests(unittest.TestCase):
             self.assertEqual(set(state["workers"]), {"cloud", "local"})
 
     def test_merge_tracks_source_and_worker_success(self):
-        base = {"sources": {"a": {"id": "a", "status": "ok", "worker": "cloud", "last_success_at": "2026-10-04T10:00:00+00:00"}}}
+        base = {
+            "sources": {"a": {"id": "a", "status": "ok", "worker": "cloud",
+                              "last_success_at": "2026-10-04T10:00:00+00:00"}},
+            "workers": {"cloud": {"last_report_at": "2026-10-04T10:00:00+00:00",
+                                  "last_success_at": "2026-10-04T10:00:00+00:00"}},
+        }
         partial = {"generated_at": "2026-10-04T11:00:00+00:00", "overall": "error",
                    "counts": {"ok": 0, "warn": 0, "error": 1},
                    "sources": {"a": {"id": "a", "status": "error"}}}
         state = merge_states(base, partial, "cloud")
         self.assertEqual(state["sources"]["a"]["last_success_at"], "2026-10-04T10:00:00+00:00")
-        self.assertEqual(state["workers"]["cloud"]["last_success_at"], "2026-10-04T11:00:00+00:00")
+        self.assertEqual(state["workers"]["cloud"]["last_report_at"], "2026-10-04T11:00:00+00:00")
+        self.assertEqual(state["workers"]["cloud"]["last_success_at"], "2026-10-04T10:00:00+00:00")
 
     def test_gcs_generation_precondition_rejects_stale_writes(self):
         backend, exceptions_mod = _fake_gcs_backend()

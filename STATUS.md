@@ -1,5 +1,66 @@
 # Project status
 
+## Approved Address/Road, observability and hardening work — 2026-10-07
+
+Implementation is in progress on feature branch
+`feat/gac-address-road-posthog-20261007`; these changes are **not yet merged or
+deployed**. The earlier public UI/source-control gap is resolved: PR
+[#47](https://github.com/clearparcel/GIS-Data-Watchtower/pull/47) was marked
+ready and merged through protected `main` at
+`943bce019af0979d1cb2d62c01507c2a84b4673f`. Production's already-deployed
+product commit is now reachable from protected main.
+
+The implementation adds a shared GAC standards engine while preserving legacy
+parcel configuration. Packaged official-schema inventories cover **53 Address
+Point fields (18 Mandatory)** and **73 Road Centerline fields (34 Mandatory)**.
+A bounded live validation against the official MnGeo public services passed
+without altering Watchtower state, schedules, or production configuration:
+
+- **Address Points:** 2,116,804 records, 53/53 standard fields present,
+  56 Minnesota counties represented, **97.21% Mandatory-field population**,
+  two grouped-statistics requests; metadata reports 87 counties, 85 NG911
+  participants and 56 GAC public opt-ins.
+- **Road Centerlines:** 439,374 source features, 437,805 Minnesota
+  county-grouped records, 73/73 standard fields present, 71 Minnesota counties
+  represented, **95.94% Mandatory-field population**, three grouped-statistics
+  requests; metadata reports 87 counties, 85 NG911 participants and 55 GAC
+  public opt-ins. The non-Minnesota grouping labels `Howard` and
+  `Out of Jurisdiction` are excluded explicitly, leaving 1,569 source
+  features outside the Minnesota county denominator.
+- For both standards, the latest submission date reported by the MnGeo metadata
+  layer during this validation was **2026-05-20**. This is provider metadata,
+  not Watchtower check/publication time.
+
+Address/Road routine population checks default to Mandatory fields while all
+standard fields remain schema-checked. Text population uses
+`COUNT(NULLIF(field,''))`; numeric/date fields use native `COUNT(field)`.
+The validated routine batch size is 12. Full scans using 20-field batches
+produced ArcGIS 503 wait-timeouts, so the implementation does not raise request
+timeouts to force larger batches.
+
+Aggregate correctness work separates worker `last_report_at` from true
+all-clear `last_success_at` and records explicit source-retirement
+tombstones. The public publisher rejects disappearance of an existing source
+unless a newer retirement record authorizes it.
+
+Privacy-first PostHog integration is implemented as dormant/opt-in code:
+autocapture, Session Replay, automatic pageview/pageleave capture, exception
+capture, persistent identity and feature-flag requests are disabled. Activation
+requires a dedicated Watchtower project token **and** explicit confirmation
+that PostHog's client-IP discard setting is enabled. Creation of the dedicated
+`GIS Data Watchtower` PostHog project was attempted but PostHog rejected it
+because the current plan has reached its project limit. The existing
+`CRM staging pilot` project was not repurposed or deleted.
+
+Release hardening adds exact Python runtime constraints, a digest-pinned Python
+container base, pinned dependency auditing, CodeQL analysis, Trivy high/critical
+container scanning, and CI-generated CycloneDX SBOM/provenance/image-ID evidence.
+The authoritative cloud GIS-provider scheduler remains disabled and the
+existing local production schedule remains unchanged. The Address/Road live
+validation above is not a replacement for Issue #20's multi-day hybrid
+validation gate.
+
+
 Public footer application identity is deployed to production revision `00009-tbt`: **v0.1.0.dev0 · build cf06a07 · Production**. Data publication and provider observation times remain separate. See [release identity configuration](docs/release-policy.md).
 
 Browser feedback changes and application identity are **deployed to production**: mandatory-field map classes below 50%, 50–60%, 60–70%, above 70%; clarified publication/check freshness and research progress; linked branding and readable evidence. Production public revision `00009-tbt` serves product commit `cf06a07`, displaying **v0.1.0.dev0 · build cf06a07 · Production**. Preview `00011-hkl` retains the Preview label. See [production release verification](docs/public-ui-release-2026-10-07.md).
