@@ -1,6 +1,6 @@
 # Manual review follow-up fixes
 
-These corrections are submitted for review on a feature branch. They have **not been deployed**. The recorded application release remains `32852a8`; deployment facts live in [current status](current-status.md). This follow-up used manual code inspection and offline regressions, without Deep Scan or GIS-provider requests.
+The user approved merge and deployment. PR [44](https://github.com/clearparcel/GIS-Data-Watchtower/pull/44) merged at `284cf0c9695c3704a5e33c4ba88b4c16e2543771` on 2026-10-07 at 04:18:53 UTC (October 6 local time), with no protection bypass. These corrections have **not been deployed**: both local Google Cloud CLI and Cloud Run connector require reauthentication. The recorded application release remains `32852a8`; deployment facts live in [current status](current-status.md). This follow-up used manual code inspection and offline regressions, without Deep Scan or GIS-provider requests.
 
 ## Corrected findings
 
@@ -23,11 +23,11 @@ The original 230-test baseline passed. Eleven initial regressions reproduced the
 
 No fresh Cloud Run or IAM validation is claimed: local gcloud authentication requires reauthentication. This task makes no credential, deployment, provider-policy or scheduling changes.
 
-Local final validation on Python 3.14: **250 tests passed** with `-W error::ResourceWarning` (8.901 seconds); `python -m compileall -q clearparcel tests` and `git diff --check` passed. Hosted CI runs Python 3.12/3.13/3.14 on Windows and Linux, including the kernel-lock crash/concurrency cases. Its results must pass before merge.
+Local validation on Python 3.14: **250 tests passed** with `-W error::ResourceWarning` (8.901 seconds before merge, 9.120 seconds on the actual merge); `python -m compileall -q clearparcel tests` and `git diff --check` passed. Hosted push and PR CI both passed all six Python 3.12/3.13/3.14 Windows/Linux jobs on reviewed head `2019c1d`, including the kernel-lock crash/concurrency cases and Linux container smoke test.
 
 ## Upgrade and release validation
 
-1. Obtain separate merge/deployment authorization. Verify publisher destination read and generation-conditional replacement permissions, scoped to the existing public object; do not grant raw private aggregate access to the public service.
+1. Merge/deployment authorization is recorded. After restoring the existing deployment account's authentication, verify publisher destination read and generation-conditional replacement permissions, scoped to the existing public object; do not grant raw private aggregate access to the public service.
 2. For local workers, stop **all** old-version worker processes and disable overlapping starts during upgrade. The previous exclusive-create run lock and directory CAS lock do not interoperate with the new OS lock. Confirm no process is still writing before reconciling old lock artifacts. Remove a legacy CAS lock directory only after that confirmation; the new code deliberately refuses it.
 3. Keep new lock files in place permanently. Do not unlink or replace them while a process may be holding a lock. `run_lock_stale_seconds` is retained for compatibility but no longer expires ownership. Verify filesystem lock/atomic-replacement support, especially on network shares.
 4. Configure the private built-in dashboard's cloud/local profile before restart when sources are assigned. Keep existing authentication, provider holds and rate controls intact.

@@ -2,7 +2,7 @@
 
 Operational record updated: **2026-10-06** after the user-approved merge and application release. Provider observations remain dated; this deployment did not re-poll GIS providers.
 
-Follow-up manual review corrections are on a feature branch and **not deployed**: report/publication ordering, worker inventory retirement, dashboard profile isolation, process-owned local locks, unique atomic scratch and WMS/WFS query composition. See [fixes and upgrade requirements](review-fixes-2026-10-06.md). The deployed release below remains unchanged.
+Follow-up manual review corrections are **merged, not deployed**: PR [44](https://github.com/clearparcel/GIS-Data-Watchtower/pull/44), merge `284cf0c`, addresses report/publication ordering, worker inventory retirement, dashboard profile isolation, process-owned local locks, unique atomic scratch and WMS/WFS query composition. Deployment is awaiting Google Cloud reauthentication; the CLI and Cloud Run connector both reject refresh. See [fixes and upgrade requirements](review-fixes-2026-10-06.md). The deployed release below remains unchanged.
 
 ## Recorded deployment and coverage
 
