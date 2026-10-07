@@ -154,6 +154,11 @@ class HybridReceiptTests(unittest.TestCase):
             return value + ' ' if path.name == 'mngac_parcel_fields.json' else value
         with patch.object(Path, 'read_text', changed):
             self.assertNotEqual(runtime_identity({}, {})['package_sha256'], before)
+        def environment_changed(path, *args, **kwargs):
+            value = original(path, *args, **kwargs)
+            return value + ' ' if path.name == 'build_info.json' else value
+        with patch.object(Path, 'read_text', environment_changed):
+            self.assertEqual(runtime_identity({}, {})['package_sha256'], before)
 
     def test_receipt_requires_inventory_identity_and_public_arrival(self):
         from clearparcel.datawatch.hybrid_validation import candidate_manifest, validation_receipt

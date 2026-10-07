@@ -16,10 +16,11 @@ def runtime_identity(config: dict, build: dict | None = None) -> dict:
     build = build if build is not None else application_identity()
     package = hashlib.sha256()
     for path in sorted(path for path in Path(__file__).parent.iterdir()
-                       if path.suffix in {".py", ".json"}):
+                       if path.suffix in {".py", ".json"} and path.name != "build_info.json"):
         package.update(path.name.encode())
         package.update(path.read_text(encoding="utf-8").encode())
-    # Runtime artifact locations legitimately differ between local and cloud.
+    # Build version/revision are recorded separately; deployment environment
+    # in build_info.json and artifact locations differ between local and cloud.
     registry = {k: v for k, v in config.items() if not k.startswith("_")
                 and not k.endswith("_file") and k not in {"aggregate_object", "dashboard_execution_profile"}}
     return {"version": build.get("version"), "revision": build.get("revision"),
