@@ -39,6 +39,8 @@ from clearparcel.datawatch.public_values import sanitize_source_metadata
 from clearparcel.datawatch.build_info import application_identity
 from clearparcel.datawatch.gac_standards import normalize_standard_key
 from clearparcel.datawatch.analytics import posthog_csp_sources
+from clearparcel.datawatch.dashboard_summary import summary_for, render_diagnostics
+from clearparcel.datawatch.public_details import dispatch_public_details, encode_response
 
 
 from clearparcel.datawatch.public_projection import (
@@ -136,7 +138,8 @@ def render_public_dashboard(config: dict) -> str:
     stale_after = dt.timedelta(minutes=int(config.get("source_stale_minutes", 1560)))
     overdue = sum(bool((stamp := _timestamp(source.get("checked_at"))) and now - stamp > stale_after) for source in sources.values())
     unknown_checks = sum(_timestamp(source.get("checked_at")) is None for source in sources.values())
-    profiles = _county_profiles(config, state, load_parcel_access())
+    research = load_parcel_access()
+    profiles = _county_profiles(config, state, research)
     monitoring = county_profile_counts(profiles)
     all_field = (mngac or {}).get("field_population_percent")
     mandatory = (mngac or {}).get("mandatory_population_percent")
@@ -171,7 +174,7 @@ def render_public_dashboard(config: dict) -> str:
         worker_cards.append(
             '<div class="card worker-card">'
             f'<div><h3><span class="status-dot {_status_class(status)}"></span>{_esc(name.title())} monitoring path</h3>'
-            f'<span class="subtext">{_esc(_health_status(status))} · {_esc(reporting)}</span></div>'
+            f'<span class="subtext" data-worker-report="{_esc(name)}">{_esc(_health_status(status))} · {_esc(reporting)}</span></div>'
             '<div class="worker-meta">'
             f'<div><span class="muted">Sources</span><strong>{_esc(worker.get("source_count", "—"))}</strong></div>'
             f'<div><span class="muted">Last successful provider check</span><strong>{_esc(_public_time(worker.get("last_success_at")))}</strong></div>'
@@ -190,7 +193,11 @@ def render_public_dashboard(config: dict) -> str:
         }
     map_json = json.dumps(map_data, ensure_ascii=False).replace("</", "<\\/")
     map_svg = _mngac_map_svg(width=620, height=560)
-    profile_panel = render_county_profile_panel(profiles)
+    summary = summary_for(config, state, profiles=profiles, research=research)
+    profile_panel = render_county_profile_panel(profiles, revision=summary["content_revision"])
+    diagnostics = render_diagnostics(summary)
+    county_options = ''.join(f'<option value="{_esc(slug)}">{_esc(p["county"]["name"])} County</option>'
+                             for slug, p in sorted(profiles.items(), key=lambda item: item[1]["county"]["name"]))
     monitoring_json = json.dumps({slug: p["monitoring"]["paths"] for slug, p in profiles.items()})
 
     body = f"""
@@ -199,8 +206,8 @@ def render_public_dashboard(config: dict) -> str:
   <div class="card"><div class="muted">Entries healthy at last check</div><div class="metric ok">{healthy}</div><span class="subtext">{issues} had issues at their last check</span></div>
   <div class="card"><div class="muted">Minnesota counties</div><div class="metric">87</div><span class="subtext">Statewide county profile index</span></div>
   <div class="card"><div class="muted">Counties with parcel observations</div><div class="metric">{monitoring["active"]}/87</div><span class="subtext">{monitoring["mngeo_open"]} via MnGeo open parcels · {monitoring["county_direct"]} via county-direct sources · each county counted once</span></div>
-  <div class="card"><div class="muted">All-field population</div><div class="metric">{_esc(f"{all_field:.2f}%" if isinstance(all_field,(int,float)) else "—")}</div><span class="subtext">Across all 91 standard fields</span></div>
-  <div class="card"><div class="muted">Mandatory-field population</div><div class="metric">{_esc(f"{mandatory:.2f}%" if isinstance(mandatory,(int,float)) else "—")}</div><span class="subtext">Record-weighted statewide rate</span></div>
+  <div class="card"><div class="muted">Parcel all-field population</div><div class="metric">{_esc(f"{all_field:.2f}%" if isinstance(all_field,(int,float)) else "—")}</div><span class="subtext">Across all 91 standard fields</span></div>
+  <div class="card"><div class="muted">Parcel mandatory-field population</div><div class="metric">{_esc(f"{mandatory:.2f}%" if isinstance(mandatory,(int,float)) else "—")}</div><span class="subtext">Record-weighted statewide rate</span></div>
 </div>
 <p class="mngac-note">A source is a monitored dataset or service entry across any data type. Parcel coverage counts unique counties observed through county-direct or statewide sources. One statewide source can cover many counties; overlapping paths count each county once.</p>
 
@@ -208,6 +215,7 @@ def render_public_dashboard(config: dict) -> str:
 <div class="hero-panel">
   <div class="card">
     <label>Map view<select id="overview-metric"><option value="monitoring">Monitoring paths</option><option value="completeness">MN GAC mandatory-field completeness</option></select></label>
+    <label for="overview-county-select">Find a county</label><select id="overview-county-select"><option value="">Choose a county…</option>{county_options}</select>
     <div class="mngac-map-panel">{map_svg}<div id="overview-legend"></div></div>
   </div>
   <div class="card hero-copy">
@@ -228,15 +236,16 @@ def render_public_dashboard(config: dict) -> str:
 </div>
 
 <div class="card"><h3>Parcel source research</h3>{research_summary(profiles)}</div>
+{diagnostics}
 <div class="section-head"><div><h2>Latest Watchtower activity</h2><p>Public monitoring results, separated from internal provider diagnostics.</p></div></div>
 <div class="activity-strip">
-  <div class="card"><div class="muted">Latest public publication</div><div class="metric">{_esc(_public_age(published_at))}</div><span class="subtext">{_esc(_public_time(published_at))}</span><p>When the public snapshot was published. Publication copies existing results and does not check GIS providers again.</p><p>Public publication reporting: {_esc(publication_reporting)}</p></div>
-  <div class="card"><div class="muted">Latest provider check in this snapshot</div><div class="metric">{_esc(_public_age(checked_at))}</div><span class="subtext">{_esc(_public_time(checked_at))}</span><p>The newest provider check included here, not the provider’s dataset update date. Other sources may have older checks.</p><p class="{"warn" if overdue or unknown_checks else "muted"}">Source reporting: {overdue} overdue · {unknown_checks} without a check time. Reporting becomes overdue after {_esc(config.get("source_stale_minutes", 1560))} minutes without a provider check (26 hours by default). Publication freshness is separate.</p></div>
+  <div class="card"><div class="muted">Latest public publication</div><div class="metric" data-age-kind="publication" data-age-time="{_esc(published_at or "")}">{_esc(_public_age(published_at))}</div><span id="public-publication-time" class="subtext">{_esc(_public_time(published_at))}</span><p>When the public snapshot was published. Publication copies existing results and does not check GIS providers again.</p><p id="public-publication-status">Public publication reporting: {_esc(publication_reporting)}</p></div>
+  <div class="card"><div class="muted">Latest provider check in this snapshot</div><div class="metric" data-age-time="{_esc(checked_at or "")}">{_esc(_public_age(checked_at))}</div><span class="subtext">{_esc(_public_time(checked_at))}</span><p>The newest provider check included here, not the provider’s dataset update date. Other sources may have older checks.</p><p id="source-reporting-status" class="{"warn" if overdue or unknown_checks else "muted"}">Source reporting: {overdue} overdue · {unknown_checks} without a check time. Reporting becomes overdue after {_esc(config.get("source_stale_minutes", 1560))} minutes without a provider check (26 hours by default). Publication freshness is separate.</p></div>
 </div>
 
 <div class="section-head"><div><h2>Data sources</h2><p>Dataset and service checks across all data types. A statewide parcel service covers multiple counties; source entries and county coverage are different counts.</p></div><span>{len(sources)} dataset/service entries · {monitoring["active"]} counties with parcel observations</span></div>
 <div class="card" id="datasets">
-  <div class="filters"><input id="q" placeholder="Search data sources…" oninput="filterRows()"><select id="health" onchange="filterRows()"><option value="">All statuses</option><option>ok</option><option>warn</option><option>error</option></select></div>
+  <div class="filters"><input id="q" aria-label="Search data sources" placeholder="Search data sources…" oninput="filterRows()"><select id="health" aria-label="Source health" onchange="filterRows()"><option value="">All statuses</option><option>ok</option><option>warn</option><option>error</option></select></div>
   <table><thead><tr><th>Data source</th><th>Provided by</th><th>Status</th><th>Records</th><th>Changes</th><th>Last success</th></tr></thead><tbody>{"".join(rows)}</tbody></table>
 </div>
 
@@ -279,6 +288,8 @@ def render_public_dashboard(config: dict) -> str:
   const fill=percentageColor;
   function show(name,path){{
     selectedPath=path;
+    root.getElementById('overview-county-select').value=path.dataset.slug;
+    window.watchtowerRefresh?.save();
     const d=countyData[name];
     root.querySelectorAll('.mngac-county').forEach(p=>p.classList.toggle('selected',p===path));
     root.getElementById('home-county-name').textContent=name+' County';
@@ -299,6 +310,7 @@ def render_public_dashboard(config: dict) -> str:
     p.addEventListener('keydown',e=>{{if(e.key==='Enter'||e.key===' '){{e.preventDefault();show(p.dataset.county,p)}}}});
   }});
   updateOverview();
+  root.getElementById('overview-county-select').addEventListener('change',event=>{{const path=[...root.querySelectorAll('.mngac-county')].find(p=>p.dataset.slug===event.target.value);if(path)show(path.dataset.county,path)}});
 }})();
 function filterRows(){{
   const q=document.getElementById('q').value.toLowerCase(),h=document.getElementById('health').value;
@@ -364,6 +376,8 @@ class _PublicStateCache:
         self._snapshot_key = None
         self._snapshot_value = None
         self._xlsx_value = None
+        self._view_key = None
+        self._view_value = None
         self.last_refresh_error = False
 
     @property
@@ -380,6 +394,7 @@ class _PublicStateCache:
             "_public_mode": True,
             "worker_stale_minutes": int(os.environ.get("WATCHTOWER_WORKER_STALE_MINUTES", "1560")),
             "source_stale_minutes": int(os.environ.get("WATCHTOWER_SOURCE_STALE_MINUTES", "1560")),
+            "publication_max_age_seconds": _publication_max_age_seconds(),
         }
 
     def refresh(self, *, force: bool = False) -> None:
@@ -429,6 +444,22 @@ class _PublicStateCache:
         with self._export_lock:
             return self._ensure_snapshot()
 
+    def view(self) -> dict:
+        """Capture an immutable state/profile/summary bundle for one request."""
+        with self._export_lock:
+            state_bytes = self.public_path.read_bytes()
+            research = load_parcel_access()
+            key = hashlib.sha256(state_bytes + json.dumps(research, sort_keys=True).encode()
+                                 + json.dumps(application_identity(), sort_keys=True).encode()
+                                 + json.dumps(self.config, sort_keys=True).encode()).hexdigest()
+            if key != self._view_key:
+                state = sanitize_public_render_state(json.loads(state_bytes))
+                profiles = _county_profiles(self.config, state, research)
+                summary = summary_for(self.config, state, profiles=profiles, research=research)
+                self._view_value = {"state": state, "profiles": profiles, "summary": summary}
+                self._view_key = key
+            return {**self._view_value, "summary": {**self._view_value["summary"], "refresh_failed": self.stale}}
+
     def snapshot_xlsx(self) -> bytes:
         with self._export_lock:
             snapshot = self._ensure_snapshot()
@@ -463,11 +494,20 @@ def serve_public(host: str = "0.0.0.0", port: int = 8080) -> None:
                     'Showing a cached public snapshot because the latest storage refresh failed.</div>',
                     1,
                 )
+            if status == 200 and content_type.startswith("text/html") and "</head>" in content:
+                revision = getattr(self, "_render_revision", None)
+                if revision:
+                    content = content.replace("</head>", '<meta data-content-revision="' + revision + '"></head>', 1)
             raw = content.encode("utf-8")
+            status, raw, headers = encode_response(status, raw, content_type,
+                self.headers.get("Accept-Encoding", ""), self.headers.get("If-None-Match"))
             self.send_response(status)
             self.send_header("Content-Type", content_type)
-            self.send_header("Content-Length", str(len(raw)))
-            self.send_header("Cache-Control", "public, max-age=30")
+            if status != 304:
+                self.send_header("Content-Length", str(len(raw)))
+            self.send_header("Cache-Control", "no-cache" if status in {200, 304} else "no-store")
+            for name, value in headers.items():
+                self.send_header(name, value)
             self.send_header("X-Content-Type-Options", "nosniff")
             self.send_header("X-Frame-Options", "DENY")
             self.send_header("Referrer-Policy", "no-referrer")
@@ -519,6 +559,12 @@ def serve_public(host: str = "0.0.0.0", port: int = 8080) -> None:
                 return self._send(503, "Dashboard data is temporarily unavailable.", "text/plain; charset=utf-8")
 
             config = cache.config
+            if parsed.path in {"/api/summary", "/api/county-profile", "/", "/counties", "/county", "/mngac", "/source"}:
+                view = cache.view()
+                self._render_revision = view["summary"]["content_revision"]
+                config = {**config, "_render_state": view["state"]}
+                if dispatch_public_details(self, parsed.path, parsed.query, view):
+                    return
             if dispatch_snapshot_exports(
                 self,
                 parsed.path,

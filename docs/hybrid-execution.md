@@ -23,3 +23,7 @@ The built-in private dashboard requires `WATCHTOWER_EXECUTION_PROFILE` or `dashb
 Worker run locks belong to the process, independent of file age, and recover immediately when the process exits. Lock files persist and must not be deleted while a worker could be active. Stop all old-version workers before upgrading the local lock protocol; see [upgrade instructions](review-fixes-2026-10-06.md#upgrade-and-release-validation).
 
 This is intended for respectful hybrid deployments, not for circumventing provider blocks. If a provider rejects cloud traffic, mark that source local-only or remove it.
+
+## Candidate validation
+
+Use the current private registry and identical candidate package for both profiles. [The offline manifest and receipt workflow](watchtower-remediation-2026-10-07.md#hybrid-candidate-and-validation-preparation) checks inventory, runtime identity, provenance, and public arrival without running providers. The older authoritative 26-source local task remains unchanged; five distinct daily cycles and explicit activation approval remain pending.

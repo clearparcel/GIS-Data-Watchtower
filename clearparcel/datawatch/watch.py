@@ -1884,6 +1884,10 @@ def _check_sources_unlocked(
                         if quality_key in details and isinstance(previous.get(quality_key), dict):
                             details[quality_key] = previous[quality_key]
                 details["observation_fingerprint"] = _observation_fingerprint(details)
+                if source["id"] == "mn-parcel-county-catalog" and isinstance(details.get("county_records"), dict):
+                    details["catalog_observed_at"] = now
+                    details["catalog_retained"] = False
+                    details["catalog_time_inferred"] = False
                 changes = _compare(previous_sources.get(source["id"]), details, source)
                 problems = details.get("problems", [])
                 gac_failures = ([details.get("gac_check_error") or "configured GAC quality check failed"]
@@ -1944,6 +1948,21 @@ def _check_sources_unlocked(
             quality_key = "gac_completeness" if source.get("gac_completeness") else (
                 "mngac_completeness" if source.get("mngac_completeness") else None
             )
+            if source["id"] == "mn-parcel-county-catalog":
+                previous_catalog = previous_sources.get(source["id"], {})
+                if isinstance(previous_catalog.get("county_records"), dict):
+                    records[source["id"]]["county_records"] = previous_catalog["county_records"]
+                    records[source["id"]]["catalog_retained"] = True
+                    observed = previous_catalog.get("catalog_observed_at")
+                    inferred = previous_catalog.get("catalog_time_inferred") is True
+                    if not observed:
+                        observed = previous_catalog.get("last_success_at") or (
+                            previous_catalog.get("checked_at") if previous_catalog.get("status") == "ok" else None
+                        )
+                        inferred = bool(observed)
+                    if observed:
+                        records[source["id"]]["catalog_observed_at"] = observed
+                    records[source["id"]]["catalog_time_inferred"] = inferred
             if quality_key:
                 previous_quality = previous_sources.get(source["id"], {}).get(quality_key)
                 if isinstance(previous_quality, dict):
@@ -1973,8 +1992,11 @@ def _check_sources_unlocked(
         "sources_checked": len(records),
         "total_source_elapsed_ms": sum(int(x.get("elapsed_ms") or 0) for x in records.values()),
     }
+    from .hybrid_validation import runtime_identity
+    identity = runtime_identity(config)
     result = {
         "schema_version": 2,
+        "runtime_identity": identity,
         "generated_at": now,
         "scope": {"type": "source", "source_id": source_filter} if source_filter else {"type": "fleet"},
         "telemetry": telemetry,
@@ -1999,6 +2021,7 @@ def _check_sources_unlocked(
         )
         state_result = {
             "schema_version": 2,
+            "runtime_identity": identity,
             "generated_at": now,
             "telemetry": telemetry,
             "overall": "error" if state_counts["error"] else "warn" if state_counts["warn"] else "ok",

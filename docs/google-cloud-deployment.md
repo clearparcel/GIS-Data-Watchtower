@@ -330,3 +330,7 @@ record did not repeat them. The capability-authorized bounded final review
 passed with no substantiated findings. Reviewed head `7490135` passed CI runs
 `37517186843` and `37517178118`; the controller checks the final PR head after
 this cleanup-record update. No legacy CCE workflow is claimed by selector alone.
+
+## October 7 remediation preparation
+
+[Repository remediation and candidate validation tooling](watchtower-remediation-2026-10-07.md) are prepared without deploying an image, executing provider jobs, changing schedules, or writing production configuration/data. The scoped scheduler inventory still contains only the sanitized publisher. Stage/production rollout and hybrid scheduling activation remain separate approval-gated actions.

@@ -17,7 +17,7 @@ class CountyProfilePanelTests(unittest.TestCase):
         self.assertIn('Not available', body)
         self.assertNotIn('Comments', body)
         page=render_county_profile_panel({'test':profile})
-        self.assertIn('id="county-profile-data"', page)
+        self.assertNotIn('id="county-profile-data"', page)
         self.assertNotIn('</script><img', page)
         for name in ('MN GAC Public Parcels','MnGeo Public County Repository','County ArcGIS REST','County Website Download'):
             self.assertIn(name, body)
@@ -42,7 +42,7 @@ class CountyProfilePanelTests(unittest.TestCase):
         self.assertIn("event.key!=='Tab'",page)
         self.assertIn('max-height:90dvh',page)
         self.assertIn('overflow-wrap:anywhere',page)
-        self.assertIn('window.watchtowerRefresh?.pause()',page)
+        self.assertIn("window.watchtowerRefresh?.suspend('county-dialog')",page)
         self.assertNotIn('innerHTML',page)
         self.assertEqual(page.count('<template data-profile='),87)
 

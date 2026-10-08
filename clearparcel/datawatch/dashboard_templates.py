@@ -53,25 +53,29 @@ code{font-size:11px;color:#b9c6d8}.technical summary,.diagnostics summary{cursor
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
 """
 
-def _refresh_script(seconds: int) -> str:
-    """Use a cancellable timer so reading a county dialog prevents page reload."""
-    if not seconds:
-        return ""
-    return """<script>
-(function(){let timer=null;const delay=""" + str(int(seconds)*1000) + """;
-    const key='watchtower-view:'+location.pathname+location.search;
-const ids=['q','cat','health','cq','cs','mngac-metric','mngac-county-select','mngac-q','mngac-inclusion','cmq','cmi'];
-function save(){const values={};ids.forEach(id=>{const el=document.getElementById(id);if(el)values[id]=el.value});values.focus=document.activeElement?.id||'';try{sessionStorage.setItem(key,JSON.stringify(values))}catch(e){}}
-function restore(){try{const values=JSON.parse(sessionStorage.getItem(key)||'{}');ids.forEach(id=>{const el=document.getElementById(id);if(el&&values[id]!==undefined){el.value=values[id];el.dispatchEvent(new Event(el.tagName==='SELECT'?'change':'input',{bubbles:true}))}});if(values.focus)document.getElementById(values.focus)?.focus();sessionStorage.removeItem(key)}catch(e){}}
-function pause(){clearTimeout(timer);timer=null;const button=document.getElementById('refresh-pause');if(button){button.textContent='Resume automatic refresh';button.setAttribute('aria-pressed','true')}}
-function resume(){clearTimeout(timer);timer=setTimeout(()=>{if(document.getElementById('county-profile-dialog')?.open||document.querySelector('.profile-evidence[open]')){resume();return}save();location.reload()},delay);const button=document.getElementById('refresh-pause');if(button){button.textContent='Pause automatic refresh';button.setAttribute('aria-pressed','false')}}
-document.addEventListener('DOMContentLoaded',()=>{restore();const button=document.getElementById('refresh-pause');button?.addEventListener('click',()=>timer?pause():resume())});
-window.watchtowerRefresh={pause,resume};resume();})();
-</script>"""
+def _refresh_script(seconds: int, *, public: bool = False) -> str:
+    from .dashboard_refresh import refresh_script
+    return refresh_script(seconds, public=public)
 
 
-def _public_layout_v2(title: str, body: str, *, refresh_seconds: int = 30) -> str:
-    refresh_meta = _refresh_script(refresh_seconds)
+def _accessible_tables(body: str) -> str:
+    import re
+    body = re.sub(r"<th\b(?![^>]*scope=)([^>]*)>", r'<th scope="col"\1>', body)
+    return re.sub(r"(<table\b.*?</table>)", r'<div class="table-scroll" tabindex="0" role="region" aria-label="Scrollable data table">\1</div>', body, flags=re.S)
+
+
+_TABLE_CSS = """
+.table-scroll{overflow-x:auto;max-width:100%;margin:8px 0}.table-scroll:focus-visible{outline:2px solid #6ea8fe;outline-offset:3px}
+@media(max-width:760px){.table-scroll table{display:table!important;min-width:640px;width:100%}.table-scroll thead{display:table-header-group!important}.table-scroll tbody{display:table-row-group!important}.table-scroll tr{display:table-row!important}.table-scroll th,.table-scroll td{display:table-cell!important;width:auto!important;vertical-align:top}}
+.public-nav-row{display:flex;align-items:center;position:sticky;top:88px;z-index:20;background:#080b12ed;margin-bottom:24px;border-bottom:1px solid var(--line)}
+.public-nav-row .public-tabs{position:static;flex:1;min-width:0;margin:0;border:0}.public-nav-row .public-tools{position:relative;flex:none;padding:0 8px}
+@media(max-width:760px){.public-header{height:88px;gap:8px}.public-header>div:first-child{min-width:0;flex:1}.public-header h1{font-size:17px;line-height:1.2}.brand-eyebrow{letter-spacing:1px}.live-state{flex:none;gap:6px}.live-state>span:not(.live-dot){display:none}.live-state button{font-size:12px;max-width:110px;white-space:normal}.public-nav-row{top:88px;margin:0 -12px 18px}.public-nav-row .public-tabs{margin:0;padding:0 12px}.public-nav-row .public-tools{margin-left:0}}
+"""
+
+
+def _public_layout_v2(title: str, body: str, *, refresh_seconds: int = 30, public_summary: bool = True) -> str:
+    refresh_meta = _refresh_script(refresh_seconds, public=public_summary)
+    body = _accessible_tables(body)
     identity = application_identity()
     build_label = identity["revision"][:7] or "unknown"
     release_label = f'v{identity["version"]} · build {build_label} · {identity["environment"].title()}'
@@ -109,24 +113,25 @@ def _public_layout_v2(title: str, body: str, *, refresh_seconds: int = 30) -> st
     )
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-{refresh_meta}{analytics_script}<title>{_esc(title)}</title><style>{_PUBLIC_V2_CSS}</style></head><body>
+{refresh_meta}{analytics_script}<title>{_esc(title)}</title><style>{_PUBLIC_V2_CSS}{_TABLE_CSS}</style></head><body>
 <header class="public-header">
   <div><div class="brand-eyebrow">CLEARPARCEL GIS DATA WATCHTOWER</div><h1>Minnesota Open Data Watchtower</h1></div>
   <div class="live-state"><span class="live-dot"></span><span>PUBLIC · READ ONLY</span>{'<button type="button" id="refresh-pause" aria-pressed="false">Pause refresh</button>' if refresh_seconds else ''}</div>
 </header>
 <main class="public-main">
-  <a class="skip-link" href="#main-content">Skip to content</a><nav class="public-tabs" aria-label="Watchtower views">{nav}
+  <a class="skip-link" href="#main-content">Skip to content</a><div class="public-nav-row"><nav class="public-tabs" aria-label="Watchtower views">{nav}</nav>
     <div class="public-tools"><details class="public-export"><summary>Export</summary><div class="export-pop"><a href="/snapshot.xlsx">Excel (.xlsx)</a><a href="/county-profiles.csv">County profiles (CSV)</a><a href="/parcel-sources.csv">Parcel sources (CSV)</a><a href="/snapshot.csv">Monitored sources (CSV)</a><a href="/snapshot.json">JSON</a></div></details></div>
-  </nav>
+  </div>
   <div class="page-kicker"><div class="eyebrow">PUBLIC DATA INTELLIGENCE</div><h2>{_esc(page_name)}</h2><p>{_esc(subtitle)}</p></div>
-  <div id="main-content">{body}</div>
+  <p id="refresh-status" role="status"></p><div id="main-content">{body}</div>
   <footer class="public-footnote"><span><a class="footer-brand" href="https://clear-parcel.com" aria-label="ClearParcel home"><img src="{logo_src}" alt="ClearParcel" width="120" height="42"></a> · Public read-only view</span><span><strong class="application-version" title="Source revision: {_esc(identity['revision'] or 'unknown')}">{_esc(release_label)}</strong><br>Monitoring results are informational and source-dependent.</span></footer>
-</main></body></html>"""
+</main><script>(function(){{const menu=document.querySelector('.public-export');if(!menu)return;document.addEventListener('keydown',e=>{{if(e.key==='Escape'&&menu.open){{menu.open=false;menu.querySelector('summary').focus()}}}});document.addEventListener('click',e=>{{if(menu.open&&!menu.contains(e.target))menu.open=false}});}})();</script></body></html>"""
 
-def _layout(title: str, body: str, *, refresh_seconds: int = 30, static: bool = False, csrf_token: str = "") -> str:
+def _layout(title: str, body: str, *, refresh_seconds: int = 30, static: bool = False, csrf_token: str = "", public_summary: bool = True) -> str:
     if static:
-        return _public_layout_v2(title, body, refresh_seconds=refresh_seconds)
+        return _public_layout_v2(title, body, refresh_seconds=refresh_seconds, public_summary=public_summary)
     auto_refresh = int(refresh_seconds or 0) > 0
+    body = _accessible_tables(body)
     refresh_meta = _refresh_script(refresh_seconds)
     refresh_label = f"Dashboard view refreshes every {int(refresh_seconds)}s" if auto_refresh else "Interactive view · reload for latest saved data"
     refresh_form = "" if static else (
@@ -318,7 +323,7 @@ code{{font-size:12px;overflow-wrap:anywhere}}
   .primary-grid{{grid-template-columns:1fr}}
   .bar-row{{grid-template-columns:100px minmax(60px,1fr) 40px}}
 }}
-</style></head><body>
+{_TABLE_CSS}</style></head><body>
 <a class="skip-link" href="#main-content">Skip to content</a><header><h1>GIS Data Watchtower</h1><div class="actions"><span>{_esc(refresh_label)}</span>{refresh_form}{'<button type="button" id="refresh-pause" aria-pressed="false">Pause automatic refresh</button>' if auto_refresh else ''}</div></header>
 <div class="app-shell">
 <aside class="sidebar"><div class="side-brand"><strong>ClearParcel</strong><small>GIS Data Watchtower</small></div><nav>
