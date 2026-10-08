@@ -4,7 +4,9 @@ Use Codex Cloud for coding, offline tests, documentation, and synthetic dashboar
 previews. The Cloud Run services and GERTKEN-PC provider workers keep their
 existing operational roles and execution profiles. This guide prepares the
 repository. A private pilot has subsequently been published and preparation
-checks passed, but fresh-task restoration remains blocked by provisioning.
+checks passed. The restoration retry subsequently passed at the original
+published pin `9f70876`; current-main cloud acceptance and normal CCE attachment
+remain pending.
 See the [October 8 readiness review](codex-cloud-readiness-review-2026-10-08.md)
 for exact evidence and remaining gates. Provider assignment to Google Cloud
 Run does not supply this development environment with operational authority.
@@ -123,9 +125,11 @@ attachment. The Website pilot's temporary CCE exception does not cover Watchtowe
 The published Watchtower pilot's temporary, specifically approved exception
 covers its synthetic validation only; it does not extend default CCE requirements
 for normal coding or operational work. The desktop launcher created a fresh
-validation task, but its recorded runtime remained pending/offline. Resolve
-provisioning and verify restoration/CCE capabilities before relying on cloud
-execution.
+validation task. Its authorized restoration retry now reports running/connected
+and passing synthetic acceptance at the original published pin. It retained that
+pin instead of refreshing to main. Deliberately review and publish a verified
+current revision, then validate a fresh task and its restoration, normal CCE
+attachment and supported Git/PR workflow before relying on cloud coding.
 
 Production rollouts and the separately authorized multi-day hybrid validation
 gate remain operational work under the existing approval boundaries.

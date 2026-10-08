@@ -1,9 +1,9 @@
 # Codex Cloud readiness review — 2026-10-08
 
-The development environment has been prepared and published, but fresh-task
-restoration is blocked by provisioning. Further migration is principally about
-making that environment usable and validating its lifecycle, rather than moving
-provider credentials or the production database into a coding workspace.
+The development environment is now running and connected. An authorized retry
+passed restoration acceptance at its original published pin. Current-main
+acceptance, normal CCE attachment and a verified cloud Git/PR workflow remain
+pending; production credentials and storage stay in the operational environment.
 
 Google Cloud operational connectivity and Codex Cloud development are separate.
 The [county migration](county-cloud-migration-2026-10-08.md) puts all 35 configured
@@ -11,7 +11,51 @@ providers in the Cloud Run profile. That does not provision a Codex Cloud VM,
 grant it Google Cloud credentials, refresh the public aggregate, or transfer
 authoritative scheduling.
 
-## Evidence reviewed
+## Restoration retry — verified 2026-10-08
+
+The existing **Validate environment restoration** task completed its explicitly
+authorized bounded retry. Its live status reported running/connected, current
+spec and observed revisions 8/8, no last failure and the same selected published
+version. A shell and filesystem were available. The cause of the earlier delay
+was not identified; no reset, recreation, networking, credentials or configuration
+change was performed by this retry.
+
+The task verified HEAD `9f70876d222d863fd89176d321789cb0fdf9c17f`, Python 3.13.15,
+Node 24.19.0, dependency checks, all 308 tests without skips, compilation, status
+synchronization, status CLI and whitespace checks. It restarted the synthetic
+preview at loopback port 8080; API, summary and rendered metrics agreed on three
+sources, two workers, two healthy entries, one warning and separate overdue
+reporting. Existing files were preserved and Git remained clean.
+
+The retained fixture's health response was 503 because its publication timestamp
+was old. A separate fresh synthetic preview returned 200 and passed static-build
+validation. Temporary artifacts were removed. No provider polling, production
+access, deployment, merge, push or scheduling occurred in the cloud task.
+
+Restoration retained the published pin; it did not refresh to newer GitHub main
+`a90febc33685d932468cb77f4329ebcef1b0ca7d`. Local validation of that merged main
+also passed offline public replay and static construction with network connections
+forbidden, original observation clocks and zero polling sources. This local
+result does not establish acceptance of current main in Codex Cloud.
+
+The cloud validation used only the previously approved Watchtower synthetic
+pilot CCE exception. A real callable authority-bound CCE attachment remains
+unverified and required for normal coding.
+
+## Current development gates
+
+1. Review a publication update to a verified main revision through the supported
+   environment configuration workflow, preserving synthetic setup, network policy
+   and absence of production credentials. Keep the existing published version
+   identifiable for rollback; do not silently refresh its original pin.
+2. Establish and verify normal CCE begin/refresh/record/finish authority on the
+   same live cloud MCP connection. Do not reuse this local workflow's authority.
+3. Verify exact revision, dependencies, required tests, synthetic preview and
+   restart in a fresh current-revision task and after restoration.
+4. Verify supported cloud branch/PR submission and preserved edits through
+   reconnect. Local GitHub CLI success does not establish cloud permissions.
+
+## Initial review evidence (superseded runtime status)
 
 - Local feature revision `9f70876d222d863fd89176d321789cb0fdf9c17f`; main is
   `3ca334a84c5277e28a203ce106c69120427a3045`. Cloud preparation remains in
@@ -123,7 +167,7 @@ Google Cloud environment. They do not need to be copied into Codex Cloud for
 coding. Windows CI remains useful until local retirement and for compatibility;
 the currently green Linux lanes already support development portability.
 
-## Review limits
+## Initial review limits (historical)
 
 This review confirms repository/CI evidence and the existing cloud-task report,
 not a newly functioning managed executor. Managed runtime/configuration tools
