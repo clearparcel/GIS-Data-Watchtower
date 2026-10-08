@@ -20,6 +20,9 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: ${{ matrix.python-version }}
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "24"
       - name: Install
         run: python -m pip install --disable-pip-version-check --constraint constraints.txt -e ".[gcs]"
       - name: Compile
@@ -30,6 +33,19 @@ jobs:
         run: python -W error::ResourceWarning -m unittest discover -s tests -q
       - name: CLI smoke test
         run: watchtower --config config/example_sources.json status --json
+
+      - name: Linux cloud development smoke test
+        if: matrix.os == 'ubuntu-24.04' && matrix.python-version == '3.13'
+        shell: bash
+        env:
+          WATCHTOWER_DEV_PYTHON: python
+        run: |
+          bash -n setup_watchtower_env.sh
+          bash -n scripts/preview_cloud_dashboard.sh
+          bash setup_watchtower_env.sh --gcs
+          source .venv-watchtower/bin/activate
+          python scripts/prepare_cloud_development.py
+          watchtower --config datawatch/cloud-development/config.json dashboard-build --output datawatch/cloud-development/site --json
 
       - name: Container smoke test
         if: matrix.os == 'ubuntu-24.04' && matrix.python-version == '3.14'

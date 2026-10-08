@@ -10,6 +10,14 @@ This file applies to the entire GIS Data Watchtower repository.
 - Treat the checked-out branch, `STATUS.md`, `docs/current-status.md`, and current GitHub state as the operational source of truth.
 - Preserve existing dirty work. Before editing, inspect `git status`, the current branch, and recent commits.
 
+Codex Cloud may perform repository coding, offline tests, documentation, and
+synthetic dashboard previews. GERTKEN-PC remains the authoritative operational
+machine. Follow [the cloud development guide](docs/codex-cloud-development.md).
+Cloud setup must use synthetic data and local storage, without production
+credentials, private registries, provider polling, or authoritative scheduling.
+Keep CCE workflows callable and authority-bound; the temporary Website-only CCE
+exception does not apply to Watchtower.
+
 ## Approval boundaries
 
 Do not perform any of the following without explicit user approval in the current task:
