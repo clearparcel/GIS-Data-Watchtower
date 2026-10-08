@@ -101,6 +101,11 @@ Do not report security vulnerabilities in public issues. See `SECURITY.md`.
 
 ## Development
 
+For Linux or Codex Cloud development, use the constrained setup and synthetic
+dashboard preview in [the cloud development guide](docs/codex-cloud-development.md).
+The preview uses local invented data; operational provider workers retain their
+existing execution profiles.
+
 ```bash
 python -W error::ResourceWarning -m unittest discover -s tests -q
 python -m compileall -q clearparcel tests scripts
