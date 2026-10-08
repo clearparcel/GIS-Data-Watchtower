@@ -9,6 +9,11 @@ The v0.1.1 release contains the review fixes and packaging/dashboard updates des
 
 GIS Data Watchtower is a lightweight Python monitor for public GIS services. It checks whether configured services are reachable, records meaningful changes over time, performs bounded parcel-data quality checks, and provides a plain-language dashboard without republishing source datasets.
 
+Development supports [synthetic cloud setup and offline public replay](docs/codex-cloud-development.md).
+[Cloud-only receipts and explicit worker retirement](docs/hybrid-aggregation.md#observation-receipts)
+prepare operational activation while preserving source observations and concurrency controls.
+See [current status](docs/current-status.md) for the remaining runtime and deployment gates.
+
 ClearParcel also operates a read-only public dashboard at **https://gis-watchtower.clear-parcel.com**. The hosted view is deliberately sanitized and is separate from the private operational dashboard.
 
 ## What it monitors

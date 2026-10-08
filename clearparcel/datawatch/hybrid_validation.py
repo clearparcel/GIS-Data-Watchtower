@@ -51,12 +51,21 @@ def candidate_manifest(config: dict, build: dict | None = None) -> dict:
 def validation_receipt(manifest: dict, reports: dict, aggregate: dict, public: dict) -> dict:
     problems = []
     expected = manifest["expected_sources"]
+    active = {profile: ids for profile, ids in expected.items() if ids}
+    if not active:
+        problems.append("candidate has no active sources")
+    for profile in set(reports) - set(active):
+        if reports[profile].get("sources"):
+            problems.append(f"inactive worker report: {profile}")
+    for label, state in (("aggregate", aggregate), ("public", public)):
+        if set(state.get("workers", {})) != set(active):
+            problems.append(f"{label} active worker inventory mismatch")
     union = set().union(*(set(ids) for ids in expected.values()))
     if set(aggregate.get("sources", {})) != union:
         problems.append("aggregate inventory mismatch")
     if set(public.get("sources", {})) != union:
         problems.append("public inventory mismatch")
-    for profile, ids in expected.items():
+    for profile, ids in active.items():
         report = reports.get(profile, {})
         stamp = report.get("generated_at")
         if report.get("runtime_identity") != manifest["runtime_identity"]:
@@ -108,6 +117,6 @@ def validation_receipt(manifest: dict, reports: dict, aggregate: dict, public: d
                 problems.append(f"catalog observation mismatch: {sid}")
     return {"schema_version": 1, "passed": not problems, "problems": sorted(set(problems)),
             "runtime_identity": manifest["runtime_identity"],
-            "worker_observations": {p: reports.get(p, {}).get("generated_at") for p in expected},
+            "worker_observations": {p: reports.get(p, {}).get("generated_at") for p in active},
             "source_count": len(union), "public_published_at": public.get("public_published_at"),
             "activation_authorized": False}

@@ -41,3 +41,36 @@ Publication also uses destination compare-and-swap, retrying up to eight conflic
 ## Observation receipts
 
 [Offline hybrid receipts](watchtower-remediation-2026-10-07.md#hybrid-candidate-and-validation-preparation) compare already captured reports, aggregate, and sanitized snapshot. Catalog retained-payload time and GAC metric time survive public projection; publication-only updates remain distinct from provider observations. CAS and worker/source ordering behavior remain unchanged.
+
+Receipts require reports and active worker entries only for execution profiles
+with assigned sources. A cloud-only candidate needs no empty local report or
+heartbeat. Its aggregate and public snapshot must contain exactly the active
+worker inventory; an empty candidate cannot pass. Runtime identity, complete
+source inventory, provenance and observation checks still apply. A passing
+receipt does not authorize activation or scheduling.
+
+## Explicit worker retirement
+
+Changing profile assignments does not remove a worker from retained state. Once
+fresh observations have moved every source away from a worker, prepare an
+offline retirement using a timestamp later than the aggregate and that worker's
+retained clocks:
+
+```text
+watchtower worker-retire --base captured-aggregate.json --worker local --at 2026-10-09T12:00:00Z --output proposed-aggregate.json
+```
+
+Choose the actual reviewed retirement time; the example is not an operational
+instruction. This command reads and writes local files only, without loading a
+provider registry. It refuses retirement while any source observation belongs
+to that worker. History is archived under `retired_workers`, and all source
+observations remain intact. Retired workers no longer count as active or stale.
+Older delayed reports are ignored; subsequent reports from the retired identity
+are rejected. Reactivation requires a separately reviewed recovery procedure.
+
+The `publish_worker_retirement` storage utility uses generation-protected CAS
+and rechecks the latest source ownership after each conflict. Publish only under
+explicit operational-write approval; never upload an offline proposal over a
+newer aggregate. The public publisher retains sanitized retirement history and
+rejects removal without a newer tombstone or resurrection of a retired worker.
+No deployed aggregate has been retired as part of this repository change.

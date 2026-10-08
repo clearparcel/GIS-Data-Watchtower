@@ -80,6 +80,27 @@ terms holds, local-only restrictions, and concurrency protections intact.
 
 ## Acceptance checks
 
+### Optional offline public snapshot replay
+
+After synthetic setup, an already sanitized public snapshot can be supplied as
+a local file for a separate UI replay. Do not use a private aggregate or registry.
+The importer makes no network requests, rejects operational fields, applies the
+typed public projection, limits input to 8 MiB, and refuses an existing output
+directory. It retains observation and publication clocks, so old snapshots can
+correctly render as stale. It supplies an empty polling configuration and local
+storage; this is not a source of operational observations.
+
+```bash
+python scripts/import_public_development_snapshot.py --input public-snapshot.json --output datawatch/public-replay
+watchtower --config datawatch/public-replay/config.json dashboard-build --output datawatch/public-replay/site --json
+```
+
+Keep replay files under the ignored `datawatch/` tree. Setup and restoration
+validation still use synthetic fixtures. Public replay requires no production
+credentials or provider access and does not change the default preview launcher.
+
+### Required checks
+
 ```bash
 node --version
 python -m pip check

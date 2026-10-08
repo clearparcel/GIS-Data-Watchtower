@@ -178,7 +178,10 @@ def sanitize_public_render_state(state: dict) -> dict:
         'schema_version': _public_count, 'generated_at': _public_date,
         'public_published_at': _public_date, 'overall': _public_status}.items()}
     public.update(counts=_project(state.get('counts'), {key: _public_count for key in ('ok', 'warn', 'error')}),
-                  workers={}, sources={}, retired_sources={})
+                  workers={}, sources={}, retired_sources={}, retired_workers={})
+    for name, worker in _records(state.get('retired_workers')).items():
+        if _metadata_text(name) and isinstance(worker, dict):
+            public['retired_workers'][name] = _project(worker, {**_WORKER_SCHEMA, 'retired_at': _public_date})
     for source_id, record in _records(state.get('retired_sources')).items():
         if _metadata_text(source_id) and isinstance(record, dict):
             public['retired_sources'][source_id] = _project(
