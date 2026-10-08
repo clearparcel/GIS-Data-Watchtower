@@ -13,6 +13,9 @@ def _esc(value) -> str:
 
 
 _PUBLIC_V2_CSS = """
+.overview-controls{display:flex;flex-wrap:wrap;gap:10px 16px;margin-bottom:10px;align-items:center}
+.overview-controls label{display:inline-flex;align-items:center;gap:8px;white-space:nowrap;max-width:100%}
+.overview-controls select{min-width:0;max-width:100%}
 :root{color-scheme:dark;--bg:#080b12;--panel:#111722;--panel2:#151d2b;--panel3:#0d131e;--line:#263247;--line2:#34445e;--text:#eef4ff;--muted:#8e9bb0;--blue:#6ea8fe;--blue2:#4b8ee8;--green:#5bd49a;--amber:#f5c66a;--red:#ff7b86;--shadow:0 12px 30px #0004;--radius:14px}
 *{box-sizing:border-box}
 html{scroll-behavior:smooth;background:var(--bg)}
