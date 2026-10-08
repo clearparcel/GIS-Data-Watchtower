@@ -15,8 +15,9 @@ synthetic dashboard previews. GERTKEN-PC remains the authoritative operational
 machine. Follow [the cloud development guide](docs/codex-cloud-development.md).
 Cloud setup must use synthetic data and local storage, without production
 credentials, private registries, provider polling, or authoritative scheduling.
-Keep CCE workflows callable and authority-bound; the temporary Website-only CCE
-exception does not apply to Watchtower.
+Keep CCE workflows callable and authority-bound. The separately approved temporary
+Watchtower pilot exception covers only its synthetic setup/restoration validation;
+it does not authorize normal cloud coding or operational work without CCE.
 
 ## Approval boundaries
 

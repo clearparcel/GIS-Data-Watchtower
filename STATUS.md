@@ -16,12 +16,13 @@ reason, and tests unperformed. Provisioning, normal CCE attachment, fresh/restor
 acceptance and cloud-only operational receipt/worker-retirement support remain
 separate gates. The development environment is not an operational poller.
 
-## USDA connected through Google Cloud — 2026-10-08
+## Earlier USDA connection step — 2026-10-08 (superseded assignments)
 
 Both complete USDA adapters passed in the existing Cloud Run staging worker,
 one attempt each, without saving operational observations. Private registry
-version 11 now assigns USDA to cloud: 33 cloud / 2 local configured sources.
-Rice and Beltrami remain local. The aggregate still retains its prior
+version 11 assigned USDA to cloud: 33 cloud / 2 local configured sources.
+Rice and Beltrami were local at that step; version 12 above supersedes those
+assignments. The aggregate still retains its prior
 31-cloud/4-local observations; provider scheduling and the authoritative local
 installation are unchanged. See [connection evidence and rollback](docs/usda-cloud-connection-2026-10-08.md).
 Rice's current Commons page advertises public API access and download options;
