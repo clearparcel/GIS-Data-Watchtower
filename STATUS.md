@@ -1,5 +1,43 @@
 # Project status
 
+## All configured providers assigned to Google Cloud — 2026-10-08
+
+Rice and Beltrami each passed their complete adapter in the existing Cloud Run
+worker on the first attempt, without saving observations. Private registry
+version 12 assigns all 35 sources to cloud; only those two profiles changed.
+The saved aggregate still has 31-cloud/4-local observations. Provider schedules,
+the authoritative local task and production observations are unchanged.
+See [county migration evidence](docs/county-cloud-migration-2026-10-08.md).
+
+The thorough [Codex Cloud readiness review](docs/codex-cloud-readiness-review-2026-10-08.md)
+confirms a published private environment and passing preparation/CI. Its fresh
+restoration task remains pending/offline with no shell, no reported failure
+reason, and tests unperformed. Provisioning, normal CCE attachment, fresh/restored
+acceptance and cloud-only operational receipt/worker-retirement support remain
+separate gates. The development environment is not an operational poller.
+
+## Earlier USDA connection step — 2026-10-08 (superseded assignments)
+
+Both complete USDA adapters passed in the existing Cloud Run staging worker,
+one attempt each, without saving operational observations. Private registry
+version 11 assigned USDA to cloud: 33 cloud / 2 local configured sources.
+Rice and Beltrami were local at that step; version 12 above supersedes those
+assignments. The aggregate still retains its prior
+31-cloud/4-local observations; provider scheduling and the authoritative local
+installation are unchanged. See [connection evidence and rollback](docs/usda-cloud-connection-2026-10-08.md).
+Rice's current Commons page advertises public API access and download options;
+the earlier secure-service warning is historical and was not reproduced today.
+
+## Cloud provider access reassessment — 2026-10-08
+
+A paired bounded probe returned HTTP 200 and valid responses for both USDA
+sources, Beltrami, and Rice from GERTKEN-PC and Google Cloud Build. Earlier
+cloud failures do not establish a permanent cloud/datacenter restriction.
+See [the evidence and validation limits](docs/cloud-provider-access-reassessment-2026-10-08.md).
+This initial probe did not change profiles or schedules. The subsequent USDA
+connection above verifies the actual Cloud Run adapters; multi-day reliability
+remains pending. County ambiguity is explained in the reassessment report.
+
 ## Codex Cloud development preparation — 2026-10-08
 
 Repository preparation adds a Linux virtualenv bootstrap, synthetic offline
@@ -8,11 +46,13 @@ current cloud worker, a stale local worker with healthy last-known source data,
 and a warning source. Cloud coding scope and operational authority are documented
 in [the cloud development guide](docs/codex-cloud-development.md).
 
-This prepares development migration. Cloud environment creation, callable CCE
-attachment, fresh/restored cloud task validation, and a clean Linux test run
-remain acceptance requirements. Production deployment, provider profiles,
-private configuration, and authoritative schedules are unchanged. The temporary
-Website-only CCE exception does not extend to Watchtower.
+Preparation revision `9f70876` passed all Linux/Windows CI lanes. Supplied setup
+records establish a published private pilot and 308 passing preparation tests
+without skips, plus synthetic preview validation. Fresh-task provisioning and
+restoration remain blocked; normal callable CCE attachment remains outstanding.
+The narrowly approved temporary Watchtower pilot exception does not grant broader
+cloud or operational authority. Provider profile migrations are recorded above;
+authoritative schedules remain unchanged.
 
 ## October 7 review remediation — implementation only
 

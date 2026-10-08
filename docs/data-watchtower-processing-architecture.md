@@ -83,7 +83,7 @@ A Cloud Run Job can execute a cloud profile and persist state in GCS. Secret/run
 
 ### Hybrid
 
-The validated ClearParcel staging pattern is:
+The historical hybrid staging pattern is:
 
 ```text
 Cloud worker (cloud profile)
@@ -97,9 +97,9 @@ This supports providers that permit cloud egress alongside providers that must r
 
 ## Current validated posture
 
-Latest recorded validation on 2026-10-06 passed 31 cloud and four local sources (35 healthy aggregate observations with provenance). Earlier 22-cloud/26-total evidence is historical. The public service reads the sanitized object; provider polling remains separate from the 10-minute publisher cadence. Authoritative cloud provider scheduling remains disabled pending the multi-day gate. See [current status](current-status.md) and [deployment evidence](google-cloud-deployment.md).
+Private registry version 12 assigns all 35 sources to cloud after the October 8 scoped Cloud Run validations. Saved observations retain their prior 31-cloud/4-local provenance until a saving worker run. The October 6 35/35 healthy hybrid cycle and earlier 22-cloud/26-total results are historical. The public service reads the sanitized object; provider polling remains separate from the 10-minute publisher cadence. Authoritative cloud provider scheduling remains disabled pending the multi-day gate. See [current status](current-status.md) and [deployment evidence](google-cloud-deployment.md).
 
-Repository-review transport, reporting and publisher changes are not deployed. Redirects remain disabled by default; protected hops bind validated addresses while retaining original Host/TLS identity and reject effective proxies. HTTP 429 stops source requests/retries, including optional QA. Overall provider deadlines and bounded public socket deadlines limit stalled I/O; they do not cancel CPU computation. Publisher invocations use unique temporary directories, cleaned on success/failure; both storage clients share process ADC. See [configuration](configuration.md), [public hosting](public-dashboard-hosting.md) and [review limitations](repository-review-2026-10-06.md).
+Deployment identity is recorded in [current status](current-status.md); the following describes implemented controls. Redirects remain disabled by default; protected hops bind validated addresses while retaining original Host/TLS identity and reject effective proxies. HTTP 429 stops source requests/retries, including optional QA. Overall provider deadlines and bounded public socket deadlines limit stalled I/O; they do not cancel CPU computation. Publisher invocations use unique temporary directories, cleaned on success/failure; both storage clients share process ADC. See [configuration](configuration.md), [public hosting](public-dashboard-hosting.md) and [review limitations](repository-review-2026-10-06.md).
 
 ## Production migration gate
 

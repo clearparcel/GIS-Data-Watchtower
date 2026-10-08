@@ -1,6 +1,6 @@
 # Hybrid execution profiles
 
-Some public GIS providers accept requests from local/residential or organizational networks but reject cloud-datacenter egress. Watchtower does not attempt to bypass those controls.
+Provider connectivity can differ by execution environment. A failed cloud request is evidence about that request and environment; it does not establish a permanent cloud/datacenter restriction. Watchtower does not attempt to bypass provider controls. The [October 8 reassessment](cloud-provider-access-reassessment-2026-10-08.md) found valid Google Cloud responses from all four sources then assigned locally. Subsequent actual worker validation connected [USDA](usda-cloud-connection-2026-10-08.md), [Rice and Beltrami](county-cloud-migration-2026-10-08.md) to the cloud profile. Private registry version 12 assigns all 35 sources to cloud, while the saved aggregate retains its prior observations until a saving worker run. Cloud-only validation and inactive-worker retirement remain operational follow-up work in the [readiness review](codex-cloud-readiness-review-2026-10-08.md).
 
 A source may optionally declare:
 

@@ -3,8 +3,11 @@
 Use Codex Cloud for coding, offline tests, documentation, and synthetic dashboard
 previews. The Cloud Run services and GERTKEN-PC provider workers keep their
 existing operational roles and execution profiles. This guide prepares the
-repository; it does not indicate that a cloud environment has been created or
-validated.
+repository. A private pilot has subsequently been published and preparation
+checks passed, but fresh-task restoration remains blocked by provisioning.
+See the [October 8 readiness review](codex-cloud-readiness-review-2026-10-08.md)
+for exact evidence and remaining gates. Provider assignment to Google Cloud
+Run does not supply this development environment with operational authority.
 
 ## Environment setup
 
@@ -96,8 +99,12 @@ Before declaring migration complete, select a verified GitHub revision, verify
 these checks in a fresh cloud task and a restored/cached task, and establish a
 real authority-bound CCE MCP workflow there. SDK installation alone is not CCE
 attachment. The Website pilot's temporary CCE exception does not cover Watchtower.
-The Website pilot encountered CCE attachment and task-launch limitations; verify
-those platform capabilities for Watchtower before relying on cloud execution.
+The published Watchtower pilot's temporary, specifically approved exception
+covers its synthetic validation only; it does not extend default CCE requirements
+for normal coding or operational work. The desktop launcher created a fresh
+validation task, but its recorded runtime remained pending/offline. Resolve
+provisioning and verify restoration/CCE capabilities before relying on cloud
+execution.
 
 Production rollouts and the separately authorized multi-day hybrid validation
 gate remain operational work under the existing approval boundaries.

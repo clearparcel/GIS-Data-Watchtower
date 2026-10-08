@@ -2,7 +2,7 @@
 
 The v0.1.1 application is deployed to production from merged code commit `8099ee18ec48714b33a9e998b414ea9ee0cf7d8e`: public `00011-b9c` and private dashboard `00019-c9l` each receive 100% traffic. The user explicitly waived the multi-day staging gate for this rollout; it remains incomplete. The isolated preview remains on candidate revision `00017-s8b`. Production universal digest is `sha256:3f3244054a202c55a464e06e85afea9f72dc750bc34d75cbbe872fde5495dfb6`; the IAP-preserving private derivative is `sha256:4fbc66103d968c289e03d48a07646a9c6ac69435cd7d46700c9b137c85dd9ed6`. The sanitized publisher job uses the universal production image. The staging provider job still has not executed the candidate. See [the v0.1.1 release record](release-v0.1.1.md) and [the Address/Road release record](release-gac-address-road-2026-10-07.md).
 
-The cloud staging registry is Secret Manager version 9 with the existing 35 source IDs. Address/Road GAC checks are active in staging and public output, but authoritative GIS-provider scheduling remains local: Cloud Scheduler still contains only the 10-minute sanitized publisher. PostHog remains dormant pending Issue #50.
+The cloud staging registry is Secret Manager version 12 with the existing 35 source IDs, all assigned to cloud. USDA, Rice and Beltrami passed their complete adapters in actual Cloud Run no-save checks; existing aggregate observations retain their prior provenance until a saving worker run. See [the USDA connection record](usda-cloud-connection-2026-10-08.md) and [county migration](county-cloud-migration-2026-10-08.md). Address/Road GAC checks are active in staging and public output, but authoritative GIS-provider scheduling remains local: Cloud Scheduler still contains only the 10-minute sanitized publisher. PostHog remains dormant pending Issue #50.
 
 GIS Data Watchtower can run as a scheduled **Cloud Run Job** while retaining the same CLI and monitoring engine used locally.
 
@@ -82,7 +82,7 @@ Run cloud and local processing in parallel before changing production. Compare s
 
 As of 2026-10-05, a private Cloud Run Job deployment in `us-central1` has been validated with Google Cloud Storage persistence and Secret Manager-provided deployment configuration.
 
-The historical October 5 cloud profile processed 22 deployment sources with exact status/count/schema parity against the same local observations. Four provider-specific sources remain local-only because they reject or cannot validate requests from the Google Cloud environment. The project intentionally does not bypass those provider controls.
+The historical October 5 cloud profile processed 22 deployment sources with exact status/count/schema parity against the same local observations. Four provider-specific sources were retained locally after earlier Google Cloud failures. The [October 8 reassessment](cloud-provider-access-reassessment-2026-10-08.md) obtained valid bounded responses from all four in Google Cloud Build, so those failures do not establish permanent cloud restrictions. Their subsequent actual Cloud Run adapter validation and scoped profile changes are recorded in the USDA/county connection records linked above. The project intentionally does not bypass provider controls.
 
 Hybrid aggregation was initially validated with 22 cloud observations plus 4 local observations, producing a 26-source staging aggregate while preserving worker provenance. The hardened post-security-review build completed 22/22 cloud checks and 4/4 local checks with a 26/26 OK aggregate and complete JSON/CSV/Excel exports.
 
