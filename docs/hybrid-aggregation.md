@@ -45,7 +45,7 @@ Publication also uses destination compare-and-swap, retrying up to eight conflic
 Receipts require reports and active worker entries only for execution profiles
 with assigned sources. A cloud-only candidate needs no empty local report or
 heartbeat. Its aggregate and public snapshot must contain exactly the active
-worker inventory; an empty candidate cannot pass. Runtime identity, complete
+worker inventory; inactive-profile reports and an empty candidate cannot pass. Runtime identity, complete
 source inventory, provenance and observation checks still apply. A passing
 receipt does not authorize activation or scheduling.
 

@@ -55,8 +55,7 @@ def validation_receipt(manifest: dict, reports: dict, aggregate: dict, public: d
     if not active:
         problems.append("candidate has no active sources")
     for profile in set(reports) - set(active):
-        if reports[profile].get("sources"):
-            problems.append(f"inactive worker report: {profile}")
+        problems.append(f"inactive worker report: {profile}")
     for label, state in (("aggregate", aggregate), ("public", public)):
         if set(state.get("workers", {})) != set(active):
             problems.append(f"{label} active worker inventory mismatch")

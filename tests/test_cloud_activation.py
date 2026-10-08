@@ -29,6 +29,10 @@ class CloudActivationTests(unittest.TestCase):
         receipt = validation_receipt(manifest, {'cloud': report}, state, sanitize_public_render_state(state))
         self.assertTrue(receipt['passed'], receipt['problems'])
         self.assertEqual(receipt['worker_observations'], {'cloud': self.stamp})
+        extra = validation_receipt(manifest, {'cloud': report, 'local': {'sources': {}}},
+                                   state, sanitize_public_render_state(state))
+        self.assertFalse(extra['passed'])
+        self.assertIn('inactive worker report: local', extra['problems'])
         wrong = copy.deepcopy(state)
         wrong['workers']['local'] = {'last_report_at': self.stamp}
         self.assertFalse(validation_receipt(manifest, {'cloud': report}, wrong,
