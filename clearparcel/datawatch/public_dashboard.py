@@ -214,8 +214,10 @@ def render_public_dashboard(config: dict) -> str:
 <div class="section-head"><div><h2>Explore Minnesota GIS data</h2><p>Select any county to inspect its complete parcel source profile.</p></div><a href="/counties">All 87 counties →</a></div>
 <div class="hero-panel">
   <div class="card">
-    <label>Map view<select id="overview-metric"><option value="monitoring">Monitoring paths</option><option value="completeness">MN GAC mandatory-field completeness</option></select></label>
-    <label for="overview-county-select">Find a county</label><select id="overview-county-select"><option value="">Choose a county…</option>{county_options}</select>
+    <div class="overview-controls">
+      <label>Map view<select id="overview-metric"><option value="monitoring">Monitoring paths</option><option value="completeness">MN GAC mandatory-field completeness</option></select></label>
+      <label for="overview-county-select">Find a county<select id="overview-county-select"><option value="">Choose a county…</option>{county_options}</select></label>
+    </div>
     <div class="mngac-map-panel">{map_svg}<div id="overview-legend"></div></div>
   </div>
   <div class="card hero-copy">
