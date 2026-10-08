@@ -318,12 +318,16 @@ language. Regional seven-county parcel compilations remain separate products.
 Rice's old MnGeo-linked item is inaccessible. A rendered Commons search and current
 [Tax Parcels item](https://www.arcgis.com/sharing/rest/content/items/d79e1a5432e44980877703f5371a1a70?f=pjson)
 resolve a distinct county-owned repository product and exact county MapServer/1. Direct
-bounded metadata succeeds, but its current Commons About reports a secure-service
+bounded metadata succeeds, but the October 6 Commons About review reported a secure-service
 authorization requirement and unavailable downloads. The county Maps page direct read
 returned 403; current county homepage and item disclaimer were reviewed. No denial or
 authorization gate was bypassed. Prior discovery of a FGDB archive does not resolve the
 current download/product-policy scope, and technical REST access does not finish Rice's
-legacy county-direct classification or authorize polling.
+legacy county-direct classification or authorize polling. An October 8 rendered
+review of the current full-details page instead shows public access, direct
+API links and CSV/Shapefile/GeoJSON/KML download options. The earlier warning
+was not reproduced; its cause remains unknown and it is not a confirmed current
+restriction. No export was downloaded. See [the reassessment](cloud-provider-access-reassessment-2026-10-08.md#what-remains-ambiguous-for-rice-and-beltrami).
 
 All nine scoped Commons catalogs were rendered. Rice's current county-owned item is a
 distinct repository product. Subsequent review of the already-fetched official metropolitan
