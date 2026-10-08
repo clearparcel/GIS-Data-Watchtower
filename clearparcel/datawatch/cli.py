@@ -51,6 +51,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--source"); p.add_argument("--limit", type=int, default=50); p.add_argument("--json", action="store_true")
     p = sub.add_parser("aggregate", help="Merge a partial worker result into an authoritative state")
     p.add_argument("--base", type=Path, required=True); p.add_argument("--partial", type=Path, required=True); p.add_argument("--worker", required=True); p.add_argument("--output", type=Path, required=True)
+    p = sub.add_parser('worker-retire', help='Prepare an offline inactive-worker retirement snapshot')
+    p.add_argument('--base', type=Path, required=True)
+    p.add_argument('--worker', required=True)
+    p.add_argument('--at', required=True)
+    p.add_argument('--output', type=Path, required=True)
     p = sub.add_parser("dashboard", help="Serve the private dashboard")
     p.add_argument("--host", default="127.0.0.1"); p.add_argument("--port", type=int, default=8765)
     p = sub.add_parser("public-dashboard", help="Serve the read-only sanitized public dashboard")
@@ -76,6 +81,12 @@ def main() -> int:
             message = (f'Published {result["source_count"]} public Watchtower sources' if result["published"]
                        else 'Skipped superseded public Watchtower snapshot')
             print(json.dumps(result, indent=2) if args.json else message)
+            return 0
+        if args.command == 'worker-retire':
+            from clearparcel.datawatch.aggregate import load_json, retire_worker, save_json
+            result = retire_worker(load_json(args.base), args.worker, args.at)
+            save_json(args.output, result)
+            print(f'Prepared retirement snapshot for {args.worker}')
             return 0
         if args.config is None:
             raise FileNotFoundError(

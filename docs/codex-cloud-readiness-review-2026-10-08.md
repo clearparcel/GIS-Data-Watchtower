@@ -47,7 +47,24 @@ authoritative scheduling.
   describes a different setup/cache lifecycle. Apply the lifecycle of the
   actual published environment instead of assuming legacy scripts fix it.
 
-## Remaining work, in priority order
+## Follow-up implementation — 2026-10-08
+
+PRs #55, #56 and #57 have since merged with explicit user approval and passing
+checks. GitHub main contains the county label, synthetic cloud setup and this
+migration evidence; the merged remote branches are removed. The published
+pilot's recorded source pin has not been republished from current main.
+
+Repository follow-up now implements active-profile-only receipts, explicit
+worker retirement with archived history and CAS safety, and a separate opt-in
+offline importer for sanitized public snapshots. See
+[worker retirement](hybrid-aggregation.md#explicit-worker-retirement) and
+[public replay](codex-cloud-development.md#optional-offline-public-snapshot-replay).
+These changes do not perform production retirement, saving provider cycles,
+deployment, cloud provisioning or scheduling. The findings below describe the
+reviewed baseline; implementation closes the code gaps in operational items 2
+and 3, while deployment and acceptance remain pending.
+
+## Review baseline: remaining work, in priority order
 
 | Priority | Work | Acceptance evidence |
 | --- | --- | --- |

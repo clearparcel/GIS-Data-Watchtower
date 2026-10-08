@@ -8,7 +8,7 @@ import time
 from copy import deepcopy
 from pathlib import Path
 
-from .storage import StorageConflictError
+from .storage import StorageBackend, StorageConflictError
 from .file_lock import atomic_write
 
 _ALLOWED_STATUS = {"ok", "warn", "error"}
@@ -35,6 +35,12 @@ def merge_states(base: dict | None, partial: dict, worker: str) -> dict:
     incoming_time = _parse_time(generated)
     if incoming_time is None:
         raise ValueError("worker report requires a valid generated_at")
+    retired_workers = deepcopy(base.get('retired_workers') or {})
+    if worker in retired_workers:
+        retired_at = _parse_time(retired_workers[worker].get('retired_at'))
+        if retired_at is not None and incoming_time <= retired_at:
+            return base
+        raise ValueError('retired worker cannot publish a new report')
     workers = deepcopy(base.get("workers") or {})
     retired_sources = deepcopy(base.get("retired_sources") or {})
     previous_worker = workers.get(worker) or {}
@@ -95,7 +101,61 @@ def merge_states(base: dict | None, partial: dict, worker: str) -> dict:
         "sources": merged_sources,
         "workers": workers,
         "retired_sources": retired_sources,
+        "retired_workers": retired_workers,
     }
+
+
+def retire_worker(state: dict, worker: str, retired_at: str) -> dict:
+    """Archive an inactive worker after its sources have migrated, without deleting observations.
+
+    Raises:
+        ValueError: The worker owns sources, is unknown, or retirement would roll back time.
+    """
+    stamp = _parse_time(retired_at)
+    if stamp is None:
+        raise ValueError('worker retirement requires a valid timestamp')
+    if any(source.get('worker') == worker for source in (state.get('sources') or {}).values()):
+        raise ValueError('worker still owns source observations')
+    prior = (state.get('workers') or {}).get(worker)
+    if not isinstance(prior, dict):
+        raise ValueError('worker is not active')
+    for value in (state.get('generated_at'), prior.get('last_report_at'), prior.get('checked_at'),
+                  prior.get('last_success_at')):
+        seen = _parse_time(value)
+        if seen is not None and stamp <= seen:
+            raise ValueError('worker retirement must follow retained observations')
+    result = deepcopy(state)
+    archived = result['workers'].pop(worker)
+    archived['retired_at'] = retired_at
+    result.setdefault('retired_workers', {})[worker] = archived
+    result['generated_at'] = retired_at
+    return result
+
+
+def publish_worker_retirement(storage: StorageBackend, name: str, worker: str, retired_at: str,
+                              workdir: Path, *, retries: int = 8) -> dict:
+    """Retire an inactive worker with CAS, revalidating ownership after each conflict.
+
+    Raises:
+        ValueError: The latest aggregate is absent or retirement is unsafe.
+        StorageConflictError: Concurrent writers exhaust the bounded retry budget.
+    """
+    workdir.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix='watchtower-retirement-', dir=workdir) as scratch:
+        base_path, output_path = Path(scratch) / 'base.json', Path(scratch) / 'next.json'
+        for attempt in range(retries):
+            exists, version = storage.download_versioned(name, base_path)
+            if not exists:
+                raise ValueError('cannot retire worker from absent aggregate')
+            result = retire_worker(load_json(base_path), worker, retired_at)
+            save_json(output_path, result)
+            try:
+                storage.upload_if_version(name, output_path, version)
+                return result
+            except StorageConflictError:
+                if attempt + 1 >= retries:
+                    raise
+    raise ValueError('retirement requires a positive retry budget')
 
 
 def _parse_time(value):

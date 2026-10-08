@@ -1,5 +1,20 @@
 # Project status
 
+## Cloud activation tooling prepared — 2026-10-08
+
+Repository support now validates only profiles with assigned sources, requiring
+an exact active-worker inventory. Explicit worker retirement archives history,
+preserves sources, blocks retired-worker resurrection and supports CAS retries.
+The offline command prepares a proposal; no production worker has been retired.
+See [aggregation and receipts](docs/hybrid-aggregation.md).
+
+An optional [public snapshot replay](docs/codex-cloud-development.md#optional-offline-public-snapshot-replay)
+provides local UI fixtures from sanitized public data without provider calls or
+renewed observation clocks. Synthetic bootstrap remains the default.
+Fresh/restored Codex Cloud acceptance and normal CCE attachment still require a
+working cloud runtime. Five daily activation cycles and explicit authoritative
+scheduling approval remain operational release gates.
+
 ## All configured providers assigned to Google Cloud — 2026-10-08
 
 Rice and Beltrami each passed their complete adapter in the existing Cloud Run
@@ -13,7 +28,7 @@ The thorough [Codex Cloud readiness review](docs/codex-cloud-readiness-review-20
 confirms a published private environment and passing preparation/CI. Its fresh
 restoration task remains pending/offline with no shell, no reported failure
 reason, and tests unperformed. Provisioning, normal CCE attachment, fresh/restored
-acceptance and cloud-only operational receipt/worker-retirement support remain
+acceptance and deployment of cloud-only receipt/worker-retirement support remain
 separate gates. The development environment is not an operational poller.
 
 ## Earlier USDA connection step — 2026-10-08 (superseded assignments)

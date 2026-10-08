@@ -20,10 +20,12 @@ def main():
     manifest = candidate_manifest(load_config(args.config))
     result = manifest
     if not args.prepare:
-        if any(getattr(args, name) is None for name in ("cloud", "local", "aggregate", "public")):
-            parser.error("validation requires --cloud, --local, --aggregate and --public captured snapshots")
+        active = [profile for profile, ids in manifest['expected_sources'].items() if ids]
+        required = active + ['aggregate', 'public']
+        if any(getattr(args, name) is None for name in required):
+            parser.error("validation requires captured snapshots: " + ', '.join('--' + name for name in required))
         read = lambda path: json.loads(path.read_text(encoding="utf-8"))
-        result = validation_receipt(manifest, {p: read(getattr(args, p)) for p in ("cloud", "local")},
+        result = validation_receipt(manifest, {p: read(getattr(args, p)) for p in ("cloud", "local") if getattr(args, p)},
                                     read(args.aggregate), read(args.public))
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")

@@ -65,8 +65,21 @@ def _snapshot_is_superseded(candidate: dict, current: dict) -> bool:
         return True
     for name, worker in (current.get("workers") or {}).items():
         incoming = (candidate.get("workers") or {}).get(name) or {}
+        if not incoming:
+            tombstone = (candidate.get('retired_workers') or {}).get(name) or {}
+            seen = _parse_time(worker.get('last_report_at') or worker.get('checked_at'))
+            retired = _parse_time(tombstone.get('retired_at'))
+            if retired is None or (seen is not None and retired <= seen):
+                return True
+            if any(source.get('worker') == name for source in (candidate.get('sources') or {}).values()):
+                return True
+            continue
         if older(incoming.get("last_report_at") or incoming.get("checked_at"),
                  worker.get("last_report_at") or worker.get("checked_at")):
+            return True
+    for name, retired in (current.get('retired_workers') or {}).items():
+        incoming = (candidate.get('retired_workers') or {}).get(name) or {}
+        if not incoming or name in (candidate.get('workers') or {}) or older(incoming.get('retired_at'), retired.get('retired_at')):
             return True
     for name, source in (current.get("sources") or {}).items():
         incoming = (candidate.get("sources") or {}).get(name)
