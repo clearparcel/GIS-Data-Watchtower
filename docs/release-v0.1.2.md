@@ -84,6 +84,13 @@ schedule remains `3,13,23,33,43,53 * * * *`; no provider job was executed or
 rescheduled during rollout. This application release does not complete the
 multi-day provider activation gate or resolve the existing imagery warning.
 
+The first scheduled execution on the new image,
+`gis-data-watchtower-public-publisher-ndhgm`, completed successfully at
+`2026-10-10T23:55:12.802272Z`. Its public snapshot timestamp is
+`2026-10-10T23:55:06.166329+00:00`. Post-publication page/export and observation
+parity checks passed again. Temporary build source archives, local build
+contexts and private runtime configuration copies were removed after validation.
+
 Rollback: public `00011-b9c` and publisher production image
 `sha256:3f3244054a202c55a464e06e85afea9f72dc750bc34d75cbbe872fde5495dfb6`;
 private `00019-c9l` on
