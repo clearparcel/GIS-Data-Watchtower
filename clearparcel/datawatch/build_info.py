@@ -6,17 +6,24 @@ import re
 import tomllib
 
 BUILD_INFO_FILE = Path(__file__).with_name("build_info.json")
+PROJECT_FILE = Path(__file__).resolve().parents[2] / "pyproject.toml"
 
 
 def application_identity() -> dict[str, str]:
-    try:
-        package_version = version("clearparcel-gis-data-watchtower")
-    except PackageNotFoundError:
-        project_file = Path(__file__).resolve().parents[2] / "pyproject.toml"
-        package_version = (
-            tomllib.loads(project_file.read_text(encoding="utf-8"))["project"]["version"]
-            if project_file.is_file() else "unknown"
-        )
+    package_version = "unknown"
+    if PROJECT_FILE.is_file():
+        try:
+            project = tomllib.loads(PROJECT_FILE.read_text(encoding="utf-8"))["project"]
+            declared = project.get("version")
+            if project.get("name") == "clearparcel-gis-data-watchtower" and isinstance(declared, str) and declared.strip():
+                package_version = declared
+        except (AttributeError, KeyError, OSError, TypeError, ValueError):
+            pass
+    if package_version == "unknown":
+        try:
+            package_version = version("clearparcel-gis-data-watchtower")
+        except PackageNotFoundError:
+            pass
     try:
         build = json.loads(BUILD_INFO_FILE.read_text(encoding="utf-8"))
     except (OSError, ValueError):

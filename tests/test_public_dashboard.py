@@ -56,7 +56,7 @@ class PublicDashboardTests(unittest.TestCase):
         self.assertIn('Open parcel data', index)
         self.assertNotIn('Free parcel data', index)
         self.assertIn('href="https://clear-parcel.com"', page)
-        self.assertIn('src="data:image/webp;base64,', page)
+        self.assertIn('src="data:image/png;base64,', page)
         self.assertIn('<strong>Records:</strong> 42,996', county_page)
         self.assertIn('Official evidence and findings', county_page)
         self.assertIn('Read detailed research notes', county_page)
@@ -168,6 +168,36 @@ class PublicDashboardTests(unittest.TestCase):
         self.assertEqual(public['sources']['file']['public_metadata']['file'], {'type': 'application/zip', 'size_bytes': 0, 'etag': '"abc"', 'last_modified': '2025-01-01T00:00:00+00:00'})
         self.assertEqual(public['sources']['arcgis']['public_metadata']['provider_updated_at'], '2025-01-01T00:00:00+00:00')
         self.assertEqual(sanitize_public_render_state(public), public)
+
+    def test_public_source_labels_repair_cp1252_utf8_mojibake(self):
+        state = self._state()
+        state['sources']['mn-douglas-parcels-direct'] = {
+            'name': 'Douglas County Parcels â€” Direct', 'status': 'ok',
+        }
+        public = sanitize_public_render_state(state)
+        self.assertEqual(
+            public['sources']['mn-douglas-parcels-direct']['name'],
+            'Douglas County Parcels — Direct',
+        )
+
+    def test_label_repair_preserves_identifiers_and_mixed_unicode(self):
+        from clearparcel.datawatch.public_values import _display_text
+        broken_dash = '—'.encode('utf-8').decode('cp1252')
+        identifier = 'source-' + broken_dash
+        state = {'sources': {identifier: {
+            'id': identifier, 'worker': identifier, 'county_slug': identifier,
+            'name': '測量 — Parcels ' + broken_dash + ' Direct',
+            'provider': 'Café ' + broken_dash + ' GIS',
+        }}}
+        public = sanitize_public_render_state(state)
+        source = public['sources'][identifier]
+        for field in ('id', 'worker', 'county_slug'):
+            self.assertEqual(source[field], identifier)
+        self.assertEqual(source['name'], '測量 — Parcels — Direct')
+        self.assertEqual(source['provider'], 'Café — GIS')
+        self.assertEqual(sanitize_public_render_state(public), public)
+        self.assertIsNone(_display_text('bad\nlabel'))
+        self.assertIsNone(_display_text({'name': 'invalid'}))
 
     def test_nested_private_values_never_reach_public_metadata(self):
         from clearparcel.datawatch.public_dashboard import sanitize_source_metadata

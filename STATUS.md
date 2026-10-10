@@ -1,5 +1,21 @@
 # Project status
 
+## Project review and v0.1.2 preparation — 2026-10-10
+
+The current patch corrects public label encoding, the transparent footer logo,
+checkout version reporting and unknown source-health reporting. Cloud Build
+uploads now allow only application inputs. See the
+[review and release record](docs/release-v0.1.2.md) for validation and limits.
+Production remains at the last verified v0.1.1 deployment until renewed Google
+Cloud authentication and live acceptance confirm a newer release. Provider
+scheduling, private configuration and worker retirement are unchanged.
+
+The latest saved staging report used for local replay is from October 9 and
+contains 35 cloud source observations (34 OK and one Hennepin imagery warning),
+with no local source observations. Older local worker history is retained;
+this does not establish that the authoritative scheduling migration is complete.
+The cloud readiness and activation gates below remain separate from UI release.
+
 ## Codex Cloud restoration verified — 2026-10-08
 
 The authorized retry of **Validate environment restoration** now reports a

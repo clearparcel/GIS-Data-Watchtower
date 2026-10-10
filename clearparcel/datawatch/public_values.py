@@ -75,6 +75,21 @@ def _metadata_text(value: object, limit: int = 512) -> str | None:
     return None
 
 
+def _display_text(value: object, limit: int = 512) -> str | None:
+    """Repair known UTF-8 punctuation corruption in labels, never identifiers."""
+    text = _metadata_text(value, limit)
+    if text is None:
+        return None
+    for character in "—–‘’“”•·…\u00a0←→":
+        for encoding in ("cp1252", "latin1"):
+            try:
+                corrupted = character.encode("utf-8").decode(encoding)
+            except UnicodeDecodeError:
+                continue
+            text = text.replace(corrupted, character)
+    return text
+
+
 def _metadata_date(value: object, *, http: bool = False) -> str | None:
     text = _metadata_text(value, 80)
     if text is None:

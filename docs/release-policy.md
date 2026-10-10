@@ -42,7 +42,7 @@ Tags use `vMAJOR.MINOR.PATCH`. GitHub release notes should summarize user-visibl
 
 ## Visible application identity
 
-Every public page footer displays the installed package version, the first seven characters of the source commit, and the build environment. The full commit is available in the label's tooltip. This identifies application code independently of provider checks and public data publication timestamps.
+Every public page footer displays the package version, the first seven characters of the source commit, and the build environment. Source checkouts prefer their matching `pyproject.toml` version over stale installed metadata; installed wheels use distribution metadata. The full commit is available in the label's tooltip. This identifies application code independently of provider checks and public data publication timestamps.
 
 Container builds must pass `--build-arg WATCHTOWER_BUILD_REVISION=<full commit SHA>` and `--build-arg WATCHTOWER_BUILD_ENVIRONMENT=preview` or `production`, as appropriate. Docker writes this identity into packaged `build_info.json`; it is not inferred from runtime Git state or overwritten by runtime environment variables. Build a clean committed checkout and deploy its immutable image digest. Missing identity is displayed honestly as `build unknown · Development`, including ordinary source runs. The package version remains canonical in `pyproject.toml` and changes according to the policy above; each deployed commit remains distinguishable between semantic releases.
 

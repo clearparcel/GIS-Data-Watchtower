@@ -15,3 +15,7 @@ tests
 # Private agent/review scratch
 .cce-agent/
 .superpowers/
+.cce/
+.codex/
+.agents/
+.codex-remote-attachments/

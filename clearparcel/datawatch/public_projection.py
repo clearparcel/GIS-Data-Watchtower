@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime as dt
 import math
 
-from clearparcel.datawatch.public_values import safe_public_url, sanitize_source_metadata, _metadata_text
+from clearparcel.datawatch.public_values import safe_public_url, sanitize_source_metadata, _metadata_text, _display_text
 
 
 def _public_count(value: object) -> int | None:
@@ -53,7 +53,8 @@ def _records(value: object) -> dict:
 
 
 _SOURCE_SCHEMA = {
-    **{key: _metadata_text for key in ('id', 'name', 'provider', 'category', 'worker', 'county_slug')},
+    **{key: _metadata_text for key in ('id', 'worker', 'county_slug')},
+    **{key: _display_text for key in ('name', 'provider', 'category')},
     **{key: _public_date for key in ('checked_at', 'last_success_at', 'last_report_at')},
     **{key: _public_count for key in ('feature_count', 'field_count', 'parcel_id_null_count',
         'duplicate_id_extra_rows', 'null_geometry_count')},
@@ -88,7 +89,8 @@ def _sanitize_mngac(data: dict | None) -> dict | None:
     if not isinstance(data, dict):
         return None
     field_schema = {
-        **{key: _metadata_text for key in ('label', 'section_name', 'inclusion', 'data_type')},
+        **{key: _display_text for key in ('label', 'section_name')},
+        **{key: _metadata_text for key in ('inclusion', 'data_type')},
         'section': _public_count,
         'present_in_source_schema': lambda value: value if type(value) is bool else None,
         'population_scanned': lambda value: value if type(value) is bool else None,
@@ -119,7 +121,7 @@ def _sanitize_mngac(data: dict | None) -> dict | None:
                 if _metadata_text(name, 128) and isinstance(record, dict)}
 
     public = _project(data, {
-        'method': _metadata_text,
+        'method': _display_text,
         'observed_at': _public_date,
         'observation_status': _observation_status,
         'standard_key': _metadata_text,
@@ -135,7 +137,7 @@ def _sanitize_mngac(data: dict | None) -> dict | None:
     standard = data.get('standard')
     public['standard'] = _project(
         standard,
-        {'key': _metadata_text, 'name': _metadata_text, 'short_name': _metadata_text,
+        {'key': _metadata_text, 'name': _display_text, 'short_name': _display_text,
          'version': _metadata_text, 'published': _public_date, 'published_at': _public_date},
     )
     link = safe_public_url(standard.get('source_url')) if isinstance(standard, dict) else None

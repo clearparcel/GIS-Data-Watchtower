@@ -180,7 +180,8 @@ def with_freshness(state: dict, *, worker_stale_minutes: int = 1560, source_stal
         seen = _parse_time(source.get("last_report_at") or source.get("checked_at") or source.get("last_success_at"))
         source["stale"] = not seen or (now - seen.astimezone(dt.timezone.utc)).total_seconds() > source_stale_minutes * 60
         source["worker_stale"] = bool((workers.get(source.get("worker")) or {}).get("stale"))
-        source["health"] = "unhealthy" if source.get("status") in ("warn", "error") else "healthy"
+        status = source.get("status")
+        source["health"] = "healthy" if status == "ok" else "unhealthy" if status in ("warn", "error") else "unknown"
         source["reporting"] = "stale" if source.get("stale") or source.get("worker_stale") else "current"
     result["stale_workers"] = sum(1 for row in workers.values() if row.get("stale"))
     result["stale_sources"] = sum(1 for row in (result.get("sources") or {}).values() if row.get("stale"))
