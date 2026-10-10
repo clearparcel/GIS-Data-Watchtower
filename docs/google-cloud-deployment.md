@@ -1,8 +1,20 @@
 # Google Cloud deployment
 
-The v0.1.1 application is deployed to production from merged code commit `8099ee18ec48714b33a9e998b414ea9ee0cf7d8e`: public `00011-b9c` and private dashboard `00019-c9l` each receive 100% traffic. The user explicitly waived the multi-day staging gate for this rollout; it remains incomplete. The isolated preview remains on candidate revision `00017-s8b`. Production universal digest is `sha256:3f3244054a202c55a464e06e85afea9f72dc750bc34d75cbbe872fde5495dfb6`; the IAP-preserving private derivative is `sha256:4fbc66103d968c289e03d48a07646a9c6ac69435cd7d46700c9b137c85dd9ed6`. The sanitized publisher job uses the universal production image. The staging provider job still has not executed the candidate. See [the v0.1.1 release record](release-v0.1.1.md) and [the Address/Road release record](release-gac-address-road-2026-10-07.md).
+The current production application is v0.1.2 from merged commit `a3899f6`:
+public revision `00012-c5j`, private dashboard `00020-lqc`, and isolated preview
+`00018-rkt`. The publisher uses the production image. Exact immutable digests,
+acceptance evidence and rollback targets are in the
+[v0.1.2 release record](release-v0.1.2.md). The private service retains its audited
+IAP wrapper, and all non-image runtime settings were verified unchanged.
 
-The cloud staging registry is Secret Manager version 12 with the existing 35 source IDs, all assigned to cloud. USDA, Rice and Beltrami passed their complete adapters in actual Cloud Run no-save checks; existing aggregate observations retain their prior provenance until a saving worker run. See [the USDA connection record](usda-cloud-connection-2026-10-08.md) and [county migration](county-cloud-migration-2026-10-08.md). Address/Road GAC checks are active in staging and public output, but authoritative GIS-provider scheduling remains local: Cloud Scheduler still contains only the 10-minute sanitized publisher. PostHog remains dormant pending Issue #50.
+The registry migration assigned all 35 sources to cloud. The October 10 live
+public snapshot contains 35 cloud observations, 34 OK and one Hennepin imagery
+warning, with the newest provider check on October 9. Cloud Scheduler still
+contains only the ten-minute sanitized publisher; this application rollout did
+not change authoritative provider scheduling or retire worker history. The
+multi-day activation gate remains incomplete. See [USDA connection evidence](usda-cloud-connection-2026-10-08.md)
+and [county migration](county-cloud-migration-2026-10-08.md). PostHog remains
+dormant pending Issue #50.
 
 GIS Data Watchtower can run as a scheduled **Cloud Run Job** while retaining the same CLI and monitoring engine used locally.
 

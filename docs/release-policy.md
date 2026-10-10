@@ -1,12 +1,12 @@
 # Versioning and release policy
 
-The current production runtime is **v0.1.1**, built from merged code commit
-`8099ee18ec48714b33a9e998b414ea9ee0cf7d8e`. The user explicitly authorized
-waiving the required multi-day staging gate for this rollout on 2026-10-07;
-that gate remains incomplete and is not recorded as passed. For future releases,
-the deployed runtime changes after CI and applicable staging validation pass,
-or after a separately documented owner-authorized exception, followed by merge
-and deployment.
+The current production application is **v0.1.2**, built from merged commit
+`a3899f6a511906ecb4c0ecfd8c94ab537e6badb8` and deployed on 2026-10-10 after CI
+and isolated-preview acceptance. This UI/reporting patch does not activate or
+reschedule provider polling. The multi-day provider activation gate remains
+incomplete; the earlier v0.1.1 owner exception did not mark it passed. Future
+runtime changes require CI and applicable staging validation, or a separately
+documented owner-authorized exception, followed by merge and deployment.
 
 ## Versioning
 
