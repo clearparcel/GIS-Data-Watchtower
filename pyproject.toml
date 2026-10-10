@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "clearparcel-gis-data-watchtower"
-version = "0.1.1"
+version = "0.1.2"
 description = "Provider-friendly monitoring and QA for public GIS data services"
 readme = "README.md"
 license = "MIT"
@@ -31,7 +31,7 @@ Issues = "https://github.com/clearparcel/GIS-Data-Watchtower/issues"
 Documentation = "https://github.com/clearparcel/GIS-Data-Watchtower/tree/main/docs"
 
 [tool.setuptools.package-data]
-"clearparcel.datawatch" = ["*.json", "*.webp"]
+"clearparcel.datawatch" = ["*.json", "*.webp", "*.png"]
 
 [tool.setuptools.packages.find]
 include = ["clearparcel*"]

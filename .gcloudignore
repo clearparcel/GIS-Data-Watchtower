@@ -1,0 +1,14 @@
+# Upload only application build inputs; operational registries stay private.
+**
+!Dockerfile
+!.dockerignore
+!pyproject.toml
+!README.md
+!LICENSE
+!constraints.txt
+!clearparcel/
+!clearparcel/**
+clearparcel/**/__pycache__/**
+clearparcel/**/*.pyc
+!config/
+!config/example_sources.json

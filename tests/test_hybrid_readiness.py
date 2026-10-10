@@ -328,6 +328,16 @@ class HybridReadinessTests(unittest.TestCase):
         self.assertEqual(result["sources"]["a"]["health"], "unhealthy")
         self.assertEqual(result["sources"]["a"]["last_success_at"], old)
 
+    def test_unknown_source_status_is_not_healthy(self):
+        now = dt.datetime(2026, 10, 10, 20, 0, tzinfo=dt.timezone.utc)
+        for status in (None, 'unknown', 'unsupported', 'invalid'):
+            with self.subTest(status=status):
+                state = {'sources': {'a': {'status': status, 'checked_at': now.isoformat()}}}
+                result = with_freshness(state, now=now)
+                self.assertEqual(result['sources']['a']['health'], 'unknown')
+                self.assertEqual(result['sources']['a']['reporting'], 'current')
+                self.assertNotIn('health', state['sources']['a'])
+
     def test_freshness_is_separate_from_source_health(self):
         now = dt.datetime(2026, 10, 4, 20, 0, tzinfo=dt.timezone.utc)
         state = {"workers": {"local": {"last_success_at": "2026-10-04T10:00:00+00:00"}},
