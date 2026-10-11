@@ -1,5 +1,14 @@
 # Project status
 
+## v0.2.0 publication in progress — 2026-10-10
+
+The user requested publication of the reviewed updates as **v0.2.0**. PR #64
+passed all 15 CI checks and merged at `e258c39`. The package version advances to
+0.2.0 on a release branch; production remains v0.1.2 until committed-image build,
+saved-data acceptance and promotion complete. See the
+[v0.2.0 release record](docs/release-v0.2.0.md). Provider polling, private registry,
+authentication, network controls and observation clocks are preserved.
+
 ## Daily Google Cloud provider polling enabled — 2026-10-10
 
 Under the user's explicit activation request, `gis-watchtower-daily-providers`

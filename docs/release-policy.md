@@ -1,10 +1,10 @@
 # Versioning and release policy
 
-The current production application is **v0.1.2**, built from merged commit
-`a3899f6a511906ecb4c0ecfd8c94ab537e6badb8` and deployed on 2026-10-10 after CI
-and isolated-preview acceptance. This UI/reporting patch does not activate or
-reschedule provider polling. The multi-day provider activation gate remains
-incomplete; the earlier v0.1.1 owner exception did not mark it passed. Future
+The requested release is **v0.2.0**, with publication tracked in the
+[release record](release-v0.2.0.md). Production remains v0.1.2 at `8999081`
+until v0.2.0 acceptance and promotion complete. Daily cloud provider polling was
+separately approved and activated on October 10; application publication does
+not reschedule it. The multi-day observation study remains incomplete. Future
 runtime changes require CI and applicable staging validation, or a separately
 documented owner-authorized exception, followed by merge and deployment.
 
