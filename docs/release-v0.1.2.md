@@ -4,8 +4,10 @@
 
 Published on GitHub and deployed on 2026-10-10 from merged commit
 `a3899f6a511906ecb4c0ecfd8c94ab537e6badb8` (PR #60). Public revision `00012-c5j`,
-private revision `00020-lqc` and isolated preview `00018-rkt` receive 100% traffic.
-The existing sanitized publisher job uses the production image.
+private revision `00020-lqc` and isolated preview `00018-rkt` received 100% traffic
+at that rollout. The existing sanitized publisher job uses this production image.
+The public service subsequently advanced to build `8999081`, revision
+`00013-s7q`; see the [MN GAC publication record](mngac-county-publication-2026-10-10.md).
 
 ## Confirmed fixes
 

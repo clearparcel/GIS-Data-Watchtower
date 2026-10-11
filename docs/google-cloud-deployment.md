@@ -1,11 +1,11 @@
 # Google Cloud deployment
 
-The current production application is v0.1.2 from merged commit `a3899f6`:
-public revision `00012-c5j`, private dashboard `00020-lqc`, and isolated preview
-`00018-rkt`. The publisher uses the production image. Exact immutable digests,
-acceptance evidence and rollback targets are in the
+The public application is v0.1.2/build `8999081`, revision `00013-s7q`, following
+the [MN GAC county-results publication](mngac-county-publication-2026-10-10.md).
+The private dashboard `00020-lqc`, isolated preview `00018-rkt`, and sanitized
+publisher retain their `a3899f6` images from the
 [v0.1.2 release record](release-v0.1.2.md). The private service retains its audited
-IAP wrapper, and all non-image runtime settings were verified unchanged.
+IAP wrapper. The public image update preserved all non-image runtime settings.
 
 The registry migration assigned all 35 sources to cloud. The October 10 live
 public snapshot contains 35 cloud observations, 34 OK and one Hennepin imagery
