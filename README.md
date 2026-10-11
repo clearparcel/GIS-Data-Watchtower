@@ -1,12 +1,13 @@
 # GIS Data Watchtower
 
-GIS Data Watchtower **v0.2.0** is published from merged commit `308e3a7`, with the
-inline county pane, county-direct MN GAC schema evidence and map categories.
-The public dashboard, authenticated private dashboard and isolated preview have
-passed deployment acceptance. Daily Google
-Cloud provider polling is enabled at 05:00 America/Chicago; its latest activation
-run passed all 35 approved sources. See the [v0.2.0 release record](docs/release-v0.2.0.md)
-and [current status](docs/current-status.md) for publication and rollback details.
+GIS Data Watchtower **v0.2.0** is running the October 11 county-percentage
+correction from merged commit `bbc364d`, retaining the October 10 v0.2.0
+baseline `308e3a7` for rollback. The public, authenticated private and isolated
+preview dashboards passed release acceptance. Daily Google Cloud provider
+polling remains enabled at 05:00 America/Chicago; dashboard publication is
+separate from provider checks. See the [current release and rollback record](docs/release-county-percentage-fix-2026-10-11.md),
+[original v0.2.0 record](docs/release-v0.2.0.md) and
+[current status](docs/current-status.md).
 
 [![CI](https://github.com/clearparcel/GIS-Data-Watchtower/actions/workflows/watchtower-ci.yml/badge.svg)](https://github.com/clearparcel/GIS-Data-Watchtower/actions/workflows/watchtower-ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -36,7 +37,7 @@ ClearParcel also operates a read-only public dashboard at **https://gis-watchtow
 - Overview map and picker selection update the adjacent county pane; the county-results map opens the complete county profile. Click, Enter and Space are supported. The overview map frame and county pane retain equal heights, including stacked layouts. Desktop and 390px layouts wrap long source/evidence values. Public publication reporting is Current, Overdue or Unknown using the `/healthz` threshold, separately from provider health and source reporting.
 - Profile coverage includes all 87 counties. The current evidence has 16 fully reviewed category inventories and 15 complete composed profiles; blocked evidence and unresolved county-direct access remain explicit. Monitoring coverage is derived from current observations.
 
-**County percentage interpretation:** the parcel standard has seven Mandatory fields, so multiple counties can correctly share 57.14% or 42.86%. The [October 11 candidate](docs/county-percentage-audit-2026-10-11.md) makes the 91-field rate the default parcel map comparison while preserving the Mandatory rate. Both are field-population measures, not standards-compliance grades. This candidate is not yet merged or deployed.
+**County percentage interpretation:** the parcel standard has seven Mandatory fields, so multiple counties can correctly share 57.14% or 42.86%. The [October 11 production release](docs/release-county-percentage-fix-2026-10-11.md) makes the 91-field rate the default parcel map comparison while preserving the Mandatory rate. Both are field-population measures, not standards-compliance grades. Source: [county percentage audit](docs/county-percentage-audit-2026-10-11.md).
 
 Public snapshots use typed projections for source metrics, completeness, workers,
 counts and catalog facts; private diagnostics and arbitrary nested values are

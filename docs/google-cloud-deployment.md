@@ -1,10 +1,19 @@
 # Google Cloud deployment
 
-The current public production application is **v0.2.0** from merged commit
-`308e3a7`, public revision `00014-jsr`, private revision `00021-hr8` and isolated
-preview `00019-x5b`. See the [v0.2.0 release record](release-v0.2.0.md) for image
-digests, acceptance and rollback. The earlier v0.1.2 public revision `00013-s7q`
-from `8999081` (PR #62) is retained for rollback; its
+The current production application remains **v0.2.0**, now serving the
+October 11 merged UI correction `bbc364d29398a7bc19dfb235c23cbb24d3f08712`.
+Cloud Build `df3c86dc-dc0d-4a3d-af3c-da30874d2d04` produced verified images.
+Public revision `00015-cjp`, private revision `00022-pts`, and isolated preview
+`00020-qds` are Ready at 100% traffic, preserving their original non-image
+settings and authentication boundaries. See the
+[October 11 release record](release-county-percentage-fix-2026-10-11.md)
+for image digests, live acceptance, and rollback instructions.
+
+The prior v0.2.0 rollout from `308e3a7` remains an immutable rollback baseline:
+public `00014-jsr`, private `00021-hr8`, and preview `00019-x5b`. The
+[initial v0.2.0 record](release-v0.2.0.md) preserves its acceptance evidence.
+The earlier v0.1.2 public revision `00013-s7q` from `8999081` (PR #62)
+is retained as additional history; its
 [historical publication record](mngac-county-publication-2026-10-10.md) is preserved.
 The initial v0.1.2 rollout used
 `a3899f6`: public `00012-c5j`, private dashboard `00020-lqc`, and isolated preview

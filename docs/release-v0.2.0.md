@@ -1,5 +1,7 @@
 # GIS Data Watchtower v0.2.0
 
+> The October 10 initial v0.2.0 revision was subsequently updated by the [October 11 county-percentage release](release-county-percentage-fix-2026-10-11.md), still labeled v0.2.0 with merged build `bbc364d`. The original rollback and acceptance records below remain historical.
+
 The user explicitly requested publication of the reviewed updates, then specified
 version **0.2.0**. PR #64 passed all 15 CI checks and merged at
 `e258c39eedb1a21ad17fabc8b892f3ddc0152b74`. The version change in PR #65 also

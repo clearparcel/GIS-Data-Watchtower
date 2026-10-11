@@ -1,5 +1,7 @@
 # County Percentage and Repository QA — 2026-10-11
 
+> This is the original pre-release QA record. The changes subsequently merged as PR #67 and were [verified in production on October 11](release-county-percentage-fix-2026-10-11.md). The candidate and old deployment identities below are historical.
+
 ## Scope and authority
 
 Repository: `clearparcel/GIS-Data-Watchtower`. Authoritative workstation: `GERTKEN-PC`. Local implementation is isolated on `fix/county-percentage-clarity-20261011`, based on main `19c075347b44ade3193125c676ed589704427dc8`. The currently documented production release is v0.2.0, build `308e3a7` (public `00014-jsr`, private `00021-hr8`); the branch does not update those deployments.
