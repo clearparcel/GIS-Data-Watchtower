@@ -1,5 +1,23 @@
 # Project status
 
+## Daily Google Cloud provider polling enabled — 2026-10-10
+
+Under the user's explicit activation request, `gis-watchtower-daily-providers`
+now invokes the existing cloud worker daily at **05:00 America/Chicago**. The
+first scheduled run is October 11 at 05:00 CDT. Trigger and Cloud Run task
+retries are disabled; existing bounded adapter retries and provider controls
+remain. The scheduler identity received invocation-only access to this worker
+job. All 35 approved sources remain assigned to cloud, and the terms-held
+county-direct sources remain excluded. The existing sanitized publisher supplies
+the public dashboard from this worker's shared aggregate.
+See the [daily polling record](docs/daily-cloud-provider-polling-2026-10-10.md).
+One dispatch through the actual scheduler passed: 35/35 sources OK, zero warnings
+and errors, with cloud provenance and a saved report at October 10, 22:30 CDT.
+The automatic publisher delivered the matching public projection at 22:35 CDT;
+the live dashboard health and source inventory passed. The earlier five-day
+study is incomplete and is not claimed as passed. The retired local poller
+remains removed; retained local-worker history is unchanged.
+
 ## Legacy ClearParcel Tools polling removed — 2026-10-10
 
 With explicit user approval, the GERTKEN-PC task `ClearParcel Data Watchtower
@@ -10,7 +28,8 @@ definition/launcher rollback records and historical observations remain local.
 The separate Validation Capture task remains enabled: it only reads saved state
 and cloud metadata and does not poll GIS providers. Cloud scheduling, publisher,
 source registry and aggregate worker history were unchanged. No replacement
-provider schedule was created; the cloud activation/scheduling gate remains open.
+provider schedule was created during that removal. The subsequent daily-cloud
+activation is recorded above; the earlier five-day observation study remains open.
 
 ## Final UI and repository review — candidate, 2026-10-10
 

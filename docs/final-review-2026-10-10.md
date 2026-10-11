@@ -141,6 +141,13 @@ describe the inspection before retirement; activation evidence remains pending.
 
 ### Findings recorded during the original review
 
+The user subsequently explicitly requested daily Google Cloud polling. The
+05:00 America/Chicago provider schedule is now enabled; see the
+[daily activation record](daily-cloud-provider-polling-2026-10-10.md) for actual
+source/persistence/public-arrival results. Statements below about pending
+scheduling describe the earlier review, not the newly approved schedule. The
+five-day study and separate historical-worker retirement remain incomplete.
+
 1. **Provider data is overdue.** Production's provider report remains October 9
    at 09:32 CDT, although the sanitized publisher is healthy and publishing every
    ten minutes. Public source health is 34 OK / one warning (Hennepin imagery).
@@ -168,11 +175,12 @@ describe the inspection before retirement; activation evidence remains pending.
    validation does not establish normal authority-bound CCE availability in a
    fresh cloud development task. This review used CCE on GERTKEN-PC.
 
-The next operational proposal should gather the missing cloud activation
-evidence and present an exact provider schedule for approval. The legacy local
-task is now removed; retained historical local-worker records must not be treated
-as current polling assignments or deleted without a separately approved
-aggregate-history retirement.
+Following the separately approved activation, the schedule and one complete
+35/35 healthy source/persistence/public-arrival cycle are verified. The remaining
+operational work is the multi-day observation study and any separately approved
+aggregate-history retirement. The legacy local task is removed; retained
+historical local-worker records must not be treated as current polling
+assignments or deleted without that separate approval.
 
 ## Verification and limits
 

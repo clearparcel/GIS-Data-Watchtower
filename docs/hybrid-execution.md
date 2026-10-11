@@ -1,6 +1,6 @@
 # Hybrid execution profiles
 
-Provider connectivity can differ by execution environment. A failed cloud request is evidence about that request and environment; it does not establish a permanent cloud/datacenter restriction. Watchtower does not attempt to bypass provider controls. The [October 8 reassessment](cloud-provider-access-reassessment-2026-10-08.md) found valid Google Cloud responses from all four sources then assigned locally. Subsequent actual worker validation connected [USDA](usda-cloud-connection-2026-10-08.md), [Rice and Beltrami](county-cloud-migration-2026-10-08.md) to the cloud profile. Private registry version 12 assigns all 35 sources to cloud, while the saved aggregate retains its prior observations until a saving worker run. Cloud-only validation and inactive-worker retirement remain operational follow-up work in the [readiness review](codex-cloud-readiness-review-2026-10-08.md).
+Provider connectivity can differ by execution environment. A failed cloud request is evidence about that request and environment; it does not establish a permanent cloud/datacenter restriction. Watchtower does not attempt to bypass provider controls. The [October 8 reassessment](cloud-provider-access-reassessment-2026-10-08.md) found valid Google Cloud responses from all four sources then assigned locally. Subsequent actual worker validation connected [USDA](usda-cloud-connection-2026-10-08.md), [Rice and Beltrami](county-cloud-migration-2026-10-08.md) to the cloud profile. Private registry version 12 assigns all 35 sources to cloud. The [October 10 activation](daily-cloud-provider-polling-2026-10-10.md) saved 35/35 healthy cloud observations and verified their automatic public arrival. Historical local-worker records remain retained; the multi-day study and inactive-worker history retirement remain separate follow-up work.
 
 A source may optionally declare:
 
@@ -26,4 +26,11 @@ This is intended for respectful hybrid deployments, not for circumventing provid
 
 ## Candidate validation
 
-Use the current private registry and identical candidate package for both profiles. [The offline manifest and receipt workflow](watchtower-remediation-2026-10-07.md#hybrid-candidate-and-validation-preparation) checks inventory, runtime identity, provenance, and public arrival without running providers. The older authoritative 26-source local task remains unchanged; five distinct daily cycles and explicit activation approval remain pending.
+Use the current private registry and identical candidate package for each active
+profile. [The offline manifest and receipt workflow](watchtower-remediation-2026-10-07.md#hybrid-candidate-and-validation-preparation)
+checks inventory, runtime identity, provenance and public arrival without running
+providers. The older 26-source local task was removed with explicit approval on
+October 10. A subsequent explicit request enabled daily cloud provider scheduling
+at 05:00 America/Chicago; see the [activation record](daily-cloud-provider-polling-2026-10-10.md).
+The five-day observation study remains incomplete. Historical local-worker
+records remain retained and are separate from active polling assignments.
