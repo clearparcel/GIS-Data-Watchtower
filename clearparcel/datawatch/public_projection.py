@@ -14,6 +14,11 @@ def _public_number(value: object) -> int | float | None:
     return value if (type(value) is int and value >= 0) or (type(value) is float and math.isfinite(value) and value >= 0) else None
 
 
+def _public_percent(value: object) -> int | float | None:
+    number = _public_number(value)
+    return number if number is not None and number <= 100 else None
+
+
 def _public_status(value: object) -> str | None:
     return value if isinstance(value, str) and value in {'ok', 'warn', 'error', 'unknown', 'unsupported'} else None
 
@@ -69,7 +74,7 @@ _SOURCE_SCHEMA = {
 _WORKER_SCHEMA = {**{key: _public_date for key in ('checked_at', 'last_success_at', 'last_report_at')},
                   'overall': _public_status, 'source_count': _public_count}
 _COMPLETENESS_SCHEMA = {'field': _metadata_text, 'missing': _public_count, 'populated': _public_count,
-                        'complete_percent': _public_number, 'status': _public_status}
+                        'complete_percent': _public_percent, 'status': _public_status}
 
 
 def _sanitize_completeness(value: object) -> dict:
@@ -99,7 +104,7 @@ def _sanitize_mngac(data: dict | None) -> dict | None:
         )},
         'observation_status': _public_status,
         'observed_at': _public_date,
-        **{key: _public_number for key in ('percent', 'county_median_percent')},
+        **{key: _public_percent for key in ('percent', 'county_median_percent')},
     }
     county_schema = {
         **{key: _public_count for key in (
@@ -107,7 +112,7 @@ def _sanitize_mngac(data: dict | None) -> dict | None:
             'scanned_fields_with_values', 'mandatory_fields_full', 'mandatory_field_count',
         )},
         'population_scope': _metadata_text,
-        **{key: _public_number for key in ('field_population_percent', 'mandatory_population_percent')},
+        **{key: _public_percent for key in ('field_population_percent', 'mandatory_population_percent')},
     }
     metadata_schema = {
         **{key: _metadata_text for key in ('county_name', 'county_code', 'county_fips')},
@@ -132,7 +137,7 @@ def _sanitize_mngac(data: dict | None) -> dict | None:
             'mandatory_field_count', 'excluded_county_groups',
             'source_feature_count', 'ungrouped_record_count',
         )},
-        **{key: _public_number for key in ('field_population_percent', 'mandatory_population_percent')},
+        **{key: _public_percent for key in ('field_population_percent', 'mandatory_population_percent')},
     })
     standard = data.get('standard')
     public['standard'] = _project(

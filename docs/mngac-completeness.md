@@ -1,6 +1,6 @@
 # Minnesota GAC parcel-field completeness
 
-Last reviewed: **2026-10-10**
+Last reviewed: **2026-10-11**
 
 GIS Data Watchtower can measure how extensively fields from the **Minnesota Geospatial Advisory Council (GAC) Parcel Data Standard** are populated in a standardized statewide parcel layer.
 
@@ -160,4 +160,8 @@ The source must contain `CO_NAME`, `CO_CODE`, an object-id field, and at least s
 
 ## Public map classification
 
-The confirmed follow-up source now uses four percentage classes on both maps, all summary modes and individual fields: <30%, 30% - 50%, 50% - 70%, >70%. Intervals are p<30, 30<=p<50, 50<=p<=70, p>70; legend and county fills share #1b2b40, #315373, #3c708f, #4c9b7b. Observed zero remains the first class; unknown/nonfinite values remain No data. Monitoring-path colors, the public title and metric wording are unchanged. The code-only follow-up is deployed to existing preview `00007-zfh`, serving committed `5aac504`; rendered acceptance passed. Existing sanitized data and its actual publication/source dates remain unchanged.
+The October 11 percentage-clarity candidate restores the documented four classes on both percentage maps and legends: **<30%, 30%–50%, 50%–70%, >70%**. Their nonoverlapping intervals are `p < 30`, `30 <= p < 50`, `50 <= p <= 70`, `p > 70`. The colors remain `#1b2b40`, `#315373`, `#3c708f`, and `#4c9b7b`. Observed zero belongs to the first class. Missing, nonfinite, and out-of-range values remain **N/A**, never 0%.
+
+The **parcel** county comparison and overview percentage map now use all-91-field population rather than the seven-field Mandatory summary. The Mandatory metric is still shown alongside all-field population and can be selected on the parcel statewide field map. Multiple counties may legitimately share 57.14% (4/7) or 42.86% (3/7) mandatory-field population; using the 91-field rate for the comparison exposes more variation without modifying any observations. These rates are data-population descriptions, **not standards-compliance grades**. Address and road maps continue using Mandatory-field population because routine Address/Road scans do not cover every optional field.
+
+This candidate is not yet published to the production dashboard. It changes presentation and validation only; no authoritative GIS records, observed percentages, cloud provider cadence, private configuration, or public snapshot clocks are altered. Historical October 6 preview evidence remains in the dated release records.

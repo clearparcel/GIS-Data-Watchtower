@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime as dt
 import html
 import json
+import math
 from zoneinfo import ZoneInfo
 from urllib.parse import urlsplit
 from .public_values import safe_public_url
@@ -10,9 +11,10 @@ from .public_values import safe_public_url
 GROUPS = (("mngac_public_parcels", "MN GAC Public Parcels"), ("mngeo_public_repository", "MnGeo Public County Repository"), ("county_arcgis_rest", "County ArcGIS REST"), ("county_download", "County Website Download"))
 PERCENT_COLORS = ["#1b2b40", "#315373", "#3c708f", "#4c9b7b"]
 NO_DATA_COLOR = "#151d2b"
-# Fixed classes shared by both map fills and legends; exactly 60 and 70 stay in 60-70.
-PERCENT_BINS = (("<50%", 50, False), ("50% - 60%", 60, False),
-                ("60% - 70%", 70, True), (">70%", None, False))
+# Fixed classes shared by map fills and legends. Exact 30 and 50 start the next class;
+# exact 70 stays in 50-70. Rates outside 0-100 are unavailable, not low or high.
+PERCENT_BINS = (("<30%", 30, False), ("30% - 50%", 50, False),
+                ("50% - 70%", 70, True), (">70%", None, False))
 
 
 def research_summary(profiles: dict[str, dict]) -> str:
@@ -124,12 +126,23 @@ def render_direct_schema_findings(assessments: list[dict]) -> str:
 def _json(value: object) -> str:
     return json.dumps(value, ensure_ascii=False).replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
 
+def percentage_color(value: object) -> str:
+    """Classify a measured 0-100 rate without turning missing values into zero."""
+    if type(value) not in (int, float) or not math.isfinite(value) or not 0 <= value <= 100:
+        return NO_DATA_COLOR
+    for color, (_, upper, inclusive) in zip(PERCENT_COLORS, PERCENT_BINS):
+        if upper is None or value < upper or (inclusive and value == upper):
+            return color
+    return NO_DATA_COLOR
+
+
 def percentage_color_js() -> str:
-    """Shared percentage classifier; null is distinct from observed zero."""
+    """Use the same boundaries in browser maps and the server-rendered map."""
     classes = [{"upper": upper, "inclusive": inclusive, "color": color}
                for color, (_, upper, inclusive) in zip(PERCENT_COLORS, PERCENT_BINS)]
-    return ("function percentageColor(value){if(typeof value!=='number'||!Number.isFinite(value))return "
-            + json.dumps(NO_DATA_COLOR) + ";const classes=" + json.dumps(classes)
+    return ("function percentageColor(value){if(typeof value!=='number'||!Number.isFinite(value)"
+            "||value<0||value>100)return " + json.dumps(NO_DATA_COLOR)
+            + ";const classes=" + json.dumps(classes)
             + ";return classes.find(bin=>bin.upper===null||value<bin.upper||"
               "(bin.inclusive&&value===bin.upper)).color}")
 

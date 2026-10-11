@@ -6,7 +6,7 @@ import re
 from urllib.parse import urlencode
 
 from . import dashboard as dashboard
-from .county_profile_panel import NO_DATA_COLOR, PERCENT_BINS, PERCENT_COLORS, percentage_legend, profile_time, render_direct_schema_findings
+from .county_profile_panel import percentage_color, percentage_legend, profile_time, render_direct_schema_findings
 from .direct_gac_schema import direct_schema_assessment
 from .gac_standards import gac_defaults, load_gac_standard, standard_keys
 
@@ -77,13 +77,9 @@ def county_map(standard: str, data: dict | None = None, selected: str = '') -> s
         path = match.group(0)
         slug = html.unescape(re.search(r'data-slug="([^"]*)"', path).group(1))
         name = html.unescape(re.search(r'data-county="([^"]*)"', path).group(1))
-        value = (counties.get(name) or {}).get('mandatory_population_percent')
-        color = NO_DATA_COLOR
-        if type(value) in (int, float):
-            for index, (_, bound, inclusive) in enumerate(PERCENT_BINS):
-                if bound is None or value < bound or inclusive and value == bound:
-                    color = PERCENT_COLORS[index]
-                    break
+        field = 'field_population_percent' if standard == 'parcel' else 'mandatory_population_percent'
+        value = (counties.get(name) or {}).get(field)
+        color = percentage_color(value)
         path = path.replace('tabindex="0" role="button" aria-pressed="false" ', '')
         path = path.replace('class="mngac-county"', f'class="mngac-county" style="fill:{color}"')
         current = ' aria-current="page"' if slug == selected else ''
@@ -133,12 +129,18 @@ def render_county_results(config: dict, standard_key: str, county: dict | None) 
             body += f'<div class="card"><h3>{heading}</h3><p>{reason} {qualification}</p></div>'
         else:
             all_rate = _percent(stats.get('field_population_percent'), 'Not scanned' if data.get('population_scope') == 'mandatory' else 'No data')
+            all_card = f'<div class="card"><div class="muted">All-field population</div><div class="metric">{all_rate}</div></div>'
+            mandatory_card = f'<div class="card"><div class="muted">Mandatory-field population</div><div class="metric">{_percent(stats.get("mandatory_population_percent"))}</div></div>'
+            ordered_cards = (all_card + mandatory_card) if standard_key == 'parcel' else (mandatory_card + all_card)
             body += f'''<div class="grid primary-grid" aria-label="Selected county summary">
 <div class="card"><div class="muted">County {esc(defaults['record_label'])}</div><div class="metric">{_count(stats.get('record_count'))}</div></div>
-<div class="card"><div class="muted">Mandatory-field population</div><div class="metric">{_percent(stats.get('mandatory_population_percent'))}</div></div>
-<div class="card"><div class="muted">All-field population</div><div class="metric">{all_rate}</div></div>
+{ordered_cards}
 <div class="card"><div class="muted">Standard fields</div><div class="metric">{len(schema['fields'])}</div></div></div>
 <p class="mngac-note">These percentages describe fields containing values in this county's records, not a compliance score. Conditional, If Available and Optional fields may legitimately be blank. Source schema describes the shared statewide layer; population figures below are county-specific.</p>'''
+            if standard_key == 'parcel':
+                body += ('<p class="subtext">The seven mandatory fields can yield identical percentages across '
+                         'counties even when all-field population differs. The parcel map compares all '
+                         '91 standard fields; conditional and optional fields may legitimately be blank.</p>')
             if data.get('text_population_mode') == 'non_null':
                 body += '<p class="subtext">Text population is non-null based; empty strings may count as populated in this observation.</p>'
             rows = []
@@ -168,7 +170,9 @@ def render_county_results(config: dict, standard_key: str, county: dict | None) 
                            if item.get('category') == 'Parcels' and item.get('county_slug') == slug]
             body += render_direct_schema_findings(assessments)
         body += f'<p><a href="/county?slug={esc(slug)}">Open full {esc(name)} County profile</a> · <a href="{esc(gac_url(standard_key, county=slug))}">Link to these county results</a></p>'
-    map_content = (f'<div class="gac-county-map"><h2>Interactive Minnesota county map</h2><p>Mandatory-field population. Select a county to open its results.</p>'
+    map_label = (f'All-field population across {len(schema["fields"])} standard fields'
+                 if standard_key == 'parcel' else 'Mandatory-field population')
+    map_content = (f'<div class="gac-county-map"><h2>Interactive Minnesota county map</h2><p>{map_label}. Select a county to open its results.</p>'
                    + county_map(standard_key, data, slug) + percentage_legend() + '</div>')
     body += f'<details><summary>Choose another county on the map</summary>{map_content}</details>' if county else map_content
     body += f'<p class="subtext">Public publication: {esc(profile_time(state.get("public_published_at")))}</p>'
