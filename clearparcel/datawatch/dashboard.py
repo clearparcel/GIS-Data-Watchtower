@@ -956,10 +956,13 @@ def serve(config: dict, host: str = "127.0.0.1", port: int = 8765) -> None:
                 return self._send(200, render_counties(config))
             if parsed.path == "/county":
                 slug = urllib.parse.parse_qs(parsed.query).get("slug", [""])[0]
-                return self._send(200, render_county(config, slug))
+                status = 200 if any(c.get("slug") == slug for c in _load_counties()) else 404
+                return self._send(status, render_county(config, slug))
             if parsed.path == "/source":
                 sid = urllib.parse.parse_qs(parsed.query).get("id", [""])[0]
-                return self._send(200, render_source(config, sid))
+                state = _dashboard_state(config)
+                status = 200 if (state.get("sources") or {}).get(sid) else 404
+                return self._send(status, render_source({**config, "_render_state": state}, sid))
             if parsed.path == "/api/state":
                 public_state = _sanitize_public_state(_dashboard_state(config))
                 return self._send(200, json.dumps(public_state, indent=2), "application/json; charset=utf-8")

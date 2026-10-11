@@ -2,6 +2,11 @@
 
 ## Publication status
 
+This section records the initial v0.1.2 rollout. The later public-only PR #62
+rollout at `8999081`, revision `00013-s7q`, superseded public revision `00012-c5j`.
+See [current status](current-status.md); PR #63 holds the detailed follow-up
+publication/rollback record and remains open.
+
 Published on GitHub and deployed on 2026-10-10 from merged commit
 `a3899f6a511906ecb4c0ecfd8c94ab537e6badb8` (PR #60). Public revision `00012-c5j`,
 private revision `00020-lqc` and isolated preview `00018-rkt` receive 100% traffic.

@@ -75,6 +75,7 @@ def render_county_profile_body(profile: dict) -> str:
     body = f'<h2 id="county-profile-title">{_esc(county.get("name"))} County</h2>'
     body += '<p>' + _esc(" · ".join(monitoring.get("paths") or []) or "No active parcel monitoring") + ' · ' + _esc(monitoring.get("health")) + ' · ' + _esc(monitoring.get("reporting")) + '</p>'
     body += '<div class="profile-summary">' + _rows([("Active monitoring", "Yes" if monitoring.get("active") else "No"), ("County-direct access", access.get("public_classification")), ("Active parcel sources", monitoring.get("active_parcel_source_count")), ("Latest county Watchtower check", profile_time(monitoring.get("last_checked_at")))]) + '</div>'
+    body += render_direct_schema_findings(profile.get('direct_gac_schema') or [])
     for key, heading in GROUPS:
         category = profile.get(key, {})
         availability = category.get("availability", "unknown")
@@ -94,6 +95,32 @@ def render_county_profile_body(profile: dict) -> str:
     body += f'<p><a href="/county?slug={_esc(county.get("slug"))}">Open county dashboard →</a></p>'
     return '<div class="county-profile">' + body + '</div>'
 
+
+def render_direct_schema_findings(assessments: list[dict]) -> str:
+    """Explain direct-feed schema evidence without grading county-wide compliance."""
+    if not assessments:
+        return ''
+    rows = []
+    for item in assessments:
+        row = '<p><strong>' + _esc(item.get('label')) + '</strong></p>'
+        if item.get('standard_fields_present') is not None:
+            row += '<p>' + _esc(item.get('standard_fields_present')) + ' / ' + _esc(item.get('standard_field_count')) + ' standard field names; ' + _esc(item.get('mandatory_fields_present')) + ' / ' + _esc(item.get('mandatory_field_count')) + ' mandatory field names.</p>'
+            if item.get('missing_mandatory_fields'):
+                row += '<p>Missing mandatory names: <code>' + _esc(', '.join(item['missing_mandatory_fields'])) + '</code>.</p>'
+        if item.get('reason'):
+            row += '<p>' + _esc(item['reason']) + '</p>'
+        if item.get('checked_at'):
+            row += '<p class="subtext">Schema audit: ' + _esc(profile_time(item['checked_at'])) + '. '
+            url = safe_public_url(item.get('evidence_url'))
+            if url:
+                row += '<a href="' + _esc(url) + '" target="_blank" rel="noopener">Checked direct layer</a>. '
+            row += 'Feed: ' + _esc(item.get('name') or item.get('source_id')) + '.</p>'
+        rows.append(row)
+    return ('<div class="direct-gac-schema"><h3>County-direct MN GAC schema</h3>' + ''.join(rows)
+            + '<p class="subtext">Field-name evidence applies to the checked direct feed. It is separate from MnGeo Open Parcels coverage and statewide field population. '
+              'MN GAC is a transfer standard; counties may use another internal schema or offer a separate standardized export. '
+              'Names alone do not establish full compliance.</p></div>')
+
 def _json(value: object) -> str:
     return json.dumps(value, ensure_ascii=False).replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
 
@@ -109,8 +136,85 @@ def percentage_color_js() -> str:
 
 def percentage_legend() -> str:
     """Use the same fixed breaks and colors as both maps."""
-    values = [(NO_DATA_COLOR, "No data"), *zip(PERCENT_COLORS, [label for label, _, _ in PERCENT_BINS])]
+    values = [(NO_DATA_COLOR, "N/A"), *zip(PERCENT_COLORS, [label for label, _, _ in PERCENT_BINS])]
     return '<div class="mngac-legend" aria-label="Map legend">' + ''.join(f'<span><i class="mngac-swatch" style="background:{color}"></i>{html.escape(label)}</span>' for color, label in values) + '</div>'
+
+def render_inline_county_panel(*, revision: str) -> str:
+    """Load the existing escaped public fragment into the overview's county pane."""
+    return '<span hidden data-content-revision="' + _esc(revision) + '"></span>' + r'''
+<style>
+.overview-county-explorer{align-items:stretch;grid-auto-rows:1fr}.overview-county-explorer>.card{min-width:0}#home-county-pane{display:flex;flex-direction:column;min-width:0}#home-county-profile{overflow-wrap:anywhere}
+#overview-map-pane{display:flex;flex-direction:column;padding:17px;background:#0b111b}#overview-map-pane .overview-map-content{display:flex;flex-direction:column;flex:1;min-height:0}#overview-map-pane .mngac-map{flex:1;height:0;min-height:520px;max-height:none}#overview-map-pane .overview-map-note{font-size:11px;margin:12px 0 0}.status-different{background-image:repeating-linear-gradient(135deg,transparent 0 4px,#654900 4px 5px)}.status-closed{background-image:repeating-linear-gradient(45deg,transparent 0 4px,#26303d 4px 5px),repeating-linear-gradient(135deg,transparent 0 4px,#26303d 4px 5px)}.status-unresolved{background-image:radial-gradient(#8593a6 1px,transparent 1px);background-size:5px 5px}@media(max-width:600px){#overview-map-pane .mngac-map{min-height:320px}}
+#home-county-profile dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+#home-county-profile dl>div{min-width:0}#home-county-profile dt{font-size:12px;color:#a9b9ce}
+#home-county-profile dd{margin:4px 0;font-size:14px}
+#home-county-profile-status:empty{display:none}
+#home-county-infographics{margin-top:auto;padding-top:18px;border-top:1px solid #33445a}
+#home-county-infographics h3{font-size:16px;margin:0 0 14px}.county-coverage-rings{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;text-align:center}
+.county-coverage-ring{--coverage:0%;width:92px;height:92px;border-radius:50%;margin:0 auto 8px;display:grid;place-items:center;background:conic-gradient(#55b68f var(--coverage),#26364a 0);position:relative}
+.county-coverage-ring::before{content:'';position:absolute;inset:8px;border-radius:50%;background:#101824}.county-coverage-ring b{position:relative;font-size:17px}
+.county-coverage-ring.unavailable{background:#26364a}.county-coverage-ring.unavailable b{font-size:13px}.county-coverage-rings small{color:#a9b9ce}
+.county-field-coverage{margin-top:16px;font-size:12px}.county-field-coverage>div:first-child{display:flex;justify-content:space-between;gap:8px;margin-bottom:6px}
+.county-field-track{height:9px;background:#26364a;border-radius:5px;overflow:hidden}.county-field-track i{display:block;height:100%;width:var(--coverage,0%);background:#6da6d4}
+#home-county-infographics .subtext{font-size:11px;margin:9px 0 0;color:#a9b9ce}
+#home-county-profile .direct-gac-schema{margin-top:16px;border-top:1px solid #33445a;padding-top:10px}#home-county-profile .direct-gac-schema h3{font-size:16px}#home-county-profile .direct-gac-schema p{font-size:13px;margin:8px 0}
+</style>
+<script>
+(function(){
+  const content=document.getElementById('home-county-profile'),status=document.getElementById('home-county-profile-status');
+  const fragments=new Map();let request=0,controller=null;
+  function updateInfographics(data){
+    document.getElementById('home-county-infographics').hidden=false;
+    for(const [key,id,label] of [['pct','mandatory','Mandatory-field population'],['all_pct','all','All-field population']]){
+      const value=data?.[key],known=typeof value==='number'&&Number.isFinite(value)&&value>=0&&value<=100;
+      const chart=document.getElementById('county-coverage-'+id),text=known?value.toFixed(2)+'%':'Unavailable';
+      chart.style.setProperty('--coverage',known?value+'%':'0%');chart.classList.toggle('unavailable',!known);
+      chart.setAttribute('aria-label',label+': '+text);document.getElementById('county-coverage-'+id+'-value').textContent=text;
+    }
+    const count=data?.fields,total=data?.field_count,known=Number.isInteger(count)&&Number.isInteger(total)&&total>0&&count>=0&&count<=total;
+    const text=known?count+' / '+total:'Unavailable',chart=document.getElementById('county-field-coverage');
+    chart.setAttribute('aria-label','Fields with values: '+text);
+    document.getElementById('county-field-coverage-value').textContent=text;
+    document.getElementById('county-field-coverage-fill').style.setProperty('--coverage',known?(count/total*100)+'%':'0%');
+  }
+  async function load(slug,data){
+    updateInfographics(data);
+    const current=++request;controller?.abort();controller=new AbortController();
+    const signal=controller.signal;
+    content.replaceChildren();content.setAttribute('aria-busy','true');status.textContent='Loading county details…';
+    const deadline=setTimeout(()=>controller?.signal===signal&&controller.abort(),15000);
+    try{
+      let revision=window.watchtowerContentRevision||document.querySelector('[data-content-revision]')?.dataset.contentRevision;
+      let cacheKey=slug+':'+revision;
+      if(!fragments.has(cacheKey)){
+        const fetchFragment=()=>fetch('/api/county-profile?slug='+encodeURIComponent(slug)+'&revision='+encodeURIComponent(revision||''),{signal});
+        let response=await fetchFragment();
+        if(response.status===409){const fresh=await fetch('/api/summary',{cache:'no-cache',signal});if(!fresh.ok)throw new Error();revision=(await fresh.json()).content_revision;cacheKey=slug+':'+revision;response=await fetchFragment()}
+        if(!response.ok)throw new Error();
+        // Only escaped server-rendered same-origin public fragments enter this parser.
+        const parsed=new DOMParser().parseFromString(await response.text(),'text/html');
+        const profile=parsed.querySelector('.county-profile');if(!profile)throw new Error();
+        // Keep only the compact monitoring summary; full evidence stays on the county page.
+        [...profile.children].filter(node=>['H2','P','SECTION'].includes(node.tagName)).forEach(node=>node.remove());
+        fragments.set(cacheKey,profile);
+      }
+      if(current!==request)return;
+      content.replaceChildren(fragments.get(cacheKey).cloneNode(true));status.textContent='';
+    }catch(error){
+      if(current!==request)return;
+      status.textContent='County details are temporarily unavailable. Use Open county profile to view the county page.';
+    }finally{clearTimeout(deadline);if(current===request)content.setAttribute('aria-busy','false')}
+  }
+  function clear(){
+    ++request;controller?.abort();controller=null;
+    content.replaceChildren();content.setAttribute('aria-busy','false');status.textContent='';
+    updateInfographics();document.getElementById('home-county-infographics').hidden=true;
+  }
+  window.watchtowerCountyPane={load,clear};
+})();
+</script>
+'''
+
 
 def render_county_profile_panel(profiles: dict[str, dict], *, revision: str | None = None) -> str:
     """Public dialogs load one escaped fragment; offline/private views use templates."""

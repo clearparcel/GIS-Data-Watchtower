@@ -1171,7 +1171,8 @@ class DataWatchTests(unittest.TestCase):
     def test_example_registry_is_safe_and_provider_neutral(self):
         cfg = datawatch.load_config(TOOLS_ROOT / 'config' / 'example_sources.json')
         self.assertEqual(len(cfg['sources']), 2)
-        self.assertTrue(all('example.com' in x['url'] for x in cfg['sources']))
+        from urllib.parse import urlsplit
+        self.assertTrue(all(urlsplit(x['url']).hostname == 'example.com' for x in cfg['sources']))
         self.assertTrue(all(not x.get('county_slug') for x in cfg['sources']))
 
     def test_excel_snapshot_export_is_valid_xlsx_package(self):

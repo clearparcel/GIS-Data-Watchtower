@@ -68,20 +68,29 @@ class GACCountyViewTests(unittest.TestCase):
         self.assertIn('/mngac?standard=parcel&view=statewide&county=douglas', statewide)
         self.assertNotIn('dialog.showModal()', statewide)
 
-    def test_unrepresented_county_and_missing_observation_remain_no_data(self):
+    def test_unrepresented_county_and_missing_observation_remain_unavailable(self):
         page = self.render(county='aitkin')
-        self.assertIn('No data', page)
+        self.assertIn('Not in MnGeo Open Parcels', page)
+        self.assertIn('N/A', page)
         self.assertNotIn('>0.00%', page)
         with patch('clearparcel.datawatch.dashboard._dashboard_state', return_value={}):
             page = render_mngac({'_public_mode': True}, 'address', county='douglas')
         self.assertIn('Douglas County', page)
-        self.assertIn('No data', page)
+        self.assertIn('Statewide results unavailable', page)
+        self.assertIn('N/A', page)
         self.assertIn('Choose county', page)
 
     def test_invalid_county_and_scope_are_rejected(self):
         for kwargs in ({'county': '<script>'}, {'view': 'invalid'}):
             with self.subTest(kwargs=kwargs), self.assertRaises(ValueError):
                 self.render(**kwargs)
+
+    def test_county_suggestions_show_only_the_county_name(self):
+        page = self.render()
+        options = re.search(r'<datalist id="gac-county-options">(.*?)</datalist>', page, re.S).group(1)
+        self.assertEqual(options.count('<option'), 87)
+        self.assertIn('<option value="Douglas"></option>', options)
+        self.assertNotIn(' County', options)
 
     def test_zero_population_is_distinct_from_unscanned(self):
         state, field, _ = county_state()

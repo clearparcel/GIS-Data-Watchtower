@@ -1,20 +1,37 @@
 # Google Cloud deployment
 
-The current production application is v0.1.2 from merged commit `a3899f6`:
-public revision `00012-c5j`, private dashboard `00020-lqc`, and isolated preview
-`00018-rkt`. The publisher uses the production image. Exact immutable digests,
+The current public production application is v0.1.2 from merged commit `8999081`,
+public revision `00013-s7q` (MN GAC county-results rollout, PR #62). PR #63 contains
+the detailed publication record and awaits merge. The initial v0.1.2 rollout used
+`a3899f6`: public `00012-c5j`, private dashboard `00020-lqc`, and isolated preview
+`00018-rkt`. These initial rollout and rollback details are historical. Exact immutable digests,
 acceptance evidence and rollback targets are in the
 [v0.1.2 release record](release-v0.1.2.md). The private service retains its audited
 IAP wrapper, and all non-image runtime settings were verified unchanged.
 
-The registry migration assigned all 35 sources to cloud. The October 10 live
-public snapshot contains 35 cloud observations, 34 OK and one Hennepin imagery
-warning, with the newest provider check on October 9. Cloud Scheduler still
-contains only the ten-minute sanitized publisher; this application rollout did
-not change authoritative provider scheduling or retire worker history. The
-multi-day activation gate remains incomplete. See [USDA connection evidence](usda-cloud-connection-2026-10-08.md)
+The registry migration assigned all 35 sources to cloud. The October 10 daily
+activation saved 35 healthy cloud observations at 22:30 CDT; the automatic
+publisher delivered them to the live public dashboard at 22:35 CDT. Cloud
+Scheduler now contains the daily provider job and the separate ten-minute
+sanitized publisher. The application rollout itself did not change provider
+scheduling or retire worker history. The multi-day observation study remains
+incomplete. See [USDA connection evidence](usda-cloud-connection-2026-10-08.md)
 and [county migration](county-cloud-migration-2026-10-08.md). PostHog remains
 dormant pending Issue #50.
+
+On October 10 at 22:20 CDT, explicit user approval retired the legacy
+GERTKEN-PC `ClearParcel Data Watchtower Daily` scheduled task and its active
+`ClearParcel_Tools` launcher. No legacy poller remained running. The passive
+Validation Capture task is retained. This removal created no replacement cloud
+provider schedule and changed no source registry, publisher or aggregate worker
+history; cloud activation was separately approved afterward as recorded below.
+
+The user subsequently explicitly requested daily cloud activation. Scheduler
+`gis-watchtower-daily-providers` now launches the existing provider worker at
+05:00 America/Chicago daily, starting October 11. See the
+[daily provider polling record](daily-cloud-provider-polling-2026-10-10.md) for
+identity scope, retry settings, validation and rollback. The prior five-day
+study remains incomplete; enabling the schedule does not certify that study.
 
 GIS Data Watchtower can run as a scheduled **Cloud Run Job** while retaining the same CLI and monitoring engine used locally.
 
@@ -82,6 +99,12 @@ The ClearParcel deployment is published at **https://gis-watchtower.clear-parcel
 ## Scheduling
 
 Start provider-check execution at **daily** cadence. County parcel and similar GIS datasets generally do not justify high-frequency deep polling. Increase provider-check frequency only when provider terms and operational need support it.
+
+The current approved provider schedule is `gis-watchtower-daily-providers` at
+`0 5 * * *` in `America/Chicago`. It invokes the existing cloud-profile job;
+both automatic trigger retries and Cloud Run task retries are zero. The retired
+ClearParcel Tools task does not run in parallel. Older disabled-schedule and
+parallel-migration statements below describe earlier validation stages.
 
 The sanitized public publisher is different: it performs no provider requests and may run more frequently. The ClearParcel deployment currently uses a **10-minute** publication cadence (`3,13,23,33,43,53 * * * *`, read-only verification on 2026-10-06), selected to leave ample room around observed Cloud Run Job startup/runtime while keeping the public snapshot reasonably fresh.
 

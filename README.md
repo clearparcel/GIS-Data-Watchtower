@@ -134,6 +134,7 @@ CI tests Windows and Ubuntu on Python 3.12, 3.13, and 3.14, plus a Linux contain
 - [`docs/hybrid-execution.md`](docs/hybrid-execution.md) and [`docs/hybrid-aggregation.md`](docs/hybrid-aggregation.md) — hybrid worker model
 - [`docs/gac-standards.md`](docs/gac-standards.md) — shared Minnesota GAC Parcel, Address Point, and Road Centerline monitoring methodology
 - [`docs/mngac-completeness.md`](docs/mngac-completeness.md) — parcel-specific Minnesota GAC field-population history, county map, and exports
+- [`docs/county-direct-gac-schema-audit.md`](docs/county-direct-gac-schema-audit.md) — verified direct/statewide overlap and source-specific MN GAC schema findings
 - [`docs/data-watchtower-provider-compliance.md`](docs/data-watchtower-provider-compliance.md) — respectful-use methodology and known provider constraints
 - [`docs/release-policy.md`](docs/release-policy.md) — versioning, release policy and the public footer's package version, baked source commit and build environment
 
@@ -145,7 +146,15 @@ The base package remains cloud-neutral. Optional Google Cloud Storage support an
 
 GIS Data Watchtower is licensed under the **MIT License**. See [`LICENSE`](LICENSE).
 
-Overview county map selections open a shared parcel-source profile with four independent source categories, source-specific counts and dates, access evidence, and research status. The overview supports monitoring-path and MN GAC completeness views. The MN GAC page starts with a searchable county chooser and county results, with a separate statewide overview; its map opens the same county results and standard links preserve the selected county. Unknown values remain unavailable; county research does not activate monitoring.
+Overview county map and picker selections populate the adjacent county pane with a compact monitoring summary and county field-coverage infographics. The map and county pane share a height when displayed side by side; full source and research evidence remains on the linked county profile. Selections keep keyboard focus on the map or picker and do not open a dialog. The overview supports monitoring-path and MN GAC completeness views. The MN GAC page starts with a searchable county chooser using county names only, with a separate statewide overview; its map opens the same county results and standard links preserve the selected county. Unknown values remain unavailable; county research does not activate monitoring.
+
+County-direct monitoring can overlap with MnGeo Open Parcels: live verification on October 10 found 13 overlaps among 24 direct counties, including Olmsted. Pane A, county profiles, parcel county MN GAC results, public source pages and county exports distinguish direct-feed schema findings from statewide field population. Missing statewide results do not imply noncompliance; field-name mismatches apply to the audited feed, while counties may offer separate standardized exports. Unassessed feeds remain unassessed.
+
+The overview's default MN GAC / open-data status map uses distinct colors and
+patterns for standardized data, differing direct feeds, no confirmed open data,
+unassessed schemas and unresolved access. Separate map views retain field
+population percentages and monitoring paths. The visible map frame and selected
+county pane share the same height as details load, including narrow layouts.
 
 The latest recorded (2026-10-06) isolated county-profile [preview](https://gis-data-watchtower-public-v2-preview-237020802969.us-central1.run.app) served committed `5aac504` (revision `00007-zfh`) with dedicated sanitized storage/identity. The previous five-class release served `dfacd72` (`00005-c24`). The final typed-metric and statewide-identity fixes passed review; live all-87 JSON/CSV/XLSX parity and targeted desktop/mobile checks passed. Original Task 8 and Task 10 local folder absence were verified on 2026-10-06; the earlier automatic approval review cleanup denial remains recorded. See [deployment details](docs/google-cloud-deployment.md#four-class-code-only-preview-release-2026-10-06).
 

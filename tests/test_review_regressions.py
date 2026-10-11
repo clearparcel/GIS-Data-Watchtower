@@ -26,6 +26,42 @@ def report(hour, sources, scope="fleet"):
 
 
 class ReviewRegressions(unittest.TestCase):
+    def test_missing_detail_pages_return_404_in_both_dashboards(self):
+        paths = ("/county?slug=sibley", "/county?slug=not-a-county",
+                 "/source?id=known", "/source?id=not-a-source")
+        state = {"sources": {"known": {"name": "Known source"}}}
+        for module in (dashboard, public_dashboard):
+            statuses = []
+            class Server:
+                def __init__(self, addr, handler, **kwargs): self.handler = handler
+                def serve_forever(self):
+                    for path in paths:
+                        handler = object.__new__(self.handler)
+                        handler.path = path
+                        handler._require_auth = lambda: False
+                        handler._send = lambda status, *args: statuses.append(status)
+                        handler.do_GET()
+                def server_close(self): pass
+            class Cache:
+                config = {"_render_state": state}
+                def refresh(self, **kwargs): pass
+                def view(self):
+                    return {"state": state, "profiles": {"sibley": {}},
+                            "summary": {"content_revision": "test"}}
+                def snapshot(self): return {}
+                def snapshot_xlsx(self): return b""
+            with self.subTest(dashboard=module.__name__), \
+                 patch.object(module, "_BoundedThreadingHTTPServer", Server), \
+                 patch.object(module, "render_county", return_value="County detail"), \
+                 patch.object(module, "render_source" if module is dashboard else "render_public_source", return_value="Source detail"), \
+                 patch.object(dashboard, "_dashboard_auth", return_value=(None, "watchtower")), \
+                 patch.object(public_dashboard, "_PublicStateCache", Cache):
+                if module is dashboard:
+                    dashboard.serve({"_render_state": state})
+                else:
+                    public_dashboard.serve_public()
+                self.assertEqual(statuses, [200, 404, 200, 404])
+
     def test_dashboard_county_views_keep_compatibility_wrappers(self):
         with patch.object(dashboard_counties, "render_counties", return_value="county index") as index:
             self.assertEqual(dashboard.render_counties({"x": 1}), "county index")
@@ -89,6 +125,21 @@ class ReviewRegressions(unittest.TestCase):
             handler, "/refresh", "",
             statewide_snapshot=lambda: {}, county_snapshot=lambda slug: None,
         ))
+
+    def test_county_export_rejects_header_control_input_before_filename_sink(self):
+        sent = []
+        class Handler:
+            def _send(self, *args): sent.append(args)
+            def _send_bytes(self, *args):
+                raise AssertionError("Invalid county reached attachment header")
+        for slug in ('sibley\r\nX-Injected: yes', 'sibley"', '../sibley'):
+            with self.subTest(slug=slug):
+                self.assertTrue(dashboard_routes.dispatch_snapshot_exports(
+                    Handler(), "/county-snapshot.xlsx", urlencode({"slug": slug}),
+                    statewide_snapshot=lambda: {},
+                    county_snapshot=lambda value: dashboard._county_snapshot({}, value, state={}),
+                ))
+                self.assertEqual(sent.pop()[0], 404)
 
     def test_private_dashboard_configures_absolute_request_deadline(self):
         captured = {}

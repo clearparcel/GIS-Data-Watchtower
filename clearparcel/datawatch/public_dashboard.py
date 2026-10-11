@@ -33,7 +33,9 @@ from clearparcel.datawatch.dashboard_routes import dispatch_snapshot_exports
 from clearparcel.datawatch.parcel_access import load_parcel_access
 from clearparcel.datawatch.county_profile_exports import county_profiles_csv, parcel_sources_csv
 from clearparcel.datawatch.county_profiles import county_profile_counts, _latest, _timestamp
-from clearparcel.datawatch.county_profile_panel import render_county_profile_panel, percentage_legend, percentage_color_js, research_summary
+from clearparcel.datawatch.county_profile_panel import render_inline_county_panel, percentage_legend, percentage_color_js, research_summary, render_direct_schema_findings
+from clearparcel.datawatch.direct_gac_schema import direct_schema_assessment
+from clearparcel.datawatch.county_map_status import MAP_STATUSES, county_map_status, status_legend, status_patterns
 from clearparcel.datawatch.storage import backend_from_env
 from clearparcel.datawatch.public_values import sanitize_source_metadata
 from clearparcel.datawatch.build_info import application_identity
@@ -143,8 +145,6 @@ def render_public_dashboard(config: dict) -> str:
     monitoring = county_profile_counts(profiles)
     all_field = (mngac or {}).get("field_population_percent")
     mandatory = (mngac or {}).get("mandatory_population_percent")
-    parcel_records = (mngac or {}).get("record_count")
-    parcel_records_label = f"{parcel_records:,}" if isinstance(parcel_records, int) else "Not available"
 
     rows = []
     for source_id, source in sorted(
@@ -186,6 +186,7 @@ def render_public_dashboard(config: dict) -> str:
     for county_name, county in ((mngac or {}).get("counties") or {}).items():
         map_data[county_name] = {
             "pct": county.get("mandatory_population_percent"),
+            "all_pct": county.get("field_population_percent"),
             "records": county.get("record_count"),
             "fields": county.get("fields_with_values"),
             "field_count": county.get("field_count"),
@@ -193,12 +194,16 @@ def render_public_dashboard(config: dict) -> str:
         }
     map_json = json.dumps(map_data, ensure_ascii=False).replace("</", "<\\/")
     map_svg = _mngac_map_svg(width=620, height=560)
+    map_svg = map_svg.replace('</svg>', status_patterns() + '</svg>')
     summary = summary_for(config, state, profiles=profiles, research=research)
-    profile_panel = render_county_profile_panel(profiles, revision=summary["content_revision"])
+    profile_panel = render_inline_county_panel(revision=summary["content_revision"])
     diagnostics = render_diagnostics(summary)
     county_options = ''.join(f'<option value="{_esc(slug)}">{_esc(p["county"]["name"])} County</option>'
                              for slug, p in sorted(profiles.items(), key=lambda item: item[1]["county"]["name"]))
     monitoring_json = json.dumps({slug: p["monitoring"]["paths"] for slug, p in profiles.items()})
+    status_json = json.dumps({slug: county_map_status(p) for slug, p in profiles.items()})
+    status_styles_json = json.dumps({key: {'label': label, 'fill': f'url(#{pattern})' if pattern else color}
+                                   for key, (label, color, pattern) in MAP_STATUSES.items()})
 
     body = f"""
 <div class="summary-v2">
@@ -211,29 +216,44 @@ def render_public_dashboard(config: dict) -> str:
 </div>
 <p class="mngac-note">A source is a monitored dataset or service entry across any data type. Parcel coverage counts unique counties observed through county-direct or statewide sources. One statewide source can cover many counties; overlapping paths count each county once.</p>
 
-<div class="section-head"><div><h2>Explore Minnesota GIS data</h2><p>Select any county to inspect its complete parcel source profile.</p></div><a href="/counties">All 87 counties →</a></div>
-<div class="hero-panel">
-  <div class="card">
+<div class="section-head"><div><h2>Explore Minnesota GIS data</h2><p>Select any county to see its monitoring summary and field coverage.</p></div><a href="/counties">All 87 counties →</a></div>
+<div class="hero-panel overview-county-explorer">
+  <div class="card mngac-map-panel" id="overview-map-pane">
     <div class="overview-controls">
-      <label>Map view<select id="overview-metric"><option value="monitoring">Monitoring paths</option><option value="completeness">MN GAC mandatory-field completeness</option></select></label>
+      <label>Map view<select id="overview-metric"><option value="schema">MN GAC / open-data status</option><option value="monitoring">Monitoring paths</option><option value="completeness">MN GAC mandatory-field completeness</option></select></label>
       <label for="overview-county-select">Find a county<select id="overview-county-select"><option value="">Choose a county…</option>{county_options}</select></label>
     </div>
-    <div class="mngac-map-panel">{map_svg}<div id="overview-legend"></div></div>
+    <div class="overview-map-content">{map_svg}<div id="overview-legend"></div></div>
+    <p class="subtext overview-map-note" id="overview-map-note"></p>
   </div>
-  <div class="card hero-copy">
+  <div class="card hero-copy" id="home-county-pane" role="region" aria-labelledby="home-county-name">
     <div class="muted">Selected county</div>
     <h2 id="home-county-name">Choose a county</h2>
-    <p id="home-county-detail">The map shows active parcel monitoring paths: county-direct, MnGeo open parcels, both, or no active parcel monitoring path. Select a county to inspect its complete source profile.</p>
+    <p id="home-county-detail">The map distinguishes MN GAC data, differing direct-feed schemas, and open-data availability. Select a county to see the evidence.</p>
     <div class="hero-stat">
       <div><small>Mandatory-field population</small><b id="home-county-rate">—</b></div>
       <div><small>Parcel records</small><b id="home-county-records">—</b></div>
       <div><small>Fields with values</small><b id="home-county-fields">—</b></div>
-      <div><small>Statewide parcels</small><b>{parcel_records_label}</b></div>
+      <div><small>All-field population</small><b id="home-county-all-rate">—</b></div>
     </div>
     <div class="hero-actions" style="margin-top:16px">
       <a id="home-county-link" class="primary" href="/counties">Open county profile</a>
-      <a href="/mngac">Explore all 91 MN GAC fields</a>
+      <a id="home-county-gac-link" href="/mngac">Explore county MN GAC fields</a>
     </div>
+    <p id="home-county-profile-status" role="status"></p>
+    <div id="home-county-profile" aria-busy="false"></div>
+    <section id="home-county-infographics" aria-labelledby="county-coverage-title" hidden>
+      <h3 id="county-coverage-title">County field coverage</h3>
+      <div class="county-coverage-rings">
+        <div><div class="county-coverage-ring unavailable" id="county-coverage-mandatory" role="img" aria-label="Mandatory-field population: No data"><b id="county-coverage-mandatory-value">No data</b></div><small>Mandatory fields</small></div>
+        <div><div class="county-coverage-ring unavailable" id="county-coverage-all" role="img" aria-label="All-field population: No data"><b id="county-coverage-all-value">No data</b></div><small>All fields</small></div>
+      </div>
+      <div class="county-field-coverage" id="county-field-coverage" role="img" aria-label="Fields with values: No data">
+        <div><span>Fields with values</span><b id="county-field-coverage-value">No data</b></div>
+        <div class="county-field-track" aria-hidden="true"><i id="county-field-coverage-fill"></i></div>
+      </div>
+      <p class="subtext">Rings show record-weighted field population. The bar counts fields with at least one value.</p>
+    </section>
   </div>
 </div>
 
@@ -260,6 +280,7 @@ def render_public_dashboard(config: dict) -> str:
   const countyData={map_json};
   const root=document;
   const monitoringPaths={monitoring_json};
+  const countyStatuses={status_json},statusStyles={status_styles_json};
   const selector=root.getElementById("overview-metric");
   let selectedPath=null;
   function monitoringLabel(paths){{
@@ -267,8 +288,10 @@ def render_public_dashboard(config: dict) -> str:
   }}
   function updateDescription(){{
     const detail=root.getElementById('home-county-detail');
-    if(selector.value==='monitoring'){{
-      detail.textContent=selectedPath?monitoringLabel(monitoringPaths[selectedPath.dataset.slug]||[])+'. Statewide completeness statistics below are separate from monitoring coverage.':'The map shows active parcel monitoring paths: county-direct, MnGeo open parcels, both, or no active parcel monitoring path. Select a county to inspect its complete source profile.';
+    if(selector.value==='schema'){{
+      detail.textContent=selectedPath?statusStyles[countyStatuses[selectedPath.dataset.slug]].label+'. This describes available datasets and checked field names, not county-wide compliance. Statewide field-population statistics are separate.':'The map distinguishes MN GAC data, differing direct-feed schemas, and open-data availability. Select a county to see the evidence.';
+    }}else if(selector.value==='monitoring'){{
+      detail.textContent=selectedPath?monitoringLabel(monitoringPaths[selectedPath.dataset.slug]||[])+'. County field-population statistics below come from the statewide parcel observations.':'The map shows active parcel monitoring paths: county-direct, MnGeo open parcels, both, or no active parcel monitoring path. Select a county to see its monitoring summary and field coverage.';
     }}else{{
       const d=selectedPath&&countyData[selectedPath.dataset.county];
       detail.textContent=!selectedPath?'The map shows record-weighted population across mandatory Minnesota GAC parcel-transfer fields. Unavailable statewide completeness remains distinct from 0%.':!d||d.pct==null?'Statewide completeness is unavailable for this county. These statistics are separate from county-direct monitoring; no 0% value is inferred.':'Current record-weighted population across mandatory parcel-transfer fields for this county. These statistics are separate from county-direct monitoring.';
@@ -276,14 +299,16 @@ def render_public_dashboard(config: dict) -> str:
   }}
   function updateOverview(){{
     const monitoring=selector.value==="monitoring";
+    const schema=selector.value==='schema';
     root.querySelectorAll(".mngac-county").forEach(p=>{{
       const paths=monitoringPaths[p.dataset.slug]||[],d=countyData[p.dataset.county];
-      p.style.fill=monitoring?(paths.length===2?"#4c9b7b":paths.includes("county-direct")?"#3c708f":paths.includes("mngeo-open")?"#315373":"#151d2b"):fill(d&&d.pct);
-      const label=monitoring?monitoringLabel(paths):d&&d.pct!=null?Number(d.pct).toFixed(2)+'% MN GAC mandatory-field population':'Statewide completeness is unavailable';
+      p.style.fill=schema?statusStyles[countyStatuses[p.dataset.slug]].fill:monitoring?(paths.length===2?"#4c9b7b":paths.includes("county-direct")?"#3c708f":paths.includes("mngeo-open")?"#315373":"#151d2b"):fill(d&&d.pct);
+      const label=schema?statusStyles[countyStatuses[p.dataset.slug]].label:monitoring?monitoringLabel(paths):d&&d.pct!=null?Number(d.pct).toFixed(2)+'% MN GAC mandatory-field population':'Statewide completeness is unavailable';
       p.setAttribute('aria-label',p.dataset.county+' County, '+label);
     }});
     updateDescription();
-    root.getElementById("overview-legend").innerHTML=monitoring?'<div class="mngac-legend"><span><i class="mngac-swatch" style="background:#4c9b7b"></i>Both paths</span><span><i class="mngac-swatch" style="background:#3c708f"></i>County-direct</span><span><i class="mngac-swatch" style="background:#315373"></i>MnGeo open</span><span><i class="mngac-swatch" style="background:#151d2b"></i>No active parcel path</span></div>':{json.dumps(percentage_legend())};
+    root.getElementById("overview-legend").innerHTML=schema?{json.dumps(status_legend())}:monitoring?'<div class="mngac-legend"><span><i class="mngac-swatch" style="background:#4c9b7b"></i>Both paths</span><span><i class="mngac-swatch" style="background:#3c708f"></i>County-direct</span><span><i class="mngac-swatch" style="background:#315373"></i>MnGeo open</span><span><i class="mngac-swatch" style="background:#151d2b"></i>No active parcel path</span></div>':{json.dumps(percentage_legend())};
+    root.getElementById('overview-map-note').textContent=schema?'MN GAC availability uses MnGeo county observations or checked standard field names. A differing direct feed does not rule out a separate standardized export. No confirmed open data means current research found no open product; unresolved cases remain separate.':monitoring?'Monitoring paths describe saved observations, not all available parcel products.':'Percentages describe statewide mandatory-field population. Unavailable is not 0% and does not establish a different direct schema.';
   }}
   selector.addEventListener("change",updateOverview);
   {percentage_color_js()}
@@ -293,11 +318,11 @@ def render_public_dashboard(config: dict) -> str:
     root.getElementById('overview-county-select').value=path.dataset.slug;
     window.watchtowerRefresh?.save();
     const d=countyData[name];
-    root.querySelectorAll('.mngac-county').forEach(p=>p.classList.toggle('selected',p===path));
+    root.querySelectorAll('.mngac-county').forEach(p=>{{p.classList.toggle('selected',p===path);p.setAttribute('aria-pressed',String(p===path))}});
     root.getElementById('home-county-name').textContent=name+' County';
     const rate=root.getElementById('home-county-rate'), rec=root.getElementById('home-county-records'), fields=root.getElementById('home-county-fields'), link=root.getElementById('home-county-link');
     if(!d){{
-      rate.textContent='No data';rec.textContent='—';fields.textContent='—';
+      rate.textContent='Unavailable';rec.textContent='—';fields.textContent='—';
     }}else{{
       rate.textContent=d.pct==null?'—':Number(d.pct).toFixed(2)+'%';
       rec.textContent=d.records==null?"Not available":Number(d.records).toLocaleString();
@@ -305,6 +330,9 @@ def render_public_dashboard(config: dict) -> str:
     }}
     const slug=(d&&d.slug)||path.dataset.slug||'';
     link.href=slug?'/county?slug='+encodeURIComponent(slug):'/counties';
+    root.getElementById('home-county-all-rate').textContent=d&&d.all_pct!=null?Number(d.all_pct).toFixed(2)+'%':'Unavailable';
+    root.getElementById('home-county-gac-link').href='/mngac?standard=parcel&view=county&county='+encodeURIComponent(slug);
+    window.watchtowerCountyPane?.load(slug,d);
     updateDescription();
   }}
   root.querySelectorAll('.mngac-county').forEach(p=>{{
@@ -312,7 +340,16 @@ def render_public_dashboard(config: dict) -> str:
     p.addEventListener('keydown',e=>{{if(e.key==='Enter'||e.key===' '){{e.preventDefault();show(p.dataset.county,p)}}}});
   }});
   updateOverview();
-  root.getElementById('overview-county-select').addEventListener('change',event=>{{const path=[...root.querySelectorAll('.mngac-county')].find(p=>p.dataset.slug===event.target.value);if(path)show(path.dataset.county,path)}});
+  root.getElementById('overview-county-select').addEventListener('change',event=>{{
+    const path=[...root.querySelectorAll('.mngac-county')].find(p=>p.dataset.slug===event.target.value);
+    if(path){{show(path.dataset.county,path);return}}
+    selectedPath=null;
+    root.querySelectorAll('.mngac-county').forEach(p=>{{p.classList.remove('selected');p.setAttribute('aria-pressed','false')}});
+    root.getElementById('home-county-name').textContent='Choose a county';
+    for(const id of ['home-county-rate','home-county-records','home-county-fields','home-county-all-rate'])root.getElementById(id).textContent='—';
+    root.getElementById('home-county-link').href='/counties';root.getElementById('home-county-gac-link').href='/mngac';
+    window.watchtowerCountyPane?.clear();updateDescription();window.watchtowerRefresh?.save();
+  }});
 }})();
 function filterRows(){{
   const q=document.getElementById('q').value.toLowerCase(),h=document.getElementById('health').value;
@@ -352,6 +389,8 @@ def render_public_source(config: dict, source_id: str) -> str:
         f'<dt>Missing mapped shape</dt><dd>{_esc(source.get("null_geometry_count") if source.get("null_geometry_count") is not None else "Not checked")}</dd>'
         '</dl></div>'
     )
+    if source.get('county_slug') and source.get('category') == 'Parcels':
+        body += render_direct_schema_findings([direct_schema_assessment(source_id, source)])
     return _layout(
         f'Data Source — {source.get("name") or source_id} — GIS Data Watchtower',
         body,
@@ -582,7 +621,8 @@ def serve_public(host: str = "0.0.0.0", port: int = 8080) -> None:
                 return self._send(200, render_counties(config))
             if parsed.path == "/county":
                 slug = urllib.parse.parse_qs(parsed.query).get("slug", [""])[0]
-                return self._send(200, render_county(config, slug))
+                status = 200 if slug in view["profiles"] else 404
+                return self._send(status, render_county(config, slug))
             if parsed.path == "/mngac":
                 try:
                     standard_key = normalize_standard_key(
@@ -599,7 +639,8 @@ def serve_public(host: str = "0.0.0.0", port: int = 8080) -> None:
                 return self._send(200, page)
             if parsed.path == "/source":
                 source_id = urllib.parse.parse_qs(parsed.query).get("id", [""])[0]
-                return self._send(200, render_public_source(config, source_id))
+                status = 200 if (view["state"].get("sources") or {}).get(source_id) else 404
+                return self._send(status, render_public_source(config, source_id))
             if parsed.path == "/api/state":
                 return self._send(200, cache.public_path.read_text(encoding="utf-8"), "application/json; charset=utf-8")
             if parsed.path in ("/county-profiles.csv", "/parcel-sources.csv"):

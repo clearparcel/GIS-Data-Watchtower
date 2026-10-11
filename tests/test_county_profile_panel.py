@@ -3,9 +3,65 @@ import html
 import json
 import subprocess
 import shutil
+import re
 from clearparcel.datawatch.county_profile_panel import render_county_profile_body, render_county_profile_panel, profile_time
 
 class CountyProfilePanelTests(unittest.TestCase):
+    @unittest.skipUnless(shutil.which('node'), 'Inline async behavior requires Node.js')
+    def test_inline_selection_races_cache_revision_retry_and_failure(self):
+        from clearparcel.datawatch.county_profile_panel import render_inline_county_panel
+        script = re.search(r'<script>(.*?)</script>', render_inline_county_panel(revision='old'), re.S | re.I).group(1)
+        harness = r'''
+const assert=require('node:assert/strict'),vm=require('node:vm');
+const content={nodes:[],attrs:{},replaceChildren(...nodes){this.nodes=nodes},setAttribute(k,v){this.attrs[k]=v}},status={textContent:''};
+const graphics=new Map(),graphic=id=>{if(!graphics.has(id))graphics.set(id,{attrs:{},textContent:'',style:{values:{},setProperty(k,v){this.values[k]=v}},classList:{values:{},toggle(k,v){this.values[k]=v}},setAttribute(k,v){this.attrs[k]=v}});return graphics.get(id)};
+let calls=[],pending=[];
+const context={AbortController,setTimeout,clearTimeout,Map,encodeURIComponent,window:{},
+ document:{getElementById:id=>id==='home-county-profile'?content:id==='home-county-profile-status'?status:graphic(id),querySelector:()=>({dataset:{contentRevision:'old'}})},
+ DOMParser:class{parseFromString(id){const profile={id,children:[],cloneNode(){return{id,children:this.children}}};for(const tagName of ['H2','P','DIV','SECTION','SECTION','SECTION','SECTION','SECTION','SECTION','P']){const node={tagName,remove(){profile.children=profile.children.filter(n=>n!==this)}};profile.children.push(node)}return{querySelector:()=>profile}}},
+ fetch:(url,options)=>{calls.push({url,options});return new Promise(resolve=>pending.push(resolve))}};
+vm.createContext(context);vm.runInContext(SCRIPT,context);
+const response=(id,status=200)=>({status,ok:status===200,text:async()=>id,json:async()=>({content_revision:'new'})});
+const flush=()=>new Promise(resolve=>setImmediate(resolve));
+(async()=>{
+ const first=context.window.watchtowerCountyPane.load('dakota',{pct:0,all_pct:100,fields:37,field_count:91});
+ assert.equal(graphic('county-coverage-mandatory-value').textContent,'0.00%');
+ assert.equal(graphic('county-coverage-mandatory').classList.values.unavailable,false);
+ assert.equal(graphic('county-coverage-all').style.values['--coverage'],'100%');
+ assert.equal(graphic('county-field-coverage-value').textContent,'37 / 91');
+ assert.equal(graphic('county-field-coverage-fill').style.values['--coverage'],(37/91*100)+'%');
+ const second=context.window.watchtowerCountyPane.load('rice');
+ assert.equal(graphic('county-coverage-mandatory-value').textContent,'Unavailable');
+ assert.equal(graphic('county-coverage-mandatory').classList.values.unavailable,true);
+ assert.equal(graphic('county-field-coverage-value').textContent,'Unavailable');
+ assert.equal(calls[0].options.signal.aborted,true);
+ pending[1](response('rice'));await second;
+ pending[0](response('dakota'));await first;
+ assert.equal(content.nodes[0].id,'rice');assert.equal(content.attrs['aria-busy'],'false');
+ assert.deepEqual(content.nodes[0].children.map(n=>n.tagName),['DIV']);
+ const count=calls.length;await context.window.watchtowerCountyPane.load('rice');assert.equal(calls.length,count);
+ const retry=context.window.watchtowerCountyPane.load('douglas');pending[2](response('',409));await flush();
+ assert.equal(calls[3].url,'/api/summary');pending[3](response('summary'));await flush();
+ assert.match(calls[4].url,/revision=new/);pending[4](response('douglas'));await retry;
+ assert.equal(content.nodes[0].id,'douglas');
+ const failure=context.window.watchtowerCountyPane.load('aitkin');assert.equal(content.nodes.length,0);
+ pending[5](response('',503));await failure;assert.match(status.textContent,/temporarily unavailable/);
+ assert.equal(content.nodes.length,0);assert.equal(content.attrs['aria-busy'],'false');
+ const clearing=context.window.watchtowerCountyPane.load('sibley');
+ assert.equal(typeof context.window.watchtowerCountyPane.clear,'function');
+ context.window.watchtowerCountyPane.clear();
+ assert.equal(calls[6].options.signal.aborted,true);
+ assert.equal(content.nodes.length,0);assert.equal(status.textContent,'');
+ assert.equal(content.attrs['aria-busy'],'false');
+ assert.equal(graphic('home-county-infographics').hidden,true);
+ pending[6](response('sibley'));await clearing;
+ assert.equal(content.nodes.length,0);assert.equal(status.textContent,'');
+})().catch(error=>{console.error(error);process.exitCode=1});
+'''
+        result = subprocess.run(['node', '-e', harness.replace('SCRIPT', json.dumps(script))],
+                                capture_output=True, text=True, timeout=25)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_dates_preserve_calendar_and_central_dst(self):
         self.assertEqual(profile_time('2026-10-06'), '2026-10-06')
         self.assertEqual(profile_time('2026-01-06T12:00:00+00:00'), '2026-01-06 06:00 CST')
@@ -63,5 +119,5 @@ class CountyProfilePanelTests(unittest.TestCase):
         self.assertEqual(PERCENT_COLORS, ["#1b2b40", "#315373", "#3c708f", "#4c9b7b"])
         self.assertEqual(legend.count('class="mngac-swatch"'), 5)
         for color, label in zip([NO_DATA_COLOR] + PERCENT_COLORS,
-                                ["No data", "<50%", "50% - 60%", "60% - 70%", ">70%"]):
+                                ["N/A", "<50%", "50% - 60%", "60% - 70%", ">70%"]):
             self.assertIn(f'background:{color}"></i>{label}</span>', legend)

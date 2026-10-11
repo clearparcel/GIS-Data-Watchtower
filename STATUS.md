@@ -1,19 +1,101 @@
 # Project status
 
-## MN GAC county results — ready for review, 2026-10-10
+## Daily Google Cloud provider polling enabled — 2026-10-10
 
-The proposed MN GAC page defaults to County results with a prominent searchable
+Under the user's explicit activation request, `gis-watchtower-daily-providers`
+now invokes the existing cloud worker daily at **05:00 America/Chicago**. The
+first scheduled run is October 11 at 05:00 CDT. Trigger and Cloud Run task
+retries are disabled; existing bounded adapter retries and provider controls
+remain. The scheduler identity received invocation-only access to this worker
+job. All 35 approved sources remain assigned to cloud, and the terms-held
+county-direct sources remain excluded. The existing sanitized publisher supplies
+the public dashboard from this worker's shared aggregate.
+See the [daily polling record](docs/daily-cloud-provider-polling-2026-10-10.md).
+One dispatch through the actual scheduler passed: 35/35 sources OK, zero warnings
+and errors, with cloud provenance and a saved report at October 10, 22:30 CDT.
+The automatic publisher delivered the matching public projection at 22:35 CDT;
+the live dashboard health and source inventory passed. The earlier five-day
+study is incomplete and is not claimed as passed. The retired local poller
+remains removed; retained local-worker history is unchanged.
+
+## Legacy ClearParcel Tools polling removed — 2026-10-10
+
+With explicit user approval, the GERTKEN-PC task `ClearParcel Data Watchtower
+Daily` was disabled, stopped and unregistered at 22:20 CDT. Its
+`C:\ClearParcel_Tools\run-datawatch.cmd` launcher was archived outside active use.
+Verification found no remaining legacy polling task or process. Private task
+definition/launcher rollback records and historical observations remain local.
+The separate Validation Capture task remains enabled: it only reads saved state
+and cloud metadata and does not poll GIS providers. Cloud scheduling, publisher,
+source registry and aggregate worker history were unchanged. No replacement
+provider schedule was created during that removal. The subsequent daily-cloud
+activation is recorded above; the earlier five-day observation study remains open.
+
+## Final UI and repository review — candidate, 2026-10-10
+
+The final review fixed stale county selection after clearing the overview picker,
+including late-response cancellation, and corrected missing county/source HTTP
+statuses to 404 in both dashboards. The example-source test now checks the exact
+hostname. Merged branch references and obsolete temporary build/worktree copies
+were removed; user attachments are ignored and preserved. See the
+[final review report](docs/final-review-2026-10-10.md) for validation and remaining
+operational/security findings. PR #64 remains a candidate; no merge, production
+deployment, provider schedule or production configuration changed in this review.
+
+## County-direct coverage and schema evidence — candidate, 2026-10-10
+
+Live MnGeo membership verification confirms Olmsted and 12 other direct counties
+are in Open Parcels. Coverage remains 70 counties = 59 statewide + 24 direct - 13
+overlaps. County-direct does not mean direct-only. See the
+[all-county coverage and schema audit](docs/county-direct-gac-schema-audit.md).
+
+Pane A and county/source views now separate direct-feed MN GAC schema evidence
+from statewide field population. The metadata audit checked 21 feeds: Wabasha has
+all 91 standard names; 20 feeds have missing names. Olmsted, Ramsey and Dodge
+remain unassessed. Findings identify the audited feed and date, expose missing
+mandatory names, and do not assert county-wide noncompliance. JSON and county
+CSV/XLSX summaries carry the same findings. Missing statewide metrics stay
+unavailable. This local candidate changes no monitoring configuration or production
+publication and awaits separate merge/publication approval.
+The visible map frame and Pane A use equal grid-row sizing, including stacked
+layouts, so their heights stay equal while county details load and change. The
+map frame now contains the controls, map, legend and explanatory note.
+The default overview map distinguishes MN GAC data availability, checked direct
+feeds with differing schemas, no confirmed open parcel data under documented
+fee policies, open data with an unassessed schema, and unresolved access.
+Patterns supplement color. Statewide availability takes precedence over direct
+schema mismatches; technical REST reachability does not override fee policies.
+Monitoring-path and mandatory-field percentage views remain separately selectable.
+Percentage-map legends label unavailable observations N/A.
+
+## Inline overview county pane — candidate, 2026-10-10
+
+Overview map and county-picker selections now populate the adjacent county pane
+with a compact monitoring summary instead of opening a dialog. Full source and
+research sections remain on the county profile; the MN GAC link keeps the selected
+county. The two panes share a height on desktop, with county field-population rings
+and a fields-with-values bar at the bottom of the selected-county pane.
+County cards include county all-field population in place of the statewide count.
+MN GAC county suggestions show each county name once. This candidate uses saved
+public observations and awaits review and separate merge/publication approval.
+The live public build remains `8999081`; publication details are recorded in PR #63.
+
+
+## MN GAC county results — deployed, 2026-10-10
+
+The live MN GAC page defaults to County results with a prominent searchable
 county chooser and an explicit Statewide overview. County summary cards and
 field results use saved county observations; county and scope persist across
 standard links. Map links open the same county results. Missing observations
-remain No data, while unscanned fields remain Not scanned. This is a local
-preview change awaiting merge and deployment approval; production remains v0.1.2.
+remain No data, while unscanned fields remain Not scanned. PR #62 merged at
+`8999081` and is live on public revision `00013-s7q`, still version v0.1.2.
+PR #63 contains the detailed publication/rollback record and remains open.
 No provider connections, schedules or monitoring data were changed.
 
 
-## v0.1.2 deployed — 2026-10-10
+## Initial v0.1.2 deployment — 2026-10-10
 
-Merged commit `a3899f6` is live: public dashboard `00012-c5j`, private dashboard
+Merged commit `a3899f6` was deployed: public dashboard `00012-c5j`, private dashboard
 `00020-lqc` and isolated preview `00018-rkt` receive 100% of their service traffic.
 The sanitized publisher uses the new production image. The release fixes label
 encoding, transparent branding, package version display and unknown-health
@@ -22,6 +104,7 @@ and merged-main CI passed. Live pages, 87-county CSV export, source observation
 parity, public publication health and anonymous private IAP redirect passed.
 Non-image runtime settings and access controls were verified unchanged.
 See the [release record](docs/release-v0.1.2.md).
+The later public-only MN GAC rollout above superseded public revision `00012-c5j`.
 
 The live public snapshot contains 35 cloud observations (34 OK and one Hennepin
 imagery warning), with no local source observations. Its newest provider check
@@ -125,14 +208,16 @@ and three diagnostic graphics are repaired. Local QA measures approximately
 131 KB decoded homepage versus the reviewed 1.78 MB, and a 15 KB summary.
 See [implementation and hybrid validation preparation](docs/watchtower-remediation-2026-10-07.md).
 
-Read-only verification confirmed that GERTKEN-PC's authoritative daily task
-still runs the older 26-source local installation and writes local state;
+Read-only verification at that time confirmed that GERTKEN-PC's daily task
+ran the older 26-source local installation and wrote local state;
 it does not feed the current 31-cloud/4-local public aggregate. The existing
 publisher advances publication time without checking providers. The hybrid
 candidate manifest and offline receipt tool prepare the correction; five
 separately authorized daily cycles and an explicit scheduling decision remain
 pending under issue #20. Production application identity remains v0.1.1 /
 build `8099ee1`; the earlier application waiver did not pass that gate.
+The legacy local task was subsequently removed under explicit approval on
+October 10; see the retirement record at the top of this file.
 
 ## v0.1.1 production rollout — 2026-10-07
 
