@@ -1,11 +1,11 @@
 # GIS Data Watchtower
 
-GIS Data Watchtower **v0.1.2** is deployed to production from merged commit
-`a3899f6`. The public dashboard (`00012-c5j`), private IAP-protected dashboard
-(`00020-lqc`) and sanitized publisher use the new release. The isolated preview
-serves `00018-rkt`. Page/export acceptance and configuration preservation passed;
-provider scheduling is unchanged. See the [release record](docs/release-v0.1.2.md)
-for validation, immutable images, rollback targets and remaining activation gates.
+GIS Data Watchtower **v0.2.0** is the requested release for the merged inline county
+pane, county-direct MN GAC schema evidence and map categories. Production currently
+serves v0.1.2 while the v0.2.0 build and acceptance checks complete. Daily Google
+Cloud provider polling is enabled at 05:00 America/Chicago; its latest activation
+run passed all 35 approved sources. See the [v0.2.0 release record](docs/release-v0.2.0.md)
+and [current status](docs/current-status.md) for publication and rollback details.
 
 [![CI](https://github.com/clearparcel/GIS-Data-Watchtower/actions/workflows/watchtower-ci.yml/badge.svg)](https://github.com/clearparcel/GIS-Data-Watchtower/actions/workflows/watchtower-ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -32,7 +32,7 @@ ClearParcel also operates a read-only public dashboard at **https://gis-watchtow
 - source response and processing history
 - CSV, JSON, and Excel (`.xlsx`) snapshot exports
 - County parcel profiles in `/county-profiles.csv` (all 87 counties) and `/parcel-sources.csv` (each category and source, including empty-category placeholders). JSON county records include `parcel_source_profile`; Excel adds `County Access` and `Parcel Sources` sheets. `/snapshot.csv` retains the monitored-source rows. Unknown counts/dates stay blank in spreadsheets, observed zero stays zero, and date/time fields retain ISO semantics.
-- Both county maps open the same complete profile with click, Enter or Space. Escape closes the dialog and returns focus; overview refresh pauses while reading. Desktop and 390px layouts wrap long source/evidence values. Public publication reporting is Current, Overdue or Unknown using the `/healthz` threshold, separately from provider health and source reporting.
+- Overview map and picker selection update the adjacent county pane; the county-results map opens the complete county profile. Click, Enter and Space are supported. The overview map frame and county pane retain equal heights, including stacked layouts. Desktop and 390px layouts wrap long source/evidence values. Public publication reporting is Current, Overdue or Unknown using the `/healthz` threshold, separately from provider health and source reporting.
 - Profile coverage includes all 87 counties. The current evidence has 16 fully reviewed category inventories and 15 complete composed profiles; blocked evidence and unresolved county-direct access remain explicit. Monitoring coverage is derived from current observations.
 
 Public snapshots use typed projections for source metrics, completeness, workers,
