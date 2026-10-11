@@ -136,7 +136,7 @@ def percentage_color_js() -> str:
 
 def percentage_legend() -> str:
     """Use the same fixed breaks and colors as both maps."""
-    values = [(NO_DATA_COLOR, "No data"), *zip(PERCENT_COLORS, [label for label, _, _ in PERCENT_BINS])]
+    values = [(NO_DATA_COLOR, "N/A"), *zip(PERCENT_COLORS, [label for label, _, _ in PERCENT_BINS])]
     return '<div class="mngac-legend" aria-label="Map legend">' + ''.join(f'<span><i class="mngac-swatch" style="background:{color}"></i>{html.escape(label)}</span>' for color, label in values) + '</div>'
 
 def render_inline_county_panel(*, revision: str) -> str:

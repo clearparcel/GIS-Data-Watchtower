@@ -26,6 +26,7 @@ fee policies, open data with an unassessed schema, and unresolved access.
 Patterns supplement color. Statewide availability takes precedence over direct
 schema mismatches; technical REST reachability does not override fee policies.
 Monitoring-path and mandatory-field percentage views remain separately selectable.
+Percentage-map legends label unavailable observations N/A.
 
 ## Inline overview county pane — candidate, 2026-10-10
 

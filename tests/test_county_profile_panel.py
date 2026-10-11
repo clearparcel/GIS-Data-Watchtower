@@ -110,5 +110,5 @@ const flush=()=>new Promise(resolve=>setImmediate(resolve));
         self.assertEqual(PERCENT_COLORS, ["#1b2b40", "#315373", "#3c708f", "#4c9b7b"])
         self.assertEqual(legend.count('class="mngac-swatch"'), 5)
         for color, label in zip([NO_DATA_COLOR] + PERCENT_COLORS,
-                                ["No data", "<50%", "50% - 60%", "60% - 70%", ">70%"]):
+                                ["N/A", "<50%", "50% - 60%", "60% - 70%", ">70%"]):
             self.assertIn(f'background:{color}"></i>{label}</span>', legend)
