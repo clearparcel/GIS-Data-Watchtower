@@ -16,6 +16,9 @@ _PUBLIC_V2_CSS = """
 .overview-controls{display:flex;flex-wrap:wrap;gap:10px 16px;margin-bottom:10px;align-items:center}
 .overview-controls label{display:inline-flex;align-items:center;gap:8px;white-space:nowrap;max-width:100%}
 .overview-controls select{min-width:0;max-width:100%}
+.overview-controls select,#gap-standard,.live-state button{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:9px;padding:9px 11px;font:inherit;min-height:44px}
+.live-state button{cursor:pointer;font-size:12px;font-weight:600}
+@media(max-width:760px){.overview-controls label{display:grid;gap:4px;white-space:normal;flex:1 1 100%}.overview-controls select,#gap-standard{width:100%}}
 :root{color-scheme:dark;--bg:#080b12;--panel:#111722;--panel2:#151d2b;--panel3:#0d131e;--line:#263247;--line2:#34445e;--text:#eef4ff;--muted:#8e9bb0;--blue:#6ea8fe;--blue2:#4b8ee8;--green:#5bd49a;--amber:#f5c66a;--red:#ff7b86;--shadow:0 12px 30px #0004;--radius:14px}
 *{box-sizing:border-box}
 html{scroll-behavior:smooth;background:var(--bg)}
@@ -76,7 +79,8 @@ _TABLE_CSS = """
 """
 
 
-def _public_layout_v2(title: str, body: str, *, refresh_seconds: int = 30, public_summary: bool = True) -> str:
+def _public_layout_v2(title: str, body: str, *, refresh_seconds: int = 30, public_summary: bool = True,
+                      static_bundle: bool = False) -> str:
     refresh_meta = _refresh_script(refresh_seconds, public=public_summary)
     body = _accessible_tables(body)
     identity = application_identity()
@@ -85,12 +89,17 @@ def _public_layout_v2(title: str, body: str, *, refresh_seconds: int = 30, publi
     logo_src = "data:image/png;base64," + base64.b64encode(Path(__file__).with_name("clearparcel-logo-transparent.png").read_bytes()).decode("ascii")
     lower = title.lower()
     active = "mngac" if "gac" in lower else "sources" if "source" in lower else "counties" if "county" in lower or "counties" in lower else "overview"
-    tabs = [
+    tabs = ([
+        ("overview", "index.html", "Overview"),
+        ("state", "state.json", "Sanitized state JSON"),
+    ] if static_bundle else [
         ("overview", "/", "Overview"),
         ("counties", "/counties", "Minnesota Counties"),
         ("mngac", "/mngac", "MN GAC"),
         ("sources", "/#datasets", "Data Sources"),
-    ]
+    ])
+    if static_bundle:
+        active = "overview" if title == "GIS Data Watchtower" else ""
     nav = "".join(
         f'<a href="{href}" class="{"active" if key == active else ""}"'
         + (' aria-current="page"' if key == active else "")
@@ -104,10 +113,19 @@ def _public_layout_v2(title: str, body: str, *, refresh_seconds: int = 30, publi
     )
     subtitle = {
         "overview": "Availability, freshness, and structure of Minnesota public GIS data.",
+        "state": "Sanitized, read-only Watchtower state for offline review.",
         "counties": "County profiles, parcel availability, monitoring coverage, and GIS contact references.",
         "mngac": "Field population across Minnesota GAC parcel, address-point, and road-centerline standards.",
         "sources": "Public source health and high-level structural observations.",
     }.get(active, "Minnesota public GIS data, summarized for practical exploration.")
+    export_label = "Files" if static_bundle else "Export"
+    export_links = (
+        '<a href="index.html">Overview</a><a href="state.json">Sanitized state JSON</a>'
+        if static_bundle else
+        '<a href="/snapshot.xlsx">Excel (.xlsx)</a><a href="/county-profiles.csv">County profiles (CSV)</a>'
+        '<a href="/parcel-sources.csv">Parcel sources (CSV)</a><a href="/snapshot.csv">Monitored sources (CSV)</a>'
+        '<a href="/snapshot.json">JSON</a>'
+    )
     analytics_script = posthog_html(
         page=page_name,
         version=identity["version"],
@@ -123,16 +141,18 @@ def _public_layout_v2(title: str, body: str, *, refresh_seconds: int = 30, publi
 </header>
 <main class="public-main">
   <a class="skip-link" href="#main-content">Skip to content</a><div class="public-nav-row"><nav class="public-tabs" aria-label="Watchtower views">{nav}</nav>
-    <div class="public-tools"><details class="public-export"><summary>Export</summary><div class="export-pop"><a href="/snapshot.xlsx">Excel (.xlsx)</a><a href="/county-profiles.csv">County profiles (CSV)</a><a href="/parcel-sources.csv">Parcel sources (CSV)</a><a href="/snapshot.csv">Monitored sources (CSV)</a><a href="/snapshot.json">JSON</a></div></details></div>
+    <div class="public-tools"><details class="public-export"><summary>{export_label}</summary><div class="export-pop">{export_links}</div></details></div>
   </div>
   <div class="page-kicker"><div class="eyebrow">PUBLIC DATA INTELLIGENCE</div><h2>{_esc(page_name)}</h2><p>{_esc(subtitle)}</p></div>
   <p id="refresh-status" role="status"></p><div id="main-content">{body}</div>
   <footer class="public-footnote"><span><a class="footer-brand" href="https://clear-parcel.com" aria-label="ClearParcel home"><img src="{logo_src}" alt="ClearParcel" width="120" height="42"></a> · Public read-only view</span><span><strong class="application-version" title="Source revision: {_esc(identity['revision'] or 'unknown')}">{_esc(release_label)}</strong><br>Monitoring results are informational and source-dependent.</span></footer>
 </main><script>(function(){{const menu=document.querySelector('.public-export');if(!menu)return;document.addEventListener('keydown',e=>{{if(e.key==='Escape'&&menu.open){{menu.open=false;menu.querySelector('summary').focus()}}}});document.addEventListener('click',e=>{{if(menu.open&&!menu.contains(e.target))menu.open=false}});}})();</script></body></html>"""
 
-def _layout(title: str, body: str, *, refresh_seconds: int = 30, static: bool = False, csrf_token: str = "", public_summary: bool = True) -> str:
+def _layout(title: str, body: str, *, refresh_seconds: int = 30, static: bool = False, csrf_token: str = "", public_summary: bool = True,
+            static_bundle: bool = False) -> str:
     if static:
-        return _public_layout_v2(title, body, refresh_seconds=refresh_seconds, public_summary=public_summary)
+        return _public_layout_v2(title, body, refresh_seconds=refresh_seconds, public_summary=public_summary,
+                                 static_bundle=static_bundle)
     auto_refresh = int(refresh_seconds or 0) > 0
     body = _accessible_tables(body)
     refresh_meta = _refresh_script(refresh_seconds)

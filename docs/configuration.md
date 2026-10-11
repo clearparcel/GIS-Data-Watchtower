@@ -1,6 +1,6 @@
 # Configuration reference
 
-Last reviewed: **2026-10-07**
+Last reviewed: **2026-10-11**
 
 Start from `config/example_sources.json`. The public example is deliberately provider-neutral.
 
@@ -20,6 +20,12 @@ Start from `config/example_sources.json`. The public example is deliberately pro
 | `sources` | Source definitions | `[]` |
 
 The supported history size key is `history_max_mb`. Older experimental keys such as `history_max_lines` and `history_max_bytes` are not supported.
+
+Automatic whole-source retries stop after HTTP 401, 403, 404, or 410, as well as
+the separate HTTP 429 stop/backoff signal. Changing transport does not turn these
+responses into retryable failures. Transient failures, including timeouts and
+HTTP 5xx, retain the configured bounded retry behavior. This does not change the
+normal daily schedule or authorize another provider request.
 
 Cloud jobs persist both `history.jsonl` and its one retained rotated file,
 `history.jsonl.1`, using independent conditional object writes. The history is

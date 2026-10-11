@@ -395,6 +395,74 @@ class DataWatchTests(unittest.TestCase):
             self.assertIn('Technical details', detail)
             self.assertIn('Check history', detail)
 
+    def test_static_site_internal_links_resolve_with_subdirectory_hosting(self):
+        import tempfile
+        from html.parser import HTMLParser
+        from urllib.parse import quote, unquote, urljoin, urlsplit
+
+        class LinksAndIds(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.hrefs = []
+                self.ids = set()
+            def handle_starttag(self, tag, attrs):
+                attributes = dict(attrs)
+                if tag == "a" and attributes.get("href"):
+                    self.hrefs.append(attributes["href"])
+                if attributes.get("id"):
+                    self.ids.add(attributes["id"])
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            state = root / "state.json"
+            complex_id = "county/space ü?#"
+            state.write_text(json.dumps({"sources": {complex_id: {
+                "id": complex_id, "name": "Sample Parcels", "status": "ok",
+                "checked_at": "2026-10-11T12:00:00+00:00",
+            }}}), encoding="utf-8")
+            output = root / "site"
+            datawatch_dashboard.build_static_site(
+                {"state_file": str(state), "history_file": str(root / "history.jsonl")}, output
+            )
+            files = {path.name for path in output.iterdir() if path.is_file()}
+            encoded_filename = "source-" + quote(complex_id, safe="") + ".html"
+            self.assertEqual(files, {"index.html", encoded_filename, "state.json"})
+            parsed_pages = {}
+            for page in output.glob("*.html"):
+                parser = LinksAndIds()
+                parser.feed(page.read_text(encoding="utf-8"))
+                parsed_pages[page.name] = parser
+            for page_name, parser in parsed_pages.items():
+                for href in parser.hrefs:
+                    target = urlsplit(href)
+                    if target.scheme or target.netloc:
+                        continue
+                    if target.path:
+                        self.assertFalse(target.path.startswith("/"), href)
+                        resolved = urljoin("https://example.test/preview/watchtower/" + page_name, href)
+                        resolved_path = urlsplit(resolved).path
+                        self.assertTrue(resolved_path.startswith("/preview/watchtower/"), href)
+                        local_name = unquote(resolved_path.rsplit("/", 1)[-1])
+                        self.assertIn(local_name, files, f"{page_name}: {href}")
+                        fragment_page = local_name
+                    else:
+                        fragment_page = page_name
+                    if target.fragment:
+                        self.assertIn(target.fragment, parsed_pages[fragment_page].ids,
+                                      f"{page_name}: missing #{target.fragment}")
+            index = (output / "index.html").read_text(encoding="utf-8")
+            self.assertIn('href="' + quote(encoded_filename, safe="") + '"', index)
+            self.assertIn('href="index.html"', index)
+            self.assertIn('href="state.json"', index)
+            self.assertNotIn('href="/counties"', index)
+            self.assertNotIn('href="/mngac"', index)
+            self.assertNotIn('href="/#datasets"', index)
+            self.assertIn('class="public-header"', index)
+            self.assertIn('class="public-footnote"', index)
+            payload = json.loads((output / "state.json").read_text(encoding="utf-8"))
+            self.assertEqual(payload["sources"][complex_id]["id"], complex_id)
+            self.assertNotIn("url", payload["sources"][complex_id])
+
     def test_static_dashboard_sanitizes_operational_metadata(self):
         import tempfile
         with tempfile.TemporaryDirectory() as td:
@@ -826,6 +894,43 @@ class DataWatchTests(unittest.TestCase):
             with self.assertRaises(datawatch.ProviderRateLimitError):
                 datawatch._post_json('https://example.invalid', {'x': 1}, 1)
             curl.assert_not_called()
+
+    def test_permanent_provider_status_stops_source_retry_loop(self):
+        from unittest.mock import patch
+        for status in (401, 403, 404, 410):
+            with self.subTest(status=status):
+                config = {
+                    "state_file": str(TOOLS_ROOT / "datawatch" / "unused-state.json"),
+                    "history_file": str(TOOLS_ROOT / "datawatch" / "unused-history.jsonl"),
+                    "retries": 3, "retry_delay_seconds": 0,
+                    "sources": [{"id": "denied", "name": "Denied", "kind": "arcgis_layer",
+                                 "url": "https://example.invalid/0"}],
+                }
+                with patch.object(datawatch, "load_state", return_value={"sources": {}}), \
+                     patch.object(datawatch, "_source_check",
+                                  side_effect=datawatch.PermanentProviderError(status)) as check:
+                    result = datawatch.check_sources(config, save=False)
+                self.assertEqual(check.call_count, 1)
+                self.assertEqual(result["sources"]["denied"]["attempts"], 1)
+                self.assertEqual(result["sources"]["denied"]["status"], "error")
+
+    def test_transient_provider_failures_still_retry(self):
+        from unittest.mock import patch
+        for failure in (TimeoutError("timed out"), RuntimeError("provider returned HTTP 503")):
+            with self.subTest(failure=type(failure).__name__):
+                config = {
+                    "state_file": str(TOOLS_ROOT / "datawatch" / "unused-state.json"),
+                    "history_file": str(TOOLS_ROOT / "datawatch" / "unused-history.jsonl"),
+                    "retries": 1, "retry_delay_seconds": 0,
+                    "sources": [{"id": "transient", "name": "Transient", "kind": "arcgis_layer",
+                                 "url": "https://example.invalid/0"}],
+                }
+                with patch.object(datawatch, "load_state", return_value={"sources": {}}), \
+                     patch.object(datawatch, "_source_check", side_effect=[failure, {"problems": []}]) as check:
+                    result = datawatch.check_sources(config, save=False)
+                self.assertEqual(check.call_count, 2)
+                self.assertEqual(result["sources"]["transient"]["attempts"], 2)
+                self.assertEqual(result["sources"]["transient"]["status"], "ok")
 
     def test_rate_limit_stops_source_retry_loop(self):
         from unittest.mock import patch

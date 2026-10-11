@@ -31,6 +31,16 @@ class ProviderRateLimitError(RuntimeError):
         super().__init__(f"provider rate limit (HTTP 429); retry-after={retry_after or 'unspecified'}")
 
 
+class PermanentProviderError(RuntimeError):
+    """A provider response that should not be repeated automatically."""
+
+    def __init__(self, status: int, message: str | None = None):
+        self.status = status
+        super().__init__(message or f"provider returned HTTP {status}")
+
+
+_PERMANENT_HTTP_STATUSES = {401, 403, 404, 410}
+
 
 USER_AGENT = "GIS-Data-Watchtower/0.1 (+https://github.com/clearparcel/GIS-Data-Watchtower)"
 _REDIRECT_CODES = {301, 302, 303, 307, 308}
@@ -211,6 +221,8 @@ def _urllib_request_once(
         retry_after = exc.headers.get("Retry-After") if exc.headers else None
         if exc.code == 429:
             raise ProviderRateLimitError(retry_after) from exc
+        if exc.code in _PERMANENT_HTTP_STATUSES:
+            raise PermanentProviderError(exc.code, f"provider returned HTTP {exc.code}; fallback transport not attempted") from exc
         if exc.code in _REDIRECT_CODES:
             return b"", {
                 "status": int(exc.code),
@@ -369,10 +381,14 @@ def _curl_request_once(
             status, _, retry_after = _curl_response_metadata(exc.output, headers_path)
             if status == 429:
                 raise ProviderRateLimitError(retry_after) from None
+            if status in _PERMANENT_HTTP_STATUSES:
+                raise PermanentProviderError(status, f"curl HTTP status {status}; transfer timed out") from None
             raise TimeoutError("provider request wall-clock deadline exceeded") from None
         status, location, retry_after = _curl_response_metadata(cp.stdout, headers_path)
         if status == 429:
             raise ProviderRateLimitError(retry_after)
+        if status in _PERMANENT_HTTP_STATUSES:
+            raise PermanentProviderError(status, f"curl HTTP status {status}")
         deadline.remaining()
         if cp.returncode == 63:
             raise ProviderResponseTooLargeError(f"provider response exceeded {limit} bytes")
@@ -426,6 +442,8 @@ def _curl_request(
                 raise RuntimeError(f"provider redirect limit exceeded ({max_redirects})")
             current = _validated_redirect(current, str(location), initial_url, deadline=deadline)
             continue
+        if status in _PERMANENT_HTTP_STATUSES:
+            raise PermanentProviderError(status, f"curl HTTP status {status}")
         if status < 200 or status >= 300:
             raise RuntimeError(f"curl HTTP status {status}")
         meta["final_url"] = current
@@ -451,7 +469,7 @@ def _request(url: str, timeout: int, *, prefer_curl: bool = False, deadline: Req
                 body, meta = _curl_request(current, timeout, transport="curl-fallback", initial_url=url, deadline=deadline, redirect_budget=max_redirects - hop)
                 meta["primary_error"] = _safe_diagnostic(f"{type(primary).__name__}: {primary}")
                 return body, meta
-            except ProviderRateLimitError:
+            except (ProviderRateLimitError, PermanentProviderError):
                 raise
             except Exception as fallback:
                 raise RuntimeError(
@@ -467,6 +485,8 @@ def _request(url: str, timeout: int, *, prefer_curl: bool = False, deadline: Req
                 raise RuntimeError(f"provider redirect limit exceeded ({max_redirects})")
             current = _validated_redirect(current, str(location), url, deadline=deadline)
             continue
+        if status in _PERMANENT_HTTP_STATUSES:
+            raise PermanentProviderError(status)
         if status < 200 or status >= 300:
             raise RuntimeError(f"provider returned HTTP {status}")
         meta["final_url"] = current
@@ -561,7 +581,7 @@ def _post_json(url: str, payload: dict, timeout: int, *, deadline: RequestDeadli
                 meta["primary_error"] = _safe_diagnostic(f"{type(primary).__name__}: {primary}")
                 data_obj = json.loads(raw.decode("utf-8-sig"))
                 return data_obj, meta
-            except ProviderRateLimitError:
+            except (ProviderRateLimitError, PermanentProviderError):
                 raise
             except Exception as fallback:
                 raise RuntimeError(
@@ -579,6 +599,8 @@ def _post_json(url: str, payload: dict, timeout: int, *, deadline: RequestDeadli
                 raise RuntimeError(f"provider redirect limit exceeded ({max_redirects})")
             current = _validated_redirect(current, str(location), url, deadline=deadline)
             continue
+        if status in _PERMANENT_HTTP_STATUSES:
+            raise PermanentProviderError(status)
         if status < 200 or status >= 300:
             raise RuntimeError(f"provider returned HTTP {status}")
         data_obj = json.loads(raw.decode("utf-8-sig"))
@@ -1298,7 +1320,7 @@ def _arcgis_layer(source: dict, timeout: int) -> dict:
                 }
             result[output_key] = completeness
             result[output_key]["observed_at"] = dt.datetime.now(dt.timezone.utc).isoformat()
-        except ProviderRateLimitError:
+        except (ProviderRateLimitError, PermanentProviderError):
             raise
         except Exception as exc:
             result["gac_check_status"] = "unsupported" if isinstance(exc, ValueError) else "error"
@@ -1315,7 +1337,7 @@ def _arcgis_layer(source: dict, timeout: int) -> dict:
                 timeout,
                 prefer_curl=bool(source.get("prefer_curl")),
             )
-        except ProviderRateLimitError:
+        except (ProviderRateLimitError, PermanentProviderError):
             raise
         except Exception as exc:
             result["null_geometry_count"] = None
@@ -1332,7 +1354,7 @@ def _arcgis_layer(source: dict, timeout: int) -> dict:
                 if field:
                     try:
                         profiles[label] = _field_completeness(source["url"], field, result.get("feature_count"), timeout, prefer_curl=bool(source.get("prefer_curl")))
-                    except ProviderRateLimitError:
+                    except (ProviderRateLimitError, PermanentProviderError):
                         raise
                     except Exception as exc:
                         profiles[label] = {"field": field, "status": "unsupported", "error": str(exc)[:160]}
@@ -1344,14 +1366,14 @@ def _arcgis_layer(source: dict, timeout: int) -> dict:
                         sample_size=int(source.get("geometry_sample_size", 250)),
                         prefer_curl=bool(source.get("prefer_curl")),
                     ))
-                except ProviderRateLimitError:
+                except (ProviderRateLimitError, PermanentProviderError):
                     raise
                 except Exception as exc:
                     result["geometry_sample_status"] = "unsupported"
                     result["geometry_sample_error"] = str(exc)[:180]
             try:
                 result.update(_arcgis_duplicate_id_summary(source["url"], id_field, timeout, prefer_curl=bool(source.get("prefer_curl"))))
-            except ProviderRateLimitError:
+            except (ProviderRateLimitError, PermanentProviderError):
                 raise
             except Exception as exc:
                 result["duplicate_id_check"] = "unsupported"
@@ -1870,7 +1892,7 @@ def _check_sources_unlocked(
                 break
             except Exception as exc:
                 last_error = exc
-                if isinstance(exc, ProviderRateLimitError):
+                if isinstance(exc, (ProviderRateLimitError, PermanentProviderError)):
                     break
                 if attempt < retries:
                     time.sleep(float(config.get("retry_delay_seconds", 1)))
