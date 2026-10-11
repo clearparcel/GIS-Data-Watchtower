@@ -1,8 +1,12 @@
 # Google Cloud deployment
 
-The current public production application is v0.1.2 from merged commit `8999081`,
-public revision `00013-s7q` (MN GAC county-results rollout, PR #62). PR #63 contains
-the detailed publication record and awaits merge. The initial v0.1.2 rollout used
+The current public production application is **v0.2.0** from merged commit
+`308e3a7`, public revision `00014-jsr`, private revision `00021-hr8` and isolated
+preview `00019-x5b`. See the [v0.2.0 release record](release-v0.2.0.md) for image
+digests, acceptance and rollback. The earlier v0.1.2 public revision `00013-s7q`
+from `8999081` (PR #62) is retained for rollback; its
+[historical publication record](mngac-county-publication-2026-10-10.md) is preserved.
+The initial v0.1.2 rollout used
 `a3899f6`: public `00012-c5j`, private dashboard `00020-lqc`, and isolated preview
 `00018-rkt`. These initial rollout and rollback details are historical. Exact immutable digests,
 acceptance evidence and rollback targets are in the

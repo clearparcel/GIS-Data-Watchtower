@@ -1,8 +1,9 @@
 # GIS Data Watchtower
 
-GIS Data Watchtower **v0.2.0** is the requested release for the merged inline county
-pane, county-direct MN GAC schema evidence and map categories. Production currently
-serves v0.1.2 while the v0.2.0 build and acceptance checks complete. Daily Google
+GIS Data Watchtower **v0.2.0** is published from merged commit `308e3a7`, with the
+inline county pane, county-direct MN GAC schema evidence and map categories.
+The public dashboard, authenticated private dashboard and isolated preview have
+passed deployment acceptance. Daily Google
 Cloud provider polling is enabled at 05:00 America/Chicago; its latest activation
 run passed all 35 approved sources. See the [v0.2.0 release record](docs/release-v0.2.0.md)
 and [current status](docs/current-status.md) for publication and rollback details.
