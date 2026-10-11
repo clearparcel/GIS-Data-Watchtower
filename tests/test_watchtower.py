@@ -283,7 +283,7 @@ class DataWatchTests(unittest.TestCase):
             state_file.write_text(json.dumps(state), encoding='utf-8')
             hist.write_text('', encoding='utf-8')
             config = {'state_file': str(state_file), 'history_file': str(hist), 'sources': []}
-            page = datawatch_dashboard.render_mngac(config)
+            page = datawatch_dashboard.render_mngac(config, view="statewide")
             self.assertIn('Interactive Minnesota county map', page)
             self.assertNotIn('http-equiv="refresh"', page)
             self.assertIn('Interactive view · reload for latest saved data', page)

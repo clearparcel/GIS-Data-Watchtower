@@ -463,9 +463,9 @@ def _render_gac_standard(config: dict, standard_key: str) -> str:
 
 
 
-def render_mngac(config: dict, standard_key: str = "parcel") -> str:
+def render_mngac(config: dict, standard_key: str = "parcel", *, county: str = "", view: str = "county") -> str:
     from clearparcel.datawatch.dashboard_gac import render_mngac as render
-    return render(config, standard_key)
+    return render(config, standard_key, county=county, view=view)
 
 
 
@@ -933,7 +933,13 @@ def serve(config: dict, host: str = "127.0.0.1", port: int = 8765) -> None:
                 except ValueError:
                     return self._send(400, "Unsupported GAC standard", "text/plain; charset=utf-8")
                 if parsed.path == "/mngac":
-                    return self._send(200, render_mngac(config, standard_key))
+                    selection = urllib.parse.parse_qs(parsed.query)
+                    try:
+                        page = render_mngac(config, standard_key, county=selection.get('county', [''])[0],
+                                            view=selection.get('view', ['county'])[0])
+                    except ValueError:
+                        return self._send(400, 'Invalid MN GAC county or view. Choose a Minnesota county and County results or Statewide overview.', 'text/plain; charset=utf-8')
+                    return self._send(200, page)
                 data = _gac_data(_dashboard_state(config), standard_key)
                 if parsed.path == "/mngac.json":
                     return self._send(

@@ -401,7 +401,7 @@ class GACStandardsTests(unittest.TestCase):
             with self.subTest(key=key):
                 state = state_for(key, {})
                 with patch("clearparcel.datawatch.dashboard._dashboard_state", return_value=state):
-                    page = render_mngac({"_public_mode": True}, key)
+                    page = render_mngac({"_public_mode": True}, key, view="statewide")
                 self.assertIn(text, page)
                 self.assertIn("NG911 participants", page)
                 self.assertIn(f"standard={key}", page)

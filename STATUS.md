@@ -1,5 +1,16 @@
 # Project status
 
+## MN GAC county results — ready for review, 2026-10-10
+
+The proposed MN GAC page defaults to County results with a prominent searchable
+county chooser and an explicit Statewide overview. County summary cards and
+field results use saved county observations; county and scope persist across
+standard links. Map links open the same county results. Missing observations
+remain No data, while unscanned fields remain Not scanned. This is a local
+preview change awaiting merge and deployment approval; production remains v0.1.2.
+No provider connections, schedules or monitoring data were changed.
+
+
 ## v0.1.2 deployed — 2026-10-10
 
 Merged commit `a3899f6` is live: public dashboard `00012-c5j`, private dashboard

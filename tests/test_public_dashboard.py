@@ -107,7 +107,7 @@ class PublicDashboardTests(unittest.TestCase):
         self.assertIn('Statewide completeness is unavailable', page)
         self.assertIn('These statistics are separate from county-direct monitoring', page)
 
-    def test_both_public_maps_lazy_load_all_87_county_targets(self):
+    def test_overview_map_lazy_loads_all_87_county_targets(self):
         import re
         from unittest.mock import patch
         from clearparcel.datawatch.dashboard import render_mngac, _county_profiles
@@ -115,7 +115,7 @@ class PublicDashboardTests(unittest.TestCase):
         from clearparcel.datawatch.county_profile_panel import GROUPS
         state = sanitize_public_render_state(self._state())
         expected = _county_profiles({}, state, load_parcel_access())
-        for renderer in (render_public_dashboard, render_mngac):
+        for renderer in (render_public_dashboard,):
             with patch('clearparcel.datawatch.dashboard._dashboard_state', return_value=state), patch('clearparcel.datawatch.public_dashboard._dashboard_state', return_value=state):
                 page = renderer({'_public_mode': True})
             self.assertNotIn('id="county-profile-data"', page)
@@ -136,7 +136,7 @@ class PublicDashboardTests(unittest.TestCase):
         with patch('clearparcel.datawatch.dashboard._dashboard_state', return_value={}):
             page=render_mngac({'_public_mode':True})
         self.assertEqual(len(re.findall(r'<path class="mngac-county"',page)),87)
-        self.assertIn('/api/county-profile?',page)
+        self.assertIn('class="gac-map-link"',page)
         self.assertIn('style="fill:#151d2b"',page)
 
     def test_county_detail_uses_complete_composed_profile(self):
@@ -417,7 +417,7 @@ class PublicDashboardTests(unittest.TestCase):
             history.write_text("", encoding="utf-8")
             page = render_mngac({"state_file": str(state_file), "history_file": str(history),
                                  "sources": [], "_public_mode": True})
-        self.assertIn('id="mngac-county-select"', page)
+        self.assertIn('id="gac-county-search"', page)
         self.assertIn("Choose county", page)
 
     def test_public_cache_serves_last_snapshot_and_caches_rendered_export(self):
@@ -536,7 +536,7 @@ class PublicDashboardTests(unittest.TestCase):
         with patch("clearparcel.datawatch.public_dashboard._dashboard_state", return_value=public):
             overview = render_public_dashboard({"_public_mode": True})
         with patch("clearparcel.datawatch.dashboard._dashboard_state", return_value=public):
-            mngac = render_mngac({"_public_mode": True})
+            mngac = render_mngac({"_public_mode": True}, view="statewide")
         # Two parcel entries cover two counties, including overlap; imagery adds an entry only.
         self.assertIn('Dataset/service entries monitored</div><div class="metric">3</div>', overview)
         self.assertIn('Counties with parcel observations</div><div class="metric">2/87</div>', overview)
