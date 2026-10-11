@@ -14,5 +14,6 @@ dist/
 .coverage
 
 # Private agent/review scratch
+.codex-remote-attachments/
 .cce-agent/
 .superpowers/

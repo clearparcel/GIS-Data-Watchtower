@@ -1,5 +1,16 @@
 # Project status
 
+## Final UI and repository review — candidate, 2026-10-10
+
+The final review fixed stale county selection after clearing the overview picker,
+including late-response cancellation, and corrected missing county/source HTTP
+statuses to 404 in both dashboards. The example-source test now checks the exact
+hostname. Merged branch references and obsolete temporary build/worktree copies
+were removed; user attachments are ignored and preserved. See the
+[final review report](docs/final-review-2026-10-10.md) for validation and remaining
+operational/security findings. PR #64 remains a candidate; no merge, production
+deployment, provider schedule or production configuration changed in this review.
+
 ## County-direct coverage and schema evidence — candidate, 2026-10-10
 
 Live MnGeo membership verification confirms Olmsted and 12 other direct counties
@@ -39,20 +50,21 @@ public observations and awaits review and separate merge/publication approval.
 The live public build remains `8999081`; publication details are recorded in PR #63.
 
 
-## MN GAC county results — ready for review, 2026-10-10
+## MN GAC county results — deployed, 2026-10-10
 
-The proposed MN GAC page defaults to County results with a prominent searchable
+The live MN GAC page defaults to County results with a prominent searchable
 county chooser and an explicit Statewide overview. County summary cards and
 field results use saved county observations; county and scope persist across
 standard links. Map links open the same county results. Missing observations
-remain No data, while unscanned fields remain Not scanned. This is a local
-preview change awaiting merge and deployment approval; production remains v0.1.2.
+remain No data, while unscanned fields remain Not scanned. PR #62 merged at
+`8999081` and is live on public revision `00013-s7q`, still version v0.1.2.
+PR #63 contains the detailed publication/rollback record and remains open.
 No provider connections, schedules or monitoring data were changed.
 
 
-## v0.1.2 deployed — 2026-10-10
+## Initial v0.1.2 deployment — 2026-10-10
 
-Merged commit `a3899f6` is live: public dashboard `00012-c5j`, private dashboard
+Merged commit `a3899f6` was deployed: public dashboard `00012-c5j`, private dashboard
 `00020-lqc` and isolated preview `00018-rkt` receive 100% of their service traffic.
 The sanitized publisher uses the new production image. The release fixes label
 encoding, transparent branding, package version display and unknown-health
@@ -61,6 +73,7 @@ and merged-main CI passed. Live pages, 87-county CSV export, source observation
 parity, public publication health and anonymous private IAP redirect passed.
 Non-image runtime settings and access controls were verified unchanged.
 See the [release record](docs/release-v0.1.2.md).
+The later public-only MN GAC rollout above superseded public revision `00012-c5j`.
 
 The live public snapshot contains 35 cloud observations (34 OK and one Hennepin
 imagery warning), with no local source observations. Its newest provider check

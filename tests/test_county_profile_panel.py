@@ -47,6 +47,15 @@ const flush=()=>new Promise(resolve=>setImmediate(resolve));
  const failure=context.window.watchtowerCountyPane.load('aitkin');assert.equal(content.nodes.length,0);
  pending[5](response('',503));await failure;assert.match(status.textContent,/temporarily unavailable/);
  assert.equal(content.nodes.length,0);assert.equal(content.attrs['aria-busy'],'false');
+ const clearing=context.window.watchtowerCountyPane.load('sibley');
+ assert.equal(typeof context.window.watchtowerCountyPane.clear,'function');
+ context.window.watchtowerCountyPane.clear();
+ assert.equal(calls[6].options.signal.aborted,true);
+ assert.equal(content.nodes.length,0);assert.equal(status.textContent,'');
+ assert.equal(content.attrs['aria-busy'],'false');
+ assert.equal(graphic('home-county-infographics').hidden,true);
+ pending[6](response('sibley'));await clearing;
+ assert.equal(content.nodes.length,0);assert.equal(status.textContent,'');
 })().catch(error=>{console.error(error);process.exitCode=1});
 '''
         result = subprocess.run(['node', '-e', harness.replace('SCRIPT', json.dumps(script))],

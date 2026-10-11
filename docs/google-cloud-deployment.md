@@ -1,8 +1,10 @@
 # Google Cloud deployment
 
-The current production application is v0.1.2 from merged commit `a3899f6`:
-public revision `00012-c5j`, private dashboard `00020-lqc`, and isolated preview
-`00018-rkt`. The publisher uses the production image. Exact immutable digests,
+The current public production application is v0.1.2 from merged commit `8999081`,
+public revision `00013-s7q` (MN GAC county-results rollout, PR #62). PR #63 contains
+the detailed publication record and awaits merge. The initial v0.1.2 rollout used
+`a3899f6`: public `00012-c5j`, private dashboard `00020-lqc`, and isolated preview
+`00018-rkt`. These initial rollout and rollback details are historical. Exact immutable digests,
 acceptance evidence and rollback targets are in the
 [v0.1.2 release record](release-v0.1.2.md). The private service retains its audited
 IAP wrapper, and all non-image runtime settings were verified unchanged.

@@ -340,7 +340,16 @@ def render_public_dashboard(config: dict) -> str:
     p.addEventListener('keydown',e=>{{if(e.key==='Enter'||e.key===' '){{e.preventDefault();show(p.dataset.county,p)}}}});
   }});
   updateOverview();
-  root.getElementById('overview-county-select').addEventListener('change',event=>{{const path=[...root.querySelectorAll('.mngac-county')].find(p=>p.dataset.slug===event.target.value);if(path)show(path.dataset.county,path)}});
+  root.getElementById('overview-county-select').addEventListener('change',event=>{{
+    const path=[...root.querySelectorAll('.mngac-county')].find(p=>p.dataset.slug===event.target.value);
+    if(path){{show(path.dataset.county,path);return}}
+    selectedPath=null;
+    root.querySelectorAll('.mngac-county').forEach(p=>{{p.classList.remove('selected');p.setAttribute('aria-pressed','false')}});
+    root.getElementById('home-county-name').textContent='Choose a county';
+    for(const id of ['home-county-rate','home-county-records','home-county-fields','home-county-all-rate'])root.getElementById(id).textContent='—';
+    root.getElementById('home-county-link').href='/counties';root.getElementById('home-county-gac-link').href='/mngac';
+    window.watchtowerCountyPane?.clear();updateDescription();window.watchtowerRefresh?.save();
+  }});
 }})();
 function filterRows(){{
   const q=document.getElementById('q').value.toLowerCase(),h=document.getElementById('health').value;
@@ -612,7 +621,8 @@ def serve_public(host: str = "0.0.0.0", port: int = 8080) -> None:
                 return self._send(200, render_counties(config))
             if parsed.path == "/county":
                 slug = urllib.parse.parse_qs(parsed.query).get("slug", [""])[0]
-                return self._send(200, render_county(config, slug))
+                status = 200 if slug in view["profiles"] else 404
+                return self._send(status, render_county(config, slug))
             if parsed.path == "/mngac":
                 try:
                     standard_key = normalize_standard_key(
@@ -629,7 +639,8 @@ def serve_public(host: str = "0.0.0.0", port: int = 8080) -> None:
                 return self._send(200, page)
             if parsed.path == "/source":
                 source_id = urllib.parse.parse_qs(parsed.query).get("id", [""])[0]
-                return self._send(200, render_public_source(config, source_id))
+                status = 200 if (view["state"].get("sources") or {}).get(source_id) else 404
+                return self._send(status, render_public_source(config, source_id))
             if parsed.path == "/api/state":
                 return self._send(200, cache.public_path.read_text(encoding="utf-8"), "application/json; charset=utf-8")
             if parsed.path in ("/county-profiles.csv", "/parcel-sources.csv"):

@@ -205,7 +205,12 @@ def render_inline_county_panel(*, revision: str) -> str:
       status.textContent='County details are temporarily unavailable. Use Open county profile to view the county page.';
     }finally{clearTimeout(deadline);if(current===request)content.setAttribute('aria-busy','false')}
   }
-  window.watchtowerCountyPane={load};
+  function clear(){
+    ++request;controller?.abort();controller=null;
+    content.replaceChildren();content.setAttribute('aria-busy','false');status.textContent='';
+    updateInfographics();document.getElementById('home-county-infographics').hidden=true;
+  }
+  window.watchtowerCountyPane={load,clear};
 })();
 </script>
 '''
