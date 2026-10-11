@@ -8,6 +8,7 @@ import json
 import statistics
 from collections import Counter
 
+from .direct_gac_schema import load_direct_schema_assessments
 from .gac_standards import standard_keys
 from .public_projection import sanitize_public_render_state
 
@@ -103,7 +104,7 @@ def build_summary(state: dict, profiles: dict, *, identity: dict, research: dict
     stable = {k: v for k, v in public.items() if k != "public_published_at"}
     # Never hash relative ages/reporting labels: wall clock changes are not new observations.
     revision = _digest({"state": stable, "identity": identity, "research": research if research is not None else county_rows,
-                        "thresholds": thresholds or {}})
+                        "thresholds": thresholds or {}, "direct_gac_schema": load_direct_schema_assessments()})
     return {"schema_version": 1, "content_revision": revision, "public_published_at": public.get("public_published_at"),
             "generated_at": public.get("generated_at"), "coverage": coverage, "standards": standards,
             "counties": county_rows, "counts": public.get("counts", {}), "workers": public.get("workers", {}),

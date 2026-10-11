@@ -456,7 +456,7 @@ def _render_county_mngac(state: dict, county: dict) -> str:
         return (
             '<div class="card"><h2>MN GAC field completeness</h2>'
             '<p>This county is not represented in the current MnGeo Plan Parcels Open layer. '
-            'Watchtower reports this as <strong>No data</strong>, not 0% populated.</p>'
+            'Statewide population statistics are unavailable; this does not establish county-direct noncompliance.</p>'
             f'<p class="subtext">The statewide open layer currently represents {_dashboard._esc(data.get("covered_counties") or 0)} of 87 Minnesota counties.</p>'
             '<p><a href="/mngac">Explore the statewide MN GAC map →</a></p></div>'
         )

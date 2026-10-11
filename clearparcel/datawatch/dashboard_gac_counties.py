@@ -6,7 +6,8 @@ import re
 from urllib.parse import urlencode
 
 from . import dashboard as dashboard
-from .county_profile_panel import NO_DATA_COLOR, PERCENT_BINS, PERCENT_COLORS, percentage_legend, profile_time
+from .county_profile_panel import NO_DATA_COLOR, PERCENT_BINS, PERCENT_COLORS, percentage_legend, profile_time, render_direct_schema_findings
+from .direct_gac_schema import direct_schema_assessment
 from .gac_standards import gac_defaults, load_gac_standard, standard_keys
 
 LABELS = {'parcel': 'Parcels', 'address': 'Address Points', 'road': 'Road Centerlines'}
@@ -125,7 +126,11 @@ def render_county_results(config: dict, standard_key: str, county: dict | None) 
         if not isinstance(stats, dict):
             reason = ('This county is not represented in the current saved observation.' if data else
                       'A saved observation for this MN GAC standard is not available yet.')
-            body += f'<div class="card"><h3>No data</h3><p>{reason} Absence is not reported as 0%.</p></div>'
+            heading = 'Not in MnGeo Open Parcels' if standard_key == 'parcel' and data else 'Statewide results unavailable'
+            qualification = 'Absence is not reported as 0%.'
+            if standard_key == 'parcel':
+                qualification += ' It does not establish direct-feed noncompliance.'
+            body += f'<div class="card"><h3>{heading}</h3><p>{reason} {qualification}</p></div>'
         else:
             all_rate = _percent(stats.get('field_population_percent'), 'Not scanned' if data.get('population_scope') == 'mandatory' else 'No data')
             body += f'''<div class="grid primary-grid" aria-label="Selected county summary">
@@ -158,6 +163,10 @@ def render_county_results(config: dict, standard_key: str, county: dict | None) 
 <div class="table-scroll"><table class="gac-field-table" id="gac-county-fields"><caption>{esc(name)} County — {LABELS[standard_key]} field population</caption><thead><tr><th>Field</th><th>Section</th><th>Inclusion</th><th>Source schema</th><th>Population scan</th><th>Populated</th><th>County records</th><th>Population</th></tr></thead><tbody>{''.join(rows)}</tbody></table></div>
 <p id="gac-no-fields" hidden role="status">No fields match these filters.</p></section>
 <script>(function(){{const q=document.getElementById('gac-field-search'),i=document.getElementById('gac-field-inclusion');function filter(){{let visible=0;document.querySelectorAll('#gac-county-fields tbody tr').forEach(r=>{{const show=r.dataset.name.includes(q.value.toLowerCase())&&(!i.value||r.dataset.inclusion===i.value);r.hidden=!show;if(show)visible++}});document.getElementById('gac-no-fields').hidden=visible>0}}q.addEventListener('input',filter);i.addEventListener('change',filter)}})();</script>'''
+        if standard_key == 'parcel':
+            assessments = [direct_schema_assessment(sid, item) for sid, item in sorted((state.get('sources') or {}).items())
+                           if item.get('category') == 'Parcels' and item.get('county_slug') == slug]
+            body += render_direct_schema_findings(assessments)
         body += f'<p><a href="/county?slug={esc(slug)}">Open full {esc(name)} County profile</a> · <a href="{esc(gac_url(standard_key, county=slug))}">Link to these county results</a></p>'
     map_content = (f'<div class="gac-county-map"><h2>Interactive Minnesota county map</h2><p>Mandatory-field population. Select a county to open its results.</p>'
                    + county_map(standard_key, data, slug) + percentage_legend() + '</div>')

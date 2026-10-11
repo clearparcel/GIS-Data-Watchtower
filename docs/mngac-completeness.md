@@ -1,6 +1,6 @@
 # Minnesota GAC parcel-field completeness
 
-Last reviewed: **2026-10-05**
+Last reviewed: **2026-10-10**
 
 GIS Data Watchtower can measure how extensively fields from the **Minnesota Geospatial Advisory Council (GAC) Parcel Data Standard** are populated in a standardized statewide parcel layer.
 
@@ -43,6 +43,17 @@ This source already uses the GAC transfer-schema field names, which gives counti
 Counties that are not represented in the current MnGeo open parcel layer are displayed as **No data**. Watchtower never converts absence from the statewide open layer into a false 0% completeness value.
 
 The number of represented counties is derived from each stored observation rather than hard-coded.
+
+County-direct monitoring does not imply absence from this statewide layer. A live
+membership check on October 10 confirmed 13 of the 24 direct counties, including
+Olmsted, are also represented in MnGeo Open Parcels. See the
+[county coverage and direct-schema audit](county-direct-gac-schema-audit.md).
+
+The dashboard presents county-direct schema evidence separately from these
+statewide population statistics. Missing mandatory field names demonstrate a
+mismatch in the checked direct feed; they do not establish that the county lacks
+a standardized transfer export. An unassessed feed is not labeled noncompliant,
+and absence from the statewide layer is never used as a direct-schema finding.
 
 ## Validated observation
 

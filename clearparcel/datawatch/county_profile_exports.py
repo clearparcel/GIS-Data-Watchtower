@@ -11,7 +11,10 @@ from .public_values import safe_public_url, spreadsheet_cell
 SUMMARY_FIELDS = ('county', 'county_slug', 'county_fips', 'active', 'paths', 'health', 'reporting',
     'active_parcel_source_count', 'last_checked_at', 'last_success_at', 'aggregate_generated_at',
     'public_classification', 'detailed_classification', 'dataset_fee', 'fee_product',
-    'monitoring_decision', 'research_complete', 'review_date', 'evidence_links', 'comments')
+    'monitoring_decision', 'research_complete', 'review_date', 'evidence_links', 'comments',
+    'direct_gac_schema_status', 'direct_gac_schema_checked_at', 'direct_gac_missing_mandatory_names',
+    'direct_gac_source_ids', 'direct_gac_standard_names', 'direct_gac_mandatory_names',
+    'direct_gac_reason', 'direct_gac_evidence_links')
 SOURCE_FIELDS = ('county', 'county_slug', 'county_fips', 'category', 'availability', 'review_status',
     'inventory_id', 'monitored_source_id', 'name', 'authority', 'dataset_type', 'layer_id',
     'approved_public_links', 'geometry_type', 'feature_count', 'feature_count_basis',
@@ -28,13 +31,22 @@ def _links(links: list) -> str:
 def county_profile_summary(profile: dict) -> dict:
     """Flatten only the documented profile summary fields."""
     county, monitoring, access, research = (profile.get(k) or {} for k in ('county', 'monitoring', 'access', 'research'))
+    audits = profile.get('direct_gac_schema') or []
     return {'county': county.get('name'), 'county_slug': county.get('slug'), 'county_fips': county.get('fips'),
         **{k: monitoring.get(k) for k in SUMMARY_FIELDS[3:11]},
         'paths': '; '.join(monitoring.get('paths') or []),
         **{k: access.get(k) for k in SUMMARY_FIELDS[11:17]},
         'research_complete': research.get('complete'), 'review_date': research.get('review_date'),
         'evidence_links': _links(access.get('evidence_links') or []),
-        'comments': '; '.join(profile.get('comments') or [])}
+        'comments': '; '.join(profile.get('comments') or []),
+        'direct_gac_schema_status': '; '.join(item['status'] for item in audits),
+        'direct_gac_schema_checked_at': '; '.join(item.get('checked_at') or '' for item in audits),
+        'direct_gac_missing_mandatory_names': '; '.join(', '.join(item.get('missing_mandatory_fields') or []) for item in audits),
+        'direct_gac_source_ids': '; '.join(item.get('source_id') or '' for item in audits),
+        'direct_gac_standard_names': '; '.join(f"{item['standard_fields_present']} / {item['standard_field_count']}" if item.get('standard_fields_present') is not None else 'Not assessed' for item in audits),
+        'direct_gac_mandatory_names': '; '.join(f"{item['mandatory_fields_present']} / {item['mandatory_field_count']}" if item.get('mandatory_fields_present') is not None else 'Not assessed' for item in audits),
+        'direct_gac_reason': '; '.join(item.get('reason') or '' for item in audits),
+        'direct_gac_evidence_links': _links([{'href': item.get('evidence_url')} for item in audits])}
 
 
 def _tables(profiles: dict[str, dict]) -> tuple[list[dict], list[dict]]:

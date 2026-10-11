@@ -75,6 +75,7 @@ def render_county_profile_body(profile: dict) -> str:
     body = f'<h2 id="county-profile-title">{_esc(county.get("name"))} County</h2>'
     body += '<p>' + _esc(" · ".join(monitoring.get("paths") or []) or "No active parcel monitoring") + ' · ' + _esc(monitoring.get("health")) + ' · ' + _esc(monitoring.get("reporting")) + '</p>'
     body += '<div class="profile-summary">' + _rows([("Active monitoring", "Yes" if monitoring.get("active") else "No"), ("County-direct access", access.get("public_classification")), ("Active parcel sources", monitoring.get("active_parcel_source_count")), ("Latest county Watchtower check", profile_time(monitoring.get("last_checked_at")))]) + '</div>'
+    body += render_direct_schema_findings(profile.get('direct_gac_schema') or [])
     for key, heading in GROUPS:
         category = profile.get(key, {})
         availability = category.get("availability", "unknown")
@@ -93,6 +94,32 @@ def render_county_profile_body(profile: dict) -> str:
         body += '<section><h3>Research notes</h3><details class="profile-evidence"><summary>Read detailed research notes</summary><ul>' + ''.join('<li>' + _esc(note.strip()) + '</li>' for comment in profile['comments'] for note in comment.split(' · ') if note.strip()) + '</ul></details></section>'
     body += f'<p><a href="/county?slug={_esc(county.get("slug"))}">Open county dashboard →</a></p>'
     return '<div class="county-profile">' + body + '</div>'
+
+
+def render_direct_schema_findings(assessments: list[dict]) -> str:
+    """Explain direct-feed schema evidence without grading county-wide compliance."""
+    if not assessments:
+        return ''
+    rows = []
+    for item in assessments:
+        row = '<p><strong>' + _esc(item.get('label')) + '</strong></p>'
+        if item.get('standard_fields_present') is not None:
+            row += '<p>' + _esc(item.get('standard_fields_present')) + ' / ' + _esc(item.get('standard_field_count')) + ' standard field names; ' + _esc(item.get('mandatory_fields_present')) + ' / ' + _esc(item.get('mandatory_field_count')) + ' mandatory field names.</p>'
+            if item.get('missing_mandatory_fields'):
+                row += '<p>Missing mandatory names: <code>' + _esc(', '.join(item['missing_mandatory_fields'])) + '</code>.</p>'
+        if item.get('reason'):
+            row += '<p>' + _esc(item['reason']) + '</p>'
+        if item.get('checked_at'):
+            row += '<p class="subtext">Schema audit: ' + _esc(profile_time(item['checked_at'])) + '. '
+            url = safe_public_url(item.get('evidence_url'))
+            if url:
+                row += '<a href="' + _esc(url) + '" target="_blank" rel="noopener">Checked direct layer</a>. '
+            row += 'Feed: ' + _esc(item.get('name') or item.get('source_id')) + '.</p>'
+        rows.append(row)
+    return ('<div class="direct-gac-schema"><h3>County-direct MN GAC schema</h3>' + ''.join(rows)
+            + '<p class="subtext">Field-name evidence applies to the checked direct feed. It is separate from MnGeo Open Parcels coverage and statewide field population. '
+              'MN GAC is a transfer standard; counties may use another internal schema or offer a separate standardized export. '
+              'Names alone do not establish full compliance.</p></div>')
 
 def _json(value: object) -> str:
     return json.dumps(value, ensure_ascii=False).replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
@@ -116,7 +143,7 @@ def render_inline_county_panel(*, revision: str) -> str:
     """Load the existing escaped public fragment into the overview's county pane."""
     return '<span hidden data-content-revision="' + _esc(revision) + '"></span>' + r'''
 <style>
-.overview-county-explorer{align-items:stretch}.overview-county-explorer>.card{min-width:0}#home-county-pane{display:flex;flex-direction:column;min-width:0}#home-county-profile{overflow-wrap:anywhere}
+.overview-county-explorer{align-items:stretch;grid-auto-rows:1fr}.overview-county-explorer>.card{min-width:0}#home-county-pane{display:flex;flex-direction:column;min-width:0}#home-county-profile{overflow-wrap:anywhere}
 #home-county-profile dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 #home-county-profile dl>div{min-width:0}#home-county-profile dt{font-size:12px;color:#a9b9ce}
 #home-county-profile dd{margin:4px 0;font-size:14px}
@@ -129,6 +156,7 @@ def render_inline_county_panel(*, revision: str) -> str:
 .county-field-coverage{margin-top:16px;font-size:12px}.county-field-coverage>div:first-child{display:flex;justify-content:space-between;gap:8px;margin-bottom:6px}
 .county-field-track{height:9px;background:#26364a;border-radius:5px;overflow:hidden}.county-field-track i{display:block;height:100%;width:var(--coverage,0%);background:#6da6d4}
 #home-county-infographics .subtext{font-size:11px;margin:9px 0 0;color:#a9b9ce}
+#home-county-profile .direct-gac-schema{margin-top:16px;border-top:1px solid #33445a;padding-top:10px}#home-county-profile .direct-gac-schema h3{font-size:16px}#home-county-profile .direct-gac-schema p{font-size:13px;margin:8px 0}
 </style>
 <script>
 (function(){
@@ -138,12 +166,12 @@ def render_inline_county_panel(*, revision: str) -> str:
     document.getElementById('home-county-infographics').hidden=false;
     for(const [key,id,label] of [['pct','mandatory','Mandatory-field population'],['all_pct','all','All-field population']]){
       const value=data?.[key],known=typeof value==='number'&&Number.isFinite(value)&&value>=0&&value<=100;
-      const chart=document.getElementById('county-coverage-'+id),text=known?value.toFixed(2)+'%':'No data';
+      const chart=document.getElementById('county-coverage-'+id),text=known?value.toFixed(2)+'%':'Unavailable';
       chart.style.setProperty('--coverage',known?value+'%':'0%');chart.classList.toggle('unavailable',!known);
       chart.setAttribute('aria-label',label+': '+text);document.getElementById('county-coverage-'+id+'-value').textContent=text;
     }
     const count=data?.fields,total=data?.field_count,known=Number.isInteger(count)&&Number.isInteger(total)&&total>0&&count>=0&&count<=total;
-    const text=known?count+' / '+total:'No data',chart=document.getElementById('county-field-coverage');
+    const text=known?count+' / '+total:'Unavailable',chart=document.getElementById('county-field-coverage');
     chart.setAttribute('aria-label','Fields with values: '+text);
     document.getElementById('county-field-coverage-value').textContent=text;
     document.getElementById('county-field-coverage-fill').style.setProperty('--coverage',known?(count/total*100)+'%':'0%');

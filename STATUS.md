@@ -1,5 +1,23 @@
 # Project status
 
+## County-direct coverage and schema evidence — candidate, 2026-10-10
+
+Live MnGeo membership verification confirms Olmsted and 12 other direct counties
+are in Open Parcels. Coverage remains 70 counties = 59 statewide + 24 direct - 13
+overlaps. County-direct does not mean direct-only. See the
+[all-county coverage and schema audit](docs/county-direct-gac-schema-audit.md).
+
+Pane A and county/source views now separate direct-feed MN GAC schema evidence
+from statewide field population. The metadata audit checked 21 feeds: Wabasha has
+all 91 standard names; 20 feeds have missing names. Olmsted, Ramsey and Dodge
+remain unassessed. Findings identify the audited feed and date, expose missing
+mandatory names, and do not assert county-wide noncompliance. JSON and county
+CSV/XLSX summaries carry the same findings. Missing statewide metrics stay
+unavailable. This local candidate changes no monitoring configuration or production
+publication and awaits separate merge/publication approval.
+The map pane and Pane A use equal grid-row sizing, including stacked layouts,
+so their heights stay equal while county details load and change.
+
 ## Inline overview county pane — candidate, 2026-10-10
 
 Overview map and county-picker selections now populate the adjacent county pane

@@ -33,7 +33,8 @@ from clearparcel.datawatch.dashboard_routes import dispatch_snapshot_exports
 from clearparcel.datawatch.parcel_access import load_parcel_access
 from clearparcel.datawatch.county_profile_exports import county_profiles_csv, parcel_sources_csv
 from clearparcel.datawatch.county_profiles import county_profile_counts, _latest, _timestamp
-from clearparcel.datawatch.county_profile_panel import render_inline_county_panel, percentage_legend, percentage_color_js, research_summary
+from clearparcel.datawatch.county_profile_panel import render_inline_county_panel, percentage_legend, percentage_color_js, research_summary, render_direct_schema_findings
+from clearparcel.datawatch.direct_gac_schema import direct_schema_assessment
 from clearparcel.datawatch.storage import backend_from_env
 from clearparcel.datawatch.public_values import sanitize_source_metadata
 from clearparcel.datawatch.build_info import application_identity
@@ -310,7 +311,7 @@ def render_public_dashboard(config: dict) -> str:
     root.getElementById('home-county-name').textContent=name+' County';
     const rate=root.getElementById('home-county-rate'), rec=root.getElementById('home-county-records'), fields=root.getElementById('home-county-fields'), link=root.getElementById('home-county-link');
     if(!d){{
-      rate.textContent='No data';rec.textContent='—';fields.textContent='—';
+      rate.textContent='Unavailable';rec.textContent='—';fields.textContent='—';
     }}else{{
       rate.textContent=d.pct==null?'—':Number(d.pct).toFixed(2)+'%';
       rec.textContent=d.records==null?"Not available":Number(d.records).toLocaleString();
@@ -318,7 +319,7 @@ def render_public_dashboard(config: dict) -> str:
     }}
     const slug=(d&&d.slug)||path.dataset.slug||'';
     link.href=slug?'/county?slug='+encodeURIComponent(slug):'/counties';
-    root.getElementById('home-county-all-rate').textContent=d&&d.all_pct!=null?Number(d.all_pct).toFixed(2)+'%':'No data';
+    root.getElementById('home-county-all-rate').textContent=d&&d.all_pct!=null?Number(d.all_pct).toFixed(2)+'%':'Unavailable';
     root.getElementById('home-county-gac-link').href='/mngac?standard=parcel&view=county&county='+encodeURIComponent(slug);
     window.watchtowerCountyPane?.load(slug,d);
     updateDescription();
@@ -368,6 +369,8 @@ def render_public_source(config: dict, source_id: str) -> str:
         f'<dt>Missing mapped shape</dt><dd>{_esc(source.get("null_geometry_count") if source.get("null_geometry_count") is not None else "Not checked")}</dd>'
         '</dl></div>'
     )
+    if source.get('county_slug') and source.get('category') == 'Parcels':
+        body += render_direct_schema_findings([direct_schema_assessment(source_id, source)])
     return _layout(
         f'Data Source — {source.get("name") or source_id} — GIS Data Watchtower',
         body,

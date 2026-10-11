@@ -9,6 +9,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 from .parcel_access import INVENTORY_CATEGORIES
+from .direct_gac_schema import direct_schema_assessment
 from .public_values import (public_access_classification, safe_public_url, provider_edit_timestamp,
                             sanitize_source_metadata, safe_geometry_type, safe_file_type)
 
@@ -186,6 +187,7 @@ def compose_county_profiles(state: dict, research: dict[str, dict], *, now: dt.d
                 'last_success_at': _latest(s.get('last_success_at') for s in active.values()),
                 'aggregate_generated_at': state.get('generated_at') if _timestamp(state.get('generated_at')) else None},
             **categories,
+            'direct_gac_schema': [direct_schema_assessment(sid, source) for sid, source in sorted(direct.items())],
             'access': {'public_classification': public_access_classification(record),
                 'detailed_classification': record.get('county_direct_classification'),
                 'dataset_fee': record.get('parcel_dataset_fee'), 'fee_product': record.get('fee_product'),
