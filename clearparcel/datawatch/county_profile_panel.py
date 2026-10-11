@@ -116,20 +116,40 @@ def render_inline_county_panel(*, revision: str) -> str:
     """Load the existing escaped public fragment into the overview's county pane."""
     return '<span hidden data-content-revision="' + _esc(revision) + '"></span>' + r'''
 <style>
-.overview-county-explorer{align-items:start}#home-county-pane{min-width:0;align-self:start}#home-county-profile{overflow-wrap:anywhere}
+.overview-county-explorer{align-items:stretch}.overview-county-explorer>.card{min-width:0}#home-county-pane{display:flex;flex-direction:column;min-width:0}#home-county-profile{overflow-wrap:anywhere}
 #home-county-profile dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 #home-county-profile dl>div{min-width:0}#home-county-profile dt{font-size:12px;color:#a9b9ce}
-#home-county-profile dd{margin:4px 0;font-size:14px}#home-county-profile details{border-top:1px solid #33445a;margin-top:14px;padding-top:12px}
-#home-county-profile summary{cursor:pointer;color:#dce9fa;font-weight:600}
-#home-county-profile .profile-source{padding:12px;background:#131e2e;border:1px solid #33445a;border-radius:8px;margin:12px 0}
-#home-county-profile .profile-source dl{grid-template-columns:minmax(0,1fr)}
-#home-county-profile h4{margin:0 0 12px}
+#home-county-profile dd{margin:4px 0;font-size:14px}
+#home-county-profile-status:empty{display:none}
+#home-county-infographics{margin-top:auto;padding-top:18px;border-top:1px solid #33445a}
+#home-county-infographics h3{font-size:16px;margin:0 0 14px}.county-coverage-rings{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;text-align:center}
+.county-coverage-ring{--coverage:0%;width:92px;height:92px;border-radius:50%;margin:0 auto 8px;display:grid;place-items:center;background:conic-gradient(#55b68f var(--coverage),#26364a 0);position:relative}
+.county-coverage-ring::before{content:'';position:absolute;inset:8px;border-radius:50%;background:#101824}.county-coverage-ring b{position:relative;font-size:17px}
+.county-coverage-ring.unavailable{background:#26364a}.county-coverage-ring.unavailable b{font-size:13px}.county-coverage-rings small{color:#a9b9ce}
+.county-field-coverage{margin-top:16px;font-size:12px}.county-field-coverage>div:first-child{display:flex;justify-content:space-between;gap:8px;margin-bottom:6px}
+.county-field-track{height:9px;background:#26364a;border-radius:5px;overflow:hidden}.county-field-track i{display:block;height:100%;width:var(--coverage,0%);background:#6da6d4}
+#home-county-infographics .subtext{font-size:11px;margin:9px 0 0;color:#a9b9ce}
 </style>
 <script>
 (function(){
   const content=document.getElementById('home-county-profile'),status=document.getElementById('home-county-profile-status');
   const fragments=new Map();let request=0,controller=null;
-  async function load(slug){
+  function updateInfographics(data){
+    document.getElementById('home-county-infographics').hidden=false;
+    for(const [key,id,label] of [['pct','mandatory','Mandatory-field population'],['all_pct','all','All-field population']]){
+      const value=data?.[key],known=typeof value==='number'&&Number.isFinite(value)&&value>=0&&value<=100;
+      const chart=document.getElementById('county-coverage-'+id),text=known?value.toFixed(2)+'%':'No data';
+      chart.style.setProperty('--coverage',known?value+'%':'0%');chart.classList.toggle('unavailable',!known);
+      chart.setAttribute('aria-label',label+': '+text);document.getElementById('county-coverage-'+id+'-value').textContent=text;
+    }
+    const count=data?.fields,total=data?.field_count,known=Number.isInteger(count)&&Number.isInteger(total)&&total>0&&count>=0&&count<=total;
+    const text=known?count+' / '+total:'No data',chart=document.getElementById('county-field-coverage');
+    chart.setAttribute('aria-label','Fields with values: '+text);
+    document.getElementById('county-field-coverage-value').textContent=text;
+    document.getElementById('county-field-coverage-fill').style.setProperty('--coverage',known?(count/total*100)+'%':'0%');
+  }
+  async function load(slug,data){
+    updateInfographics(data);
     const current=++request;controller?.abort();controller=new AbortController();
     const signal=controller.signal;
     content.replaceChildren();content.setAttribute('aria-busy','true');status.textContent='Loading county details…';
@@ -145,21 +165,12 @@ def render_inline_county_panel(*, revision: str) -> str:
         // Only escaped server-rendered same-origin public fragments enter this parser.
         const parsed=new DOMParser().parseFromString(await response.text(),'text/html');
         const profile=parsed.querySelector('.county-profile');if(!profile)throw new Error();
-        profile.querySelector('h2')?.remove();
-        // Keep the county summary visible and make the full source categories expandable.
-        [...profile.children].filter(node=>node.tagName==='SECTION').forEach(section=>{
-          const heading=section.querySelector('h3');if(!heading)return;
-          const details=document.createElement('details'),summary=document.createElement('summary');
-          details.className='profile-evidence';
-          summary.textContent=heading.textContent;
-          const availability=heading.nextElementSibling;
-          if(availability?.tagName==='P'){summary.textContent+=' — '+availability.textContent;availability.remove()}
-          heading.remove();details.append(summary,...section.childNodes);section.replaceWith(details);
-        });
+        // Keep only the compact monitoring summary; full evidence stays on the county page.
+        [...profile.children].filter(node=>['H2','P','SECTION'].includes(node.tagName)).forEach(node=>node.remove());
         fragments.set(cacheKey,profile);
       }
       if(current!==request)return;
-      content.replaceChildren(fragments.get(cacheKey).cloneNode(true));status.textContent='County details loaded.';
+      content.replaceChildren(fragments.get(cacheKey).cloneNode(true));status.textContent='';
     }catch(error){
       if(current!==request)return;
       status.textContent='County details are temporarily unavailable. Use Open county profile to view the county page.';

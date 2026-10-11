@@ -210,7 +210,7 @@ def render_public_dashboard(config: dict) -> str:
 </div>
 <p class="mngac-note">A source is a monitored dataset or service entry across any data type. Parcel coverage counts unique counties observed through county-direct or statewide sources. One statewide source can cover many counties; overlapping paths count each county once.</p>
 
-<div class="section-head"><div><h2>Explore Minnesota GIS data</h2><p>Select any county to inspect its complete parcel source profile.</p></div><a href="/counties">All 87 counties →</a></div>
+<div class="section-head"><div><h2>Explore Minnesota GIS data</h2><p>Select any county to see its monitoring summary and field coverage.</p></div><a href="/counties">All 87 counties →</a></div>
 <div class="hero-panel overview-county-explorer">
   <div class="card">
     <div class="overview-controls">
@@ -235,6 +235,18 @@ def render_public_dashboard(config: dict) -> str:
     </div>
     <p id="home-county-profile-status" role="status"></p>
     <div id="home-county-profile" aria-busy="false"></div>
+    <section id="home-county-infographics" aria-labelledby="county-coverage-title" hidden>
+      <h3 id="county-coverage-title">County field coverage</h3>
+      <div class="county-coverage-rings">
+        <div><div class="county-coverage-ring unavailable" id="county-coverage-mandatory" role="img" aria-label="Mandatory-field population: No data"><b id="county-coverage-mandatory-value">No data</b></div><small>Mandatory fields</small></div>
+        <div><div class="county-coverage-ring unavailable" id="county-coverage-all" role="img" aria-label="All-field population: No data"><b id="county-coverage-all-value">No data</b></div><small>All fields</small></div>
+      </div>
+      <div class="county-field-coverage" id="county-field-coverage" role="img" aria-label="Fields with values: No data">
+        <div><span>Fields with values</span><b id="county-field-coverage-value">No data</b></div>
+        <div class="county-field-track" aria-hidden="true"><i id="county-field-coverage-fill"></i></div>
+      </div>
+      <p class="subtext">Rings show record-weighted field population. The bar counts fields with at least one value.</p>
+    </section>
   </div>
 </div>
 
@@ -269,7 +281,7 @@ def render_public_dashboard(config: dict) -> str:
   function updateDescription(){{
     const detail=root.getElementById('home-county-detail');
     if(selector.value==='monitoring'){{
-      detail.textContent=selectedPath?monitoringLabel(monitoringPaths[selectedPath.dataset.slug]||[])+'. Statewide completeness statistics below are separate from monitoring coverage.':'The map shows active parcel monitoring paths: county-direct, MnGeo open parcels, both, or no active parcel monitoring path. Select a county to inspect its complete source profile.';
+      detail.textContent=selectedPath?monitoringLabel(monitoringPaths[selectedPath.dataset.slug]||[])+'. County field-population statistics below come from the statewide parcel observations.':'The map shows active parcel monitoring paths: county-direct, MnGeo open parcels, both, or no active parcel monitoring path. Select a county to see its monitoring summary and field coverage.';
     }}else{{
       const d=selectedPath&&countyData[selectedPath.dataset.county];
       detail.textContent=!selectedPath?'The map shows record-weighted population across mandatory Minnesota GAC parcel-transfer fields. Unavailable statewide completeness remains distinct from 0%.':!d||d.pct==null?'Statewide completeness is unavailable for this county. These statistics are separate from county-direct monitoring; no 0% value is inferred.':'Current record-weighted population across mandatory parcel-transfer fields for this county. These statistics are separate from county-direct monitoring.';
@@ -308,7 +320,7 @@ def render_public_dashboard(config: dict) -> str:
     link.href=slug?'/county?slug='+encodeURIComponent(slug):'/counties';
     root.getElementById('home-county-all-rate').textContent=d&&d.all_pct!=null?Number(d.all_pct).toFixed(2)+'%':'No data';
     root.getElementById('home-county-gac-link').href='/mngac?standard=parcel&view=county&county='+encodeURIComponent(slug);
-    window.watchtowerCountyPane?.load(slug);
+    window.watchtowerCountyPane?.load(slug,d);
     updateDescription();
   }}
   root.querySelectorAll('.mngac-county').forEach(p=>{{

@@ -5,8 +5,10 @@
 ## Inline overview county pane — candidate, 2026-10-10
 
 Overview map and county-picker selections now populate the adjacent county pane
-with monitoring, access and source details instead of opening a dialog. Source
-and research sections expand in place; the MN GAC link keeps the selected county.
+with a compact monitoring summary instead of opening a dialog. Full source and
+research sections remain on the county profile; the MN GAC link keeps the selected
+county. The two panes share a height on desktop, with county field-population rings
+and a fields-with-values bar at the bottom of the selected-county pane.
 County cards include county all-field population in place of the statewide count.
 MN GAC county suggestions show each county name once. This candidate uses saved
 public observations and awaits review and separate merge/publication approval.

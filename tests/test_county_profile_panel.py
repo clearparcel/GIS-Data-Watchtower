@@ -14,21 +14,31 @@ class CountyProfilePanelTests(unittest.TestCase):
         harness = r'''
 const assert=require('node:assert/strict'),vm=require('node:vm');
 const content={nodes:[],attrs:{},replaceChildren(...nodes){this.nodes=nodes},setAttribute(k,v){this.attrs[k]=v}},status={textContent:''};
+const graphics=new Map(),graphic=id=>{if(!graphics.has(id))graphics.set(id,{attrs:{},textContent:'',style:{values:{},setProperty(k,v){this.values[k]=v}},classList:{values:{},toggle(k,v){this.values[k]=v}},setAttribute(k,v){this.attrs[k]=v}});return graphics.get(id)};
 let calls=[],pending=[];
 const context={AbortController,setTimeout,clearTimeout,Map,encodeURIComponent,window:{},
- document:{getElementById:id=>id==='home-county-profile'?content:status,querySelector:()=>({dataset:{contentRevision:'old'}})},
- DOMParser:class{parseFromString(id){return{querySelector:()=>({id,children:[],querySelector:()=>null,cloneNode(){return{id}}})}}},
+ document:{getElementById:id=>id==='home-county-profile'?content:id==='home-county-profile-status'?status:graphic(id),querySelector:()=>({dataset:{contentRevision:'old'}})},
+ DOMParser:class{parseFromString(id){const profile={id,children:[],cloneNode(){return{id,children:this.children}}};for(const tagName of ['H2','P','DIV','SECTION','SECTION','SECTION','SECTION','SECTION','SECTION','P']){const node={tagName,remove(){profile.children=profile.children.filter(n=>n!==this)}};profile.children.push(node)}return{querySelector:()=>profile}}},
  fetch:(url,options)=>{calls.push({url,options});return new Promise(resolve=>pending.push(resolve))}};
 vm.createContext(context);vm.runInContext(SCRIPT,context);
 const response=(id,status=200)=>({status,ok:status===200,text:async()=>id,json:async()=>({content_revision:'new'})});
 const flush=()=>new Promise(resolve=>setImmediate(resolve));
 (async()=>{
- const first=context.window.watchtowerCountyPane.load('dakota');
+ const first=context.window.watchtowerCountyPane.load('dakota',{pct:0,all_pct:100,fields:37,field_count:91});
+ assert.equal(graphic('county-coverage-mandatory-value').textContent,'0.00%');
+ assert.equal(graphic('county-coverage-mandatory').classList.values.unavailable,false);
+ assert.equal(graphic('county-coverage-all').style.values['--coverage'],'100%');
+ assert.equal(graphic('county-field-coverage-value').textContent,'37 / 91');
+ assert.equal(graphic('county-field-coverage-fill').style.values['--coverage'],(37/91*100)+'%');
  const second=context.window.watchtowerCountyPane.load('rice');
+ assert.equal(graphic('county-coverage-mandatory-value').textContent,'No data');
+ assert.equal(graphic('county-coverage-mandatory').classList.values.unavailable,true);
+ assert.equal(graphic('county-field-coverage-value').textContent,'No data');
  assert.equal(calls[0].options.signal.aborted,true);
  pending[1](response('rice'));await second;
  pending[0](response('dakota'));await first;
  assert.equal(content.nodes[0].id,'rice');assert.equal(content.attrs['aria-busy'],'false');
+ assert.deepEqual(content.nodes[0].children.map(n=>n.tagName),['DIV']);
  const count=calls.length;await context.window.watchtowerCountyPane.load('rice');assert.equal(calls.length,count);
  const retry=context.window.watchtowerCountyPane.load('douglas');pending[2](response('',409));await flush();
  assert.equal(calls[3].url,'/api/summary');pending[3](response('summary'));await flush();
