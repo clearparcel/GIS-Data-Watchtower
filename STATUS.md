@@ -15,8 +15,15 @@ mandatory names, and do not assert county-wide noncompliance. JSON and county
 CSV/XLSX summaries carry the same findings. Missing statewide metrics stay
 unavailable. This local candidate changes no monitoring configuration or production
 publication and awaits separate merge/publication approval.
-The map pane and Pane A use equal grid-row sizing, including stacked layouts,
-so their heights stay equal while county details load and change.
+The visible map frame and Pane A use equal grid-row sizing, including stacked
+layouts, so their heights stay equal while county details load and change. The
+map frame now contains the controls, map, legend and explanatory note.
+The default overview map distinguishes MN GAC data availability, checked direct
+feeds with differing schemas, no confirmed open parcel data under documented
+fee policies, open data with an unassessed schema, and unresolved access.
+Patterns supplement color. Statewide availability takes precedence over direct
+schema mismatches; technical REST reachability does not override fee policies.
+Monitoring-path and mandatory-field percentage views remain separately selectable.
 
 ## Inline overview county pane — candidate, 2026-10-10
 

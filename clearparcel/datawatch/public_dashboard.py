@@ -35,6 +35,7 @@ from clearparcel.datawatch.county_profile_exports import county_profiles_csv, pa
 from clearparcel.datawatch.county_profiles import county_profile_counts, _latest, _timestamp
 from clearparcel.datawatch.county_profile_panel import render_inline_county_panel, percentage_legend, percentage_color_js, research_summary, render_direct_schema_findings
 from clearparcel.datawatch.direct_gac_schema import direct_schema_assessment
+from clearparcel.datawatch.county_map_status import MAP_STATUSES, county_map_status, status_legend, status_patterns
 from clearparcel.datawatch.storage import backend_from_env
 from clearparcel.datawatch.public_values import sanitize_source_metadata
 from clearparcel.datawatch.build_info import application_identity
@@ -193,12 +194,16 @@ def render_public_dashboard(config: dict) -> str:
         }
     map_json = json.dumps(map_data, ensure_ascii=False).replace("</", "<\\/")
     map_svg = _mngac_map_svg(width=620, height=560)
+    map_svg = map_svg.replace('</svg>', status_patterns() + '</svg>')
     summary = summary_for(config, state, profiles=profiles, research=research)
     profile_panel = render_inline_county_panel(revision=summary["content_revision"])
     diagnostics = render_diagnostics(summary)
     county_options = ''.join(f'<option value="{_esc(slug)}">{_esc(p["county"]["name"])} County</option>'
                              for slug, p in sorted(profiles.items(), key=lambda item: item[1]["county"]["name"]))
     monitoring_json = json.dumps({slug: p["monitoring"]["paths"] for slug, p in profiles.items()})
+    status_json = json.dumps({slug: county_map_status(p) for slug, p in profiles.items()})
+    status_styles_json = json.dumps({key: {'label': label, 'fill': f'url(#{pattern})' if pattern else color}
+                                   for key, (label, color, pattern) in MAP_STATUSES.items()})
 
     body = f"""
 <div class="summary-v2">
@@ -213,17 +218,18 @@ def render_public_dashboard(config: dict) -> str:
 
 <div class="section-head"><div><h2>Explore Minnesota GIS data</h2><p>Select any county to see its monitoring summary and field coverage.</p></div><a href="/counties">All 87 counties →</a></div>
 <div class="hero-panel overview-county-explorer">
-  <div class="card">
+  <div class="card mngac-map-panel" id="overview-map-pane">
     <div class="overview-controls">
-      <label>Map view<select id="overview-metric"><option value="monitoring">Monitoring paths</option><option value="completeness">MN GAC mandatory-field completeness</option></select></label>
+      <label>Map view<select id="overview-metric"><option value="schema">MN GAC / open-data status</option><option value="monitoring">Monitoring paths</option><option value="completeness">MN GAC mandatory-field completeness</option></select></label>
       <label for="overview-county-select">Find a county<select id="overview-county-select"><option value="">Choose a county…</option>{county_options}</select></label>
     </div>
-    <div class="mngac-map-panel">{map_svg}<div id="overview-legend"></div></div>
+    <div class="overview-map-content">{map_svg}<div id="overview-legend"></div></div>
+    <p class="subtext overview-map-note" id="overview-map-note"></p>
   </div>
   <div class="card hero-copy" id="home-county-pane" role="region" aria-labelledby="home-county-name">
     <div class="muted">Selected county</div>
     <h2 id="home-county-name">Choose a county</h2>
-    <p id="home-county-detail">The map shows active parcel monitoring paths: county-direct, MnGeo open parcels, both, or no active parcel monitoring path. Select a county to inspect its complete source profile.</p>
+    <p id="home-county-detail">The map distinguishes MN GAC data, differing direct-feed schemas, and open-data availability. Select a county to see the evidence.</p>
     <div class="hero-stat">
       <div><small>Mandatory-field population</small><b id="home-county-rate">—</b></div>
       <div><small>Parcel records</small><b id="home-county-records">—</b></div>
@@ -274,6 +280,7 @@ def render_public_dashboard(config: dict) -> str:
   const countyData={map_json};
   const root=document;
   const monitoringPaths={monitoring_json};
+  const countyStatuses={status_json},statusStyles={status_styles_json};
   const selector=root.getElementById("overview-metric");
   let selectedPath=null;
   function monitoringLabel(paths){{
@@ -281,7 +288,9 @@ def render_public_dashboard(config: dict) -> str:
   }}
   function updateDescription(){{
     const detail=root.getElementById('home-county-detail');
-    if(selector.value==='monitoring'){{
+    if(selector.value==='schema'){{
+      detail.textContent=selectedPath?statusStyles[countyStatuses[selectedPath.dataset.slug]].label+'. This describes available datasets and checked field names, not county-wide compliance. Statewide field-population statistics are separate.':'The map distinguishes MN GAC data, differing direct-feed schemas, and open-data availability. Select a county to see the evidence.';
+    }}else if(selector.value==='monitoring'){{
       detail.textContent=selectedPath?monitoringLabel(monitoringPaths[selectedPath.dataset.slug]||[])+'. County field-population statistics below come from the statewide parcel observations.':'The map shows active parcel monitoring paths: county-direct, MnGeo open parcels, both, or no active parcel monitoring path. Select a county to see its monitoring summary and field coverage.';
     }}else{{
       const d=selectedPath&&countyData[selectedPath.dataset.county];
@@ -290,14 +299,16 @@ def render_public_dashboard(config: dict) -> str:
   }}
   function updateOverview(){{
     const monitoring=selector.value==="monitoring";
+    const schema=selector.value==='schema';
     root.querySelectorAll(".mngac-county").forEach(p=>{{
       const paths=monitoringPaths[p.dataset.slug]||[],d=countyData[p.dataset.county];
-      p.style.fill=monitoring?(paths.length===2?"#4c9b7b":paths.includes("county-direct")?"#3c708f":paths.includes("mngeo-open")?"#315373":"#151d2b"):fill(d&&d.pct);
-      const label=monitoring?monitoringLabel(paths):d&&d.pct!=null?Number(d.pct).toFixed(2)+'% MN GAC mandatory-field population':'Statewide completeness is unavailable';
+      p.style.fill=schema?statusStyles[countyStatuses[p.dataset.slug]].fill:monitoring?(paths.length===2?"#4c9b7b":paths.includes("county-direct")?"#3c708f":paths.includes("mngeo-open")?"#315373":"#151d2b"):fill(d&&d.pct);
+      const label=schema?statusStyles[countyStatuses[p.dataset.slug]].label:monitoring?monitoringLabel(paths):d&&d.pct!=null?Number(d.pct).toFixed(2)+'% MN GAC mandatory-field population':'Statewide completeness is unavailable';
       p.setAttribute('aria-label',p.dataset.county+' County, '+label);
     }});
     updateDescription();
-    root.getElementById("overview-legend").innerHTML=monitoring?'<div class="mngac-legend"><span><i class="mngac-swatch" style="background:#4c9b7b"></i>Both paths</span><span><i class="mngac-swatch" style="background:#3c708f"></i>County-direct</span><span><i class="mngac-swatch" style="background:#315373"></i>MnGeo open</span><span><i class="mngac-swatch" style="background:#151d2b"></i>No active parcel path</span></div>':{json.dumps(percentage_legend())};
+    root.getElementById("overview-legend").innerHTML=schema?{json.dumps(status_legend())}:monitoring?'<div class="mngac-legend"><span><i class="mngac-swatch" style="background:#4c9b7b"></i>Both paths</span><span><i class="mngac-swatch" style="background:#3c708f"></i>County-direct</span><span><i class="mngac-swatch" style="background:#315373"></i>MnGeo open</span><span><i class="mngac-swatch" style="background:#151d2b"></i>No active parcel path</span></div>':{json.dumps(percentage_legend())};
+    root.getElementById('overview-map-note').textContent=schema?'MN GAC availability uses MnGeo county observations or checked standard field names. A differing direct feed does not rule out a separate standardized export. No confirmed open data means current research found no open product; unresolved cases remain separate.':monitoring?'Monitoring paths describe saved observations, not all available parcel products.':'Percentages describe statewide mandatory-field population. Unavailable is not 0% and does not establish a different direct schema.';
   }}
   selector.addEventListener("change",updateOverview);
   {percentage_color_js()}

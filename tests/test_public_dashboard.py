@@ -95,7 +95,7 @@ class PublicDashboardTests(unittest.TestCase):
         with patch('clearparcel.datawatch.public_dashboard._dashboard_state', return_value=state):
             page = render_public_dashboard({'_public_mode': True})
         initial = re.search(r'<p id="home-county-detail">(.*?)</p>', page).group(1)
-        self.assertIn('monitoring paths', initial)
+        self.assertIn('differing direct-feed schemas', initial)
         self.assertNotIn('population across', initial)
         self.assertIn('function monitoringLabel(paths)', page)
         self.assertIn('function updateDescription()', page)
@@ -104,6 +104,10 @@ class PublicDashboardTests(unittest.TestCase):
         self.assertIn('updateDescription();', page)
         self.assertIn('const monitoring=selector.value==="monitoring"', page)
         self.assertIn('No active parcel monitoring path', page)
+        self.assertIn('MN GAC / open-data status', page)
+        self.assertIn('No confirmed open parcel data', page)
+        self.assertIn('Open-data status unresolved', page)
+        self.assertIn('id="overview-map-pane"', page)
         self.assertIn('Statewide completeness is unavailable', page)
         self.assertIn('These statistics are separate from county-direct monitoring', page)
 

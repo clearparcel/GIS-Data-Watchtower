@@ -10,6 +10,30 @@ A bounded live grouped count query of the [official MnGeo Plan Parcels Open laye
 
 Olmsted has 75,579 statewide parcel records. The HTTP 403 on its separate direct endpoint concerns that endpoint only; it is not statewide absence.
 
+## Overview map interpretation
+
+The default overview map shows dataset/schema status instead of assigning every
+missing statewide percentage to a single No data class. MnGeo representation or
+a checked direct feed with all standard names yields **MN GAC data available**;
+that does not certify full compliance. This takes precedence over a differing
+direct feed. A direct-only checked mismatch is **Direct feed differs from MN GAC**.
+Confirmed open county access without a resolved schema audit is
+**Open data, schema unassessed**. A county absent from the saved statewide
+observation with documented fee-based direct access and no checked schema finding
+is **No confirmed open parcel data**. This is a bounded evidence statement, not
+proof that no open product exists anywhere. Viewer-only and unresolved cases
+remain **Open-data status unresolved**; a reachable REST endpoint alone does not
+override a fee or license policy.
+
+Blue/orange/purple colors distinguish data categories; diagonal lines, crosses
+and dots distinguish differing feeds, no confirmed open data and unresolved
+access without relying on color alone. The existing Minnesota outline and SVG
+geometry are unchanged; this schematic county map supports selection, not area
+or distance measurement. The map uses saved observations and dated research;
+loading it does not poll providers. Percentage and monitoring-path views retain
+their separate meanings and legends. The map frame includes its controls and
+legend and shares Pane A's height, including stacked narrow-screen layouts.
+
 ## Direct feed schema evidence
 
 The [MN GAC Parcel Data Standard v1.1.3](https://mn.gov/mngeo/assets/MN_GAC_Parcel_Data_Standard_tcm1235-753537.pdf) defines 91 fields, including seven Mandatory fields. Physical field names were compared case-insensitively in bounded metadata responses from 21 direct layers. Aliases and crosswalks were not applied. Ramsey and Olmsted returned HTTP 403; Dodge is download-only and was not inspected.

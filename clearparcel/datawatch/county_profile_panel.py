@@ -144,6 +144,7 @@ def render_inline_county_panel(*, revision: str) -> str:
     return '<span hidden data-content-revision="' + _esc(revision) + '"></span>' + r'''
 <style>
 .overview-county-explorer{align-items:stretch;grid-auto-rows:1fr}.overview-county-explorer>.card{min-width:0}#home-county-pane{display:flex;flex-direction:column;min-width:0}#home-county-profile{overflow-wrap:anywhere}
+#overview-map-pane{display:flex;flex-direction:column;padding:17px;background:#0b111b}#overview-map-pane .overview-map-content{display:flex;flex-direction:column;flex:1;min-height:0}#overview-map-pane .mngac-map{flex:1;height:0;min-height:520px;max-height:none}#overview-map-pane .overview-map-note{font-size:11px;margin:12px 0 0}.status-different{background-image:repeating-linear-gradient(135deg,transparent 0 4px,#654900 4px 5px)}.status-closed{background-image:repeating-linear-gradient(45deg,transparent 0 4px,#26303d 4px 5px),repeating-linear-gradient(135deg,transparent 0 4px,#26303d 4px 5px)}.status-unresolved{background-image:radial-gradient(#8593a6 1px,transparent 1px);background-size:5px 5px}@media(max-width:600px){#overview-map-pane .mngac-map{min-height:320px}}
 #home-county-profile dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 #home-county-profile dl>div{min-width:0}#home-county-profile dt{font-size:12px;color:#a9b9ce}
 #home-county-profile dd{margin:4px 0;font-size:14px}

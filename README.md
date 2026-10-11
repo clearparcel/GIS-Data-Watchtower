@@ -150,6 +150,12 @@ Overview county map and picker selections populate the adjacent county pane with
 
 County-direct monitoring can overlap with MnGeo Open Parcels: live verification on October 10 found 13 overlaps among 24 direct counties, including Olmsted. Pane A, county profiles, parcel county MN GAC results, public source pages and county exports distinguish direct-feed schema findings from statewide field population. Missing statewide results do not imply noncompliance; field-name mismatches apply to the audited feed, while counties may offer separate standardized exports. Unassessed feeds remain unassessed.
 
+The overview's default MN GAC / open-data status map uses distinct colors and
+patterns for standardized data, differing direct feeds, no confirmed open data,
+unassessed schemas and unresolved access. Separate map views retain field
+population percentages and monitoring paths. The visible map frame and selected
+county pane share the same height as details load, including narrow layouts.
+
 The latest recorded (2026-10-06) isolated county-profile [preview](https://gis-data-watchtower-public-v2-preview-237020802969.us-central1.run.app) served committed `5aac504` (revision `00007-zfh`) with dedicated sanitized storage/identity. The previous five-class release served `dfacd72` (`00005-c24`). The final typed-metric and statewide-identity fixes passed review; live all-87 JSON/CSV/XLSX parity and targeted desktop/mobile checks passed. Original Task 8 and Task 10 local folder absence were verified on 2026-10-06; the earlier automatic approval review cleanup denial remains recorded. See [deployment details](docs/google-cloud-deployment.md#four-class-code-only-preview-release-2026-10-06).
 
 The shared public header is **Minnesota Open Data Watchtower** in the reviewed Task 9 source change, released to the existing preview by Task 10. The confirmed follow-up source uses <30%, 30% - 50%, 50% - 70%, >70% classes on both completeness maps, summary modes and individual fields, with exactly 30 in the second class, exactly 50 and 70 in the third class, and a separate No data class. This follow-up is deployed to existing preview `00007-zfh` from committed `5aac504`, and rendered acceptance passed; sanitized data and its real publication/source dates were preserved. Monitored entries cover all dataset/service types; parcel coverage counts unique counties across direct and statewide observations. One statewide entry can cover many counties. Internal project identities are unchanged.
