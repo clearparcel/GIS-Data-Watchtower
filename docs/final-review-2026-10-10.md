@@ -193,5 +193,7 @@ tracked-file credential-pattern scan.
 This review did not bulk-download GIS data, refresh provider observations,
 perform fresh compliance determinations, exercise private production login,
 change cloud IAM/networking, deploy a replacement service or approve a merge.
-The candidate fixes are available in the local preview and PR #64; production
-retains the previously deployed code until an approved rollout.
+The reviewed fixes subsequently merged through PR #64 and shipped under the
+user-approved [v0.2.0 rollout](release-v0.2.0.md). The limits above describe the
+original review; subsequent deployment and operational evidence are recorded
+separately in the linked release and daily-cloud activation records.

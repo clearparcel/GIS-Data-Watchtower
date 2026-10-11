@@ -1,8 +1,8 @@
 # Versioning and release policy
 
-The requested release is **v0.2.0**, with publication tracked in the
-[release record](release-v0.2.0.md). Production remains v0.1.2 at `8999081`
-until v0.2.0 acceptance and promotion complete. Daily cloud provider polling was
+The current production release is **v0.2.0**, from merged commit `308e3a7`, with
+publication and acceptance tracked in the [release record](release-v0.2.0.md).
+Daily cloud provider polling was
 separately approved and activated on October 10; application publication does
 not reschedule it. The multi-day observation study remains incomplete. Future
 runtime changes require CI and applicable staging validation, or a separately
