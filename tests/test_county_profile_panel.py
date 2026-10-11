@@ -3,9 +3,46 @@ import html
 import json
 import subprocess
 import shutil
+import re
 from clearparcel.datawatch.county_profile_panel import render_county_profile_body, render_county_profile_panel, profile_time
 
 class CountyProfilePanelTests(unittest.TestCase):
+    @unittest.skipUnless(shutil.which('node'), 'Inline async behavior requires Node.js')
+    def test_inline_selection_races_cache_revision_retry_and_failure(self):
+        from clearparcel.datawatch.county_profile_panel import render_inline_county_panel
+        script = re.search(r'<script>(.*?)</script>', render_inline_county_panel(revision='old'), re.S).group(1)
+        harness = r'''
+const assert=require('node:assert/strict'),vm=require('node:vm');
+const content={nodes:[],attrs:{},replaceChildren(...nodes){this.nodes=nodes},setAttribute(k,v){this.attrs[k]=v}},status={textContent:''};
+let calls=[],pending=[];
+const context={AbortController,setTimeout,clearTimeout,Map,encodeURIComponent,window:{},
+ document:{getElementById:id=>id==='home-county-profile'?content:status,querySelector:()=>({dataset:{contentRevision:'old'}})},
+ DOMParser:class{parseFromString(id){return{querySelector:()=>({id,children:[],querySelector:()=>null,cloneNode(){return{id}}})}}},
+ fetch:(url,options)=>{calls.push({url,options});return new Promise(resolve=>pending.push(resolve))}};
+vm.createContext(context);vm.runInContext(SCRIPT,context);
+const response=(id,status=200)=>({status,ok:status===200,text:async()=>id,json:async()=>({content_revision:'new'})});
+const flush=()=>new Promise(resolve=>setImmediate(resolve));
+(async()=>{
+ const first=context.window.watchtowerCountyPane.load('dakota');
+ const second=context.window.watchtowerCountyPane.load('rice');
+ assert.equal(calls[0].options.signal.aborted,true);
+ pending[1](response('rice'));await second;
+ pending[0](response('dakota'));await first;
+ assert.equal(content.nodes[0].id,'rice');assert.equal(content.attrs['aria-busy'],'false');
+ const count=calls.length;await context.window.watchtowerCountyPane.load('rice');assert.equal(calls.length,count);
+ const retry=context.window.watchtowerCountyPane.load('douglas');pending[2](response('',409));await flush();
+ assert.equal(calls[3].url,'/api/summary');pending[3](response('summary'));await flush();
+ assert.match(calls[4].url,/revision=new/);pending[4](response('douglas'));await retry;
+ assert.equal(content.nodes[0].id,'douglas');
+ const failure=context.window.watchtowerCountyPane.load('aitkin');assert.equal(content.nodes.length,0);
+ pending[5](response('',503));await failure;assert.match(status.textContent,/temporarily unavailable/);
+ assert.equal(content.nodes.length,0);assert.equal(content.attrs['aria-busy'],'false');
+})().catch(error=>{console.error(error);process.exitCode=1});
+'''
+        result = subprocess.run(['node', '-e', harness.replace('SCRIPT', json.dumps(script))],
+                                capture_output=True, text=True, timeout=25)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_dates_preserve_calendar_and_central_dst(self):
         self.assertEqual(profile_time('2026-10-06'), '2026-10-06')
         self.assertEqual(profile_time('2026-01-06T12:00:00+00:00'), '2026-01-06 06:00 CST')

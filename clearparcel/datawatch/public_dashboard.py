@@ -33,7 +33,7 @@ from clearparcel.datawatch.dashboard_routes import dispatch_snapshot_exports
 from clearparcel.datawatch.parcel_access import load_parcel_access
 from clearparcel.datawatch.county_profile_exports import county_profiles_csv, parcel_sources_csv
 from clearparcel.datawatch.county_profiles import county_profile_counts, _latest, _timestamp
-from clearparcel.datawatch.county_profile_panel import render_county_profile_panel, percentage_legend, percentage_color_js, research_summary
+from clearparcel.datawatch.county_profile_panel import render_inline_county_panel, percentage_legend, percentage_color_js, research_summary
 from clearparcel.datawatch.storage import backend_from_env
 from clearparcel.datawatch.public_values import sanitize_source_metadata
 from clearparcel.datawatch.build_info import application_identity
@@ -143,8 +143,6 @@ def render_public_dashboard(config: dict) -> str:
     monitoring = county_profile_counts(profiles)
     all_field = (mngac or {}).get("field_population_percent")
     mandatory = (mngac or {}).get("mandatory_population_percent")
-    parcel_records = (mngac or {}).get("record_count")
-    parcel_records_label = f"{parcel_records:,}" if isinstance(parcel_records, int) else "Not available"
 
     rows = []
     for source_id, source in sorted(
@@ -186,6 +184,7 @@ def render_public_dashboard(config: dict) -> str:
     for county_name, county in ((mngac or {}).get("counties") or {}).items():
         map_data[county_name] = {
             "pct": county.get("mandatory_population_percent"),
+            "all_pct": county.get("field_population_percent"),
             "records": county.get("record_count"),
             "fields": county.get("fields_with_values"),
             "field_count": county.get("field_count"),
@@ -194,7 +193,7 @@ def render_public_dashboard(config: dict) -> str:
     map_json = json.dumps(map_data, ensure_ascii=False).replace("</", "<\\/")
     map_svg = _mngac_map_svg(width=620, height=560)
     summary = summary_for(config, state, profiles=profiles, research=research)
-    profile_panel = render_county_profile_panel(profiles, revision=summary["content_revision"])
+    profile_panel = render_inline_county_panel(revision=summary["content_revision"])
     diagnostics = render_diagnostics(summary)
     county_options = ''.join(f'<option value="{_esc(slug)}">{_esc(p["county"]["name"])} County</option>'
                              for slug, p in sorted(profiles.items(), key=lambda item: item[1]["county"]["name"]))
@@ -212,7 +211,7 @@ def render_public_dashboard(config: dict) -> str:
 <p class="mngac-note">A source is a monitored dataset or service entry across any data type. Parcel coverage counts unique counties observed through county-direct or statewide sources. One statewide source can cover many counties; overlapping paths count each county once.</p>
 
 <div class="section-head"><div><h2>Explore Minnesota GIS data</h2><p>Select any county to inspect its complete parcel source profile.</p></div><a href="/counties">All 87 counties →</a></div>
-<div class="hero-panel">
+<div class="hero-panel overview-county-explorer">
   <div class="card">
     <div class="overview-controls">
       <label>Map view<select id="overview-metric"><option value="monitoring">Monitoring paths</option><option value="completeness">MN GAC mandatory-field completeness</option></select></label>
@@ -220,7 +219,7 @@ def render_public_dashboard(config: dict) -> str:
     </div>
     <div class="mngac-map-panel">{map_svg}<div id="overview-legend"></div></div>
   </div>
-  <div class="card hero-copy">
+  <div class="card hero-copy" id="home-county-pane" role="region" aria-labelledby="home-county-name">
     <div class="muted">Selected county</div>
     <h2 id="home-county-name">Choose a county</h2>
     <p id="home-county-detail">The map shows active parcel monitoring paths: county-direct, MnGeo open parcels, both, or no active parcel monitoring path. Select a county to inspect its complete source profile.</p>
@@ -228,12 +227,14 @@ def render_public_dashboard(config: dict) -> str:
       <div><small>Mandatory-field population</small><b id="home-county-rate">—</b></div>
       <div><small>Parcel records</small><b id="home-county-records">—</b></div>
       <div><small>Fields with values</small><b id="home-county-fields">—</b></div>
-      <div><small>Statewide parcels</small><b>{parcel_records_label}</b></div>
+      <div><small>All-field population</small><b id="home-county-all-rate">—</b></div>
     </div>
     <div class="hero-actions" style="margin-top:16px">
       <a id="home-county-link" class="primary" href="/counties">Open county profile</a>
-      <a href="/mngac">Explore all 91 MN GAC fields</a>
+      <a id="home-county-gac-link" href="/mngac">Explore county MN GAC fields</a>
     </div>
+    <p id="home-county-profile-status" role="status"></p>
+    <div id="home-county-profile" aria-busy="false"></div>
   </div>
 </div>
 
@@ -293,7 +294,7 @@ def render_public_dashboard(config: dict) -> str:
     root.getElementById('overview-county-select').value=path.dataset.slug;
     window.watchtowerRefresh?.save();
     const d=countyData[name];
-    root.querySelectorAll('.mngac-county').forEach(p=>p.classList.toggle('selected',p===path));
+    root.querySelectorAll('.mngac-county').forEach(p=>{{p.classList.toggle('selected',p===path);p.setAttribute('aria-pressed',String(p===path))}});
     root.getElementById('home-county-name').textContent=name+' County';
     const rate=root.getElementById('home-county-rate'), rec=root.getElementById('home-county-records'), fields=root.getElementById('home-county-fields'), link=root.getElementById('home-county-link');
     if(!d){{
@@ -305,6 +306,9 @@ def render_public_dashboard(config: dict) -> str:
     }}
     const slug=(d&&d.slug)||path.dataset.slug||'';
     link.href=slug?'/county?slug='+encodeURIComponent(slug):'/counties';
+    root.getElementById('home-county-all-rate').textContent=d&&d.all_pct!=null?Number(d.all_pct).toFixed(2)+'%':'No data';
+    root.getElementById('home-county-gac-link').href='/mngac?standard=parcel&view=county&county='+encodeURIComponent(slug);
+    window.watchtowerCountyPane?.load(slug);
     updateDescription();
   }}
   root.querySelectorAll('.mngac-county').forEach(p=>{{

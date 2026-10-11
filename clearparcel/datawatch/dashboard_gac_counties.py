@@ -42,7 +42,7 @@ def navigation(standard: str, view: str, county: dict | None) -> str:
         + (' class="primary" aria-current="page"' if key == view else '')
         + f'>{label}</a>' for key, label in (('county', 'County results'), ('statewide', 'Statewide overview'))
     )
-    options = ''.join(f'<option value="{esc(c["name"])}">{esc(c["name"])} County</option>'
+    options = ''.join(f'<option value="{esc(c["name"])}"></option>'
                       for c in dashboard._load_counties())
     return f'''<style>
 .gac-navigation{{margin-bottom:20px}}.gac-navigation nav{{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 16px}}

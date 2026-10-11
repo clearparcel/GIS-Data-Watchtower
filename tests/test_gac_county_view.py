@@ -83,6 +83,13 @@ class GACCountyViewTests(unittest.TestCase):
             with self.subTest(kwargs=kwargs), self.assertRaises(ValueError):
                 self.render(**kwargs)
 
+    def test_county_suggestions_show_only_the_county_name(self):
+        page = self.render()
+        options = re.search(r'<datalist id="gac-county-options">(.*?)</datalist>', page, re.S).group(1)
+        self.assertEqual(options.count('<option'), 87)
+        self.assertIn('<option value="Douglas"></option>', options)
+        self.assertNotIn(' County', options)
+
     def test_zero_population_is_distinct_from_unscanned(self):
         state, field, _ = county_state()
         stats = state['sources']['parcel']['gac_completeness']['counties']['Douglas']['fields'][field['field']]

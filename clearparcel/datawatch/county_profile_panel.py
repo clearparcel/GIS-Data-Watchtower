@@ -112,6 +112,65 @@ def percentage_legend() -> str:
     values = [(NO_DATA_COLOR, "No data"), *zip(PERCENT_COLORS, [label for label, _, _ in PERCENT_BINS])]
     return '<div class="mngac-legend" aria-label="Map legend">' + ''.join(f'<span><i class="mngac-swatch" style="background:{color}"></i>{html.escape(label)}</span>' for color, label in values) + '</div>'
 
+def render_inline_county_panel(*, revision: str) -> str:
+    """Load the existing escaped public fragment into the overview's county pane."""
+    return '<span hidden data-content-revision="' + _esc(revision) + '"></span>' + r'''
+<style>
+.overview-county-explorer{align-items:start}#home-county-pane{min-width:0;align-self:start}#home-county-profile{overflow-wrap:anywhere}
+#home-county-profile dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+#home-county-profile dl>div{min-width:0}#home-county-profile dt{font-size:12px;color:#a9b9ce}
+#home-county-profile dd{margin:4px 0;font-size:14px}#home-county-profile details{border-top:1px solid #33445a;margin-top:14px;padding-top:12px}
+#home-county-profile summary{cursor:pointer;color:#dce9fa;font-weight:600}
+#home-county-profile .profile-source{padding:12px;background:#131e2e;border:1px solid #33445a;border-radius:8px;margin:12px 0}
+#home-county-profile .profile-source dl{grid-template-columns:minmax(0,1fr)}
+#home-county-profile h4{margin:0 0 12px}
+</style>
+<script>
+(function(){
+  const content=document.getElementById('home-county-profile'),status=document.getElementById('home-county-profile-status');
+  const fragments=new Map();let request=0,controller=null;
+  async function load(slug){
+    const current=++request;controller?.abort();controller=new AbortController();
+    const signal=controller.signal;
+    content.replaceChildren();content.setAttribute('aria-busy','true');status.textContent='Loading county details…';
+    const deadline=setTimeout(()=>controller?.signal===signal&&controller.abort(),15000);
+    try{
+      let revision=window.watchtowerContentRevision||document.querySelector('[data-content-revision]')?.dataset.contentRevision;
+      let cacheKey=slug+':'+revision;
+      if(!fragments.has(cacheKey)){
+        const fetchFragment=()=>fetch('/api/county-profile?slug='+encodeURIComponent(slug)+'&revision='+encodeURIComponent(revision||''),{signal});
+        let response=await fetchFragment();
+        if(response.status===409){const fresh=await fetch('/api/summary',{cache:'no-cache',signal});if(!fresh.ok)throw new Error();revision=(await fresh.json()).content_revision;cacheKey=slug+':'+revision;response=await fetchFragment()}
+        if(!response.ok)throw new Error();
+        // Only escaped server-rendered same-origin public fragments enter this parser.
+        const parsed=new DOMParser().parseFromString(await response.text(),'text/html');
+        const profile=parsed.querySelector('.county-profile');if(!profile)throw new Error();
+        profile.querySelector('h2')?.remove();
+        // Keep the county summary visible and make the full source categories expandable.
+        [...profile.children].filter(node=>node.tagName==='SECTION').forEach(section=>{
+          const heading=section.querySelector('h3');if(!heading)return;
+          const details=document.createElement('details'),summary=document.createElement('summary');
+          details.className='profile-evidence';
+          summary.textContent=heading.textContent;
+          const availability=heading.nextElementSibling;
+          if(availability?.tagName==='P'){summary.textContent+=' — '+availability.textContent;availability.remove()}
+          heading.remove();details.append(summary,...section.childNodes);section.replaceWith(details);
+        });
+        fragments.set(cacheKey,profile);
+      }
+      if(current!==request)return;
+      content.replaceChildren(fragments.get(cacheKey).cloneNode(true));status.textContent='County details loaded.';
+    }catch(error){
+      if(current!==request)return;
+      status.textContent='County details are temporarily unavailable. Use Open county profile to view the county page.';
+    }finally{clearTimeout(deadline);if(current===request)content.setAttribute('aria-busy','false')}
+  }
+  window.watchtowerCountyPane={load};
+})();
+</script>
+'''
+
+
 def render_county_profile_panel(profiles: dict[str, dict], *, revision: str | None = None) -> str:
     """Public dialogs load one escaped fragment; offline/private views use templates."""
     templates = (''.join(f'<template data-profile="{_esc(slug)}">{render_county_profile_body(profile)}</template>'

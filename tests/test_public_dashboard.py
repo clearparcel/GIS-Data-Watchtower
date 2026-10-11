@@ -124,8 +124,11 @@ class PublicDashboardTests(unittest.TestCase):
             slugs = re.findall(r'<path class="mngac-county"[^>]*data-slug="([^"]+)"', page)
             self.assertEqual(set(slugs), set(expected))
             self.assertEqual(len(slugs), 87)
-            self.assertIn('dialog.showModal()', page)
-            self.assertIn("event.key==='Enter'||event.key===' '", page)
+            self.assertNotIn('dialog.showModal()', page)
+            self.assertNotIn('<dialog', page)
+            self.assertIn('id="home-county-profile"', page)
+            self.assertIn('window.watchtowerCountyPane?.load(slug)', page)
+            self.assertIn("e.key==='Enter'||e.key===' '", page)
             self.assertNotIn('http-equiv="refresh"', page)
             self.assertTrue("public publication" in page.lower())
 
