@@ -10,7 +10,7 @@ def refresh_script(seconds: int, *, public: bool = False) -> str:
 _SCRIPT = r"""
 (function(){
 const delay=__DELAY__,isPublic=__PUBLIC__,key='watchtower-view:'+location.pathname+location.search;
-const ids=['q','cat','health','cq','cs','mngac-metric','mngac-county-select','mngac-q','mngac-inclusion','cmq','cmi','overview-metric','overview-county-select','gap-standard'];
+const ids=['q','cat','health','cq','cs','mngac-metric','mngac-county-select','mngac-q','mngac-inclusion','cmq','cmi','overview-metric','overview-county-select','gap-standard','gac-field-search','gac-field-inclusion'];
 let timer=null,userPaused=false,revision=null,etag=null,busy=false,lastSummary=null;
 const holds=new Set();
 function save(){const values={userPaused,scroll:window.scrollY};ids.forEach(id=>{const el=document.getElementById(id);if(el)values[id]=el.value});values.focus=document.activeElement?.id||'';values.focusCounty=document.activeElement?.dataset?.slug||'';try{sessionStorage.setItem(key,JSON.stringify(values))}catch(e){}}

@@ -1,6 +1,6 @@
 # Minnesota GAC parcel, address, and road monitoring
 
-Last reviewed: **2026-10-07**
+Last reviewed: **2026-10-10**
 
 GIS Data Watchtower supports a shared Minnesota Geospatial Advisory Council (GAC)
 standards engine for statewide parcel, address-point, and road-centerline field
@@ -11,6 +11,22 @@ compliance grade**. Conditional, If Available, and Optional fields may
 legitimately be blank.
 
 ## Supported standards
+
+The MN GAC page starts with **County results**. Type or choose a county in the
+prominent search field, then select **View county results**, or use the county
+map. County cards and the searchable field table use that county's saved
+observations. **Statewide overview** retains the statewide summary and table.
+Switching standards preserves the selected county and scope in the URL.
+For example, `/mngac?standard=address&view=county&county=douglas` opens Douglas
+County address-point results directly.
+
+All 87 counties are selectable. A county absent from a saved observation shows
+**No data**, and fields outside the observation's scan scope show **Not scanned**;
+neither is interpreted as zero population. Source-schema presence describes
+the shared statewide layer. Population counts and denominators on County
+results describe only the selected county. Existing MN GAC CSV/JSON exports
+retain their statewide scope. Browsing these pages does not poll providers.
+
 
 | Key | Standard | Version | Fields | Mandatory fields |
 | --- | --- | ---: | ---: | ---: |

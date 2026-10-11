@@ -590,7 +590,13 @@ def serve_public(host: str = "0.0.0.0", port: int = 8080) -> None:
                     )
                 except ValueError:
                     return self._send(400, "Unsupported GAC standard", "text/plain; charset=utf-8")
-                return self._send(200, render_mngac(config, standard_key))
+                selection = urllib.parse.parse_qs(parsed.query)
+                try:
+                    page = render_mngac(config, standard_key, county=selection.get('county', [''])[0],
+                                        view=selection.get('view', ['county'])[0])
+                except ValueError:
+                    return self._send(400, 'Invalid MN GAC county or view. Choose a Minnesota county and County results or Statewide overview.', 'text/plain; charset=utf-8')
+                return self._send(200, page)
             if parsed.path == "/source":
                 source_id = urllib.parse.parse_qs(parsed.query).get("id", [""])[0]
                 return self._send(200, render_public_source(config, source_id))

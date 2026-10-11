@@ -145,7 +145,7 @@ The base package remains cloud-neutral. Optional Google Cloud Storage support an
 
 GIS Data Watchtower is licensed under the **MIT License**. See [`LICENSE`](LICENSE).
 
-County map selections open a shared parcel-source profile with four independent source categories, source-specific counts and dates, access evidence, and research status. The overview supports monitoring-path and MN GAC completeness views. Unknown values remain unavailable; county research does not activate monitoring.
+Overview county map selections open a shared parcel-source profile with four independent source categories, source-specific counts and dates, access evidence, and research status. The overview supports monitoring-path and MN GAC completeness views. The MN GAC page starts with a searchable county chooser and county results, with a separate statewide overview; its map opens the same county results and standard links preserve the selected county. Unknown values remain unavailable; county research does not activate monitoring.
 
 The latest recorded (2026-10-06) isolated county-profile [preview](https://gis-data-watchtower-public-v2-preview-237020802969.us-central1.run.app) served committed `5aac504` (revision `00007-zfh`) with dedicated sanitized storage/identity. The previous five-class release served `dfacd72` (`00005-c24`). The final typed-metric and statewide-identity fixes passed review; live all-87 JSON/CSV/XLSX parity and targeted desktop/mobile checks passed. Original Task 8 and Task 10 local folder absence were verified on 2026-10-06; the earlier automatic approval review cleanup denial remains recorded. See [deployment details](docs/google-cloud-deployment.md#four-class-code-only-preview-release-2026-10-06).
 

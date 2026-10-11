@@ -5,35 +5,23 @@ import urllib.parse
 
 from clearparcel.datawatch import dashboard as _dashboard
 from clearparcel.datawatch.county_profile_panel import (
-    NO_DATA_COLOR,
     percentage_color_js,
     percentage_legend,
     profile_time,
-    render_county_profile_panel,
 )
 from clearparcel.datawatch.gac_standards import (
     gac_defaults,
     load_gac_standard,
     normalize_standard_key,
-    standard_keys,
 )
-from clearparcel.datawatch.parcel_access import load_parcel_access
+from .dashboard_gac_counties import navigation, resolve_county, county_map, render_county_results
 
 
-def _gac_standard_selector(active: str) -> str:
-    labels = {"parcel": "Parcels", "address": "Address Points", "road": "Road Centerlines"}
-    links = []
-    for key in standard_keys():
-        cls = "primary" if key == active else ""
-        links.append(
-            f'<a class="{cls}" href="/mngac?standard={_dashboard._esc(key)}">{_dashboard._esc(labels[key])}</a>'
-        )
-    return (
-        '<div class="card"><div class="muted">MN GAC standard</div>'
-        '<div class="hero-actions" style="margin-top:8px">' + "".join(links) + '</div></div><br>'
-    )
+def _gac_standard_selector(active: str, county: dict | None = None) -> str:
+    return navigation(active, 'statewide', county)
 
-def _render_gac_standard(config: dict, standard_key: str) -> str:
+
+def _render_gac_standard(config: dict, standard_key: str, county: dict | None = None) -> str:
     standard_key = normalize_standard_key(standard_key)
     state = _dashboard._dashboard_state(config)
     data = _dashboard._gac_data(state, standard_key)
@@ -42,7 +30,7 @@ def _render_gac_standard(config: dict, standard_key: str) -> str:
     standard = schema.get("standard") or {}
     all_counties = _dashboard._load_counties()
     total_counties = len(all_counties)
-    selector = _gac_standard_selector(standard_key)
+    selector = _gac_standard_selector(standard_key, county)
     publication = f'<p>Public publication: {_dashboard._esc(profile_time(state.get("public_published_at")))}</p>'
     _, gac_source = _dashboard._gac_source(state, standard_key)
     failed_check = (gac_source or {}).get("gac_check_status") in {"error", "unsupported"}
@@ -59,10 +47,7 @@ def _render_gac_standard(config: dict, standard_key: str) -> str:
             + f'<div class="card"><h2>{_dashboard._esc(standard.get("short_name") or "MN GAC")} data is not available yet</h2>'
             + f'<p>The configured {_dashboard._esc(defaults["dataset_label"])} source has not published a stored '
               'GAC completeness observation. No 0% values are inferred from absence.</p></div>'
-            + _dashboard._mngac_map_svg().replace(
-                'class="mngac-county"',
-                f'class="mngac-county" style="fill:{NO_DATA_COLOR}"'
-            )
+            + county_map(standard_key, data)
             + percentage_legend() + publication
         )
         return _dashboard._layout(
@@ -190,11 +175,7 @@ def _render_gac_standard(config: dict, standard_key: str) -> str:
     payload_json = json.dumps(payload, separators=(",", ":"), ensure_ascii=False).replace("</", "<\\/")
     export_q = urllib.parse.urlencode({"standard": standard_key})
     record_label = defaults["record_label"]
-    map_svg = _dashboard._mngac_map_svg()
-    county_picker_options = "".join(
-        f'<option value="{_dashboard._esc(row.get("name"))}">{_dashboard._esc(row.get("name"))} County</option>'
-        for row in all_counties if row.get("name")
-    )
+    map_svg = county_map(standard_key, data)
     text_rule_note = (
         "Routine text population is non-null based; empty strings may count as populated in this lightweight observation."
         if text_population_mode == "non_null"
@@ -219,15 +200,12 @@ def _render_gac_standard(config: dict, standard_key: str) -> str:
 <div class="mngac-note"><strong>Interpretation:</strong> this measures whether standardized fields contain values; it is <strong>not a standards-compliance score</strong>. Conditional and Optional fields can legitimately be blank. {_dashboard._esc(text_rule_note)} For public NG911-derived layers, NG911 participation and GAC public-data opt-in are separate facts. Source: {standard_link}. Observation: {_dashboard._format_time_pair(observed_at)}. {_dashboard._esc(defaults["grouping_note"])}</div>
 <div class="card">
   <div class="section-head"><div><h2>Interactive Minnesota county map</h2><p>Select a field or summary statistic, then select a county.</p></div></div>
-  <div class="mngac-controls"><label>Map statistic<select id="mngac-metric">{"".join(options)}</select></label><label>Choose county<select id="mngac-county-select"><option value="">Select a county</option>{county_picker_options}</select></label></div>
+  <div class="mngac-controls"><label>Map statistic<select id="mngac-metric">{"".join(options)}</select></label></div>
   <div class="mngac-layout">
     <div class="mngac-map-panel">{map_svg}{percentage_legend()}</div>
-    <div class="card mngac-detail" id="mngac-detail" aria-live="polite">
-      <div class="muted">Selected county</div><h3 id="mngac-county-name">Select a county</h3>
-      <div class="muted" id="mngac-metric-label">Mandatory fields — row population rate</div>
-      <div class="mngac-kpi" id="mngac-county-value">—</div>
-      <div id="mngac-county-detail" class="subtext">Select a county from the list or map.</div>
-      <p><a id="mngac-county-link" href="/counties" style="display:none">Open county dashboard →</a></p>
+    <div class="card mngac-detail"><h3>County results</h3>
+      <p>Select a county on the map or use the county search above to open its summary and field-by-field results.</p>
+      <p>The map compares counties; the table below is the statewide overview.</p>
     </div>
   </div>
 </div>
@@ -243,16 +221,13 @@ def _render_gac_standard(config: dict, standard_key: str) -> str:
 <script>
 (function(){{
  const root=document,data=JSON.parse(root.getElementById('mngac-data').textContent),
- metric=root.getElementById('mngac-metric'),countySelect=root.getElementById('mngac-county-select'),paths=[...root.querySelectorAll('.mngac-county')],
- q=root.getElementById('mngac-q'),inc=root.getElementById('mngac-inclusion');let selected=null;
+ metric=root.getElementById('mngac-metric'),paths=[...root.querySelectorAll('.mngac-county')],
+ q=root.getElementById('mngac-q'),inc=root.getElementById('mngac-inclusion');
  function meta(k){{if(k==='__overall__')return {{label:'All '+data.field_count+' fields — row population rate'}};if(k==='__mandatory__')return {{label:'Mandatory fields — row population rate'}};if(k==='__fields_with_values__')return {{label:'Fields with any values — share of standard fields'}};return data.fields[k]||{{label:k}}}}
  function value(n,k){{const c=data.counties[n];if(!c||c.available===false)return null;if(k==='__overall__')return c.field_population_percent;if(k==='__mandatory__')return c.mandatory_population_percent;if(k==='__fields_with_values__')return typeof c.fields_with_values==='number'&&c.field_count?Math.round(c.fields_with_values/c.field_count*10000)/100:null;const f=(c.fields||{{}})[k];return f&&typeof f.percent==='number'?f.percent:null}}
  {percentage_color_js()}
- function explain(n,k){{const c=data.counties[n]||{{}},m=c.metadata||{{}},v=value(n,k),parts=[];if(c.available===false){{if(m.ng911_upload===true&&m.gac_open===false)parts.push('NG911 participant; not opted into this public GAC layer.');else if(m.gac_open===true)parts.push('GAC public opt-in is recorded, but no public records were observed in this snapshot.');else parts.push('No public records were observed in this snapshot.')}}else parts.push((c.record_count==null?'Unknown':Number(c.record_count).toLocaleString())+' '+data.record_label+' represented.');if(m.submitted_at)parts.push('Latest reported submission: '+new Date(m.submitted_at).toLocaleDateString()+'.');return parts.join(' ')}}
- function show(n){{selected=n;countySelect.value=n;paths.forEach(p=>{{const selectedPath=p.dataset.county===n;p.classList.toggle('selected',selectedPath);p.setAttribute('aria-pressed',String(selectedPath))}});const k=metric.value,v=value(n,k),c=data.counties[n]||{{}},mm=meta(k);root.getElementById('mngac-county-name').textContent=n+' County';root.getElementById('mngac-metric-label').textContent=mm.label||k;root.getElementById('mngac-county-value').textContent=typeof v==='number'?v.toFixed(2)+'%':'No data';root.getElementById('mngac-county-detail').textContent=explain(n,k);const a=root.getElementById('mngac-county-link');if(c.slug){{a.href='/county?slug='+encodeURIComponent(c.slug);a.style.display='inline'}}else a.style.display='none'}}
- function update(){{const k=metric.value,mm=meta(k);paths.forEach(p=>{{const v=value(p.dataset.county,k);p.style.fill=percentageColor(v);p.setAttribute('aria-label',p.dataset.county+' County, '+(mm.label||k)+', '+(typeof v==='number'?v.toFixed(2)+'%':'no data'))}});if(selected)show(selected)}}
- paths.forEach(p=>{{p.addEventListener('click',()=>show(p.dataset.county));p.addEventListener('keydown',e=>{{if(e.key==='Enter'||e.key===' '){{e.preventDefault();show(p.dataset.county)}}}})}});
- metric.addEventListener('change',update);countySelect.addEventListener('change',()=>{{if(countySelect.value)show(countySelect.value)}});root.querySelectorAll('.mngac-field-select').forEach(b=>b.addEventListener('click',()=>{{metric.value=b.dataset.field;update();root.getElementById('mngac-map').scrollIntoView({{behavior:'smooth',block:'center'}})}}));
+ function update(){{const k=metric.value,mm=meta(k);paths.forEach(p=>{{const v=value(p.dataset.county,k);p.style.fill=percentageColor(v);p.setAttribute('aria-label',p.dataset.county+' County, '+(mm.label||k)+', '+(typeof v==='number'?v.toFixed(2)+'%':'no data'))}})}}
+ metric.addEventListener('change',update);root.querySelectorAll('.mngac-field-select').forEach(b=>b.addEventListener('click',()=>{{metric.value=b.dataset.field;update();root.getElementById('mngac-map').scrollIntoView({{behavior:'smooth',block:'center'}})}}));
  function filter(){{const t=(q.value||'').toLowerCase(),c=inc.value;root.querySelectorAll('#mngac-fields tbody tr').forEach(r=>r.style.display=(!t||r.dataset.name.includes(t))&&(!c||r.dataset.inclusion===c)?'':'none')}}q.addEventListener('input',filter);inc.addEventListener('change',filter);update();
 }})();
 </script>
@@ -264,23 +239,23 @@ def _render_gac_standard(config: dict, standard_key: str) -> str:
         csrf_token=str(config.get("_csrf_token") or "")
     )
 
-def render_mngac(config: dict, standard_key: str = "parcel") -> str:
+def render_mngac(config: dict, standard_key: str = "parcel", *, county: str = '', view: str = 'county') -> str:
     standard_key = normalize_standard_key(standard_key)
+    if view not in {'county', 'statewide'}:
+        raise ValueError('Unsupported MN GAC results view')
+    selected_county = resolve_county(county)
+    if view == 'county':
+        return render_county_results(config, standard_key, selected_county)
     if standard_key != "parcel":
-        return _render_gac_standard(config, standard_key)
+        return _render_gac_standard(config, standard_key, selected_county)
     state = _dashboard._dashboard_state(config)
     data = _dashboard._mngac_data(state)
-    research = _dashboard.load_parcel_access()
-    profiles = _dashboard._county_profiles(config, state, research)
-    from .dashboard_summary import summary_for
-    revision = summary_for(config, state, profiles=profiles, research=research)["content_revision"] if config.get("_public_mode") else None
-    profile_panel = _dashboard.render_county_profile_panel(profiles, revision=revision)
     publication = f'<p>Public publication: {_dashboard._esc(profile_time(state.get("public_published_at")))}</p>'
     schema = _dashboard._load_mngac_schema()
     standard = schema.get("standard") or {}
     all_counties = _dashboard._load_counties()
     total_counties = len(all_counties)
-    selector = _gac_standard_selector("parcel")
+    selector = _gac_standard_selector("parcel", selected_county)
     _, gac_source = _dashboard._mngac_source(state)
     failure_notice = (
         f'<div class="mngac-note warn" role="status"><strong>Latest configured GAC check failed:</strong> '
@@ -294,7 +269,7 @@ def render_mngac(config: dict, standard_key: str = "parcel") -> str:
             '<div class="card"><h2>MN GAC completeness data is not available yet</h2>'
             '<p>The statewide parcel source has not published a stored MNGAC completeness observation. '
             'Once the configured MnGeo statewide parcel check records it, this page will show county and field statistics.</p></div>'
-            + _dashboard._mngac_map_svg().replace('class="mngac-county"', f'class="mngac-county" style="fill:{NO_DATA_COLOR}"') + percentage_legend() + publication + profile_panel
+            + county_map(standard_key, data) + percentage_legend() + publication
         )
         return _dashboard._layout("MN GAC Completeness — GIS Data Watchtower", body, refresh_seconds=30 if config.get("_public_mode") else 300, static=bool(config.get("_public_mode")), csrf_token=str(config.get("_csrf_token") or ""))
 
@@ -383,7 +358,7 @@ def render_mngac(config: dict, standard_key: str = "parcel") -> str:
         "covered_counties": covered,
     }
     payload_json = json.dumps(payload, separators=(",", ":"), ensure_ascii=False).replace("</", "<\\/")
-    map_svg = _dashboard._mngac_map_svg()
+    map_svg = county_map(standard_key, data)
     body = selector + f"""
 <p><a href="/counties">← Minnesota counties</a> · <a href="/mngac.csv?standard=parcel" data-ph-event="export" data-ph-format="csv">Download field summary (CSV)</a> · <a href="/mngac.json?standard=parcel" data-ph-event="export" data-ph-format="json">Download MN GAC data (JSON)</a> · <a href="/snapshot.xlsx" data-ph-event="export" data-ph-format="xlsx">Statewide Excel with MN GAC sheets</a></p>
 <div class="grid primary-grid">
@@ -402,18 +377,14 @@ def render_mngac(config: dict, standard_key: str = "parcel") -> str:
   <div class="section-head"><div><h2>Interactive Minnesota county map</h2><p>Select an MN GAC field or summary statistic, then click or keyboard-select any county to inspect it.</p></div></div>
   <div class="mngac-controls">
     <label>Map statistic<select id="mngac-metric">{"".join(options)}</select></label>
-    <label>Choose county<select id="mngac-county-select"><option value="">Select a county</option>{"".join(f'<option value="{_dashboard._esc(x.get("name"))}">{_dashboard._esc(x.get("name"))} County</option>' for x in all_counties if x.get("name"))}</select></label>
   </div>
   <div class="mngac-layout">
     <div class="mngac-map-panel">{map_svg}
       {percentage_legend()}
     </div>
-    <div class="card mngac-detail" id="mngac-detail" aria-live="polite">
-      <div class="muted">Selected county</div><h3 id="mngac-county-name">Select a county</h3>
-      <div class="muted" id="mngac-metric-label">Mandatory fields — row population rate</div>
-      <div class="mngac-kpi" id="mngac-county-value">—</div>
-      <div id="mngac-county-detail" class="subtext">Select a county from the list or map.</div>
-      <p><a id="mngac-county-link" href="/counties" style="display:none">Open county dashboard →</a></p>
+    <div class="card mngac-detail"><h3>County results</h3>
+      <p>Select a county on the map or use the county search above to open its summary and field-by-field results.</p>
+      <p>The map compares counties; the table below is the statewide overview.</p>
     </div>
   </div>
 </div>
@@ -434,10 +405,8 @@ def render_mngac(config: dict, standard_key: str = "parcel") -> str:
   const root=document;
   const data=JSON.parse(root.getElementById('mngac-data').textContent);
   const metric=root.getElementById('mngac-metric');
-  const countySelect=root.getElementById('mngac-county-select');
   const paths=[...root.querySelectorAll('.mngac-county')];
   const q=root.getElementById('mngac-q'),inc=root.getElementById('mngac-inclusion');
-  let selected=null;
   function metricMeta(key){{
     if(key==='__overall__')return {{label:'All 91 fields — row population rate',inclusion:'Descriptive'}};
     if(key==='__mandatory__')return {{label:'Mandatory fields — row population rate',inclusion:'Mandatory'}};
@@ -459,36 +428,8 @@ def render_mngac(config: dict, standard_key: str = "parcel") -> str:
       const v=valueFor(p.dataset.county,key); p.style.fill=color(v);
       p.setAttribute('aria-label',p.dataset.county+' County, '+meta.label+', '+(typeof v==='number'?v.toFixed(2)+'%':'no data'));
     }});
-    if(selected)showCounty(selected);
   }}
-  function showCounty(name){{
-    selected=name; countySelect.value=name; paths.forEach(p=>{{const selectedPath=p.dataset.county===name;p.classList.toggle('selected',selectedPath);p.setAttribute('aria-pressed',String(selectedPath))}});
-    const c=data.counties[name],key=metric.value,meta=metricMeta(key),v=valueFor(name,key);
-    root.getElementById('mngac-county-name').textContent=name+' County';
-    root.getElementById('mngac-metric-label').textContent=meta.label+(meta.inclusion?' · '+meta.inclusion:'');
-    root.getElementById('mngac-county-value').textContent=typeof v==='number'?v.toFixed(2)+'%':'No data';
-    const detail=root.getElementById('mngac-county-detail');
-    if(!c||c.available===false){{
-      detail.textContent='This county is not represented in the current MnGeo Plan Parcels Open layer. No 0% value is inferred.';
-    }}else if(key==='__fields_with_values__'){{
-      detail.textContent=c.fields_with_values+' of '+c.field_count+' standard fields contain at least one value across '+(c.record_count==null?'Not available':Number(c.record_count).toLocaleString())+' parcel records.';
-    }}else if(key==='__overall__'){{
-      detail.textContent='Average populated cells across all 91 standard fields and '+(c.record_count==null?'Not available':Number(c.record_count).toLocaleString())+' parcel records. Conditional and optional blanks may be valid.';
-    }}else if(key==='__mandatory__'){{
-      detail.textContent='Population across the standard’s Mandatory fields for '+(c.record_count==null?'Not available':Number(c.record_count).toLocaleString())+' parcel records. This is not a full compliance determination.';
-    }}else{{
-      const f=(c.fields||{{}})[key]||{{}};
-      detail.textContent=(f.populated==null?'Not available':Number(f.populated).toLocaleString())+' of '+(f.record_count==null?'Not available':Number(f.record_count).toLocaleString())+' parcel records contain a value.';
-    }}
-    const link=root.getElementById('mngac-county-link');
-    if(c&&c.slug){{link.href='/county?slug='+encodeURIComponent(c.slug);link.style.display='inline'}} else link.style.display='none';
-  }}
-  paths.forEach(p=>{{
-    p.addEventListener('click',()=>showCounty(p.dataset.county));
-    p.addEventListener('keydown',e=>{{if(e.key==='Enter'||e.key===' '){{e.preventDefault();showCounty(p.dataset.county)}}}});
-  }});
   metric.addEventListener('change',updateMap);
-  countySelect.addEventListener('change',()=>{{if(countySelect.value)showCounty(countySelect.value)}});
   root.querySelectorAll('.mngac-field-select').forEach(b=>b.addEventListener('click',()=>{{metric.value=b.dataset.field;updateMap();root.getElementById('mngac-map').scrollIntoView({{behavior:'smooth',block:'center'}})}}));
   function filterFields(){{
     const text=(q.value||'').toLowerCase(),cat=inc.value;
@@ -499,7 +440,6 @@ def render_mngac(config: dict, standard_key: str = "parcel") -> str:
 }})();
 </script>
 {publication}
-{profile_panel}
 """
     return _dashboard._layout("MN GAC Completeness — GIS Data Watchtower", body, refresh_seconds=30 if config.get("_public_mode") else 0, static=bool(config.get("_public_mode")), csrf_token=str(config.get("_csrf_token") or ""))
 
