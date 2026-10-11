@@ -18,6 +18,13 @@ multi-day activation gate remains incomplete. See [USDA connection evidence](usd
 and [county migration](county-cloud-migration-2026-10-08.md). PostHog remains
 dormant pending Issue #50.
 
+On October 10 at 22:20 CDT, explicit user approval retired the legacy
+GERTKEN-PC `ClearParcel Data Watchtower Daily` scheduled task and its active
+`ClearParcel_Tools` launcher. No legacy poller remained running. The passive
+Validation Capture task is retained. This removal created no replacement cloud
+provider schedule and changed no source registry, publisher or aggregate worker
+history; authoritative cloud activation remains a separate approval gate.
+
 GIS Data Watchtower can run as a scheduled **Cloud Run Job** while retaining the same CLI and monitoring engine used locally.
 
 ## Architecture

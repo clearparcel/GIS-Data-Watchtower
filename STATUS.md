@@ -1,5 +1,17 @@
 # Project status
 
+## Legacy ClearParcel Tools polling removed — 2026-10-10
+
+With explicit user approval, the GERTKEN-PC task `ClearParcel Data Watchtower
+Daily` was disabled, stopped and unregistered at 22:20 CDT. Its
+`C:\ClearParcel_Tools\run-datawatch.cmd` launcher was archived outside active use.
+Verification found no remaining legacy polling task or process. Private task
+definition/launcher rollback records and historical observations remain local.
+The separate Validation Capture task remains enabled: it only reads saved state
+and cloud metadata and does not poll GIS providers. Cloud scheduling, publisher,
+source registry and aggregate worker history were unchanged. No replacement
+provider schedule was created; the cloud activation/scheduling gate remains open.
+
 ## Final UI and repository review — candidate, 2026-10-10
 
 The final review fixed stale county selection after clearing the overview picker,
@@ -177,14 +189,16 @@ and three diagnostic graphics are repaired. Local QA measures approximately
 131 KB decoded homepage versus the reviewed 1.78 MB, and a 15 KB summary.
 See [implementation and hybrid validation preparation](docs/watchtower-remediation-2026-10-07.md).
 
-Read-only verification confirmed that GERTKEN-PC's authoritative daily task
-still runs the older 26-source local installation and writes local state;
+Read-only verification at that time confirmed that GERTKEN-PC's daily task
+ran the older 26-source local installation and wrote local state;
 it does not feed the current 31-cloud/4-local public aggregate. The existing
 publisher advances publication time without checking providers. The hybrid
 candidate manifest and offline receipt tool prepare the correction; five
 separately authorized daily cycles and an explicit scheduling decision remain
 pending under issue #20. Production application identity remains v0.1.1 /
 build `8099ee1`; the earlier application waiver did not pass that gate.
+The legacy local task was subsequently removed under explicit approval on
+October 10; see the retirement record at the top of this file.
 
 ## v0.1.1 production rollout — 2026-10-07
 

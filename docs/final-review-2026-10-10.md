@@ -11,9 +11,10 @@ The required offline suite passes all **340 tests**. The local interactive previ
 passes the tested UI flows and preserves equal map/selected-county pane heights.
 Git branch/build housekeeping is complete for the verified obsolete items.
 
-The project is not operationally finished: provider observations are overdue, a
-legacy local daily poller still runs, and three CodeQL alerts remain open for
-review. No production deployment, merge, provider retry, scheduling change,
+The review found overdue provider observations, a legacy local daily poller
+and three open CodeQL alerts. The legacy poller was subsequently removed under
+explicit user approval; see the follow-up below. During the original review,
+no production deployment, merge, provider retry, scheduling change,
 registry change or worker retirement was performed during this review.
 
 ## Bugs corrected
@@ -127,6 +128,19 @@ possible defects is made.
 
 ## Operational findings requiring follow-up
 
+### Approved retirement follow-up — October 10, 22:20 CDT
+
+The user explicitly requested disabling and removing ClearParcel Tools polling.
+The daily task identified in finding 2 was disabled, stopped and unregistered;
+its launcher was removed from active use. Verification found no remaining legacy
+provider polling task or process. Private rollback records and historical state
+were preserved. The validation-capture task remains enabled because it only reads
+saved state/cloud metadata. No cloud provider schedule was created, no aggregate
+worker was retired, and the publisher/registry were unchanged. The findings below
+describe the inspection before retirement; activation evidence remains pending.
+
+### Findings recorded during the original review
+
 1. **Provider data is overdue.** Production's provider report remains October 9
    at 09:32 CDT, although the sanitized publisher is healthy and publishing every
    ten minutes. Public source health is 34 OK / one warning (Hennepin imagery).
@@ -154,11 +168,11 @@ possible defects is made.
    validation does not establish normal authority-bound CCE availability in a
    fresh cloud development task. This review used CCE on GERTKEN-PC.
 
-The next operational proposal should reconcile the legacy 26-source installation
-with the approved cloud inventory, gather the missing activation evidence, and
-present exact scheduling/retirement changes for approval. Do not delete the old
-task or treat historical local-worker records as current polling assignments
-without that review.
+The next operational proposal should gather the missing cloud activation
+evidence and present an exact provider schedule for approval. The legacy local
+task is now removed; retained historical local-worker records must not be treated
+as current polling assignments or deleted without a separately approved
+aggregate-history retirement.
 
 ## Verification and limits
 
