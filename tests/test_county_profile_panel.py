@@ -105,10 +105,10 @@ const flush=()=>new Promise(resolve=>setImmediate(resolve));
     @unittest.skipUnless(shutil.which("node"), "JavaScript boundary execution requires Node.js")
     def test_percentage_class_boundaries_and_legend_match_emitted_javascript(self):
         from clearparcel.datawatch.county_profile_panel import percentage_color_js, percentage_legend, PERCENT_COLORS, NO_DATA_COLOR
-        values = [0, 0.001, 49.999, 50, 50.001, 59.999, 60, 60.001,
-                  69.999, 70, 70.001, 100, None, "", "30"]
+        values = [0, 0.001, 29.999, 30, 30.001, 49.999, 50, 50.001,
+                  69.999, 70, 70.001, 100, None, "", "30", -1, 101]
         expected = [PERCENT_COLORS[i] for i in [0, 0, 0, 1, 1, 1, 2, 2,
-                    2, 2, 3, 3]] + [NO_DATA_COLOR] * 3
+                    2, 2, 3, 3]] + [NO_DATA_COLOR] * 5
         script = percentage_color_js() + "\nconsole.log(JSON.stringify(" + json.dumps(values) + ".map(percentageColor).concat([percentageColor(undefined),percentageColor(NaN),percentageColor(Infinity),percentageColor(-Infinity)])))"
         result = subprocess.run(["node", "-e", script], check=True, capture_output=True, text=True)
         self.assertEqual(json.loads(result.stdout), expected + [NO_DATA_COLOR] * 4)
@@ -119,5 +119,5 @@ const flush=()=>new Promise(resolve=>setImmediate(resolve));
         self.assertEqual(PERCENT_COLORS, ["#1b2b40", "#315373", "#3c708f", "#4c9b7b"])
         self.assertEqual(legend.count('class="mngac-swatch"'), 5)
         for color, label in zip([NO_DATA_COLOR] + PERCENT_COLORS,
-                                ["N/A", "<50%", "50% - 60%", "60% - 70%", ">70%"]):
+                                ["N/A", "<30%", "30% - 50%", "50% - 70%", ">70%"]):
             self.assertIn(f'background:{color}"></i>{label}</span>', legend)

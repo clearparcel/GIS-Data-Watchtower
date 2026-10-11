@@ -101,5 +101,38 @@ class GACCountyViewTests(unittest.TestCase):
         self.assertIn('>0</td><td>20</td><td>0.00%</td>', page)
 
 
+    def test_parcel_map_uses_all_field_population_but_address_uses_mandatory(self):
+        from clearparcel.datawatch.dashboard_gac_counties import county_map
+        from clearparcel.datawatch.county_profile_panel import PERCENT_COLORS, NO_DATA_COLOR
+
+        data = {'counties': {'Douglas': {
+            'field_population_percent': 20.0,
+            'mandatory_population_percent': 80.0,
+        }}}
+
+        def douglas_fill(key):
+            markup = county_map(key, data)
+            match = re.search(r'<a[^>]+county=douglas[^>]*><path[^>]+style="fill:([^"]+)"', markup)
+            self.assertIsNotNone(match, markup)
+            return match.group(1)
+
+        self.assertEqual(douglas_fill('parcel'), PERCENT_COLORS[0])
+        self.assertEqual(douglas_fill('address'), PERCENT_COLORS[3])
+        data['counties']['Douglas']['field_population_percent'] = float('nan')
+        self.assertEqual(douglas_fill('parcel'), NO_DATA_COLOR)
+        data['counties']['Douglas']['field_population_percent'] = 101.0
+        self.assertEqual(douglas_fill('parcel'), NO_DATA_COLOR)
+
+    def test_parcel_county_result_explains_repeated_mandatory_rates(self):
+        state, _, _ = county_state('parcel')
+        county = state['sources']['parcel']['gac_completeness']['counties']['Douglas']
+        county['field_population_percent'] = 23.45
+        state['sources']['parcel']['gac_completeness']['population_scope'] = 'all'
+        with patch('clearparcel.datawatch.dashboard._dashboard_state', return_value=state):
+            page = render_mngac({'_public_mode': True}, 'parcel', county='douglas')
+        self.assertIn('23.45%', page)
+        self.assertIn('seven mandatory fields', page)
+        self.assertIn('All-field population', page)
+
 if __name__ == '__main__':
     unittest.main()

@@ -289,8 +289,8 @@ def render_mngac(config: dict, standard_key: str = "parcel", *, county: str = ''
     )
 
     options = [
-        '<option value="__overall__">All 91 fields — row population rate</option>',
-        '<option value="__mandatory__" selected>Mandatory fields — row population rate</option>',
+        '<option value="__overall__" selected>All 91 fields — row population rate</option>',
+        '<option value="__mandatory__">Mandatory fields — row population rate</option>',
         '<option value="__fields_with_values__">Fields with any values — share of standard fields</option>',
     ]
     last_section = None
@@ -371,7 +371,7 @@ def render_mngac(config: dict, standard_key: str = "parcel", *, county: str = ''
   <div class="card"><div class="muted">All-field population</div><div class="metric">{_dashboard._esc(f"{overall_pct:.2f}%" if isinstance(overall_pct,(int,float)) else "—")}</div><span class="subtext">Record-weighted populated cells across all 91 standard fields for represented counties. Descriptive only.</span></div>
   <div class="card"><div class="muted">Mandatory-field fill rate</div><div class="metric">{_dashboard._esc(f"{mandatory_pct:.2f}%" if isinstance(mandatory_pct,(int,float)) else "—")}</div><span class="subtext">Record-weighted population across fields the standard classifies as Mandatory.</span></div>
 </div>
-<div class="mngac-note"><strong>How to read these percentages:</strong> this page measures whether standardized MNGAC fields contain values. It is <strong>not a compliance score</strong>. Conditional fields may be correctly blank when their condition does not apply; “If Available” fields are only required when the provider has the data; Optional fields may be blank. Mandatory-field population is shown separately. Source: {standard_link}. Observation: {_dashboard._format_time_pair(observed_at)}</div>
+<div class="mngac-note"><strong>How to read these percentages:</strong> this page measures whether standardized MNGAC fields contain values. It is <strong>not a compliance score</strong>. Conditional fields may be correctly blank when their condition does not apply; “If Available” fields are only required when the provider has the data; Optional fields may be blank. Mandatory-field population is shown separately. The parcel map defaults to all 91 fields because the seven mandatory fields can produce tied percentages across counties; you can select the Mandatory metric separately. Neither percentage is a compliance grade. Source: {standard_link}. Observation: {_dashboard._format_time_pair(observed_at)}</div>
 {failure_notice}
 <div class="card">
   <div class="section-head"><div><h2>Interactive Minnesota county map</h2><p>Select an MN GAC field or summary statistic, then click or keyboard-select any county to inspect it.</p></div></div>

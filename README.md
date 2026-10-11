@@ -36,6 +36,8 @@ ClearParcel also operates a read-only public dashboard at **https://gis-watchtow
 - Overview map and picker selection update the adjacent county pane; the county-results map opens the complete county profile. Click, Enter and Space are supported. The overview map frame and county pane retain equal heights, including stacked layouts. Desktop and 390px layouts wrap long source/evidence values. Public publication reporting is Current, Overdue or Unknown using the `/healthz` threshold, separately from provider health and source reporting.
 - Profile coverage includes all 87 counties. The current evidence has 16 fully reviewed category inventories and 15 complete composed profiles; blocked evidence and unresolved county-direct access remain explicit. Monitoring coverage is derived from current observations.
 
+**County percentage interpretation:** the parcel standard has seven Mandatory fields, so multiple counties can correctly share 57.14% or 42.86%. The [October 11 candidate](docs/county-percentage-audit-2026-10-11.md) makes the 91-field rate the default parcel map comparison while preserving the Mandatory rate. Both are field-population measures, not standards-compliance grades. This candidate is not yet merged or deployed.
+
 Public snapshots use typed projections for source metrics, completeness, workers,
 counts and catalog facts; private diagnostics and arbitrary nested values are
 omitted. Matching official statewide products retain one vetted inventory identity,

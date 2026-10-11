@@ -220,7 +220,7 @@ def render_public_dashboard(config: dict) -> str:
 <div class="hero-panel overview-county-explorer">
   <div class="card mngac-map-panel" id="overview-map-pane">
     <div class="overview-controls">
-      <label>Map view<select id="overview-metric"><option value="schema">MN GAC / open-data status</option><option value="monitoring">Monitoring paths</option><option value="completeness">MN GAC mandatory-field completeness</option></select></label>
+      <label>Map view<select id="overview-metric"><option value="schema">MN GAC / open-data status</option><option value="monitoring">Monitoring paths</option><option value="completeness">MN GAC all-field population</option></select></label>
       <label for="overview-county-select">Find a county<select id="overview-county-select"><option value="">Choose a county…</option>{county_options}</select></label>
     </div>
     <div class="overview-map-content">{map_svg}<div id="overview-legend"></div></div>
@@ -231,10 +231,10 @@ def render_public_dashboard(config: dict) -> str:
     <h2 id="home-county-name">Choose a county</h2>
     <p id="home-county-detail">The map distinguishes MN GAC data, differing direct-feed schemas, and open-data availability. Select a county to see the evidence.</p>
     <div class="hero-stat">
-      <div><small>Mandatory-field population</small><b id="home-county-rate">—</b></div>
+      <div><small>All-field population</small><b id="home-county-all-rate">—</b></div>
       <div><small>Parcel records</small><b id="home-county-records">—</b></div>
       <div><small>Fields with values</small><b id="home-county-fields">—</b></div>
-      <div><small>All-field population</small><b id="home-county-all-rate">—</b></div>
+      <div><small>Mandatory-field population</small><b id="home-county-rate">—</b></div>
     </div>
     <div class="hero-actions" style="margin-top:16px">
       <a id="home-county-link" class="primary" href="/counties">Open county profile</a>
@@ -245,14 +245,14 @@ def render_public_dashboard(config: dict) -> str:
     <section id="home-county-infographics" aria-labelledby="county-coverage-title" hidden>
       <h3 id="county-coverage-title">County field coverage</h3>
       <div class="county-coverage-rings">
-        <div><div class="county-coverage-ring unavailable" id="county-coverage-mandatory" role="img" aria-label="Mandatory-field population: No data"><b id="county-coverage-mandatory-value">No data</b></div><small>Mandatory fields</small></div>
-        <div><div class="county-coverage-ring unavailable" id="county-coverage-all" role="img" aria-label="All-field population: No data"><b id="county-coverage-all-value">No data</b></div><small>All fields</small></div>
+        <div><div class="county-coverage-ring unavailable" id="county-coverage-all" role="img" aria-label="All-field population: No data"><b id="county-coverage-all-value">No data</b></div><small>All 91 fields</small></div>
+        <div><div class="county-coverage-ring unavailable" id="county-coverage-mandatory" role="img" aria-label="Mandatory-field population: No data"><b id="county-coverage-mandatory-value">No data</b></div><small>Mandatory fields (7)</small></div>
       </div>
       <div class="county-field-coverage" id="county-field-coverage" role="img" aria-label="Fields with values: No data">
         <div><span>Fields with values</span><b id="county-field-coverage-value">No data</b></div>
         <div class="county-field-track" aria-hidden="true"><i id="county-field-coverage-fill"></i></div>
       </div>
-      <p class="subtext">Rings show record-weighted field population. The bar counts fields with at least one value.</p>
+      <p class="subtext">Rings show record-weighted field population. The bar counts fields with at least one value. With just seven mandatory fields, identical rates across counties are expected; the 91-field rate gives more detail but is not a compliance grade.</p>
     </section>
   </div>
 </div>
@@ -294,7 +294,7 @@ def render_public_dashboard(config: dict) -> str:
       detail.textContent=selectedPath?monitoringLabel(monitoringPaths[selectedPath.dataset.slug]||[])+'. County field-population statistics below come from the statewide parcel observations.':'The map shows active parcel monitoring paths: county-direct, MnGeo open parcels, both, or no active parcel monitoring path. Select a county to see its monitoring summary and field coverage.';
     }}else{{
       const d=selectedPath&&countyData[selectedPath.dataset.county];
-      detail.textContent=!selectedPath?'The map shows record-weighted population across mandatory Minnesota GAC parcel-transfer fields. Unavailable statewide completeness remains distinct from 0%.':!d||d.pct==null?'Statewide completeness is unavailable for this county. These statistics are separate from county-direct monitoring; no 0% value is inferred.':'Current record-weighted population across mandatory parcel-transfer fields for this county. These statistics are separate from county-direct monitoring.';
+      detail.textContent=!selectedPath?'The map shows field population across all 91 Minnesota GAC parcel-transfer fields. Unavailable statewide completeness remains distinct from 0%.':!d||d.all_pct==null?'Statewide completeness is unavailable for this county. These statistics are separate from county-direct monitoring; no 0% value is inferred.':'Current record-weighted population across all 91 parcel-transfer fields for this county. These statistics are separate from county-direct monitoring and do not measure standards compliance.';
     }}
   }}
   function updateOverview(){{
@@ -302,13 +302,13 @@ def render_public_dashboard(config: dict) -> str:
     const schema=selector.value==='schema';
     root.querySelectorAll(".mngac-county").forEach(p=>{{
       const paths=monitoringPaths[p.dataset.slug]||[],d=countyData[p.dataset.county];
-      p.style.fill=schema?statusStyles[countyStatuses[p.dataset.slug]].fill:monitoring?(paths.length===2?"#4c9b7b":paths.includes("county-direct")?"#3c708f":paths.includes("mngeo-open")?"#315373":"#151d2b"):fill(d&&d.pct);
-      const label=schema?statusStyles[countyStatuses[p.dataset.slug]].label:monitoring?monitoringLabel(paths):d&&d.pct!=null?Number(d.pct).toFixed(2)+'% MN GAC mandatory-field population':'Statewide completeness is unavailable';
+      p.style.fill=schema?statusStyles[countyStatuses[p.dataset.slug]].fill:monitoring?(paths.length===2?"#4c9b7b":paths.includes("county-direct")?"#3c708f":paths.includes("mngeo-open")?"#315373":"#151d2b"):fill(d&&d.all_pct);
+      const label=schema?statusStyles[countyStatuses[p.dataset.slug]].label:monitoring?monitoringLabel(paths):d&&d.all_pct!=null?Number(d.all_pct).toFixed(2)+'% MN GAC all-field population':'Statewide completeness is unavailable';
       p.setAttribute('aria-label',p.dataset.county+' County, '+label);
     }});
     updateDescription();
     root.getElementById("overview-legend").innerHTML=schema?{json.dumps(status_legend())}:monitoring?'<div class="mngac-legend"><span><i class="mngac-swatch" style="background:#4c9b7b"></i>Both paths</span><span><i class="mngac-swatch" style="background:#3c708f"></i>County-direct</span><span><i class="mngac-swatch" style="background:#315373"></i>MnGeo open</span><span><i class="mngac-swatch" style="background:#151d2b"></i>No active parcel path</span></div>':{json.dumps(percentage_legend())};
-    root.getElementById('overview-map-note').textContent=schema?'MN GAC availability uses MnGeo county observations or checked standard field names. A differing direct feed does not rule out a separate standardized export. No confirmed open data means current research found no open product; unresolved cases remain separate.':monitoring?'Monitoring paths describe saved observations, not all available parcel products.':'Percentages describe statewide mandatory-field population. Unavailable is not 0% and does not establish a different direct schema.';
+    root.getElementById('overview-map-note').textContent=schema?'MN GAC availability uses MnGeo county observations or checked standard field names. A differing direct feed does not rule out a separate standardized export. No confirmed open data means current research found no open product; unresolved cases remain separate.':monitoring?'Monitoring paths describe saved observations, not all available parcel products.':'Percentages describe statewide population across all 91 MN GAC fields, including conditional and optional fields; they are not compliance grades. Unavailable is not 0% and does not establish a different direct schema.';
   }}
   selector.addEventListener("change",updateOverview);
   {percentage_color_js()}

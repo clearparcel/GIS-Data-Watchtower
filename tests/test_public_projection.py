@@ -103,6 +103,30 @@ class PublicProjectionTests(unittest.TestCase):
         self.assertEqual(public['sources']['x']['mngac_completeness']['fields']['PIN'], {})
         self.assertEqual(public, sanitize_public_render_state(public))
 
+    def test_percentage_projection_rejects_out_of_range_rates(self):
+        source = {'mngac_completeness': {
+            'field_population_percent': 101.0,
+            'mandatory_population_percent': 0.0,
+            'fields': {'CO_NAME': {'percent': 101.0, 'county_median_percent': 100.0}},
+            'counties': {'Aitkin': {
+                'field_population_percent': 100.0,
+                'mandatory_population_percent': -0.5,
+                'fields': {'CO_NAME': {'percent': 0.0}},
+            }},
+        }, 'completeness_profiles': {
+            'parcel_id': {'complete_percent': 101.0},
+        }}
+        public = sanitize_public_render_state({'sources': {'parcels': source}})['sources']['parcels']
+        stats = public['mngac_completeness']
+        self.assertNotIn('field_population_percent', stats)
+        self.assertEqual(stats['mandatory_population_percent'], 0.0)
+        self.assertNotIn('percent', stats['fields']['CO_NAME'])
+        self.assertEqual(stats['fields']['CO_NAME']['county_median_percent'], 100.0)
+        self.assertEqual(stats['counties']['Aitkin']['field_population_percent'], 100.0)
+        self.assertNotIn('mandatory_population_percent', stats['counties']['Aitkin'])
+        self.assertEqual(stats['counties']['Aitkin']['fields']['CO_NAME']['percent'], 0.0)
+        self.assertNotIn('complete_percent', public['completeness_profiles']['parcel_id'])
+
     def test_malformed_containers_are_empty(self):
         public = sanitize_public_render_state({'counts': [], 'workers': [], 'sources': {'catalog': {'completeness_profiles': []},
             'mn-parcel-county-catalog': {'county_records': []}}})
