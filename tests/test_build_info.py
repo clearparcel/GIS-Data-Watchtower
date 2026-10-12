@@ -26,15 +26,19 @@ class BuildIdentityTests(unittest.TestCase):
                         project_file.write_text(content, encoding="utf-8")
                     self.assertEqual(application_identity()["version"], "1.2.3")
 
-    def test_baked_identity_is_displayed_on_public_pages(self):
+    def test_public_footer_only_displays_semantic_version(self):
         revision = "abc1234" + "0" * 33
         with tempfile.TemporaryDirectory() as folder:
             build_file = Path(folder) / "build_info.json"
             build_file.write_text(json.dumps({"revision": revision, "environment": "preview"}), encoding="utf-8")
             with patch("clearparcel.datawatch.build_info.BUILD_INFO_FILE", build_file), patch("clearparcel.datawatch.build_info.PROJECT_FILE", Path(folder) / "missing.toml"), patch("clearparcel.datawatch.build_info.version", return_value="0.1.1"):
                 page = _public_layout_v2("Watchtower", "")
-        self.assertIn("v0.1.1 · build abc1234 · Preview", page)
-        self.assertIn(f'Source revision: {revision}', page)
+        footer = page.split('<footer class="public-footnote">', 1)[1].split('</footer>', 1)[0]
+        self.assertIn('<strong class="application-version">v0.1.1</strong>', footer)
+        self.assertNotIn("build", footer.lower())
+        self.assertNotIn("production", footer.lower())
+        self.assertNotIn("preview", footer.lower())
+        self.assertNotIn(revision, footer)
 
     def test_footer_uses_transparent_png_logo(self):
         page = _public_layout_v2("Watchtower", "")

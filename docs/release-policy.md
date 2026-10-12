@@ -1,7 +1,10 @@
 # Versioning and release policy
 
-The current production release is **v0.2.0**, from merged commit `308e3a7`, with
-publication and acceptance tracked in the [release record](release-v0.2.0.md).
+The last verified production application release is **v0.2.0**, incorporating
+the October 11 county-percentage correction at commit `bbc364d`; see the
+[current deployed release record](release-county-percentage-fix-2026-10-11.md)
+and [original v0.2.0 baseline](release-v0.2.0.md).
+The next candidate version **v0.2.1** is not yet deployed.
 Daily cloud provider polling was
 separately approved and activated on October 10; application publication does
 not reschedule it. The multi-day observation study remains incomplete. Future
@@ -42,9 +45,13 @@ Tags use `vMAJOR.MINOR.PATCH`. GitHub release notes should summarize user-visibl
 
 ## Visible application identity
 
-Every public page footer displays the package version, the first seven characters of the source commit, and the build environment. Source checkouts prefer their matching `pyproject.toml` version over stale installed metadata; installed wheels use distribution metadata. The full commit is available in the label's tooltip. This identifies application code independently of provider checks and public data publication timestamps.
+Public page footers display **only the semantic application version** (for example, `v0.2.1`), with no build SHA or environment tag. The About Watchtower section explains the mission, links to GitHub, and includes a brief disclaimer. The canonical version is the `[project].version` field in `pyproject.toml`; source checkouts prefer it over stale installed metadata, while installed wheels use distribution metadata.
 
-Container builds must pass `--build-arg WATCHTOWER_BUILD_REVISION=<full commit SHA>` and `--build-arg WATCHTOWER_BUILD_ENVIRONMENT=preview` or `production`, as appropriate. Docker writes this identity into packaged `build_info.json`; it is not inferred from runtime Git state or overwritten by runtime environment variables. Build a clean committed checkout and deploy its immutable image digest. Missing identity is displayed honestly as `build unknown · Development`, including ordinary source runs. The package version remains canonical in `pyproject.toml` and changes according to the policy above; each deployed commit remains distinguishable between semantic releases.
+**Every coordinated production deployment containing updated application code must use a new, strictly higher semantic version than the version currently visible on the deployed public site.** The operator must bump `pyproject.toml` in the release candidate before building, run `python scripts/check_release_version.py` against the live public version, retain the preflight evidence, deploy the vetted immutable image, and then verify the publicly displayed version and release record. The script fails closed if the live version cannot be verified, the candidate is not a valid semantic version, or the candidate is not strictly newer. Run this preflight once per coordinated release (before any public/private service rollout), not independently for each service in that release. Preview builds are not production releases.
+
+The source commit and build environment **remain inside immutable `build_info.json` and release/provenance records**, and may continue to inform optional analytics. They are intentionally not shown in the public footer. Container builds still require `WATCHTOWER_BUILD_REVISION` (full commit SHA) and `WATCHTOWER_BUILD_ENVIRONMENT` (`preview` or `production`). The production source package and visible version must agree. Build only from a clean, committed checkout; do not infer revision identity from the runtime Git state.
+
+**v0.2.1 is a review candidate until separately approved, built, deployed, and validated.** The validated production release remains v0.2.0 until that happens.
 
 ## Security fixes
 
