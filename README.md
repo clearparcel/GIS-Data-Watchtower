@@ -89,6 +89,8 @@ Developers can use the [documentation index](docs/README.md), [contribution guid
 
 The published **v0.2.0** baseline introduced interactive county status views. A subsequent **October 11, 2026** correction (still reporting package v0.2.0) made all-91-field parcel population the default map comparison while retaining the separate seven-Mandatory-field statistic.
 
+**Source and production are separate.** [PR #69](https://github.com/clearparcel/GIS-Data-Watchtower/pull/69) was merged into `main` on October 12 (commit `3113fd7`), correcting static-bundle links, provider handling of permanent HTTP failures, public control accessibility, and documentation. **That merge did not deploy those fixes.** The last independently verified production application remains the October 11 v0.2.0 build recorded in [STATUS.md](STATUS.md); its public and isolated-preview acceptance passed, while signed-in rendering of the private dashboard has **not** been independently verified. See the [October 11 repository review](docs/repository-review-2026-10-11.md) for findings and remaining gates.
+
 - **[Validated operational status](STATUS.md)** — current release, monitoring, and remaining gates
 - **[Releases](https://github.com/clearparcel/GIS-Data-Watchtower/releases)** — version summaries
 - **[October 11 release evidence](docs/release-county-percentage-fix-2026-10-11.md)** — production correction and rollback

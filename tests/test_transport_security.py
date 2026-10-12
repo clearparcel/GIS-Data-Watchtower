@@ -27,6 +27,83 @@ class TransportSecurityTests(unittest.TestCase):
             self.assertEqual(query.call_count, 1)
             duplicates.assert_not_called()
 
+    def test_optional_quality_permanent_error_stops_remaining_queries(self):
+        layer = {'fields': [{'name': 'PARCEL_ID', 'type': 'esriFieldTypeString'}], 'geometryType': 'esriGeometryPolygon'}
+        with patch.object(watch, '_json_request', return_value=(layer, {'status': 200})), patch.object(watch, '_arcgis_count_query', side_effect=watch.PermanentProviderError(403)) as query, patch.object(watch, '_arcgis_duplicate_id_summary') as duplicates:
+            with self.assertRaises(watch.PermanentProviderError):
+                watch._arcgis_layer({'url': 'https://example.invalid/0', 'parcel_quality': True}, 2)
+            self.assertEqual(query.call_count, 1)
+            duplicates.assert_not_called()
+
+    def test_permanent_provider_statuses_are_typed_and_skip_fallback(self):
+        for status in (401, 403, 404, 410):
+            with self.subTest(status=status):
+                body = io.BytesIO(b"provider response")
+                error = urllib.error.HTTPError("https://example.invalid/", status, "denied", {}, body)
+                with patch.object(watch.urllib.request, "build_opener") as opener, \
+                     patch.object(watch, "_curl_request") as fallback:
+                    opener.return_value.open.side_effect = error
+                    with self.assertRaises(watch.PermanentProviderError) as caught:
+                        watch._request("https://example.invalid/", 2)
+                self.assertEqual(caught.exception.status, status)
+                self.assertTrue(body.closed)
+                fallback.assert_not_called()
+
+    def test_permanent_curl_fallback_status_is_not_wrapped_as_retryable(self):
+        for invoke in (lambda: watch._request("https://example.invalid/", 2),
+                       lambda: watch._post_json("https://example.invalid/", {"x": 1}, 2)):
+            with self.subTest(request=invoke):
+                with patch.object(watch, "_urllib_request_once", side_effect=urllib.error.URLError("temporary")), \
+                     patch.object(watch, "_curl_request", side_effect=watch.PermanentProviderError(403)) as fallback:
+                    with self.assertRaises(watch.PermanentProviderError) as caught:
+                        invoke()
+                self.assertEqual(caught.exception.status, 403)
+                fallback.assert_called_once()
+
+    def test_curl_timeout_preserves_observed_permanent_status(self):
+        from subprocess import TimeoutExpired
+        for status in (401, 403, 404, 410):
+            with (self.subTest(status=status),
+                  patch.object(watch.shutil, 'which', return_value='curl'),
+                  patch.object(watch.subprocess, 'run', side_effect=TimeoutExpired(['curl'], 1, output=f'__CP_HTTP__{status}\n'.encode()))):
+                with self.assertRaises(watch.PermanentProviderError) as caught:
+                    watch._curl_request_once('https://example.invalid/', 2, transport='curl')
+                self.assertEqual(caught.exception.status, status)
+        with (patch.object(watch.shutil, 'which', return_value='curl'),
+              patch.object(watch.subprocess, 'run', side_effect=TimeoutExpired(['curl'], 1, output=b''))):
+            with self.assertRaises(TimeoutError):
+                watch._curl_request_once('https://example.invalid/', 2, transport='curl')
+
+    def test_timed_out_curl_fallback_permanent_status_stops_source_retry(self):
+        from subprocess import TimeoutExpired
+        config = {
+            'state_file': 'unused-state.json', 'history_file': 'unused-history.jsonl',
+            'retries': 3, 'retry_delay_seconds': 0,
+            'sources': [{'id': 'denied', 'name': 'Denied', 'kind': 'arcgis_layer',
+                         'url': 'https://example.invalid/0'}],
+        }
+        timeout = TimeoutExpired(['curl'], 1, output=b'__CP_HTTP__403\n')
+        with (patch.object(watch, 'load_state', return_value={'sources': {}}),
+              patch.object(watch, '_urllib_request_once', side_effect=urllib.error.URLError('network')),
+              patch.object(watch.shutil, 'which', return_value='curl'),
+              patch.object(watch.subprocess, 'run', side_effect=timeout) as transfer):
+            report = watch.check_sources(config, save=False)
+        self.assertEqual(transfer.call_count, 1)
+        self.assertEqual(report['sources']['denied']['attempts'], 1)
+        self.assertEqual(report['sources']['denied']['status'], 'error')
+
+    def test_transient_client_statuses_are_not_marked_permanent(self):
+        for status in (408, 425):
+            with self.subTest(status=status):
+                body = io.BytesIO(b"retry may be appropriate")
+                error = urllib.error.HTTPError("https://example.invalid/", status, "transient", {}, body)
+                with patch.object(watch.urllib.request, "build_opener") as opener:
+                    opener.return_value.open.side_effect = error
+                    with self.assertRaisesRegex(RuntimeError, f"HTTP {status}") as caught:
+                        watch._request("https://example.invalid/", 2)
+                self.assertNotIsInstance(caught.exception, watch.PermanentProviderError)
+                self.assertTrue(body.closed)
+
     def test_http_error_response_is_closed(self):
         body = io.BytesIO(b'error')
         error = urllib.error.HTTPError('https://example.invalid', 429, 'rate', {}, body)
@@ -197,23 +274,24 @@ class TransportSecurityTests(unittest.TestCase):
             with patch.dict(os.environ, {'WATCHTOWER_PUBLIC_REQUEST_TIMEOUT_SECONDS': value}):
                 self.assertEqual(_public_request_timeout_seconds(), expected)
 
-    def test_every_optional_check_preserves_429(self):
+    def test_every_optional_check_preserves_stop_signals(self):
         layer = {'fields': [{'name': 'PARCEL_ID', 'type': 'esriFieldTypeString'}, {'name': 'OWNER', 'type': 'esriFieldTypeString'}], 'geometryType': 'esriGeometryPolygon'}
         optional = ('_arcgis_mngac_completeness', '_arcgis_count_query', '_field_completeness', '_arcgis_geometry_sample', '_arcgis_duplicate_id_summary')
         for failed in optional:
-            with self.subTest(failed=failed):
-                from contextlib import ExitStack
-                with ExitStack() as stack:
-                    stack.enter_context(patch.object(watch, '_json_request', return_value=(layer, {'status': 200})))
-                    mocks = {}
-                    for name in optional:
-                        mocks[name] = stack.enter_context(patch.object(watch, name, return_value=0 if name == '_arcgis_count_query' else {}))
-                    mocks[failed].side_effect = watch.ProviderRateLimitError('60')
-                    with self.assertRaises(watch.ProviderRateLimitError):
-                        watch._arcgis_layer({'url': 'https://example.invalid/0', 'mngac_completeness': True, 'parcel_quality': True, 'geometry_sample': True}, 2)
-                    self.assertEqual(mocks[failed].call_count, 1)
-                    for later in optional[optional.index(failed) + 1:]:
-                        mocks[later].assert_not_called()
+            for stop_error in (watch.ProviderRateLimitError('60'), watch.PermanentProviderError(403)):
+                with self.subTest(failed=failed, stop_error=type(stop_error).__name__):
+                    from contextlib import ExitStack
+                    with ExitStack() as stack:
+                        stack.enter_context(patch.object(watch, '_json_request', return_value=(layer, {'status': 200})))
+                        mocks = {}
+                        for name in optional:
+                            mocks[name] = stack.enter_context(patch.object(watch, name, return_value=0 if name == '_arcgis_count_query' else {}))
+                        mocks[failed].side_effect = stop_error
+                        with self.assertRaises(type(stop_error)):
+                            watch._arcgis_layer({'url': 'https://example.invalid/0', 'mngac_completeness': True, 'parcel_quality': True, 'geometry_sample': True}, 2)
+                        self.assertEqual(mocks[failed].call_count, 1)
+                        for later in optional[optional.index(failed) + 1:]:
+                            mocks[later].assert_not_called()
 
     def test_private_same_host_redirect_requires_explicit_allowlist(self):
         import os
