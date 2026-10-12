@@ -2,12 +2,15 @@
 
 GIS Data Watchtower **v0.2.0** is running the October 11 county-percentage
 correction from merged commit `bbc364d`, retaining the October 10 v0.2.0
-baseline `308e3a7` for rollback. The public, authenticated private and isolated
-preview dashboards passed release acceptance. Daily Google Cloud provider
+baseline `308e3a7` for rollback. The public and isolated preview dashboards
+passed rendered release acceptance. The private service is Ready and its
+anonymous sign-in redirect passed; signed-in private rendering remains unverified.
+Daily Google Cloud provider
 polling remains enabled at 05:00 America/Chicago; dashboard publication is
 separate from provider checks. See the [current release and rollback record](docs/release-county-percentage-fix-2026-10-11.md),
 [original v0.2.0 record](docs/release-v0.2.0.md) and
-[current status](docs/current-status.md).
+[current status](docs/current-status.md). The [October 11 repository review](docs/repository-review-2026-10-11.md)
+records candidate fixes, cleanup, and outstanding operational and security follow-ups.
 
 [![CI](https://github.com/clearparcel/GIS-Data-Watchtower/actions/workflows/watchtower-ci.yml/badge.svg)](https://github.com/clearparcel/GIS-Data-Watchtower/actions/workflows/watchtower-ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -160,7 +163,12 @@ unassessed schemas and unresolved access. Separate map views retain field
 population percentages and monitoring paths. The visible map frame and selected
 county pane share the same height as details load, including narrow layouts.
 
-The latest recorded (2026-10-06) isolated county-profile [preview](https://gis-data-watchtower-public-v2-preview-237020802969.us-central1.run.app) served committed `5aac504` (revision `00007-zfh`) with dedicated sanitized storage/identity. The previous five-class release served `dfacd72` (`00005-c24`). The final typed-metric and statewide-identity fixes passed review; live all-87 JSON/CSV/XLSX parity and targeted desktop/mobile checks passed. Original Task 8 and Task 10 local folder absence were verified on 2026-10-06; the earlier automatic approval review cleanup denial remains recorded. See [deployment details](docs/google-cloud-deployment.md#four-class-code-only-preview-release-2026-10-06).
+### Historical implementation records
+
+The records below describe earlier checkpoints. Current deployment and scheduling
+state is summarized at the top of this README and in [STATUS.md](STATUS.md).
+
+The October 6 isolated county-profile [preview](https://gis-data-watchtower-public-v2-preview-237020802969.us-central1.run.app) served committed `5aac504` (revision `00007-zfh`) with dedicated sanitized storage/identity. The previous five-class release served `dfacd72` (`00005-c24`). The final typed-metric and statewide-identity fixes passed review; live all-87 JSON/CSV/XLSX parity and targeted desktop/mobile checks passed. Original Task 8 and Task 10 local folder absence were verified on 2026-10-06; the earlier automatic approval review cleanup denial remains recorded. See [deployment details](docs/google-cloud-deployment.md#four-class-code-only-preview-release-2026-10-06).
 
 The shared public header is **Minnesota Open Data Watchtower** in the reviewed Task 9 source change, released to the existing preview by Task 10. The confirmed follow-up source uses <30%, 30% - 50%, 50% - 70%, >70% classes on both completeness maps, summary modes and individual fields, with exactly 30 in the second class, exactly 50 and 70 in the third class, and a separate No data class. This follow-up is deployed to existing preview `00007-zfh` from committed `5aac504`, and rendered acceptance passed; sanitized data and its real publication/source dates were preserved. Monitored entries cover all dataset/service types; parcel coverage counts unique counties across direct and statewide observations. One statewide entry can cover many counties. Internal project identities are unchanged.
 
@@ -168,4 +176,4 @@ The [October 6 repository review](docs/repository-review-2026-10-06.md) fixes tr
 
 ### October 7 dashboard remediation
 
-See [observation semantics, compact public APIs, and offline hybrid validation preparation](docs/watchtower-remediation-2026-10-07.md). The implementation does not activate provider scheduling or deploy services; five daily hybrid validation cycles and separate activation approval remain pending.
+See [observation semantics, compact public APIs, and offline hybrid validation preparation](docs/watchtower-remediation-2026-10-07.md). That implementation checkpoint did not activate provider scheduling or deploy services. Daily cloud polling was subsequently approved and enabled on October 10; the five-day observation study remains incomplete. See the [activation record](docs/daily-cloud-provider-polling-2026-10-10.md).

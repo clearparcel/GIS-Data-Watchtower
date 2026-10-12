@@ -1,5 +1,45 @@
 # Project status
 
+## Review checkpoint — 2026-10-11
+
+The repository and authoritative GERTKEN-PC main checkout were clean at
+`e14dddbbb5751466e9d7d45ffd81be36e49a923f` when this review began. Production
+remains v0.2.0 / `bbc364d29398a7bc19dfb235c23cbb24d3f08712`; the newer main
+commit records that deployment and does not identify a different runtime.
+Current Cloud Run metadata confirms public `00015-cjp`, private `00022-pts`,
+and isolated preview `00020-qds`, all Ready with 100% traffic.
+
+Daily cloud provider polling is enabled at **05:00 America/Chicago**. The
+separate sanitized publisher is enabled every ten minutes. The October 11
+scheduled provider execution saved 35 observations: 34 OK, one warning,
+zero errors. Cloud Run reports exit 1, consistent with the documented warning
+exit contract; a fresh publisher timestamp is not a provider check. The legacy
+local task remains retired. Its retained worker history has not been retired
+from the aggregate and is still displayed as overdue.
+
+The review branch `fix/repository-review-20261011` repairs static-bundle links
+and encoded source filenames, stops automatic whole-source retries for permanent
+HTTP 401/403/404/410 failures, enlarges public overview/refresh controls, and
+clarifies historical status and the public worker-metadata boundary. These are
+candidate changes, not a production release. Full findings and evidence are in
+[the October 11 review](docs/repository-review-2026-10-11.md).
+
+The 352-test candidate suite passes ResourceWarning-strict Linux and Windows validation.
+The superseded PR #63 branch and four merged local branch refs were removed
+with rollback history retained; active worktrees were preserved. CodeQL #2/#3
+were independently validated as false positives and dismissed with evidence;
+#1 was already fixed. GitHub reports no open code-scanning, dependency, or
+secret-scanning alerts. Issue #20 now describes the remaining observation study
+and its broken branch-based evidence link is repaired.
+
+Provider-policy issues #1/#2, the multi-day study #20, and privacy-gated analytics
+#50 remain open. The six test jobs are required by main protection; requiring the
+separate `security` job is a recommended account-setting change awaiting approval.
+
+The dated sections below preserve earlier release and operational checkpoints.
+Where a historical checkpoint describes a different schedule, assignment, or
+runtime, the current facts above and the latest release record take precedence.
+
 ## County percentage clarity — deployed, 2026-10-11
 
 Live MnGeo Parcel observations confirm that repeated Mandatory-field
@@ -394,10 +434,10 @@ Release hardening includes exact Python runtime constraints, a digest-pinned
 Python base image, dependency audit, CodeQL, fixable High/Critical Trivy
 enforcement and CI-generated CycloneDX SBOM/provenance/image-ID evidence.
 
-**Scheduling authority is unchanged.** The Windows task
-`\\ClearParcel Data Watchtower Daily` remains the authoritative provider
-schedule. No Cloud Scheduler GIS-provider job was enabled. The only Cloud
-Scheduler entry remains the 10-minute sanitized publisher
+**Historical October 7 scheduling state.** The Windows task
+`\\ClearParcel Data Watchtower Daily` was then the authoritative provider
+schedule. No Cloud Scheduler GIS-provider job was enabled at that checkpoint.
+The only Cloud Scheduler entry was the 10-minute sanitized publisher
 (`3,13,23,33,43,53 * * * *`, America/Chicago). See
 [the release record](docs/release-gac-address-road-2026-10-07.md).
 
@@ -405,7 +445,7 @@ Before the v0.1.1 rollout, public footer identity at revision `00010-75k` was **
 
 The earlier browser-feedback release remains historical evidence. Before the v0.1.1 rollout recorded above, production public/private services used release `53748af` at revisions `00010-75k` and `00018-vtw`; the isolated preview served candidate revision `00017-s8b`. These are historical release states. See [the Address/Road release record](docs/release-gac-address-road-2026-10-07.md), the [v0.1.1 candidate record](docs/release-v0.1.1.md), and the earlier [browser-feedback verification](docs/public-ui-release-2026-10-07.md).
 
-Operational record updated: **2026-10-07** after the Address/Road release. One explicit cloud staging provider cycle was executed for validation; cloud scheduling remains disabled and the local daily task remains authoritative. Provider observation and public publication timestamps remain separate.
+Historical operational record: **2026-10-07**, after the Address/Road release. One explicit cloud staging provider cycle was executed for validation; cloud scheduling was then disabled and the local daily task was authoritative. The approved October 10 transition supersedes that scheduling state. Provider observation and public publication timestamps remain separate.
 
 Follow-up manual review corrections are **merged and deployed**: PR [44](https://github.com/clearparcel/GIS-Data-Watchtower/pull/44), merge `284cf0c`, addresses report/publication ordering, worker inventory retirement, dashboard profile isolation, process-owned local locks, unique atomic scratch and WMS/WFS query composition. Release source is `afa908d`, including the approved merge-status documentation. See [fixes and upgrade requirements](docs/review-fixes-2026-10-06.md).
 
@@ -435,7 +475,7 @@ The public service reads only the sanitized public aggregate. A separate publish
 
 ## Product and research
 
-The public title is **Minnesota Open Data Watchtower**. The October 11 branch candidate changes parcel percentage maps to default to all-field population across 91 fields, while preserving the seven-field Mandatory percentage for reference. The shared classes are <30%, 30–50%, 50–70%, >70% (`p<30`, `30<=p<50`, `50<=p<=70`, `p>70`); exact 30 and 50 start their respective classes, exact 70 remains in the third, and unavailable values are distinct from zero. Address and Road use Mandatory-field population. These are population statistics, not standards-compliance scores. All 87 county profiles and JSON/CSV/XLSX exports retain their existing source identities and observed rates.
+The public title is **Minnesota Open Data Watchtower**. The deployed October 11 correction makes parcel percentage maps default to all-field population across 91 fields, while preserving the seven-field Mandatory percentage for reference. The shared classes are <30%, 30–50%, 50–70%, >70% (`p<30`, `30<=p<50`, `50<=p<=70`, `p>70`); exact 30 and 50 start their respective classes, exact 70 remains in the third, and unavailable values are distinct from zero. Address and Road use Mandatory-field population. These are population statistics, not standards-compliance scores. All 87 county profiles and JSON/CSV/XLSX exports retain their existing source identities and observed rates.
 
 Recorded MN GAC statistics: **91 fields**, **2,710,201 parcels**, **42.92% all-field** and **78.37% mandatory-field** population. These describe population, not compliance grades. Research reviewed all 87 county inventories: 216 reviewed categories, 132 blocked, zero pending; 16 fully reviewed inventories and 15 complete composed profiles. County-direct classifications are 58 free, 13 fee-based, 11 viewer-only and five unresolved. Eleven research holds remain, including Blue Earth, Faribault, Kandiyohi and Lincoln. Research access, statewide coverage and runtime monitoring health remain separate.
 
