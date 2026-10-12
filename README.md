@@ -1,171 +1,105 @@
 # GIS Data Watchtower
 
-GIS Data Watchtower **v0.2.0** is running the October 11 county-percentage
-correction from merged commit `bbc364d`, retaining the October 10 v0.2.0
-baseline `308e3a7` for rollback. The public, authenticated private and isolated
-preview dashboards passed release acceptance. Daily Google Cloud provider
-polling remains enabled at 05:00 America/Chicago; dashboard publication is
-separate from provider checks. See the [current release and rollback record](docs/release-county-percentage-fix-2026-10-11.md),
-[original v0.2.0 record](docs/release-v0.2.0.md) and
-[current status](docs/current-status.md).
+**Explore the availability, freshness, and field population of Minnesota public GIS data.**
 
 [![CI](https://github.com/clearparcel/GIS-Data-Watchtower/actions/workflows/watchtower-ci.yml/badge.svg)](https://github.com/clearparcel/GIS-Data-Watchtower/actions/workflows/watchtower-ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Latest release](https://img.shields.io/github/v/release/clearparcel/GIS-Data-Watchtower)](https://github.com/clearparcel/GIS-Data-Watchtower/releases)
 
-GIS Data Watchtower is a lightweight Python monitor for public GIS services. It checks whether configured services are reachable, records meaningful changes over time, performs bounded parcel-data quality checks, and provides a plain-language dashboard without republishing source datasets.
+**[Explore the live public dashboard](https://gis-watchtower.clear-parcel.com/)** · **[User guide](docs/user-guide.md)** · **[Documentation index](docs/README.md)**
 
-Development supports [synthetic cloud setup and offline public replay](docs/codex-cloud-development.md).
-[Cloud-only receipts and explicit worker retirement](docs/hybrid-aggregation.md#observation-receipts)
-prepare operational activation while preserving source observations and concurrency controls.
-See [current status](docs/current-status.md) for the remaining runtime and deployment gates.
+![Live Watchtower overview with source health, county coverage, and a Minnesota county map](docs/images/watchtower-overview.png)
 
-ClearParcel also operates a read-only public dashboard at **https://gis-watchtower.clear-parcel.com**. The hosted view is deliberately sanitized and is separate from the private operational dashboard.
+*Actual public dashboard, captured October 12, 2026. Counts, check times, and field-population percentages change as new observations arrive.*
 
-## What it monitors
+## What is Watchtower?
 
-- ArcGIS FeatureServer, MapServer, and ImageServer endpoints
-- WMS/WFS capabilities
-- selected public GIS catalogs and query APIs
-- record-count and schema changes
-- parcel-ID and attribute completeness signals
-- Minnesota GAC Parcel, Address Point, and Road Centerline field-population statistics with interactive county comparison
-- evidence-backed Minnesota county-direct parcel access plus separate MnGeo statewide open coverage and active-monitoring paths
-- bounded geometry samples
-- source response and processing history
-- CSV, JSON, and Excel (`.xlsx`) snapshot exports
-- County parcel profiles in `/county-profiles.csv` (all 87 counties) and `/parcel-sources.csv` (each category and source, including empty-category placeholders). JSON county records include `parcel_source_profile`; Excel adds `County Access` and `Parcel Sources` sheets. `/snapshot.csv` retains the monitored-source rows. Unknown counts/dates stay blank in spreadsheets, observed zero stays zero, and date/time fields retain ISO semantics.
-- Overview map and picker selection update the adjacent county pane; the county-results map opens the complete county profile. Click, Enter and Space are supported. The overview map frame and county pane retain equal heights, including stacked layouts. Desktop and 390px layouts wrap long source/evidence values. Public publication reporting is Current, Overdue or Unknown using the `/healthz` threshold, separately from provider health and source reporting.
-- Profile coverage includes all 87 counties. The current evidence has 16 fully reviewed category inventories and 15 complete composed profiles; blocked evidence and unresolved county-direct access remain explicit. Monitoring coverage is derived from current observations.
+GIS Data Watchtower is an open-source Python monitoring and reporting application maintained by **ClearParcel**. Its public website—**Minnesota Open Data Watchtower**—helps county staff, GIS professionals, researchers, and residents understand where Minnesota public geospatial data is available and what the latest recorded checks show.
 
-**County percentage interpretation:** the parcel standard has seven Mandatory fields, so multiple counties can correctly share 57.14% or 42.86%. The [October 11 production release](docs/release-county-percentage-fix-2026-10-11.md) makes the 91-field rate the default parcel map comparison while preserving the Mandatory rate. Both are field-population measures, not standards-compliance grades. Source: [county percentage audit](docs/county-percentage-audit-2026-10-11.md).
+It monitors selected public ArcGIS, WMS/WFS, and other supported GIS services, records changes and data-quality signals, and publishes a **sanitized, read-only** dashboard. It is **not** a property-ownership search, a complete inventory of every GIS service, an official source-data repository, or a certification of a county's compliance with a data standard.
 
-Public snapshots use typed projections for source metrics, completeness, workers,
-counts and catalog facts; private diagnostics and arbitrary nested values are
-omitted. Matching official statewide products retain one vetted inventory identity,
-with current county observations joined by source ID. Export row counts derive
-from the composed inventory and observations, including empty-category rows.
-Rendered public exports reuse a single bounded cache for each sanitized snapshot
-generation. When storage refresh fails, the dashboard serves the last-known
-snapshot with a stale banner while `/healthz` remains unhealthy. CI supply-chain
-evidence inventories the built runtime image's Python and Debian packages and
-records its image ID as the artifact subject; constraints are labeled as
-dependency input metadata.
+### What you can explore
 
-Watchtower is designed for **low-frequency, respectful monitoring**. It is not a bulk downloader or a scraper for human-facing property-search websites.
+| Public view | What it helps answer |
+| --- | --- |
+| **Overview** | How many service entries are monitored? Which had warnings? How many Minnesota counties have parcel observations? |
+| **Minnesota Counties** | What access, statewide availability, county contacts, and monitoring evidence are recorded for a county? |
+| **MN GAC** | How frequently are standard parcel, address-point, and road-centerline fields populated in available statewide data? |
+| **Data Sources** | Which public GIS sources are checked, and what were their latest recorded statuses and observation times? |
+| **Exports** | How can I reuse published summary evidence as JSON, CSV, or Excel without downloading private operational data or raw parcel-owner records? |
 
-## Install
+**Three distinctions matter:**
 
-Python 3.12+:
+- **Field population is not a compliance grade.** A blank Conditional, If Available, or Optional field can be valid. Mandatory-field and all-field statistics answer different questions.
+- **No data does not mean zero.** A county absent from a particular statewide open layer is not automatically missing data at the county level or failing a standard.
+- **Access, monitoring, and publication are different.** A county may publish data directly, appear in MnGeo's opt-in statewide compilation, be observed through either or both paths, or await access-policy clarification.
 
-```bash
+See the [illustrated public user guide](docs/user-guide.md) for step-by-step instructions and examples.
+
+## Explore a county
+
+1. Open the **[public dashboard](https://gis-watchtower.clear-parcel.com/)**.
+2. On **Overview**, select a county on the map or with **Find a county**. The adjacent panel provides recorded monitoring and field-population details.
+3. Select **Open county profile** for source, contact, and access evidence, or **Explore county MN GAC fields** for field-by-field results.
+4. Use **MN GAC** to switch between **Parcels**, **Address Points**, and **Road Centerlines** and compare counties.
+5. Use **Export** or page-specific export controls to obtain a dated, reusable summary.
+
+![Live public dashboard with Olmsted County selected and separate monitoring and field-population evidence](docs/images/watchtower-county.png)
+
+*Illustrative county selection as of October 12, 2026. Direct-feed observations are not county-wide compliance findings.*
+
+## Data, freshness, and responsible use
+
+- Watchtower separates **source health**, **provider check freshness**, and **public snapshot publication freshness**. A recently published page does not necessarily mean an external provider was just checked.
+- The approved cloud provider checks run **daily at 5:00 a.m. America/Chicago**. A separate sanitized public publisher runs every **10 minutes**. Always consult observation timestamps.
+- The public site exposes derived counts, field population, statuses, and attribution—not parcel-owner records, private credentials, operational provider endpoints, or diagnostic fingerprints.
+- The system uses bounded, respectful requests. It does not scrape human-facing property-search websites or bypass provider access restrictions. Public reachability does not grant redistribution rights.
+
+Read the [MN GAC methodology](docs/gac-standards.md), [county access methodology](docs/county-parcel-data-access-audit.md), [provider-use guidance](docs/data-watchtower-provider-compliance.md), and [public/private design](docs/public-dashboard-hosting.md).
+
+## Install and run your own monitor
+
+Requires **Python 3.12 or later**:
+
+~~~bash
 python -m venv .venv
-# activate the environment
+# Activate .venv for your platform, then:
 python -m pip install -e .
-```
+~~~
 
-For Google Cloud Storage support:
+For optional Google Cloud Storage support:
 
-```bash
+~~~bash
 python -m pip install -e ".[gcs]"
-```
+~~~
 
-## Configure
+The included **config/example_sources.json** is intentionally provider-neutral. Configure only services you are authorized to monitor. See the [configuration reference](docs/configuration.md) for sources, storage, request limits, authentication, and environment variables.
 
-Start from `config/example_sources.json`. Runtime paths may be relative to the repository root or supplied through environment variables. See [`docs/configuration.md`](docs/configuration.md) for the supported top-level keys, source controls, storage options, dashboard settings, and environment overrides.
-
-## Run
-
-```bash
+~~~bash
 watchtower --config config/example_sources.json check
 watchtower --config config/example_sources.json status
 watchtower --config config/example_sources.json dashboard --host 127.0.0.1 --port 8765
-```
+~~~
 
-The dashboard is intended to remain private by default. Wildcard/public binds fail closed unless authentication is configured.
+A local dashboard defaults to private/loopback access; Internet-facing deployments require appropriate authentication and TLS controls. The hosted public view is a separate read-only presentation of sanitized data, not the private operational dashboard.
 
-## Responsible use
+Developers can use the [documentation index](docs/README.md), [contribution guidelines](CONTRIBUTING.md), and [cloud/offline development guide](docs/codex-cloud-development.md). CI covers Windows and Ubuntu, Python 3.12–3.14, container smoke tests, dependency auditing, CodeQL, and image scanning.
 
-You are responsible for reviewing each provider's terms, licenses, rate limits, and redistribution restrictions before adding it. Watchtower respects HTTP 429 responses, bounds geometry sampling, prevents overlapping checks, and identifies itself with a project User-Agent.
+## Releases and project status
 
-See `docs/data-watchtower-provider-compliance.md` for the project's provider-use methodology. The public repository ships only provider-neutral example configuration; deployment-specific source registries remain private and are not evidence that any provider permits every possible use.
+The published **v0.2.0** baseline introduced interactive county status views. A subsequent **October 11, 2026** correction (still reporting package v0.2.0) made all-91-field parcel population the default map comparison while retaining the separate seven-Mandatory-field statistic.
 
-## Data and privacy
+- **[Validated operational status](STATUS.md)** — current release, monitoring, and remaining gates
+- **[Releases](https://github.com/clearparcel/GIS-Data-Watchtower/releases)** — version summaries
+- **[October 11 release evidence](docs/release-county-percentage-fix-2026-10-11.md)** — production correction and rollback
+- **[Documentation index](docs/README.md)** — guides, methodology, engineering reference, and historical evidence
 
-Watchtower stores derived monitoring observations in the configured local or cloud storage backend. Public/static outputs are intentionally sanitized and do not expose internal service fingerprints, tracked values, operational URLs, or raw parcel-owner records.
+This is a **pre-1.0** project. Open issues can represent documented provider-policy, privacy, or observation gates rather than defects.
 
-Optional public PostHog analytics remain disabled unless both a dedicated
-Watchtower project token and the explicit IP-discard confirmation setting are
-configured. When enabled, Watchtower uses explicit anonymous events only:
-autocapture, Session Replay, automatic pageview/pageleave capture, exception
-capture, feature-flag requests, persistent browser identity, and explicit user
-identification are disabled. Client-IP discard must be enabled and verified on
-the dedicated PostHog project before production activation.
+## Contribute, ask questions, and report problems
 
-## County GIS contact provenance
+Contributions and corrections are welcome. Use [GitHub Issues](https://github.com/clearparcel/GIS-Data-Watchtower/issues/new/choose) for reproducible bugs, public-data corrections, and enhancements, and follow [CONTRIBUTING.md](CONTRIBUTING.md).
 
-Minnesota county contact information follows an explicit source-precedence rule. The official county government website is checked first. When that site provides additional or changed usable GIS, mapping, or land-records contact information, the county website is authoritative. When the official county site does not provide additional or changed usable contact information, Watchtower retains the Minnesota Geospatial Information Office (MnGeo) County GIS Contacts directory as the fallback. The dashboard and exports identify which source is in use and the verification date.
+**Do not report vulnerabilities in public issues.** Follow the private reporting process in [SECURITY.md](SECURITY.md).
 
-The baseline MnGeo directory and the official-county verification layer are stored separately so the fallback source is preserved rather than silently overwritten.
-
-## Security
-
-Do not report security vulnerabilities in public issues. See `SECURITY.md`.
-
-## Development
-
-For Linux or Codex Cloud development, use the constrained setup and synthetic
-dashboard preview in [the cloud development guide](docs/codex-cloud-development.md).
-The preview uses local invented data; operational provider workers retain their
-existing execution profiles.
-
-```bash
-python -W error::ResourceWarning -m unittest discover -s tests -q
-python -m compileall -q clearparcel tests scripts
-git diff --check
-```
-
-CI tests Windows and Ubuntu on Python 3.12, 3.13, and 3.14, plus a Linux container smoke test. Runtime Python dependencies are constrained in `constraints.txt`, the container base image is digest-pinned, and CI runs a pinned dependency audit, CodeQL analysis, and Trivy high/critical container scan. The Linux container lane also uploads CycloneDX SBOM, build provenance, and image-ID evidence.
-
-## Project documentation
-
-- [`STATUS.md`](STATUS.md) — concise validated project/deployment status
-- [`docs/current-status.md`](docs/current-status.md) — current recorded local/cloud/hybrid state and historical evidence
-- [`docs/configuration.md`](docs/configuration.md) — supported configuration and environment variables
-- [`docs/data-watchtower-processing-architecture.md`](docs/data-watchtower-processing-architecture.md) — processing/storage/dashboard boundaries
-- [`docs/google-cloud-deployment.md`](docs/google-cloud-deployment.md) — optional Cloud Run/GCS execution deployment
-- [`docs/public-dashboard-hosting.md`](docs/public-dashboard-hosting.md) — public Google Cloud serving architecture and security boundary
-- [`docs/county-parcel-data-access-audit.md`](docs/county-parcel-data-access-audit.md) — parcel-access audit, classifications, evidence methodology, and direct-source findings; offline county profiles cover all 87 counties; all category reviews have been attempted, while blocked and unresolved evidence remains explicit
-- [`docs/hybrid-execution.md`](docs/hybrid-execution.md) and [`docs/hybrid-aggregation.md`](docs/hybrid-aggregation.md) — hybrid worker model
-- [`docs/gac-standards.md`](docs/gac-standards.md) — shared Minnesota GAC Parcel, Address Point, and Road Centerline monitoring methodology
-- [`docs/mngac-completeness.md`](docs/mngac-completeness.md) — parcel-specific Minnesota GAC field-population history, county map, and exports
-- [`docs/county-direct-gac-schema-audit.md`](docs/county-direct-gac-schema-audit.md) — verified direct/statewide overlap and source-specific MN GAC schema findings
-- [`docs/data-watchtower-provider-compliance.md`](docs/data-watchtower-provider-compliance.md) — respectful-use methodology and known provider constraints
-- [`docs/release-policy.md`](docs/release-policy.md) — versioning, release policy and the public footer's package version, baked source commit and build environment
-
-## Cloud deployment
-
-The base package remains cloud-neutral. Optional Google Cloud Storage support and a Cloud Run Job deployment path are documented in [`docs/google-cloud-deployment.md`](docs/google-cloud-deployment.md). Local filesystem storage remains the default.
-
-## License
-
-GIS Data Watchtower is licensed under the **MIT License**. See [`LICENSE`](LICENSE).
-
-Overview county map and picker selections populate the adjacent county pane with a compact monitoring summary and county field-coverage infographics. The map and county pane share a height when displayed side by side; full source and research evidence remains on the linked county profile. Selections keep keyboard focus on the map or picker and do not open a dialog. The overview supports monitoring-path and MN GAC completeness views. The MN GAC page starts with a searchable county chooser using county names only, with a separate statewide overview; its map opens the same county results and standard links preserve the selected county. Unknown values remain unavailable; county research does not activate monitoring.
-
-County-direct monitoring can overlap with MnGeo Open Parcels: live verification on October 10 found 13 overlaps among 24 direct counties, including Olmsted. Pane A, county profiles, parcel county MN GAC results, public source pages and county exports distinguish direct-feed schema findings from statewide field population. Missing statewide results do not imply noncompliance; field-name mismatches apply to the audited feed, while counties may offer separate standardized exports. Unassessed feeds remain unassessed.
-
-The overview's default MN GAC / open-data status map uses distinct colors and
-patterns for standardized data, differing direct feeds, no confirmed open data,
-unassessed schemas and unresolved access. Separate map views retain field
-population percentages and monitoring paths. The visible map frame and selected
-county pane share the same height as details load, including narrow layouts.
-
-The latest recorded (2026-10-06) isolated county-profile [preview](https://gis-data-watchtower-public-v2-preview-237020802969.us-central1.run.app) served committed `5aac504` (revision `00007-zfh`) with dedicated sanitized storage/identity. The previous five-class release served `dfacd72` (`00005-c24`). The final typed-metric and statewide-identity fixes passed review; live all-87 JSON/CSV/XLSX parity and targeted desktop/mobile checks passed. Original Task 8 and Task 10 local folder absence were verified on 2026-10-06; the earlier automatic approval review cleanup denial remains recorded. See [deployment details](docs/google-cloud-deployment.md#four-class-code-only-preview-release-2026-10-06).
-
-The shared public header is **Minnesota Open Data Watchtower** in the reviewed Task 9 source change, released to the existing preview by Task 10. The confirmed follow-up source uses <30%, 30% - 50%, 50% - 70%, >70% classes on both completeness maps, summary modes and individual fields, with exactly 30 in the second class, exactly 50 and 70 in the third class, and a separate No data class. This follow-up is deployed to existing preview `00007-zfh` from committed `5aac504`, and rendered acceptance passed; sanitized data and its real publication/source dates were preserved. Monitored entries cover all dataset/service types; parcel coverage counts unique counties across direct and statewide observations. One statewide entry can cover many counties. Internal project identities are unchanged.
-
-The [October 6 repository review](docs/repository-review-2026-10-06.md) fixes transport, reporting and publisher cleanup behavior; that earlier release is merged and deployed. The subsequent [manual review corrections](docs/review-fixes-2026-10-06.md) address ordering, profile isolation, inventory retirement, local locking and capabilities URLs. Those follow-up fixes are merged in PR #44 (`284cf0c`) and deployed from `afa908d`; see the [October 7 release record](docs/release-2026-10-07.md). Current recorded deployment facts are maintained in [STATUS.md](STATUS.md).
-
-### October 7 dashboard remediation
-
-See [observation semantics, compact public APIs, and offline hybrid validation preparation](docs/watchtower-remediation-2026-10-07.md). The implementation does not activate provider scheduling or deploy services; five daily hybrid validation cycles and separate activation approval remain pending.
+GIS Data Watchtower is licensed under the **[MIT License](LICENSE)**. Source agencies remain authoritative for their own datasets, definitions, release policies, and attribution requirements.
