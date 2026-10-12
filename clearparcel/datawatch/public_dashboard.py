@@ -278,7 +278,7 @@ def render_public_dashboard(config: dict) -> str:
     <div class="public-about-heading">
       <span class="public-about-eyebrow">About this project</span>
       <h2 id="watchtower-about-title">Making Minnesota GIS data easier to understand.</h2>
-      <p class="public-about-lead">GIS Data Watchtower brings together public dataset availability, source monitoring, county access research, and Minnesota GAC field-population insights—helping people explore GIS data and see what has changed.</p>
+      <p class="public-about-lead"><strong>GIS Data Watchtower is an open-source ClearParcel project</strong> focused on making Minnesota GIS data easier to understand. It brings together public dataset availability, source monitoring, county access research, and Minnesota GAC field-population insights—helping people explore GIS data and see what has changed.</p>
     </div>
     <a class="public-about-link" href="https://github.com/clearparcel/GIS-Data-Watchtower" target="_blank" rel="noopener noreferrer" aria-label="View GIS Data Watchtower on GitHub (opens in a new tab)">View on GitHub ↗</a>
   </div>

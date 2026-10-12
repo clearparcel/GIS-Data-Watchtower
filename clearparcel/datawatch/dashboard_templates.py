@@ -64,6 +64,7 @@ code{font-size:11px;color:#b9c6d8}.technical summary,.diagnostics summary{cursor
 .public-about-eyebrow{display:block;font-size:10px;font-weight:800;letter-spacing:.12em;color:#85adf5;text-transform:uppercase;margin-bottom:6px}
 .public-about h2{font-size:21px;line-height:1.28;letter-spacing:-.2px;margin:0 0 10px}
 .public-about-lead{font-size:14px;line-height:1.65;color:#c5d4e8;max-width:960px;margin:0}
+.public-about-lead strong{font-weight:750;color:#f0f5fe}
 .public-about-link{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:10px 14px;min-height:44px;border:1px solid #35547d;background:#16263c;border-radius:9px;color:#e3efff;font-size:12px;font-weight:700;white-space:nowrap;text-decoration:none}
 .public-about-link:hover{background:#1b3050;text-decoration:none;border-color:#5a84bf}
 .public-about-disclaimer{font-size:12px;line-height:1.55;color:#9dacbf;margin:17px 0 0;padding-top:13px;border-top:1px solid #2a374b}
