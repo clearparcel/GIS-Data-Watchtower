@@ -1,6 +1,6 @@
 # Project status
 
-## Review checkpoint — 2026-10-11
+## October 11 repository review — PR #69 merged October 12 (source only)
 
 The repository and authoritative GERTKEN-PC main checkout were clean at
 `e14dddbbb5751466e9d7d45ffd81be36e49a923f` when this review began. Production
@@ -17,14 +17,15 @@ exit contract; a fresh publisher timestamp is not a provider check. The legacy
 local task remains retired. Its retained worker history has not been retired
 from the aggregate and is still displayed as overdue.
 
-The review branch `fix/repository-review-20261011` repairs static-bundle links
+PR [#69](https://github.com/clearparcel/GIS-Data-Watchtower/pull/69) merged as
+`3113fd713ec35ac455d9ca6df8812ad4190b2eee` on October 12. It repairs static-bundle links
 and encoded source filenames, stops automatic whole-source retries for permanent
 HTTP 401/403/404/410 failures, enlarges public overview/refresh controls, and
-clarifies historical status and the public worker-metadata boundary. These are
-candidate changes, not a production release. Full findings and evidence are in
+clarifies historical status and the public worker-metadata boundary. These fixes are
+merged source changes, **not** a deployed production release. Full findings and evidence are in
 [the October 11 review](docs/repository-review-2026-10-11.md).
 
-The 352-test candidate suite passes ResourceWarning-strict Linux and Windows validation.
+The reviewed PR #69 head passed 352 ResourceWarning-strict tests on both Linux and Windows; hosted CI and CodeQL/security checks passed before merge.
 The superseded PR #63 branch and four merged local branch refs were removed
 with rollback history retained; active worktrees were preserved. CodeQL #2/#3
 were independently validated as false positives and dismissed with evidence;

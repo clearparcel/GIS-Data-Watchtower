@@ -1,0 +1,39 @@
+name: Enhancement proposal
+description: Suggest a user-facing feature, visualization, export, or developer improvement.
+title: "[Enhancement]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Focus on the user problem first. Requests that increase automated provider traffic, publish new data fields, or change private operations require separate provider, privacy, and deployment review.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem should this solve?
+      placeholder: Describe the user and use case, not just a suggested implementation.
+    validations:
+      required: true
+  - type: textarea
+    id: approach
+    attributes:
+      label: Suggested approach
+      description: Include optional examples or relevant existing workflows.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Main area
+      options:
+        - Public county experience
+        - MN GAC comparisons
+        - Source health / freshness
+        - Exports and reporting
+        - Developer experience
+        - Documentation / accessibility
+        - Other
+  - type: textarea
+    id: considerations
+    attributes:
+      label: Important constraints or alternatives
+      description: Describe accessibility, privacy, source permissions, provider request costs, or alternatives if applicable.

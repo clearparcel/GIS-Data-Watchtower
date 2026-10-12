@@ -1,0 +1,58 @@
+name: Public GIS data or county-profile correction
+description: Share an authoritative public source correcting a county classification, contact, datum, or field interpretation.
+title: "[Data]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Watchtower reports evidence, not official county-wide compliance grades. Please cite a public authoritative source and distinguish county-direct, MnGeo statewide, and Watchtower monitoring facts. Do not attach private records.
+  - type: input
+    id: county
+    attributes:
+      label: Minnesota county or statewide dataset
+      placeholder: "Example: Olmsted County; MnGeo Plan Parcels Open"
+    validations:
+      required: true
+  - type: dropdown
+    id: type
+    attributes:
+      label: Kind of correction
+      options:
+        - County-direct access or terms
+        - MnGeo statewide open-data participation
+        - Current Watchtower observation
+        - MN GAC schema or field-population interpretation
+        - Official GIS contact information
+        - Source date or attribution
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: official_link
+    attributes:
+      label: Public authoritative link
+      description: Official county, MnGeo, or agency page or dataset documentation.
+      placeholder: https://example.gov/official-gis-information
+    validations:
+      required: true
+  - type: textarea
+    id: current
+    attributes:
+      label: Current Watchtower claim and observation date
+      description: Quote or describe the public claim, including the recorded date if available.
+    validations:
+      required: true
+  - type: textarea
+    id: correction
+    attributes:
+      label: Proposed correction and rationale
+      description: Include the effective/publication date of the official source when known.
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Disclosure check
+      options:
+        - label: This request includes only publicly releasable evidence and no credentials or private parcel-owner records.
+          required: true
