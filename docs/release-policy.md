@@ -1,10 +1,9 @@
 # Versioning and release policy
 
-The last verified production application release is **v0.2.0**, incorporating
-the October 11 county-percentage correction at commit `bbc364d`; see the
-[current deployed release record](release-county-percentage-fix-2026-10-11.md)
-and [original v0.2.0 baseline](release-v0.2.0.md).
-The next candidate version **v0.2.1** is not yet deployed.
+The current validated production application release is **v0.2.1**, deployed
+October 12 from source `9dbf659`. See the [current release and rollback
+record](release-v0.2.1.md). The earlier [v0.2.0 correction](release-county-percentage-fix-2026-10-11.md)
+remains available as historical evidence and a rollback baseline.
 Daily cloud provider polling was
 separately approved and activated on October 10; application publication does
 not reschedule it. The multi-day observation study remains incomplete. Future
@@ -51,7 +50,7 @@ Public page footers display **only the semantic application version** (for examp
 
 The source commit and build environment **remain inside immutable `build_info.json` and release/provenance records**, and may continue to inform optional analytics. They are intentionally not shown in the public footer. Container builds still require `WATCHTOWER_BUILD_REVISION` (full commit SHA) and `WATCHTOWER_BUILD_ENVIRONMENT` (`preview` or `production`). The production source package and visible version must agree. Build only from a clean, committed checkout; do not infer revision identity from the runtime Git state.
 
-**v0.2.1 is a review candidate until separately approved, built, deployed, and validated.** The validated production release remains v0.2.0 until that happens.
+**v0.2.1 was deployed and independently verified on October 12, 2026.** The release preflight now correctly blocks redeployment of an unchanged v0.2.1 candidate. The next coordinated application-code release must use a strictly newer semantic version.
 
 ## Security fixes
 
