@@ -1,13 +1,17 @@
 # Google Cloud deployment
 
-The current production application remains **v0.2.0**, now serving the
-October 11 merged UI correction `bbc364d29398a7bc19dfb235c23cbb24d3f08712`.
-Cloud Build `df3c86dc-dc0d-4a3d-af3c-da30874d2d04` produced verified images.
-Public revision `00015-cjp`, private revision `00022-pts`, and isolated preview
-`00020-qds` are Ready at 100% traffic, preserving their original non-image
-settings and authentication boundaries. See the
-[October 11 release record](release-county-percentage-fix-2026-10-11.md)
-for image digests, live acceptance, and rollback instructions.
+The current production application is **v0.2.1**, deployed October 12 from
+merged source `9dbf6597f76aacf64e2ecbe55ba62d5757185921`.
+Cloud Build `c4be7733-8784-4d3b-ba7e-b1c06097af6d` produced verified
+immutable images. Public revision `00016-dck`, private revision
+`00023-2h9`, and isolated preview `00021-747` are Ready at
+100% traffic, preserving non-image settings and authentication.
+See [v0.2.1 release and rollback evidence](release-v0.2.1.md)
+for exact image digests, acceptance, and rollback instructions.
+
+The prior October 11 v0.2.0 deployment remains the immediate rollback baseline:
+public `00015-cjp`, private `00022-pts`, preview `00020-qds`.
+See [its historical release record](release-county-percentage-fix-2026-10-11.md).
 
 The prior v0.2.0 rollout from `308e3a7` remains an immutable rollback baseline:
 public `00014-jsr`, private `00021-hr8`, and preview `00019-x5b`. The

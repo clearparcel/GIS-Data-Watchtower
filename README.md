@@ -87,16 +87,24 @@ Developers can use the [documentation index](docs/README.md), [contribution guid
 
 ## Releases and project status
 
-The published **v0.2.0** baseline introduced interactive county status views. A subsequent **October 11, 2026** correction (still reporting package v0.2.0) made all-91-field parcel population the default map comparison while retaining the separate seven-Mandatory-field statistic.
+**GIS Data Watchtower v0.2.1 is live**, deployed October 12, 2026, from
+merged source `9dbf659`. The public footer now displays the clean
+version label; the About section explains the open-source ClearParcel
+mission, links to GitHub, and provides a concise disclaimer.
 
-**Source and production are separate.** [PR #69](https://github.com/clearparcel/GIS-Data-Watchtower/pull/69) was merged into `main` on October 12 (commit `3113fd7`), correcting static-bundle links, provider handling of permanent HTTP failures, public control accessibility, and documentation. **That merge did not deploy those fixes.** The last independently verified production application remains the October 11 v0.2.0 build recorded in [STATUS.md](STATUS.md); its public and isolated-preview acceptance passed, while signed-in rendering of the private dashboard has **not** been independently verified. See the [October 11 repository review](docs/repository-review-2026-10-11.md) for findings and remaining gates.
+- **[Current production release and rollback evidence](docs/release-v0.2.1.md)** — v0.2.1 images, revisions, and acceptance
+- **[Validated operational status](STATUS.md)** — current monitoring and remaining gates
+- **[GitHub releases](https://github.com/clearparcel/GIS-Data-Watchtower/releases)** — versioned summaries
+- **[Documentation index](docs/README.md)** — user guides, methodology, engineering references and dated history
+- **[Original v0.2.0 release](docs/release-v0.2.0.md)** and
+  **[October 11 correction](docs/release-county-percentage-fix-2026-10-11.md)** — retained history
 
-- **[Validated operational status](STATUS.md)** — current release, monitoring, and remaining gates
-- **[Releases](https://github.com/clearparcel/GIS-Data-Watchtower/releases)** — version summaries
-- **[October 11 release evidence](docs/release-county-percentage-fix-2026-10-11.md)** — production correction and rollback
-- **[Documentation index](docs/README.md)** — guides, methodology, engineering reference, and historical evidence
+Earlier merged PR #69 static-output/provider retry corrections also ship in
+this v0.2.1 application image. Deploying the dashboard did **not** update
+the independent GIS-provider worker job image, source registries, or schedules.
 
-This is a **pre-1.0** project. Open issues can represent documented provider-policy, privacy, or observation gates rather than defects.
+This is a **pre-1.0** project. Open issues may represent documented
+provider-policy, privacy, and observation gates rather than defects.
 
 ## Contribute, ask questions, and report problems
 

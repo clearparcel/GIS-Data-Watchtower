@@ -32,6 +32,7 @@ Choose the path that matches what you want to do. For the live dashboard and a c
 | [Google Cloud deployment](google-cloud-deployment.md) | Optional Cloud Run and storage deployment |
 | [Public dashboard hosting](public-dashboard-hosting.md) | Anonymous sanitized service, access boundaries, publication, and freshness |
 | [Release policy](release-policy.md) | Versioning, evidence, and rollback expectations |
+| [Current v0.2.1 release](release-v0.2.1.md) | Deployed image digests, public/private acceptance, and rollback details |
 | [Current status](current-status.md) | Generated companion to authoritative [STATUS.md](../STATUS.md); do not edit directly |
 | [Private vulnerability reporting](../SECURITY.md) | Safe reporting and security expectations |
 
