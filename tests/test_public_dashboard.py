@@ -16,6 +16,26 @@ from clearparcel.datawatch.public_dashboard import (
 
 
 class PublicDashboardTests(unittest.TestCase):
+    def test_public_about_panel_and_simplified_release_footer(self):
+        state = sanitize_public_render_state(self._state())
+        with patch("clearparcel.datawatch.public_dashboard._dashboard_state", return_value=state):
+            page = render_public_dashboard({"_public_mode": True})
+        self.assertIn('id="about-watchtower"', page)
+        self.assertIn('Making Minnesota GIS data easier to understand.', page)
+        self.assertIn("<strong>GIS Data Watchtower is an open-source ClearParcel project</strong>", page)
+        self.assertIn("public dataset availability, source monitoring, county access research,", page)
+        self.assertIn("Minnesota GAC field-population insights", page)
+        self.assertIn("Disclaimer:", page)
+        self.assertIn('href="https://github.com/clearparcel/GIS-Data-Watchtower"', page)
+        self.assertIn('rel="noopener noreferrer"', page)
+        self.assertNotIn("Public data boundary", page)
+        footer = page.split('<footer class="public-footnote">', 1)[1].split("</footer>", 1)[0]
+        from clearparcel.datawatch.build_info import application_identity
+        expected = application_identity()["version"]
+        self.assertIn(f'<strong class="application-version">v{expected}</strong>', footer)
+        for forbidden in ("build ", "Production", "Preview", "Source revision:"):
+            self.assertNotIn(forbidden, footer)
+
     def test_feedback_uses_check_times_and_keeps_missing_success_unknown(self):
         from unittest.mock import patch
         now = dt.datetime.now(dt.timezone.utc)

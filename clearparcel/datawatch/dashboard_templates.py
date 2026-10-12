@@ -57,6 +57,22 @@ code{font-size:11px;color:#b9c6d8}.technical summary,.diagnostics summary{cursor
 @media(max-width:760px){.public-header{height:74px;padding:13px 14px}.public-header h1{font-size:20px}.brand-eyebrow{font-size:8px}.live-state span:last-child{display:none}.public-main{padding:0 12px 76px}.public-tabs{top:74px;overflow-x:auto;margin:0 -12px 18px;padding:0 12px}.public-tabs a{padding:12px 10px 10px}.public-tools{margin-left:4px}.summary-v2{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.grid,.primary-grid,.worker-grid,.activity-strip{grid-template-columns:1fr;gap:9px}.card{padding:14px}.hero-copy{padding:16px}.hero-copy h2{font-size:21px}.hero-stat{grid-template-columns:1fr 1fr}.section-head{margin-top:22px}.section-head span{display:none}.filters{display:grid;grid-template-columns:1fr}.filters input,.filters select{width:100%;min-width:0}#counties thead,#datasets thead,.contacts-table thead,.history-table thead,#mngac-fields thead,#county-mngac-fields thead{display:none}#counties,#counties tbody,#counties tr,#counties td,#datasets,#datasets tbody,#datasets tr,#datasets td,.contacts-table,.contacts-table tbody,.contacts-table tr,.contacts-table td,.history-table,.history-table tbody,.history-table tr,.history-table td,#mngac-fields,#mngac-fields tbody,#mngac-fields tr,#mngac-fields td,#county-mngac-fields,#county-mngac-fields tbody,#county-mngac-fields tr,#county-mngac-fields td{display:block;width:100%}#counties tr,#datasets tr,.contacts-table tr,.history-table tr,#mngac-fields tr,#county-mngac-fields tr{padding:10px 0;border-bottom:1px solid #1b2535}#counties td,#datasets td,.contacts-table td,.history-table td,#mngac-fields td,#county-mngac-fields td{border:0;padding:4px 2px;white-space:normal;overflow-wrap:anywhere}.worker-card{grid-template-columns:1fr}.worker-meta{display:grid;grid-template-columns:1fr 1fr}.definition-list{grid-template-columns:1fr;gap:2px}.definition-list dd{margin-bottom:8px}.mngac-controls label,.mngac-controls select{width:100%}.public-footnote{flex-direction:column;gap:4px}}
 @media(max-width:430px){.summary-v2{grid-template-columns:1fr 1fr}.summary-v2 .card{padding:12px}.summary-v2 .metric{font-size:21px}.hero-stat{grid-template-columns:1fr 1fr}.public-export summary{padding:7px 8px}.page-kicker{padding-top:18px}.page-kicker h2{font-size:23px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+/* Compact, public-facing project description and release identity. */
+.public-about{padding:22px 24px;background:linear-gradient(125deg,#131d2c,#101620 76%);border-color:#304159}
+.public-about-header{display:flex;align-items:start;justify-content:space-between;gap:20px}
+.public-about-heading{min-width:0}
+.public-about-eyebrow{display:block;font-size:10px;font-weight:800;letter-spacing:.12em;color:#85adf5;text-transform:uppercase;margin-bottom:6px}
+.public-about h2{font-size:21px;line-height:1.28;letter-spacing:-.2px;margin:0 0 10px}
+.public-about-lead{font-size:14px;line-height:1.65;color:#c5d4e8;max-width:960px;margin:0}
+.public-about-lead strong{font-weight:750;color:#f0f5fe}
+.public-about-link{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:10px 14px;min-height:44px;border:1px solid #35547d;background:#16263c;border-radius:9px;color:#e3efff;font-size:12px;font-weight:700;white-space:nowrap;text-decoration:none}
+.public-about-link:hover{background:#1b3050;text-decoration:none;border-color:#5a84bf}
+.public-about-disclaimer{font-size:12px;line-height:1.55;color:#9dacbf;margin:17px 0 0;padding-top:13px;border-top:1px solid #2a374b}
+.public-about-disclaimer strong{color:#cad5e4;font-weight:700}
+.public-footnote{align-items:center;margin:20px 2px 0;padding:14px 0 0;color:#91a0b5;font-size:12px;flex-direction:row;gap:15px}
+.public-footnote .public-footer-meta{display:inline-flex;align-items:center;font-size:12px}
+.public-footnote .application-version{font-weight:700;color:#bacbe5;font-size:12px;letter-spacing:.01em}
+@media(max-width:760px){.public-about{padding:19px 17px}.public-about-header{flex-direction:column;gap:14px}.public-about h2{font-size:18px}.public-about-link{width:100%}.public-about-lead{font-size:13px}.public-about-disclaimer{font-size:12px}.public-footnote{flex-direction:row;align-items:center;justify-content:space-between;gap:10px}}
 """
 
 def _refresh_script(seconds: int, *, public: bool = False) -> str:
@@ -85,7 +101,7 @@ def _public_layout_v2(title: str, body: str, *, refresh_seconds: int = 30, publi
     body = _accessible_tables(body)
     identity = application_identity()
     build_label = identity["revision"][:7] or "unknown"
-    release_label = f'v{identity["version"]} · build {build_label} · {identity["environment"].title()}'
+    release_label = f'v{identity["version"]}' if identity["version"] != "unknown" else "Version unavailable"
     logo_src = "data:image/png;base64," + base64.b64encode(Path(__file__).with_name("clearparcel-logo-transparent.png").read_bytes()).decode("ascii")
     lower = title.lower()
     active = "mngac" if "gac" in lower else "sources" if "source" in lower else "counties" if "county" in lower or "counties" in lower else "overview"
@@ -145,7 +161,7 @@ def _public_layout_v2(title: str, body: str, *, refresh_seconds: int = 30, publi
   </div>
   <div class="page-kicker"><div class="eyebrow">PUBLIC DATA INTELLIGENCE</div><h2>{_esc(page_name)}</h2><p>{_esc(subtitle)}</p></div>
   <p id="refresh-status" role="status"></p><div id="main-content">{body}</div>
-  <footer class="public-footnote"><span><a class="footer-brand" href="https://clear-parcel.com" aria-label="ClearParcel home"><img src="{logo_src}" alt="ClearParcel" width="120" height="42"></a> · Public read-only view</span><span><strong class="application-version" title="Source revision: {_esc(identity['revision'] or 'unknown')}">{_esc(release_label)}</strong><br>Monitoring results are informational and source-dependent.</span></footer>
+  <footer class="public-footnote"><a class="footer-brand" href="https://clear-parcel.com" aria-label="ClearParcel home"><img src="{logo_src}" alt="ClearParcel" width="120" height="42"></a><span class="public-footer-meta"><strong class="application-version">{_esc(release_label)}</strong></span></footer>
 </main><script>(function(){{const menu=document.querySelector('.public-export');if(!menu)return;document.addEventListener('keydown',e=>{{if(e.key==='Escape'&&menu.open){{menu.open=false;menu.querySelector('summary').focus()}}}});document.addEventListener('click',e=>{{if(menu.open&&!menu.contains(e.target))menu.open=false}});}})();</script></body></html>"""
 
 def _layout(title: str, body: str, *, refresh_seconds: int = 30, static: bool = False, csrf_token: str = "", public_summary: bool = True,

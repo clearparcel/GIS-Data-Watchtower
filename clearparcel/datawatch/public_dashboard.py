@@ -273,7 +273,17 @@ def render_public_dashboard(config: dict) -> str:
 
 <div class="section-head"><div><h2>System status</h2><p>Worker reports show when monitoring results last arrived. Last success can remain old after a failed or missed run. A fresh public publication does not prove either worker ran recently.</p></div></div>
 <div class="grid worker-grid">{"".join(worker_cards) or '<div class="card muted">System metadata is unavailable.</div>'}</div>
-<div class="card" id="alerts"><h3>Public data boundary</h3><p class="subtext">This read-only site shares dataset availability, record counts, check times, county access research, and MN GAC field-population statistics. It does not distribute parcel datasets or provide live property records. Use the approved official product links in county profiles to obtain data under each provider’s terms.</p><p class="subtext">The public snapshot contains a selected summary of monitoring results. Private connection settings, credentials, internal change-tracking details, and controls for running checks are excluded. Refreshing this page reloads published results; it does not contact GIS providers. Publication time, provider check time, and dataset update time describe different events.</p></div>
+<section class="card public-about" id="about-watchtower" aria-labelledby="watchtower-about-title">
+  <div class="public-about-header">
+    <div class="public-about-heading">
+      <span class="public-about-eyebrow">About this project</span>
+      <h2 id="watchtower-about-title">Making Minnesota GIS data easier to understand.</h2>
+      <p class="public-about-lead"><strong>GIS Data Watchtower is an open-source ClearParcel project</strong> focused on making Minnesota GIS data easier to understand. It brings together public dataset availability, source monitoring, county access research, and Minnesota GAC field-population insights—helping people explore GIS data and see what has changed.</p>
+    </div>
+    <a class="public-about-link" href="https://github.com/clearparcel/GIS-Data-Watchtower" target="_blank" rel="noopener noreferrer" aria-label="View GIS Data Watchtower on GitHub (opens in a new tab)">View on GitHub ↗</a>
+  </div>
+  <p class="public-about-disclaimer"><strong>Disclaimer:</strong> Results are informational, may be incomplete or outdated, and are not official property records or a standards-compliance grade. Confirm current information and reuse terms with the original data provider.</p>
+</section>
 
 <script>
 (function(){{
