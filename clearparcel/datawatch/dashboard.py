@@ -511,11 +511,14 @@ def _gac_county_payload(state: dict, standard_key: str, county_name: str) -> dic
 
 
 def _county_snapshot(config: dict, slug: str, *, include_mngac: bool = True, state: dict | None = None,
-                     profiles: dict | None = None, research: dict | None = None) -> dict | None:
+                     profiles: dict | None = None, research: dict | None = None,
+                     contact_records: dict | None = None) -> dict | None:
     state = _dashboard_state(config) if state is None else state
     county = next((x for x in _load_counties() if x.get("slug") == slug), None)
     if not county:
         return None
+    contact_records = _load_county_contact_records() if contact_records is None else contact_records
+    contact = contact_records.get(county["name"], {}) or {}
     research = load_parcel_access() if research is None else research
     profiles = _county_profiles(config, state, research) if profiles is None else profiles
     info = _county_status(config, county, state, profiles=profiles, research=research)
@@ -577,10 +580,10 @@ def _county_snapshot(config: dict, slug: str, *, include_mngac: bool = True, sta
                 "reporting": x.get("reporting"), "stale": x.get("stale"), "worker_stale": x.get("worker_stale"),
             } for x in info.get("sources", [])
         ],
-        "contacts": _load_county_contacts().get(county["name"], []),
-        "contact_source": (_load_county_contact_records().get(county["name"], {}) or {}).get("authority"),
-        "contact_source_url": (_load_county_contact_records().get(county["name"], {}) or {}).get("source_url"),
-        "contact_verified": (_load_county_contact_records().get(county["name"], {}) or {}).get("verified"),
+        "contacts": contact.get("contacts", []),
+        "contact_source": contact.get("authority"),
+        "contact_source_url": contact.get("source_url"),
+        "contact_verified": contact.get("verified"),
         "mngac": mngac_payload,
         "gac": gac_payload,
         **_snapshot_time_fields(dt.datetime.now(dt.timezone.utc).isoformat(), "snapshot_created"),
@@ -592,8 +595,10 @@ def _statewide_snapshot(config: dict) -> dict:
     research = load_parcel_access()
     profiles = _county_profiles(config, state, research)
     counties = []
+    contact_records = _load_county_contact_records()
     for county in _load_counties():
-        item = _county_snapshot(config, county["slug"], include_mngac=False, state=state, profiles=profiles, research=research)
+        item = _county_snapshot(config, county["slug"], include_mngac=False, state=state, profiles=profiles,
+                                research=research, contact_records=contact_records)
         if item:
             counties.append(item)
     aggregate_sources = []

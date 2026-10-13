@@ -548,6 +548,17 @@ def _json_request(url: str, timeout: int, *, prefer_curl: bool = False) -> tuple
     body, meta = _request(url, timeout, prefer_curl=prefer_curl)
     data = json.loads(body.decode("utf-8-sig"))
     if isinstance(data, dict) and "error" in data:
+        error = data["error"]
+        code = error.get("code") if isinstance(error, dict) else None
+        # ArcGIS can return a refusal inside an HTTP 200 response. Preserve
+        # the same stop signal used by HTTP transport and optional probes.
+        if isinstance(code, str) and re.fullmatch(r"[0-9]{3}", code):
+            code = int(code)
+        if type(code) is int:
+            if code == 429:
+                raise ProviderRateLimitError()
+            if code in _PERMANENT_HTTP_STATUSES | {498, 499}:
+                raise PermanentProviderError(code, f"ArcGIS provider refused request (code {code})")
         raise RuntimeError(f"ArcGIS error: {_safe_diagnostic(data['error'])}")
     return data, meta
 
@@ -863,12 +874,15 @@ def _arcgis_gac_completeness(
             "outStatisticFieldName": "record_count",
         }]
         aliases: dict[str, dict] = {}
+        sum_aliases: set[str] = set()
         for idx, (spec, actual) in enumerate(batch):
             alias = f"p{idx}"
             aliases[alias] = spec
             statistic_type, statistic_field = _gac_statistic(
                 spec, actual, standard_key, text_population_mode=text_mode
             )
+            if statistic_type == "sum":
+                sum_aliases.add(alias)
             stats.append({
                 "statisticType": statistic_type,
                 "onStatisticField": statistic_field,
@@ -904,7 +918,7 @@ def _arcgis_gac_completeness(
                     excluded_county_names.add(raw_county_name)
                 continue
             record_count = _validated_provider_count(
-                int(attrs.get("record_count") or 0),
+                attrs.get("record_count"),
                 label=f"{county_name} GAC {standard_key} row count",
             )
             county_code = (str(attrs.get(code_field) or "").strip() or None) if code_field else None
@@ -918,9 +932,17 @@ def _arcgis_gac_completeness(
                 "fields": {},
             })
             for alias, spec in aliases.items():
+                if alias not in attrs:
+                    raise ValueError(f"missing GAC statistic {alias}")
                 raw = attrs.get(alias)
-                populated = 0 if raw is None else int(raw)
-                populated = max(0, min(populated, record_count))
+                # SQL SUM may be null for an empty group, but a missing or
+                # malformed count must never become a plausible percentage.
+                if raw is None and record_count == 0 and alias in sum_aliases:
+                    raw = 0
+                populated = _validated_provider_count(
+                    raw, label=f"{county_name} GAC {spec['field']} population",
+                    maximum=record_count,
+                )
                 pct = None if record_count == 0 else round(populated / record_count * 100.0, 2)
                 entry["fields"][spec["field"]] = {
                     "populated": populated,

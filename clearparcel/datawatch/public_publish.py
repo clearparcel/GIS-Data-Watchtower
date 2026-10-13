@@ -20,6 +20,7 @@ _FORBIDDEN_PUBLIC_KEYS = {
     "provenance",
     "telemetry",
     "statistics_queries",
+    "gac_check_error",
 }
 
 

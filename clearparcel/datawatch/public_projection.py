@@ -66,7 +66,6 @@ _SOURCE_SCHEMA = {
     **{key: _public_number for key in ('geometry_sample_multipart_percent', 'geometry_sample_avg_vertices', 'elapsed_ms')},
     'status': _public_status,
     'gac_check_status': _public_status,
-    'gac_check_error': lambda value: _metadata_text(value, 280),
     'catalog_observed_at': _public_date,
     **{key: lambda value: value if type(value) is bool else None
        for key in ('catalog_retained', 'catalog_time_inferred')},
