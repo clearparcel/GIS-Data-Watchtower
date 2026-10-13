@@ -24,3 +24,14 @@ Describe public pages, sources, exports, and documentation affected. Add before/
 ## Follow-up or remaining gates
 
 List open issues, unverified acceptance paths, or approvals still needed. Do not claim that source changes are deployed until deployment evidence exists.
+
+## Shared context and independent review
+
+- Implementer / requested reviewer:
+- Exact base/head commits reviewed:
+- Shared-memory revision, relevant IDs/hashes, status/freshness (or unavailable):
+- Findings addressed / remaining gates:
+
+- [ ] Handoff and existing project checks are accurate for this head.
+- [ ] No credentials, raw chats/evidence, capabilities, or confidential client/personal data are included.
+- [ ] Merge, publication, and deployment authority are identified separately.
