@@ -12,6 +12,16 @@ def _esc(value) -> str:
     return html.escape(str(value if value is not None else ""))
 
 
+def _favicon_html() -> str:
+    """Embed packaged icons so private pages and offline exports share the favicon."""
+    return "".join(
+        f'<link rel="icon" type="image/png" sizes="{size}x{size}" href="data:image/png;base64,'
+        + base64.b64encode(Path(__file__).with_name(f"favicon-{size}.png").read_bytes()).decode("ascii")
+        + '">'
+        for size in (16, 32)
+    )
+
+
 _PUBLIC_V2_CSS = """
 .overview-controls{display:flex;flex-wrap:wrap;gap:10px 16px;margin-bottom:10px;align-items:center}
 .overview-controls label{display:inline-flex;align-items:center;gap:8px;white-space:nowrap;max-width:100%}
@@ -164,7 +174,7 @@ def _public_layout_v2(title: str, body: str, *, refresh_seconds: int = 30, publi
     )
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-{refresh_meta}{analytics_script}<title>{_esc(title)}</title><style>{_PUBLIC_V2_CSS}{_TABLE_CSS}</style></head><body>
+{_favicon_html()}{refresh_meta}{analytics_script}<title>{_esc(title)}</title><style>{_PUBLIC_V2_CSS}{_TABLE_CSS}</style></head><body>
 <header class="public-header">
   <div><div class="brand-eyebrow">CLEARPARCEL GIS DATA WATCHTOWER</div><h1>Minnesota Open Data Watchtower</h1></div>
   <div class="live-state"><span class="live-dot"></span><span>PUBLIC · READ ONLY</span>{'<button type="button" id="refresh-pause" aria-pressed="false">Pause refresh</button>' if refresh_seconds else ''}</div>
@@ -208,7 +218,7 @@ def _layout(title: str, body: str, *, refresh_seconds: int = 30, static: bool = 
     page_title = title.replace(" — GIS Data Watchtower", "").replace("GIS Data Watchtower", "Overview")
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-{refresh_meta}
+{_favicon_html()}{refresh_meta}
 <title>{_esc(title)}</title>
 <style>
 :root{{--navy:#10263b;--navy-2:#17324d;--green:#2d6a4f;--bg:#edf2f6;--card:#fff;--text:#17212b;--muted:#64727e;--accent:#0b6fa4;--soft:#f6f8fa;--line:#d9e1e7;--warn:#8a4600;--err:#a3342f;--shadow:0 3px 14px rgb(23 50 77 / 9%);--radius:13px}}

@@ -6,6 +6,10 @@ acceptance. The verified production baseline remains [v0.2.1](release-v0.2.1.md)
 
 ## Review corrections
 
+- Added the owner-supplied Minnesota Watchtower map icon as 16px and 32px PNG
+  favicons. Shared page layouts embed the packaged assets for public, private,
+  and offline pages without adding a remote asset dependency.
+
 - Raw GAC exception text is excluded from public JSON and rejected by the public
   publisher. Public pages retain a generic warning and the last successful GAC
   observation; private diagnostics remain available internally. The review
