@@ -2,6 +2,10 @@
 
 ## Disposition and scope
 
+**Current disposition (October 12):** the candidate fixes below were merged in
+PR #69 and are included in the verified v0.2.1 production release. The following
+review text records the original candidate state, not the current deployment.
+
 The review found two functional defects, a small-control UI issue, and stale or
 overstated documentation. Narrow fixes are prepared on
 `fix/repository-review-20261011`. Repository cleanup is complete for the

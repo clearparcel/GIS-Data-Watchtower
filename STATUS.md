@@ -1,5 +1,15 @@
 # Project status
 
+## GIS Data Watchtower v0.2.2 — approved release candidate, 2026-10-12
+
+The comprehensive review corrections are implemented with regression tests:
+private GAC diagnostic exclusion, ArcGIS refusal stop signals, strict GAC count
+validation, one contact load per export, and single accessible table regions.
+The required GitHub security check and generation-checked retirement of the
+obsolete local worker are complete; all 35 cloud source observations are retained.
+Production deployment is authorized and pending validation. See the
+[v0.2.2 release record](docs/release-v0.2.2.md) for scope and acceptance boundaries.
+
 ## GIS Data Watchtower v0.2.1 — deployed and verified 2026-10-12
 
 User-approved [PR #71](https://github.com/clearparcel/GIS-Data-Watchtower/pull/71) was merged as

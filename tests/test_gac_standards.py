@@ -83,7 +83,7 @@ class GACStandardsTests(unittest.TestCase):
         response = {"features": [{
             "attributes": {
                 "CO_NAME": "Aitkin", "CO_CODE": "27001", "record_count": 10,
-                "p0": 10, "p1": 9, "p2": 8,
+                "p0": 10, "p1": 9, "p2": 8, "p3": 10, "p4": 10,
             }
         }]}
         fields = ["OBJECTID", "CO_NAME", "CO_CODE", "ADD_ID", "ANUMBER", "ST_NAME"]
@@ -108,7 +108,7 @@ class GACStandardsTests(unittest.TestCase):
         response = {"features": [{
             "attributes": {
                 "CO_NAME_L": "Olmsted", "CO_CODE_L": "27109", "record_count": 20,
-                "p0": 20, "p1": 20, "p2": 18,
+                "p0": 20, "p1": 20, "p2": 18, "p3": 20, "p4": 20,
             }
         }]}
         fields = ["OBJECTID", "CO_NAME_L", "CO_CODE_L", "ROADSEG_ID", "ROUTE_SYS", "ST_NAME"]
@@ -130,7 +130,7 @@ class GACStandardsTests(unittest.TestCase):
     def test_nonparcel_text_population_uses_nullif_count_without_second_pass(self):
         fields = ["OBJECTID", "CO_NAME", "ADD_ID", "ST_NAME"]
         response = {"features": [{
-            "attributes": {"CO_NAME": "Aitkin", "record_count": 10, "p0": 8, "p1": 9}
+            "attributes": {"CO_NAME": "Aitkin", "record_count": 10, "p0": 8, "p1": 9, "p2": 10}
         }]}
         with patch.object(
             watch, "_json_request", return_value=(response, {"status": 200})
@@ -210,7 +210,7 @@ class GACStandardsTests(unittest.TestCase):
 
     def test_road_excludes_non_minnesota_groups_and_normalizes_saint_louis(self):
         response = {"features": [
-            {"attributes": {"CO_NAME_L": "Saint Louis", "record_count": 10, "p0": 10}},
+            {"attributes": {"CO_NAME_L": "Saint Louis", "record_count": 10, "p0": 10, "p1": 10}},
             {"attributes": {"CO_NAME_L": "Out of Jurisdiction", "record_count": 5, "p0": 5}},
             {"attributes": {"CO_NAME_L": "Howard", "record_count": 3, "p0": 3}},
         ]}

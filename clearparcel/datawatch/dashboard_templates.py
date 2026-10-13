@@ -83,7 +83,21 @@ def _refresh_script(seconds: int, *, public: bool = False) -> str:
 def _accessible_tables(body: str) -> str:
     import re
     body = re.sub(r"<th\b(?![^>]*scope=)([^>]*)>", r'<th scope="col"\1>', body)
-    return re.sub(r"(<table\b.*?</table>)", r'<div class="table-scroll" tabindex="0" role="region" aria-label="Scrollable data table">\1</div>', body, flags=re.S)
+
+    def wrap(match: re.Match) -> str:
+        opening = (match.group("wrapper") or '<div class="table-scroll">').rstrip()
+        for name, value in (("tabindex", "0"), ("role", "region"), ("aria-label", "Scrollable data table")):
+            if not re.search(rf"\b{name}\s*=", opening):
+                opening = opening[:-1] + f' {name}="{value}">'
+        return opening + match.group("table") + '</div>'
+
+    # Reuse renderer-owned wrappers (including their descriptive labels).
+    # These are controlled templates, not arbitrary provider HTML.
+    return re.sub(
+        r'(?P<wrapper><div\b[^>]*class="table-scroll"[^>]*>\s*)?'
+        r'(?P<table><table\b.*?</table>)(?(wrapper)\s*</div>)',
+        wrap, body, flags=re.S,
+    )
 
 
 _TABLE_CSS = """

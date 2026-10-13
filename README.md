@@ -8,6 +8,10 @@
 
 **[Explore the live public dashboard](https://gis-watchtower.clear-parcel.com/)** · **[User guide](docs/user-guide.md)** · **[Documentation index](docs/README.md)**
 
+The v0.2.2 maintenance candidate corrects public diagnostic sanitization,
+provider refusal handling, statistics validation, export redundancy, and table
+accessibility. See the [release status and verification record](docs/release-v0.2.2.md).
+
 ![Live Watchtower overview with source health, county coverage, and a Minnesota county map](docs/images/watchtower-overview.png)
 
 *Actual public dashboard, captured October 12, 2026. Counts, check times, and field-population percentages change as new observations arrive.*
