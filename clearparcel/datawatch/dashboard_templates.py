@@ -116,6 +116,13 @@ _TABLE_CSS = """
 .public-nav-row{display:flex;align-items:center;position:sticky;top:88px;z-index:20;background:#080b12ed;margin-bottom:24px;border-bottom:1px solid var(--line)}
 .public-nav-row .public-tabs{position:static;flex:1;min-width:0;margin:0;border:0}.public-nav-row .public-tools{position:relative;flex:none;padding:0 8px}
 @media(max-width:760px){.public-header{height:88px;gap:8px}.public-header>div:first-child{min-width:0;flex:1}.public-header h1{font-size:17px;line-height:1.2}.brand-eyebrow{letter-spacing:1px}.live-state{flex:none;gap:6px}.live-state>span:not(.live-dot){display:none}.live-state button{font-size:12px;max-width:110px;white-space:normal}.public-nav-row{top:88px;margin:0 -12px 18px}.public-nav-row .public-tabs{margin:0;padding:0 12px}.public-nav-row .public-tools{margin-left:0}}
+.public-brand{display:flex;align-items:center;gap:14px;min-width:0;color:inherit;text-decoration:none}
+.public-brand:hover{text-decoration:none}
+.public-brand-logo{display:block;width:54px;height:54px;flex:none;object-fit:contain;border-radius:9px}
+.public-brand-title{min-width:0}
+@media(max-width:760px){.public-header>.public-brand{min-width:0;flex:1}.public-brand{gap:10px}.public-brand-logo{width:44px;height:44px}}
+@media(max-width:430px){.public-brand{gap:8px}.public-brand-logo{width:38px;height:38px}.public-brand-title .brand-eyebrow{display:none}.public-header h1{font-size:16px;line-height:1.15}}
+
 """
 
 
@@ -127,6 +134,8 @@ def _public_layout_v2(title: str, body: str, *, refresh_seconds: int = 30, publi
     build_label = identity["revision"][:7] or "unknown"
     release_label = f'v{identity["version"]}' if identity["version"] != "unknown" else "Version unavailable"
     logo_src = "data:image/png;base64," + base64.b64encode(Path(__file__).with_name("clearparcel-logo-transparent.png").read_bytes()).decode("ascii")
+    watchtower_logo_src = "data:image/webp;base64," + base64.b64encode(Path(__file__).with_name("watchtower-logo.webp").read_bytes()).decode("ascii")
+    brand_href = "index.html" if static_bundle else "/"
     lower = title.lower()
     active = "mngac" if "gac" in lower else "sources" if "source" in lower else "counties" if "county" in lower or "counties" in lower else "overview"
     tabs = ([
@@ -176,7 +185,10 @@ def _public_layout_v2(title: str, body: str, *, refresh_seconds: int = 30, publi
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 {_favicon_html()}{refresh_meta}{analytics_script}<title>{_esc(title)}</title><style>{_PUBLIC_V2_CSS}{_TABLE_CSS}</style></head><body>
 <header class="public-header">
-  <div><div class="brand-eyebrow">CLEARPARCEL GIS DATA WATCHTOWER</div><h1>Minnesota Open Data Watchtower</h1></div>
+  <a class="public-brand" href="{brand_href}" aria-label="GIS Data Watchtower overview">
+    <img class="public-brand-logo" src="{watchtower_logo_src}" width="54" height="54" alt="GIS Data Watchtower logo" decoding="async">
+    <div class="public-brand-title"><div class="brand-eyebrow">CLEARPARCEL GIS DATA WATCHTOWER</div><h1>Minnesota Open Data Watchtower</h1></div>
+  </a>
   <div class="live-state"><span class="live-dot"></span><span>PUBLIC · READ ONLY</span>{'<button type="button" id="refresh-pause" aria-pressed="false">Pause refresh</button>' if refresh_seconds else ''}</div>
 </header>
 <main class="public-main">
