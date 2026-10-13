@@ -91,12 +91,12 @@ Developers can use the [documentation index](docs/README.md), [contribution guid
 
 ## Releases and project status
 
-**GIS Data Watchtower v0.2.1 is live**, deployed October 12, 2026, from
-merged source `9dbf659`. The public footer now displays the clean
+**GIS Data Watchtower v0.2.2 is live**, deployed October 12, 2026, from
+merged source `aba3d23`. The public footer now displays the clean
 version label; the About section explains the open-source ClearParcel
 mission, links to GitHub, and provides a concise disclaimer.
 
-- **[Current production release and rollback evidence](docs/release-v0.2.1.md)** — v0.2.1 images, revisions, and acceptance
+- **[Current production release and rollback evidence](docs/release-v0.2.2.md)** — v0.2.2 images, revisions, and acceptance
 - **[Validated operational status](STATUS.md)** — current monitoring and remaining gates
 - **[GitHub releases](https://github.com/clearparcel/GIS-Data-Watchtower/releases)** — versioned summaries
 - **[Documentation index](docs/README.md)** — user guides, methodology, engineering references and dated history
@@ -104,8 +104,11 @@ mission, links to GitHub, and provides a concise disclaimer.
   **[October 11 correction](docs/release-county-percentage-fix-2026-10-11.md)** — retained history
 
 Earlier merged PR #69 static-output/provider retry corrections also ship in
-this v0.2.1 application image. Deploying the dashboard did **not** update
-the independent GIS-provider worker job image, source registries, or schedules.
+the v0.2.2 application image. The coordinated v0.2.2 release updated both
+dashboard services and the existing provider/publisher job images without
+changing source registries, security settings, or schedules.
+
+A proposed v0.2.3 branding update replaces the favicon with the supplied blue-background artwork and adds the supplied dark-background logo beside the public header title. It is not yet deployed.
 
 This is a **pre-1.0** project. Open issues may represent documented
 provider-policy, privacy, and observation gates rather than defects.
