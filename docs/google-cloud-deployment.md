@@ -1,19 +1,21 @@
 # Google Cloud deployment
 
-The current production application is **v0.2.2**, deployed October 12 from
-merged source `aba3d23b28ccf93b0de56b4b1b50d2518e3ffd43`.
-Cloud Build `d4beed3e-d2a0-43f3-9e41-fff79f38e50c` produced verified
-immutable images. Public revision `00018-4vx` and private revision
-`00025-7pf` are Ready at 100% traffic. Both the provider job and public
-publisher job use the v0.2.2 application image. Non-image runtime settings,
-authentication, source observations, and both schedules are unchanged.
-The obsolete local worker was retired with CAS; all 35 sources remain cloud-owned.
+The current production dashboard application is **v0.2.3**, deployed
+October 13 from merged source `f95d9315510497ae25cfd058f9a175b240b6debd`.
+Cloud Build `78969f3e-021f-41f6-8704-8c7133f21e3a` built verified
+immutable images. Public revision `00019-4zl` and private revision
+`00026-6gg` are Ready at 100% traffic. The new logo and favicon are
+verified on the public site. Non-image runtime settings, ingress, private
+authentication, IAM, source observations, and both schedules were preserved.
+The provider and public-publisher **jobs remain on the v0.2.2 image** and were
+not redeployed for this branding-only change. All 35 sources remain cloud-owned.
 The isolated preview remains on v0.2.1 revision `00021-747` and was not changed.
-See [v0.2.2 release and rollback evidence](release-v0.2.2.md)
-for exact image digests, acceptance, and rollback instructions.
+See [v0.2.3 release and rollback evidence](release-v0.2.3.md).
 
-The immediate service rollback baseline is v0.2.1: public `00016-dck` and
-private `00023-2h9`. The release record also retains the preceding job digests.
+The immediate service rollback baseline is v0.2.2: public `00018-4vx` and
+private `00025-7pf`. The [v0.2.2 release record](release-v0.2.2.md)
+retains its image digests, the earlier v0.2.1 rollback references, and
+the existing provider/publisher job image evidence.
 
 The prior October 11 v0.2.0 deployment remains a historical rollback baseline:
 public `00015-cjp`, private `00022-pts`, preview `00020-qds`.

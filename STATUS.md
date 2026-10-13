@@ -1,5 +1,24 @@
 # Project status
 
+## GIS Data Watchtower v0.2.3 — deployed and verified, 2026-10-13
+
+The user-approved branding PR #77 merged at `f95d9315510497ae25cfd058f9a175b240b6debd`.
+Both public and private Cloud Run dashboard services now serve v0.2.3 at 100%
+traffic: public `00019-4zl` and private `00026-6gg`. The public header now
+shows the supplied dark-background Watchtower logo beside the title, and both
+packaged favicons use the supplied blue-background artwork. Responsive styling
+and static-export links are covered by regression tests.
+
+All seven GitHub checks passed, Cloud Build `78969f3e-021f-41f6-8704-8c7133f21e3a`
+passed all six steps, and live Overview, Counties, MN GAC, and health checks
+returned HTTP 200. The deployed logo and both favicon assets matched packaged
+bytes. Exports retained 35 sources, 87 counties, 350 parcel-source rows, and
+12 workbook sheets. Private anonymous access still redirects to Google sign-in.
+The verified private wrapper, IAM, ingress, non-image runtime configuration,
+provider and publisher job images, and both schedules remain unchanged.
+Earlier v0.2.2 service revisions are retained for rollback. See the
+[full v0.2.3 release record](docs/release-v0.2.3.md).
+
 ## GIS Data Watchtower v0.2.2 — deployed and verified, 2026-10-12
 
 The comprehensive review corrections are implemented with regression tests:

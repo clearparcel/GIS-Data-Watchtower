@@ -91,12 +91,13 @@ Developers can use the [documentation index](docs/README.md), [contribution guid
 
 ## Releases and project status
 
-**GIS Data Watchtower v0.2.1 is live**, deployed October 12, 2026, from
-merged source `9dbf659`. The public footer now displays the clean
-version label; the About section explains the open-source ClearParcel
-mission, links to GitHub, and provides a concise disclaimer.
+**GIS Data Watchtower v0.2.3 is live**, deployed October 13, 2026,
+from merged source `f95d931`. The supplied Watchtower logo now appears
+beside the public header title, and the supplied favicon is used throughout.
+The footer displays only the version number; the About section explains
+the open-source ClearParcel mission, disclaimer, and GitHub link.
 
-- **[Current production release and rollback evidence](docs/release-v0.2.1.md)** — v0.2.1 images, revisions, and acceptance
+- **[Current production release and rollback evidence](docs/release-v0.2.3.md)** — v0.2.3 images, revisions, and acceptance
 - **[Validated operational status](STATUS.md)** — current monitoring and remaining gates
 - **[GitHub releases](https://github.com/clearparcel/GIS-Data-Watchtower/releases)** — versioned summaries
 - **[Documentation index](docs/README.md)** — user guides, methodology, engineering references and dated history
@@ -104,8 +105,11 @@ mission, links to GitHub, and provides a concise disclaimer.
   **[October 11 correction](docs/release-county-percentage-fix-2026-10-11.md)** — retained history
 
 Earlier merged PR #69 static-output/provider retry corrections also ship in
-this v0.2.1 application image. Deploying the dashboard did **not** update
-the independent GIS-provider worker job image, source registries, or schedules.
+the v0.2.2 application image. The coordinated v0.2.2 release updated both
+dashboard services and the existing provider/publisher job images without
+changing source registries, security settings, or schedules.
+
+The v0.2.3 rollout updated only the public/private dashboard services; the existing GIS-provider and public-publisher jobs, their v0.2.2 images, monitoring schedules, and security boundaries were preserved. The [v0.2.2 release](docs/release-v0.2.2.md) remains the immediate rollback baseline.
 
 This is a **pre-1.0** project. Open issues may represent documented
 provider-policy, privacy, and observation gates rather than defects.
