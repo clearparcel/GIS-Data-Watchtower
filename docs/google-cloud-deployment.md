@@ -1,15 +1,21 @@
 # Google Cloud deployment
 
-The current production application is **v0.2.1**, deployed October 12 from
-merged source `9dbf6597f76aacf64e2ecbe55ba62d5757185921`.
-Cloud Build `c4be7733-8784-4d3b-ba7e-b1c06097af6d` produced verified
-immutable images. Public revision `00016-dck`, private revision
-`00023-2h9`, and isolated preview `00021-747` are Ready at
-100% traffic, preserving non-image settings and authentication.
-See [v0.2.1 release and rollback evidence](release-v0.2.1.md)
+The current production application is **v0.2.2**, deployed October 12 from
+merged source `aba3d23b28ccf93b0de56b4b1b50d2518e3ffd43`.
+Cloud Build `d4beed3e-d2a0-43f3-9e41-fff79f38e50c` produced verified
+immutable images. Public revision `00018-4vx` and private revision
+`00025-7pf` are Ready at 100% traffic. Both the provider job and public
+publisher job use the v0.2.2 application image. Non-image runtime settings,
+authentication, source observations, and both schedules are unchanged.
+The obsolete local worker was retired with CAS; all 35 sources remain cloud-owned.
+The isolated preview remains on v0.2.1 revision `00021-747` and was not changed.
+See [v0.2.2 release and rollback evidence](release-v0.2.2.md)
 for exact image digests, acceptance, and rollback instructions.
 
-The prior October 11 v0.2.0 deployment remains the immediate rollback baseline:
+The immediate service rollback baseline is v0.2.1: public `00016-dck` and
+private `00023-2h9`. The release record also retains the preceding job digests.
+
+The prior October 11 v0.2.0 deployment remains a historical rollback baseline:
 public `00015-cjp`, private `00022-pts`, preview `00020-qds`.
 See [its historical release record](release-county-percentage-fix-2026-10-11.md).
 
