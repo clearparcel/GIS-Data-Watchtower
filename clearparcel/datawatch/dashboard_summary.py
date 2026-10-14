@@ -1,5 +1,6 @@
 """Small, sanitized dashboard contracts shared by charts and refresh checks."""
 from __future__ import annotations
+from clearparcel.datawatch.csp import SCRIPT_TAG
 
 import datetime as dt
 import hashlib
@@ -181,4 +182,4 @@ def render_diagnostics(summary: dict) -> str:
             '<div class="table-scroll" tabindex="0" role="region" aria-label="Three-standard comparison"><table><thead><tr><th scope="col">Standard</th><th scope="col">County coverage</th><th scope="col">Record denominator</th><th scope="col">Mandatory population</th><th scope="col">Median county</th><th scope="col">Scan scope</th><th scope="col">Observation</th></tr></thead>'
             f'<tbody>{"".join(rows)}</tbody></table></div>{road_note}<a href="/snapshot.xlsx">Download standards workbook</a></div>'
             '<div class="card"><label for="gap-standard">Field-gap standard</label><select id="gap-standard"><option value="parcel">Parcels</option><option value="address">Address points</option><option value="road">Road centerlines</option></select>'
-            + "".join(gaps) + '</div><script>document.getElementById("gap-standard").addEventListener("change",event=>{document.querySelectorAll("[data-gap-standard]").forEach(section=>{section.hidden=section.dataset.gapStandard!==event.target.value})});</script>')
+            + "".join(gaps) + '</div>' + SCRIPT_TAG + 'document.getElementById("gap-standard").addEventListener("change",event=>{document.querySelectorAll("[data-gap-standard]").forEach(section=>{section.hidden=section.dataset.gapStandard!==event.target.value})});</script>')

@@ -1,4 +1,5 @@
 from __future__ import annotations
+from clearparcel.datawatch.csp import SCRIPT_TAG
 
 import datetime as dt
 import hashlib
@@ -41,6 +42,7 @@ from clearparcel.datawatch.public_values import sanitize_source_metadata
 from clearparcel.datawatch.build_info import application_identity
 from clearparcel.datawatch.gac_standards import normalize_standard_key
 from clearparcel.datawatch.analytics import posthog_csp_sources
+from clearparcel.datawatch.csp import secure_html, strip_markers
 from clearparcel.datawatch.dashboard_summary import summary_for, render_diagnostics
 from clearparcel.datawatch.public_details import dispatch_public_details, encode_response
 
@@ -253,7 +255,7 @@ def render_public_dashboard(config: dict) -> str:
 
 <div class="section-head"><div><h2>Data sources</h2><p>Dataset and service checks across all data types. A statewide parcel service covers multiple counties; source entries and county coverage are different counts.</p></div><span>{len(sources)} dataset/service entries · {monitoring["active"]} counties with parcel observations</span></div>
 <div class="card" id="datasets">
-  <div class="filters"><input id="q" aria-label="Search data sources" placeholder="Search data sources…" oninput="filterRows()"><select id="health" aria-label="Source health" onchange="filterRows()"><option value="">All statuses</option><option>ok</option><option>warn</option><option>error</option></select></div>
+  <div class="filters"><input id="q" aria-label="Search data sources" placeholder="Search data sources…"><select id="health" aria-label="Source health"><option value="">All statuses</option><option>ok</option><option>warn</option><option>error</option></select></div>
   <table><thead><tr><th>Data source</th><th>Provided by</th><th>Status</th><th>Records</th><th>Changes</th><th>Last success</th></tr></thead><tbody>{"".join(rows)}</tbody></table>
 </div>
 
@@ -271,7 +273,7 @@ def render_public_dashboard(config: dict) -> str:
   <p class="public-about-disclaimer"><strong>Disclaimer:</strong> Results are informational, may be incomplete or outdated, and are not official property records or a standards-compliance grade. Confirm current information and reuse terms with the original data provider.</p>
 </section>
 
-<script>
+{SCRIPT_TAG}
 (function(){{
   const countyData={map_json};
   const root=document;
@@ -352,6 +354,8 @@ function filterRows(){{
   const q=document.getElementById('q').value.toLowerCase(),h=document.getElementById('health').value;
   document.querySelectorAll('#datasets tbody tr').forEach(r=>r.style.display=(!q||r.dataset.name.includes(q))&&(!h||r.dataset.status===h)?'':'none');
 }}
+document.getElementById('q').addEventListener('input',filterRows);
+document.getElementById('health').addEventListener('change',filterRows);
 </script>
 {profile_panel}
 """
@@ -583,6 +587,13 @@ def serve_public(host: str = "0.0.0.0", port: int = 8080) -> None:
                 revision = getattr(self, "_render_revision", None)
                 if revision:
                     content = content.replace("</head>", '<meta data-content-revision="' + revision + '"></head>', 1)
+            analytics_sources = posthog_csp_sources()
+            # Only scripts our templates wrote are allowed (by hash); markers are
+            # removed from every response so the per-process secret never leaves.
+            content, csp_header = secure_html(
+                content if content_type.startswith("text/html") else strip_markers(content),
+                script_origins=(analytics_sources[0],) if analytics_sources else (),
+                connect_origins=(analytics_sources[1],) if analytics_sources else ())
             raw = content.encode("utf-8")
             status, raw, headers = encode_response(status, raw, content_type,
                 self.headers.get("Accept-Encoding", ""), self.headers.get("If-None-Match"))
@@ -597,19 +608,7 @@ def serve_public(host: str = "0.0.0.0", port: int = 8080) -> None:
             self.send_header("X-Frame-Options", "DENY")
             self.send_header("Referrer-Policy", "no-referrer")
             self.send_header("X-Robots-Tag", "noindex, nofollow")
-            analytics_sources = posthog_csp_sources()
-            script_src = "script-src 'self' 'unsafe-inline'"
-            connect_src = "connect-src 'self'"
-            if analytics_sources:
-                script_origin, api_origin = analytics_sources
-                script_src += f" {script_origin}"
-                connect_src += f" {api_origin}"
-            self.send_header(
-                "Content-Security-Policy",
-                "default-src 'self'; style-src 'self' 'unsafe-inline'; "
-                + script_src + "; " + connect_src
-                + "; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'",
-            )
+            self.send_header("Content-Security-Policy", csp_header)
             self.end_headers()
             if self.command != "HEAD":
                 self.wfile.write(raw)

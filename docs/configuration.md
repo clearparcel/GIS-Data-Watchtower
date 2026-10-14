@@ -210,6 +210,22 @@ dedicated project has **Discard client IP data** enabled. The public CSP adds
 only the configured PostHog script and ingestion origins, and only while the
 token is configured.
 
+## Content Security Policy
+
+Both dashboards send a Content-Security-Policy whose `script-src` lists
+`'self'` plus the SHA-256 hash of each inline script that Watchtower's
+templates wrote (`clearparcel/datawatch/csp.py`). It never includes
+`'unsafe-inline'`. Templates open their scripts with `csp.SCRIPT_TAG`, which
+carries a marker attribute whose name is random per process. Before a response
+is sent, `secure_html()` hashes only the marked scripts and removes the
+marker, so a `<script>` that reached the page through data is not hashed and
+does not run. The pages use no inline event-handler attributes, so injected
+handlers are blocked too. New inline scripts must use `SCRIPT_TAG`, and
+`tests/test_csp.py` checks every rendered page. Hashes come from the response
+body, so cached pages and 304 revalidation keep working. The policy also sets
+`object-src 'none'`, `base-uri 'none'`, `frame-ancestors 'none'` and
+`form-action 'self'`. Inline styles still use `'unsafe-inline'`.
+
 ## Dependency and build reproducibility
 
 `constraints.txt` pins the resolved Python runtime dependency set. Docker builds

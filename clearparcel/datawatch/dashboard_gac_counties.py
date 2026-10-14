@@ -1,5 +1,6 @@
 """County-first MN GAC navigation over saved observations only."""
 from __future__ import annotations
+from clearparcel.datawatch.csp import SCRIPT_TAG
 
 import html
 import re
@@ -163,7 +164,7 @@ def render_county_results(config: dict, standard_key: str, county: dict | None) 
 <div class="filters"><input id="gac-field-search" type="search" placeholder="Find a field" aria-label="Find a county field"><select id="gac-field-inclusion" aria-label="Filter field inclusion"><option value="">All inclusion categories</option><option>Mandatory</option><option>Conditional</option><option>If Available</option><option>Optional</option></select></div>
 <div class="table-scroll"><table class="gac-field-table" id="gac-county-fields"><caption>{esc(name)} County — {LABELS[standard_key]} field population</caption><thead><tr><th>Field</th><th>Section</th><th>Inclusion</th><th>Source schema</th><th>Population scan</th><th>Populated</th><th>County records</th><th>Population</th></tr></thead><tbody>{''.join(rows)}</tbody></table></div>
 <p id="gac-no-fields" hidden role="status">No fields match these filters.</p></section>
-<script>(function(){{const q=document.getElementById('gac-field-search'),i=document.getElementById('gac-field-inclusion');function filter(){{let visible=0;document.querySelectorAll('#gac-county-fields tbody tr').forEach(r=>{{const show=r.dataset.name.includes(q.value.toLowerCase())&&(!i.value||r.dataset.inclusion===i.value);r.hidden=!show;if(show)visible++}});document.getElementById('gac-no-fields').hidden=visible>0}}q.addEventListener('input',filter);i.addEventListener('change',filter)}})();</script>'''
+{SCRIPT_TAG}(function(){{const q=document.getElementById('gac-field-search'),i=document.getElementById('gac-field-inclusion');function filter(){{let visible=0;document.querySelectorAll('#gac-county-fields tbody tr').forEach(r=>{{const show=r.dataset.name.includes(q.value.toLowerCase())&&(!i.value||r.dataset.inclusion===i.value);r.hidden=!show;if(show)visible++}});document.getElementById('gac-no-fields').hidden=visible>0}}q.addEventListener('input',filter);i.addEventListener('change',filter)}})();</script>'''
         if standard_key == 'parcel':
             assessments = [direct_schema_assessment(sid, item) for sid, item in sorted((state.get('sources') or {}).items())
                            if item.get('category') == 'Parcels' and item.get('county_slug') == slug]

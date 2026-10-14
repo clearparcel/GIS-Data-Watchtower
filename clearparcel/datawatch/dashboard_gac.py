@@ -1,4 +1,5 @@
 from __future__ import annotations
+from clearparcel.datawatch.csp import SCRIPT_TAG
 
 import json
 import urllib.parse
@@ -222,7 +223,7 @@ def _render_gac_standard(config: dict, standard_key: str, county: dict | None = 
   <div class="mngac-table-wrap"><table id="mngac-fields"><thead><tr><th>Field</th><th>Section</th><th>Inclusion</th><th>Source schema</th><th>Population scan</th><th>Populated records</th><th>Statewide population</th><th>Median county populated %</th></tr></thead><tbody>{"".join(field_rows)}</tbody></table></div>
 </div>
 <script type="application/json" id="mngac-data">{payload_json}</script>
-<script>
+{SCRIPT_TAG}
 (function(){{
  const root=document,data=JSON.parse(root.getElementById('mngac-data').textContent),
  metric=root.getElementById('mngac-metric'),paths=[...root.querySelectorAll('.mngac-county')],
@@ -412,7 +413,7 @@ def render_mngac(config: dict, standard_key: str = "parcel", *, county: str = ''
   </tr></thead><tbody>{"".join(field_rows)}</tbody></table></div>
 </div>
 <script type="application/json" id="mngac-data">{payload_json}</script>
-<script>
+{SCRIPT_TAG}
 (function(){{
   const root=document;
   const data=JSON.parse(root.getElementById('mngac-data').textContent);
@@ -494,7 +495,7 @@ def _render_county_mngac(state: dict, county: dict) -> str:
   <div class="filters"><input id="cmq" placeholder="Filter MNGAC fields…" aria-label="Filter county MNGAC fields"><select id="cmi" aria-label="Filter county inclusion category"><option value="">All inclusion categories</option><option>Mandatory</option><option>Conditional</option><option>If Available</option><option>Optional</option></select></div>
   <div class="mngac-table-wrap"><table id="county-mngac-fields"><thead><tr><th>Field</th><th>Section</th><th>Inclusion</th><th>Source schema</th><th>Population scan</th><th>Populated</th><th>Records</th><th>Population</th></tr></thead><tbody>{rows}</tbody></table></div>
 </div>
-<script>(function(){{const q=document.getElementById('cmq'),i=document.getElementById('cmi');function f(){{const t=(q.value||'').toLowerCase(),c=i.value;document.querySelectorAll('#county-mngac-fields tbody tr').forEach(r=>r.style.display=(!t||r.dataset.name.includes(t))&&(!c||r.dataset.inclusion===c)?'':'none')}}q.addEventListener('input',f);i.addEventListener('change',f)}})();</script>
+{SCRIPT_TAG}(function(){{const q=document.getElementById('cmq'),i=document.getElementById('cmi');function f(){{const t=(q.value||'').toLowerCase(),c=i.value;document.querySelectorAll('#county-mngac-fields tbody tr').forEach(r=>r.style.display=(!t||r.dataset.name.includes(t))&&(!c||r.dataset.inclusion===c)?'':'none')}}q.addEventListener('input',f);i.addEventListener('change',f)}})();</script>
 """
 
 def _render_county_gac_summaries(state: dict, county: dict) -> str:

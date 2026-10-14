@@ -1,5 +1,6 @@
 """Shared, offline county profile markup and accessible map dialog."""
 from __future__ import annotations
+from clearparcel.datawatch.csp import SCRIPT_TAG
 import datetime as dt
 import html
 import json
@@ -184,7 +185,7 @@ def render_inline_county_panel(*, revision: str) -> str:
 #home-county-infographics .subtext{font-size:11px;margin:9px 0 0;color:#a9b9ce}
 #home-county-profile .direct-gac-schema{margin-top:16px;border-top:1px solid #33445a;padding-top:10px}#home-county-profile .direct-gac-schema h3{font-size:16px}#home-county-profile .direct-gac-schema p{font-size:13px;margin:8px 0}
 </style>
-<script>
+''' + SCRIPT_TAG + r'''
 (function(){
   const content=document.getElementById('home-county-profile'),status=document.getElementById('home-county-profile-status');
   const fragments=new Map();let request=0,controller=null;
@@ -250,7 +251,7 @@ def render_county_profile_panel(profiles: dict[str, dict], *, revision: str | No
 #county-profile-dialog{color:#e0e7f2;background:#0d1522;border:1px solid #52647c;border-radius:14px;width:min(940px,calc(100vw - 24px));max-width:calc(100vw - 24px);max-height:90dvh;overflow-y:auto;padding:0;box-sizing:border-box}#county-profile-dialog::backdrop{background:#020710bb}#county-profile-dialog .profile-toolbar{position:sticky;top:0;z-index:2;display:flex;justify-content:flex-end;background:#0d1522;padding:10px;border-bottom:1px solid #33445a}#county-profile-dialog button{color:#fff;background:#263d59;border:1px solid #74869b;border-radius:6px;padding:8px 14px}#county-profile-content{padding:18px;overflow-wrap:anywhere}#county-profile-dialog section{border-top:1px solid #33445a;margin-top:18px;padding-top:12px}#county-profile-dialog dl{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}#county-profile-dialog dl>div{min-width:0}#county-profile-dialog dt{font-size:12px;color:#a9b9ce}#county-profile-dialog dd{margin:4px 0;font-size:14px}#county-profile-dialog .profile-source{padding:12px;background:#131e2e;border:1px solid #33445a;border-radius:8px;margin:12px 0}#county-profile-dialog a{color:#8bbdff}#county-profile-dialog h4{margin:0 0 12px}@media(max-width:600px){#county-profile-dialog dl{grid-template-columns:minmax(0,1fr)}#county-profile-content{padding:12px}}
 </style>
 <dialog id="county-profile-dialog" aria-label="County parcel source profile"><div class="profile-toolbar"><button type="button" id="county-profile-close" autofocus>Close ×</button></div><div id="county-profile-content"></div></dialog>
-<script>
+''' + SCRIPT_TAG + r'''
 (function(){
   const dialog=document.getElementById('county-profile-dialog'),content=document.getElementById('county-profile-content');
   let opener=null,scroll=0,request=0;

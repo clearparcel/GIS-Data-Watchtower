@@ -24,6 +24,7 @@ from clearparcel.datawatch.transport import RequestDeadline
 from clearparcel.datawatch.aggregate import with_freshness
 from clearparcel.datawatch.parcel_access import access_label, load_parcel_access, statewide_access_label
 from clearparcel.datawatch.public_values import safe_public_url
+from clearparcel.datawatch.csp import secure_html, strip_markers
 from clearparcel.datawatch.county_profile_panel import render_county_profile_body, percentage_patterns, research_summary
 from clearparcel.datawatch.county_profile_exports import county_profiles_csv, parcel_sources_csv
 from clearparcel.datawatch.county_profiles import FreshnessPolicy, compose_county_profiles, county_profile_counts
@@ -751,9 +752,9 @@ def build_static_site(config: dict, output_dir: str | Path) -> dict:
             f'<div class="card"><h2>About this data</h2><p><strong>Provided by:</strong> {_esc(src.get("provider") or "—")}<br>' \
             f'<strong>Data type:</strong> {_esc(src.get("category") or "—")}<br><strong>Last checked:</strong> {_esc(src.get("checked_at") or "—")}<br>' \
             f'<strong>Changes found this check:</strong> {_esc(src.get("change_count", 0))}</p></div>'
-        (output / filename).write_text(
+        (output / filename).write_text(strip_markers(
             _layout(f'Watchtower — {src.get("name") or sid}', detail, refresh_seconds=300,
-                    static=True, public_summary=False, static_bundle=True),
+                    static=True, public_summary=False, static_bundle=True)),
             encoding="utf-8",
         )
 
@@ -765,7 +766,7 @@ def build_static_site(config: dict, output_dir: str | Path) -> dict:
         '<div class="card"><h2>Data being watched</h2><table><thead><tr><th>Data source</th><th>Status</th><th>Provided by</th><th>Type</th><th>Records</th><th>Changes found</th><th>Last checked</th></tr></thead><tbody>' + "".join(rows) + "</tbody></table></div>"
     page = _layout("GIS Data Watchtower", body, refresh_seconds=300, static=True,
                    public_summary=False, static_bundle=True)
-    (output / "index.html").write_text(page, encoding="utf-8")
+    (output / "index.html").write_text(strip_markers(page), encoding="utf-8")
     (output / "state.json").write_text(json.dumps(public, indent=2), encoding="utf-8")
     return {"output_dir": str(output), "source_count": len(sources), "files": len(sources) + 2}
 
@@ -916,6 +917,8 @@ def serve(config: dict, host: str = "127.0.0.1", port: int = 8765) -> None:
             return True
 
         def _send(self, status: int, content: str, content_type: str = "text/html; charset=utf-8"):
+            # Only scripts our templates wrote are allowed (by hash); markers never leave.
+            content, csp_header = secure_html(content if content_type.startswith("text/html") else strip_markers(content))
             raw = content.encode("utf-8")
             self.send_response(status); self.send_header("Content-Type", content_type)
             self.send_header("Content-Length", str(len(raw)))
@@ -923,7 +926,7 @@ def serve(config: dict, host: str = "127.0.0.1", port: int = 8765) -> None:
             self.send_header("X-Content-Type-Options", "nosniff")
             self.send_header("X-Frame-Options", "DENY")
             self.send_header("Referrer-Policy", "no-referrer")
-            self.send_header("Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'")
+            self.send_header("Content-Security-Policy", csp_header)
             self.end_headers(); self.wfile.write(raw)
 
         def _send_bytes(self, status: int, raw: bytes, content_type: str, filename: str):
