@@ -158,8 +158,6 @@ def _table_labels(body: str) -> list[str]:
 
 
 _TABLE_TAG = re.compile(r"<(/?)table\b[^<>]*>", re.IGNORECASE)
-_TBODY_TAG = re.compile(r"</?tbody\b", re.IGNORECASE)
-_UNSCOPED_TH = re.compile(r"<th\b(?![^<>]*\bscope=)([^<>]*)>", re.IGNORECASE)
 
 
 def _scroll_wrapper_tag(segment: str) -> str | None:
@@ -179,6 +177,37 @@ def _closing_div_end(body: str, position: int) -> int | None:
     while index < len(body) and body[index].isspace():
         index += 1
     return index + 6 if body.startswith("</div>", index) else None
+
+
+_SCOPE_EVENT = re.compile(r"<(/?)(table|tbody)\b[^<>]*>|<th\b(?![^<>]*\bscope=)([^<>]*)>", re.IGNORECASE)
+
+
+def _scope_headers(body: str) -> str:
+    """Add scope to unscoped <th> cells in one ordered pass.
+
+    A stack holds, for each open table, whether it is inside a <tbody>, so a
+    nested table cannot change the scope of its parent's later headers.
+    """
+    stack: list[bool] = []
+    pieces, cursor = [], 0
+    for match in _SCOPE_EVENT.finditer(body):
+        closing, tag, th_attrs = match.group(1), (match.group(2) or "").lower(), match.group(3)
+        if tag == "table":
+            if closing:
+                if stack:
+                    stack.pop()
+            else:
+                stack.append(False)
+            continue
+        if tag == "tbody":
+            if stack:
+                stack[-1] = not closing
+            continue
+        in_body = bool(stack and stack[-1])
+        pieces += [body[cursor:match.start()], f'<th scope="{"row" if in_body else "col"}"{th_attrs}>']
+        cursor = match.end()
+    pieces.append(body[cursor:])
+    return "".join(pieces)
 
 
 def _table_spans(body: str) -> list[tuple[int, int]]:
@@ -204,17 +233,7 @@ def _accessible_tables(body: str) -> str:
     one, and its region label, from the nearest preceding heading. Every scan
     is linear in the size of the page.
     """
-    import bisect
-
-    marks = [(m.start(), not m.group(0).startswith("</")) for m in _TBODY_TAG.finditer(body)]
-    positions = [pos for pos, _ in marks]
-
-    def scope(match: re.Match) -> str:
-        index = bisect.bisect_right(positions, match.start()) - 1
-        in_body = index >= 0 and marks[index][1]
-        return f'<th scope="{"row" if in_body else "col"}"{match.group(1)}>'
-
-    body = _UNSCOPED_TH.sub(scope, body)
+    body = _scope_headers(body)
     labels = _table_labels(body)
     pieces, cursor = [], 0
     for (start, end), label in zip(_table_spans(body), labels):

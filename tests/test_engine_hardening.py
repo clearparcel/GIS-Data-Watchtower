@@ -267,7 +267,9 @@ class DashboardTests(unittest.TestCase):
             dashboard.build_static_site({}, td)
             page = (Path(td) / "index.html").read_text(encoding="utf-8")
         self.assertNotIn("<script>x", page)
-        self.assertIn('<div class="metric">2 / 0</div>', page)
+        # Malformed or missing counts are unavailable, never a measured zero.
+        self.assertIn('<div class="metric">2 / —</div>', page)
+        self.assertIn('<div class="metric ok">—</div>', page)
 
     def test_private_links_use_the_public_url_sanitizer(self):
         self.assertEqual(dashboard._safe_url("https://gis.example.gov/x"), "https://gis.example.gov/x")

@@ -79,6 +79,8 @@ _SOURCE_SCHEMA = {
     'catalog_observed_at': _public_date,
     **{key: lambda value: value if type(value) is bool else None
        for key in ('catalog_retained', 'catalog_time_inferred')},
+    # Private deferral details (reason, timing, host) reduce to a flag publicly.
+    'deferred': lambda value: True if value else None,
 }
 _WORKER_SCHEMA = {**{key: _public_date for key in ('checked_at', 'last_success_at', 'last_report_at')},
                   'overall': _public_status, 'source_count': _public_count}
