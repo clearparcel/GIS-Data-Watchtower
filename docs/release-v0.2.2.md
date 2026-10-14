@@ -5,7 +5,7 @@ PRs [#73](https://github.com/clearparcel/GIS-Data-Watchtower/pull/73) and
 [#74](https://github.com/clearparcel/GIS-Data-Watchtower/pull/74) provide the
 corrections and supplied favicon. Exact deployed source:
 `aba3d23b28ccf93b0de56b4b1b50d2518e3ffd43`.
-The prior [v0.2.1 release](release-v0.2.1.md) remains the service rollback baseline.
+The prior [v0.2.1 release](archive/release-v0.2.1.md) remains the service rollback baseline.
 
 ## Review corrections
 
@@ -118,6 +118,6 @@ The prior provider job digest was
 `sha256:354da814dc0dc24137e4818e57761769ab13320cda9311d6088cb7662803eec1`;
 the prior publisher job digest was
 `sha256:003c60772fc5a5fa1f91ccabbd840c60a4ca52d14160078f7df65adf3205b8b7`.
-Both are under `us-central1-docker.pkg.dev/dark-bit-503017-j7/gis-data-watchtower/watchtower`.
+Both are under `us-central1-docker.pkg.dev/<project-id>/gis-data-watchtower/watchtower`.
 Any rollback must preserve the required security check, the worker retirement,
 provider controls, and unchanged schedules, and needs appropriate authorization.

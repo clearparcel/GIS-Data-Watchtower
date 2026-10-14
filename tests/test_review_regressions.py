@@ -1,4 +1,5 @@
 """Offline regressions for the October 6 manual review findings."""
+import contextlib
 import io
 import json
 import os
@@ -50,12 +51,14 @@ class ReviewRegressions(unittest.TestCase):
                             "summary": {"content_revision": "test"}}
                 def snapshot(self): return {}
                 def snapshot_xlsx(self): return b""
+                def county_snapshot(self, slug): return None
             with self.subTest(dashboard=module.__name__), \
                  patch.object(module, "_BoundedThreadingHTTPServer", Server), \
                  patch.object(module, "render_county", return_value="County detail"), \
                  patch.object(module, "render_source" if module is dashboard else "render_public_source", return_value="Source detail"), \
                  patch.object(dashboard, "_dashboard_auth", return_value=(None, "watchtower")), \
-                 patch.object(public_dashboard, "_PublicStateCache", Cache):
+                 patch.object(public_dashboard, "_PublicStateCache", Cache), \
+                 contextlib.redirect_stdout(io.StringIO()):
                 if module is dashboard:
                     dashboard.serve({"_render_state": state})
                 else:
@@ -186,7 +189,7 @@ class ReviewRegressions(unittest.TestCase):
 
     def test_duplicate_report_is_idempotent_and_late_report_cannot_resurrect(self):
         state = merge_states({}, report(10, {"old": {"status": "ok"}}), "cloud")
-        state = merge_states(state, report(12, {}), "cloud")
+        state = merge_states(state, {**report(12, {}), "allow_inventory_shrink": True}, "cloud")  # explicit drain
         self.assertEqual(merge_states(state, report(12, {"old": {"status": "error"}}), "cloud"), state)
         self.assertEqual(merge_states(state, report(11, {"old": {"status": "ok"}}), "cloud"), state)
 
@@ -199,7 +202,8 @@ class ReviewRegressions(unittest.TestCase):
                 candidate[key] = {"a": {timestamp: report(10, {})["generated_at"]}}
                 self.assertTrue(_snapshot_is_superseded(candidate, current))
         state = merge_states({}, report(10, {"old": {"status": "ok"}}), "cloud")
-        self.assertFalse(_snapshot_is_superseded(merge_states(state, report(12, {}), "cloud"), state))
+        drained = merge_states(state, {**report(12, {}), "allow_inventory_shrink": True}, "cloud")
+        self.assertFalse(_snapshot_is_superseded(drained, state))
 
     def test_dashboard_profile_is_required_and_validated(self):
         config = {"sources": [{"execution_profiles": ["local"]}]}
@@ -230,7 +234,7 @@ class ReviewRegressions(unittest.TestCase):
                 FileLock(path).acquire()
             self.assertTrue(path.is_dir())
 
-    def test_unconditional_upload_cannot_interrupt_conditional_write(self):
+    def test_second_writer_waits_for_the_cas_lock_and_then_conflicts(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             backend = LocalStorage(root / "objects")
@@ -254,7 +258,8 @@ class ReviewRegressions(unittest.TestCase):
             def write_unconditional():
                 second_started.set()
                 try:
-                    backend.upload("object", second)
+                    # Same stale token (object absent): must wait for the lock, then conflict.
+                    backend.upload_if_version("object", second, None)
                 except Exception as exc:
                     errors.append(exc)
                 finally:
@@ -267,15 +272,16 @@ class ReviewRegressions(unittest.TestCase):
                     self.assertTrue(ready.wait(5))
                     unconditional.start()
                     self.assertTrue(second_started.wait(5))
-                    self.assertFalse(second_done.wait(0.2), "unconditional writer bypassed the CAS lock")
+                    self.assertFalse(second_done.wait(0.2), "second writer bypassed the CAS lock")
                 finally:
                     release.set()
                     conditional.join(timeout=5)
                     if unconditional.ident is not None:
                         unconditional.join(timeout=5)
             self.assertFalse(conditional.is_alive() or unconditional.is_alive())
-            self.assertEqual(errors, [])
-            self.assertEqual((backend.root / "object").read_bytes(), b"second")
+            self.assertEqual([type(x) for x in errors], [StorageConflictError])
+            self.assertEqual((backend.root / "object").read_bytes(), b"first")
+            self.assertFalse(hasattr(backend, "upload"), "shared storage must not offer unconditional uploads")
 
     def test_same_worker_concurrent_merges_have_independent_scratch(self):
         with tempfile.TemporaryDirectory() as td:
@@ -332,13 +338,14 @@ class ReviewRegressions(unittest.TestCase):
     def test_full_report_retires_only_that_workers_omitted_sources(self):
         state = merge_states({}, report(10, {"old": {"status": "ok"}}), "cloud")
         state = merge_states(state, report(11, {"local": {"status": "ok"}}), "local")
-        state = merge_states(state, report(12, {}), "cloud")
+        # Draining a worker's whole inventory is an explicit operator action.
+        state = merge_states(state, {**report(12, {}), "allow_inventory_shrink": True}, "cloud")
         self.assertEqual(set(state["sources"]), {"local"})
         self.assertEqual(state["workers"]["cloud"]["source_count"], 0)
 
     def test_delayed_cross_worker_report_cannot_resurrect_retired_source(self):
         state = merge_states({}, report(10, {"shared": {"status": "ok"}}), "cloud")
-        state = merge_states(state, report(12, {}), "cloud")
+        state = merge_states(state, {**report(12, {}), "allow_inventory_shrink": True}, "cloud")
         merged = merge_states(state, report(11, {"shared": {"status": "ok"}}), "local")
         self.assertNotIn("shared", merged["sources"])
         self.assertEqual(merged["retired_sources"]["shared"]["retired_at"], report(12, {})["generated_at"])
@@ -471,7 +478,6 @@ LocalStorage(sys.argv[1]).upload_if_version('state.json',Path(sys.argv[2]),None)
                 (root / name / "aggregate-state.json").write_text(json.dumps(report(hour, {})), encoding="utf-8")
             ready = threading.Event(); release = threading.Event(); errors = []
             destination = LocalStorage(root / "destination")
-            original_upload = destination.upload
             original_cas = destination.upload_if_version
             def pause_then(method, *args):
                 if threading.current_thread().name == "old-publisher":
@@ -484,8 +490,7 @@ LocalStorage(sys.argv[1]).upload_if_version('state.json',Path(sys.argv[2]),None)
                     publish_public_snapshot(LocalStorage(root / "old"), destination, workdir=root / "work")
                 except Exception as exc:
                     errors.append(exc)
-            with patch.object(destination, "upload", side_effect=lambda *args: pause_then(original_upload, *args)), \
-                 patch.object(destination, "upload_if_version", side_effect=lambda *args: pause_then(original_cas, *args)):
+            with patch.object(destination, "upload_if_version", side_effect=lambda *args: pause_then(original_cas, *args)):
                 thread = threading.Thread(target=run_old, name="old-publisher"); thread.start()
                 try:
                     self.assertTrue(ready.wait(5))
@@ -533,7 +538,8 @@ LocalStorage(sys.argv[1]).upload_if_version('state.json',Path(sys.argv[2]),None)
             with patch.dict(os.environ, {"WATCHTOWER_EXECUTION_PROFILE": "cloud"}), \
                  patch.object(dashboard, "_BoundedThreadingHTTPServer", Server), \
                  patch.object(dashboard.threading, "Thread", InlineThread), \
-                 patch.object(watch, "_source_check", side_effect=lambda source,timeout: (calls.append(source["id"]) or {"problems": []})):
+                 patch.object(watch, "_source_check", side_effect=lambda source,timeout: (calls.append(source["id"]) or {"problems": []})), \
+                 contextlib.redirect_stdout(io.StringIO()):
                 dashboard.serve(config)
             self.assertEqual(calls, ["cloud"])
 

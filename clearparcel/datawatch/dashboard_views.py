@@ -3,6 +3,16 @@ from __future__ import annotations
 from clearparcel.datawatch import dashboard as _dashboard
 
 
+def _county_direct_parcels(source_id: str, source: dict) -> bool:
+    """County-specific parcel sources, identified by data rather than ID suffix.
+
+    Some approved IDs (for example ``mn-wabasha-parcels``) do not end in
+    ``-parcels-direct``; statewide parcel services carry no county slug.
+    """
+    if source.get("category") == "Parcels" and source.get("county_slug"):
+        return True
+    return source_id.endswith("-parcels-direct")
+
 def render_dashboard(config: dict) -> str:
     state = _dashboard._dashboard_state(config)
     sources = state.get("sources", {})
@@ -18,7 +28,6 @@ def render_dashboard(config: dict) -> str:
             changed_30 += 1
         meta = config_map.get(sid, {})
         enriched.append((sid, src, meta, stats, hist))
-    telemetry = state.get("telemetry") or {}
     workers = state.get("workers") or {}
     worker_cards = []
     for worker_name in ("cloud", "local"):
@@ -62,7 +71,6 @@ def render_dashboard(config: dict) -> str:
     rows = []
     categories = sorted({str(meta.get("category") or src.get("category") or "Other") for _,src,meta,_,_ in enriched})
     for sid, src, meta, stats, hist in sorted(enriched, key=lambda x: str(x[1].get("name", x[0])).lower()):
-        changes = src.get("changes") or []
         provider = meta.get("provider") or src.get("provider") or "—"
         category = meta.get("category") or src.get("category") or "Other"
         prev_count = next((x.get("feature_count") for x in reversed(hist[:-1]) if x.get("feature_count") is not None), None) if len(hist) > 1 else None
@@ -109,19 +117,19 @@ def render_dashboard(config: dict) -> str:
     category_chart = _dashboard._bar_chart(sorted(category_counts.items(), key=lambda x:x[1], reverse=True), title="Data sources by category")
     body += '<div class="section-head"><div><h2>Source overview</h2><p>Response behavior and source mix across the current cloud and local results.</p></div></div>'
     body += f'<div class="grid"><div class="card">{latency_chart}<span class="subtext">Latest source-check response time; longer does not necessarily mean unhealthy.</span></div><div class="card">{category_chart}<span class="subtext">Number of monitored source observations grouped by data category.</span></div></div>'
-    county_direct = [(src.get("name") or sid, src.get("feature_count")) for sid,src in sources.items() if sid.endswith("-parcels-direct") and isinstance(src.get("feature_count"), (int,float))]
-    county_fields = [(src.get("name") or sid, src.get("field_count")) for sid,src in sources.items() if sid.endswith("-parcels-direct") and isinstance(src.get("field_count"), (int,float))]
+    county_direct = [(src.get("name") or sid, src.get("feature_count")) for sid,src in sources.items() if _county_direct_parcels(sid, src) and isinstance(src.get("feature_count"), (int,float))]
+    county_fields = [(src.get("name") or sid, src.get("field_count")) for sid,src in sources.items() if _county_direct_parcels(sid, src) and isinstance(src.get("field_count"), (int,float))]
     county_counts_chart = _dashboard._bar_chart(sorted(county_direct, key=lambda x:x[1], reverse=True)[:10], title="Counties with the most parcel records")
     county_fields_chart = _dashboard._bar_chart(sorted(county_fields, key=lambda x:x[1], reverse=True)[:10], title="Number of information fields in county parcel data")
-    null_ids = [(src.get("name") or sid, src.get("parcel_id_null_count")) for sid,src in sources.items() if sid.endswith("-parcels-direct") and isinstance(src.get("parcel_id_null_count"), (int,float))]
-    duplicate_ids = [(src.get("name") or sid, src.get("duplicate_id_extra_rows")) for sid,src in sources.items() if sid.endswith("-parcels-direct") and isinstance(src.get("duplicate_id_extra_rows"), (int,float))]
-    null_geometry = [(src.get("name") or sid, src.get("null_geometry_count")) for sid,src in sources.items() if sid.endswith("-parcels-direct") and isinstance(src.get("null_geometry_count"), (int,float))]
+    null_ids = [(src.get("name") or sid, src.get("parcel_id_null_count")) for sid,src in sources.items() if _county_direct_parcels(sid, src) and isinstance(src.get("parcel_id_null_count"), (int,float))]
+    duplicate_ids = [(src.get("name") or sid, src.get("duplicate_id_extra_rows")) for sid,src in sources.items() if _county_direct_parcels(sid, src) and isinstance(src.get("duplicate_id_extra_rows"), (int,float))]
+    null_geometry = [(src.get("name") or sid, src.get("null_geometry_count")) for sid,src in sources.items() if _county_direct_parcels(sid, src) and isinstance(src.get("null_geometry_count"), (int,float))]
     quality_chart = _dashboard._bar_chart(sorted(null_ids, key=lambda x:x[1], reverse=True), title="Parcel records missing an ID")
     duplicate_chart = _dashboard._bar_chart(sorted(duplicate_ids, key=lambda x:x[1], reverse=True), title="Records that share the same parcel ID")
     geometry_chart = _dashboard._bar_chart(sorted(null_geometry, key=lambda x:x[1], reverse=True), title="Parcel records with no mapped shape")
     owner_complete=[]; site_address_complete=[]; mailing_address_complete=[]
     for sid,src in sources.items():
-        if not sid.endswith("-parcels-direct"): continue
+        if not _county_direct_parcels(sid, src): continue
         profiles=src.get("completeness_profiles") or {}
         if isinstance((profiles.get("owner") or {}).get("complete_percent"), (int,float)): owner_complete.append((src.get("name") or sid, profiles["owner"]["complete_percent"]))
         if isinstance((profiles.get("site_address") or {}).get("complete_percent"), (int,float)): site_address_complete.append((src.get("name") or sid, profiles["site_address"]["complete_percent"]))
@@ -129,8 +137,8 @@ def render_dashboard(config: dict) -> str:
     owner_chart=_dashboard._bar_chart(sorted(owner_complete,key=lambda x:x[1]),title="Records with an owner name",suffix="%")
     site_address_chart=_dashboard._bar_chart(sorted(site_address_complete,key=lambda x:x[1]),title="Records with a property address",suffix="%")
     mailing_address_chart=_dashboard._bar_chart(sorted(mailing_address_complete,key=lambda x:x[1]),title="Records with an owner mailing address",suffix="%")
-    multipart = [(src.get("name") or sid, src.get("geometry_sample_multipart_percent")) for sid,src in sources.items() if sid.endswith("-parcels-direct") and isinstance(src.get("geometry_sample_multipart_percent"),(int,float))]
-    complexity = [(src.get("name") or sid, src.get("geometry_sample_avg_vertices")) for sid,src in sources.items() if sid.endswith("-parcels-direct") and isinstance(src.get("geometry_sample_avg_vertices"),(int,float))]
+    multipart = [(src.get("name") or sid, src.get("geometry_sample_multipart_percent")) for sid,src in sources.items() if _county_direct_parcels(sid, src) and isinstance(src.get("geometry_sample_multipart_percent"),(int,float))]
+    complexity = [(src.get("name") or sid, src.get("geometry_sample_avg_vertices")) for sid,src in sources.items() if _county_direct_parcels(sid, src) and isinstance(src.get("geometry_sample_avg_vertices"),(int,float))]
     multipart_chart=_dashboard._bar_chart(sorted(multipart,key=lambda x:x[1],reverse=True),title="Sampled parcel shapes with multiple parts or holes",suffix="%")
     complexity_chart=_dashboard._bar_chart(sorted(complexity,key=lambda x:x[1],reverse=True),title="Average parcel-shape complexity")
     body += '<div class="section-head"><div><h2>Parcel-source quality</h2><p>Comparative quality indicators for directly monitored county parcel layers.</p></div></div>'
@@ -172,7 +180,7 @@ def render_source(config: dict, source_id: str) -> str:
 <div class="section-head"><div><h2>About this data</h2><p>Operational source facts first; low-level adapter and coordinate details remain expandable below.</p></div></div>
 <div class="definition-grid">
 <div class="definition-group"><h3>Source</h3><dl class="definition-list">
-<dt>Provided by</dt><dd>{_dashboard._esc(provider)}</dd><dt>Data type</dt><dd>{_dashboard._esc(category)}</dd><dt>Checked by</dt><dd>{_dashboard._esc(src.get('worker') or 'local/default')} worker</dd><dt>Reporting</dt><dd>{_dashboard._esc(src.get('reporting') or 'current')}</dd><dt>Last successful check</dt><dd>{_dashboard._format_time_pair(src.get('last_success_at'))}</dd><dt>Changes this check</dt><dd>{len(changes)}</dd><dt>Last change found</dt><dd>{_dashboard._format_time_pair(stats.get('last_change')) if stats.get('last_change') else 'Not yet recorded'}</dd>
+<dt>Provided by</dt><dd>{_dashboard._esc(provider)}</dd><dt>Data type</dt><dd>{_dashboard._esc(category)}</dd><dt>Checked by</dt><dd>{_dashboard._esc(src.get('worker') or 'local/default')} worker</dd><dt>Reporting</dt><dd>{_dashboard._esc(src.get('reporting') or 'current')}</dd><dt>Last successful check</dt><dd>{_dashboard._format_time_pair(src.get('last_success_at'))}</dd><dt>Last provider response</dt><dd>{_dashboard._format_time_pair(src.get('last_available_at')) if src.get('last_available_at') else 'Not yet recorded'}</dd><dt>Changes this check</dt><dd>{len(changes)}</dd><dt>Last change found</dt><dd>{_dashboard._format_time_pair(stats.get('last_change')) if stats.get('last_change') else 'Not yet recorded'}</dd>
 </dl></div>
 <div class="definition-group"><h3>Parcel quality</h3><dl class="definition-list">
 <dt>Records</dt><dd>{source_count_text}</dd><dt>Information fields</dt><dd>{_dashboard._esc(src.get('field_count','—'))}</dd><dt>Parcel ID field</dt><dd>{_dashboard._esc(src.get('parcel_id_field','Not identified'))} ({_dashboard._esc(src.get('parcel_id_confidence','none'))} confidence)</dd><dt>Missing parcel IDs</dt><dd>{_dashboard._esc(src.get('parcel_id_null_count','Not checked'))}</dd><dt>Duplicate-ID extra rows</dt><dd>{_dashboard._esc(src.get('duplicate_id_extra_rows','Not checked'))}</dd><dt>Missing mapped shape</dt><dd>{_dashboard._esc(src.get('null_geometry_count','Not checked'))}</dd>

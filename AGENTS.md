@@ -48,7 +48,7 @@ Watchtower is a low-frequency monitoring system, not a bulk downloader or scrape
 - Prefer official county/state GIS endpoints, open-data downloads, ArcGIS REST/FeatureServer/MapServer services, WMS/WFS, and documented APIs.
 - Do not scrape human-facing property-search or parcel-viewer pages.
 - Do not bypass authentication, referrer restrictions, TLS validation, rate limits, robots/provider controls, or network restrictions.
-- Treat HTTP 429 as a provider stop/backoff signal.
+- Treat HTTP 429 as a provider stop/backoff signal. Watchtower stops polling the affected host for the rest of the run and persists a per-host backoff honoring `Retry-After`; do not weaken this.
 - Do not infer that a publicly reachable viewer/backend endpoint is authorized for unattended monitoring.
 - When official fee, license, release, or request policies conflict with technical reachability, fail closed and document the source as held pending clarification.
 - Keep provider requests bounded. Default GIS-provider cadence is daily unless documented provider terms and operational need justify otherwise.
@@ -67,9 +67,10 @@ Do not overload runtime monitoring health with research conclusions.
 - Persistent parcel-access research lives in `clearparcel/datawatch/minnesota_county_parcel_access.json`.
 - Research schema/validation lives in `clearparcel/datawatch/parcel_access.py`.
 - Runtime source health and worker state remain separate from the research dataset.
-- A county is actively checked when it is observed through a county-specific source, MnGeo Plan Parcels Open, or both; overlap is counted once.
+- A county has a **monitoring path** when it is observed through a county-specific source, MnGeo Plan Parcels Open, or both; overlap is counted once. It is **actively checked** only when it has a monitoring path *and* its latest check (and worker report) is within the freshness window; otherwise it is shown as **check overdue**, still counted as having a monitoring path. (Owner decision, 2026-10-13.)
 - Do not hard-code statewide coverage counts when they can be derived from the current aggregate.
-- Until official evidence changes, **Blue Earth, Faribault, Kandiyohi, and Lincoln** remain `hold-for-terms` for unattended county-direct parcel monitoring.
+- Counties whose `monitoring.decision` is `hold-for-terms` in `minnesota_county_parcel_access.json` must not receive unattended county-direct parcel monitoring until official evidence changes. The data file is the authority; do not hard-code the list in code. As of 2026-10-13 it holds **Blue Earth, Brown, Faribault, Kandiyohi, Lake, Lincoln, Lyon, McLeod, Stevens, Swift, and Wilkin**.
+- A source with `"enabled": false` is never polled. Sources with `execution_profiles` are polled only by a worker that declares a matching profile (`--execution-profile` or `WATCHTOWER_EXECUTION_PROFILE`).
 
 ## Hybrid execution
 
@@ -97,9 +98,12 @@ For repository changes, run:
 
 ```text
 python -W error::ResourceWarning -m unittest discover -s tests -q
-python -m compileall -q clearparcel tests
+python -m compileall -q clearparcel tests scripts
+python scripts/sync_current_status.py --check
 git diff --check
 ```
+
+JavaScript behavior tests need Node.js 24; they skip locally without it and are required in CI (`WATCHTOWER_REQUIRE_NODE=1`).
 
 For deployment/staging changes, also validate the applicable execution profile(s), source-level results, aggregate worker provenance, and rendered dashboard metrics. Do not treat a successful container exit alone as proof that every source passed.
 

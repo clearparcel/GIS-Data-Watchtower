@@ -108,8 +108,12 @@ def validation_receipt(manifest: dict, reports: dict, aggregate: dict, public: d
                 problems.append(f"source health mismatch or failure: {sid}")
             for key in ("gac_completeness", "mngac_completeness"):
                 if key in incoming:
+                    if not isinstance(incoming[key], dict):
+                        problems.append(f"GAC metric unavailable: {sid}")
+                        continue
+                    published = projected.get(key) if isinstance(projected.get(key), dict) else {}
                     observed = incoming[key].get("observed_at")
-                    if not observed or projected.get(key, {}).get("observed_at") != observed:
+                    if not observed or published.get("observed_at") != observed:
                         problems.append(f"metric observation mismatch: {sid}")
             observed = incoming.get("catalog_observed_at")
             if observed and projected.get("catalog_observed_at") != observed:

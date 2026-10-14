@@ -101,8 +101,8 @@ pilot's recorded source pin has not been republished from current main.
 Repository follow-up now implements active-profile-only receipts, explicit
 worker retirement with archived history and CAS safety, and a separate opt-in
 offline importer for sanitized public snapshots. See
-[worker retirement](hybrid-aggregation.md#explicit-worker-retirement) and
-[public replay](codex-cloud-development.md#optional-offline-public-snapshot-replay).
+[worker retirement](../hybrid-aggregation.md#explicit-worker-retirement) and
+[public replay](../codex-cloud-development.md#optional-offline-public-snapshot-replay).
 These changes do not perform production retirement, saving provider cycles,
 deployment, cloud provisioning or scheduling. The findings below describe the
 reviewed baseline; implementation closes the code gaps in operational items 2
