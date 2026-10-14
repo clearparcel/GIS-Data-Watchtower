@@ -166,7 +166,7 @@ without asserting that no request occurred.
 | Big Stone | Included | Unknown | Unknown: 403 | Advertised | Unresolved county policy read |
 | Carlton | Included | Unknown | Available | Advertised | Free parcel data |
 | Carver | Included | Available | Available | Advertised | Free parcel data |
-| Cass | Included | Unknown | Unknown | Advertised | Unresolved county policy read |
+| Cass | Included | Unknown | Unknown | Advertised | Free parcel data (updated 2026-10-14) |
 | Chippewa | Included | Unknown | Available | Advertised | Free parcel data |
 | Chisago | Included | Unknown | Unknown | Advertised | Free parcel data |
 | Clay | Included | Unknown | Available | Advertised | Free parcel data |
@@ -208,8 +208,15 @@ Exact vetted Aitkin and Beltrami public dataset identities retain monitored IDs 
 REST/Hub/download representations; no other join is inferred from county name or generic
 catalog. Current runtime coverage still overrides dated research membership.
 
-Across all stored records, **82** county-direct classifications are complete: **58 free**,
-**13 fee-based**, **11 viewer-only**. The remaining 5 county-direct classifications are unresolved (Aitkin, Big Stone, Cass, Koochiching, Rice). These research totals do not change active monitoring coverage.
+**Cass update, 2026-10-14:** a later read of the county
+[GIS/Map Services page](https://www.casscountymn.gov/1316/GISMap-Services) states that
+commonly requested GIS shapefile datasets are available to the public at no cost. Its
+disclaimer provides data as is, for reference only. Cass is now classified as free parcel
+data through the advertised county ZIP (HEAD only). Monitoring stays not assessed: a free
+download does not by itself authorize unattended polling.
+
+Across all stored records, **83** county-direct classifications are complete: **59 free**,
+**13 fee-based**, **11 viewer-only**. The remaining 4 county-direct classifications are unresolved (Aitkin, Big Stone, Koochiching, Rice). These research totals do not change active monitoring coverage.
 
 ### Clearwater–Houston inventory batch, 2026-10-06
 
