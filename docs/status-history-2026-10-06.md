@@ -52,7 +52,7 @@ The earlier 35-county county-direct classification audit is retained; all 87 fou
 
 ## Public dashboard hosting
 
-A separate read-only Cloud Run service serves the shareable dashboard at **https://gis-watchtower.clear-parcel.com** through a Google Cloud external Application Load Balancer. The dashboard now reads only the sanitized production object at `gs://clearparcel-watchtower-dark-bit-503017-j7/production/aggregate-state.json`; its service account no longer has access to the unified staging aggregate, private provider registry, or provider credentials.
+A separate read-only Cloud Run service serves the shareable dashboard at **https://gis-watchtower.clear-parcel.com** through a Google Cloud external Application Load Balancer. The dashboard now reads only the sanitized production object at `gs://<production-bucket>/production/aggregate-state.json`; its service account no longer has access to the unified staging aggregate, private provider registry, or provider credentials.
 
 A dedicated Cloud Run publisher job reads only the unified aggregate object, applies the public allowlist and fail-closed forbidden-field validation, then writes only the production aggregate object. A separate least-privilege scheduler identity invokes that job every **10 minutes**. The final least-privilege publisher execution completed successfully in about **3m6s**. This publication schedule performs no GIS-provider polling and does not replace the multi-day validation gate for the authoritative monitoring schedule.
 
@@ -191,7 +191,7 @@ The previously validated Task 9 source used the shared public header `Minnesota 
 
 Overview helpers distinguish all-type monitored dataset/service entries from unique counties with parcel observations. One statewide entry can cover many counties; overlapping paths count each county once. Derived counts, all 87 profiles, source identities, privacy, export contracts and provider holds are preserved.
 
-Root verified the user's deletion of `C:/Users/sgert/AppData/Local/Temp/watchtower-task8-b342b5d` with Test-Path returning False. The cloud temporary build object was already verified deleted. Historical automatic-review denials and the Benton archive incident remain recorded; old Chrome cleanup remains unverified, while root IAB viewport reset was verified. The active parent workflow continues this feedback task. Task 9 review passed after its documentation fix. Task 10 separately released committed `dfacd72` to existing preview `00005-c24`; no provider action occurred. See the feedback preview release record.
+Root verified the user's deletion of `%USERPROFILE%/AppData/Local/Temp/watchtower-task8-b342b5d` with Test-Path returning False. The cloud temporary build object was already verified deleted. Historical automatic-review denials and the Benton archive incident remain recorded; old Chrome cleanup remains unverified, while root IAB viewport reset was verified. The active parent workflow continues this feedback task. Task 9 review passed after its documentation fix. Task 10 separately released committed `dfacd72` to existing preview `00005-c24`; no provider action occurred. See the feedback preview release record.
 
 Task 9 required validation: 196 tests passed with ResourceWarning treated as an error; compileall and git diff --check passed. Independent review and separate Task 10 preview release passed.
 

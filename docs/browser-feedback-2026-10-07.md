@@ -30,7 +30,7 @@ Preview pod settings, IAM, ingress, sanitized state and object generation `17913
 
 Source `feb285bb825d86c08774f434ebc0972442648b86` from PR #47 was built by Cloud Build `21a72f31-ef41-46c4-a209-8eb713a0c5cb` (SUCCESS). The existing preview revision `gis-data-watchtower-public-v2-preview-00010-tmt` is Ready at 100% traffic, pinned to `sha256:06ea68e9d80c69fcbccab33720b9c63ff894d7ca1dc9f36bfe3c58a3759d38f5`. The prior revision `00009-nws` is retained for rollback.
 
-[Open the hosted preview](https://gis-data-watchtower-public-v2-preview-237020802969.us-central1.run.app/).
+[Open the hosted preview](<preview-service-url>).
 
 The runtime pod specification is unchanged except image; entrypoint, identity, environment, ingress and IAM are preserved. The dedicated sanitized object generation `1791311397132173` and public source state are unchanged: 35 stored OK observations with cloud=31/local=4 provenance, publication dated October 6. This is a code-only release, not fresh provider validation. Production public `00008-lzd` and private `00013-fnn` specifications, revisions and traffic were verified unchanged.
 

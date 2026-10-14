@@ -182,9 +182,9 @@ Its immutable image digest is
 The explicit command is `public-dashboard --host 0.0.0.0 --port 8080`.
 
 The preview uses a dedicated private bucket
-`clearparcel-watchtower-preview-dark-bit-503017-j7`, object
+`<preview-bucket>`, object
 `preview/aggregate-state.json`, and dedicated identity
-`gis-watchtower-preview@dark-bit-503017-j7.iam.gserviceaccount.com`.
+`<preview-service-account-email>`.
 Uniform bucket access and public-access prevention are enabled. The identity has
 object-reader access conditioned on exactly that sanitized object; no production
 bucket/identity bindings or raw aggregate permissions were added. No new scheduler

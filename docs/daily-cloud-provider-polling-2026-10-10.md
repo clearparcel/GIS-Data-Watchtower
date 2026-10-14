@@ -5,7 +5,7 @@ polling after approving removal of the legacy GERTKEN-PC daily poller.
 
 ## Schedule and execution boundary
 
-- Scheduler: `gis-watchtower-daily-providers`, project `dark-bit-503017-j7`,
+- Scheduler: `gis-watchtower-daily-providers`, project `<project-id>`,
   region `us-central1`.
 - Schedule: `0 5 * * *`, timezone `America/Chicago`: **5:00 AM Central every day**.
   The timezone follows daylight saving changes; the first scheduled run is
@@ -72,7 +72,7 @@ freshness remain different clocks.
 To stop future provider launches without affecting public publication:
 
 ```text
-gcloud scheduler jobs pause gis-watchtower-daily-providers --project=dark-bit-503017-j7 --location=us-central1
+gcloud scheduler jobs pause gis-watchtower-daily-providers --project=<project-id> --location=us-central1
 ```
 
 Pause does not stop an already-dispatched execution. Inspect it separately before

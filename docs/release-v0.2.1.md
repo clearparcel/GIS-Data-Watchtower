@@ -49,9 +49,9 @@ Prior release digests retained for rollback:
 Keep the previous revisions intact. If a regression requires rollback, inspect live traffic and obtain the appropriate rollback authorization before issuing exact traffic changes. Previous revisions:
 
 ```powershell
-gcloud run services update-traffic gis-data-watchtower-public --project dark-bit-503017-j7 --region us-central1 --to-revisions gis-data-watchtower-public-00015-cjp=100
-gcloud run services update-traffic gis-data-watchtower-dashboard --project dark-bit-503017-j7 --region us-central1 --to-revisions gis-data-watchtower-dashboard-00022-pts=100
-gcloud run services update-traffic gis-data-watchtower-public-v2-preview --project dark-bit-503017-j7 --region us-central1 --to-revisions gis-data-watchtower-public-v2-preview-00020-qds=100
+gcloud run services update-traffic gis-data-watchtower-public --project <project-id> --region us-central1 --to-revisions gis-data-watchtower-public-00015-cjp=100
+gcloud run services update-traffic gis-data-watchtower-dashboard --project <project-id> --region us-central1 --to-revisions gis-data-watchtower-dashboard-00022-pts=100
+gcloud run services update-traffic gis-data-watchtower-public-v2-preview --project <project-id> --region us-central1 --to-revisions gis-data-watchtower-public-v2-preview-00020-qds=100
 ```
 
 Historical rollback information for the v0.2.0 baseline is preserved in [the October 11 release record](release-county-percentage-fix-2026-10-11.md). Provider-policy issues #1/#2, five-day observation study #20, and privacy-gated PostHog issue #50 remain independent follow-ups.
