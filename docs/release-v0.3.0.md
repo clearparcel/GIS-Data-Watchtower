@@ -97,11 +97,11 @@ See [STATUS.md](../STATUS.md) for the per-package detail.
 6. Replace this record's status with the deployment evidence, and update
    README, STATUS and docs/README.
 
-## Deferred to a later release
+## Owner decisions after review (2026-10-14)
 
-- Whether schema-missing GAC fields should leave the mandatory-population
-  denominator. That would change published percentages and needs an owner
-  decision.
-- Dropping `'unsafe-inline'` from the CSP, which needs nonces for every
-  inline script.
-- Removing stored query strings from private state.
+- **GAC denominator:** unchanged. Fields missing from a county's schema
+  stay in the mandatory-population denominator.
+- **CSP:** approved. Inline scripts are now allowed only by SHA-256 hash; see
+  the CSP hardening change.
+- **Stored query strings:** not stripped from private state.
+- **County contact data:** left as is.

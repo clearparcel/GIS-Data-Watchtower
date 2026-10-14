@@ -31,7 +31,7 @@ class SkipLinkAndFocusTests(unittest.TestCase):
     def test_active_tab_is_kept_visible_without_moving_keyboard_start(self):
         # scrollIntoView moves Chromium's sequential-focus starting point past the skip link.
         page = public_page()
-        tab_script = re.search(r"<script>\(function\(\)\{const row=document\.querySelector\('\.public-tabs'\).*?</script>", page, re.S)
+        tab_script = re.search(r"<script[^>]*>\(function\(\)\{const row=document\.querySelector\('\.public-tabs'\).*?</script>", page, re.S)
         self.assertIsNotNone(tab_script)
         self.assertNotIn("scrollIntoView", tab_script.group(0))
         self.assertIn("row.scrollLeft", tab_script.group(0))

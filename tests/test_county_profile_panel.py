@@ -15,7 +15,7 @@ class CountyProfilePanelTests(unittest.TestCase):
     @unittest.skipUnless(NODE_AVAILABLE, 'Inline async behavior requires Node.js')
     def test_inline_selection_races_cache_revision_retry_and_failure(self):
         from clearparcel.datawatch.county_profile_panel import render_inline_county_panel
-        script = re.search(r'<script>(.*?)</script>', render_inline_county_panel(revision='old'), re.S | re.I).group(1)
+        script = re.search(r'<script[^>]*>(.*?)</script[^>]*>', render_inline_county_panel(revision='old'), re.S | re.I).group(1)
         harness = r'''
 const assert=require('node:assert/strict'),vm=require('node:vm');
 const content={nodes:[],attrs:{},replaceChildren(...nodes){this.nodes=nodes},setAttribute(k,v){this.attrs[k]=v}},status={textContent:''};

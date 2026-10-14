@@ -1,10 +1,11 @@
 """Shared refresh controller: user intent is separate from reading suppression."""
+from clearparcel.datawatch.csp import SCRIPT_TAG
 
 
 def refresh_script(seconds: int, *, public: bool = False) -> str:
     if not seconds:
         return ""
-    return '<script>\n' + _SCRIPT.replace('__DELAY__', str(int(seconds) * 1000)).replace('__PUBLIC__', 'true' if public else 'false') + '\n</script>'
+    return SCRIPT_TAG + '\n' + _SCRIPT.replace('__DELAY__', str(int(seconds) * 1000)).replace('__PUBLIC__', 'true' if public else 'false') + '\n</script>'
 
 
 _SCRIPT = r"""

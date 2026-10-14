@@ -1,5 +1,6 @@
 """Optional privacy-first browser analytics for the anonymous public dashboard."""
 from __future__ import annotations
+from clearparcel.datawatch.csp import SCRIPT_TAG
 
 import json
 import os
@@ -77,7 +78,7 @@ def posthog_html(*, page: str, version: str, build: str, environment: str) -> st
         "environment": str(environment)[:40],
     }
     payload = json.dumps(bootstrap, separators=(",", ":")).replace("</", "<\\/")
-    return fr"""<script>
+    return fr"""{SCRIPT_TAG}
 (function(){{
  const cfg={payload};
  function clean(e){{if(!e||!e.properties)return e;['$current_url','$referrer','$referring_domain','$initial_current_url','$initial_referrer','$initial_referring_domain'].forEach(k=>delete e.properties[k]);return e}}
