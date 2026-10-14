@@ -1,5 +1,15 @@
 # Project status
 
+## v0.3.0 release candidate — in review on `release/v0.3.0`, not deployed
+
+The owner set **v0.3.0** as the next release. `pyproject.toml` is bumped on
+this branch, which sits at the top of the review stack (#79–#86). Production
+remains v0.2.3. Read the
+[candidate record](docs/release-v0.3.0.md) for its contents, the operator
+compatibility notes (exit code 3, required build revision, publishable
+profiles, new state fields) and the release gate. Merging, building and
+deploying each need explicit owner approval.
+
 ## Tests and dead code — in review on `chore/tests-deadcode`, not deployed
 
 Housekeeping from the 2026-10-13 review (Package 8), stacked on
