@@ -160,8 +160,25 @@ def _table_labels(body: str) -> list[str]:
 _TABLE_TAG = re.compile(r"<(/?)table\b[^<>]*>", re.IGNORECASE)
 _TBODY_TAG = re.compile(r"</?tbody\b", re.IGNORECASE)
 _UNSCOPED_TH = re.compile(r"<th\b(?![^<>]*\bscope=)([^<>]*)>", re.IGNORECASE)
-_SCROLL_WRAPPER = re.compile(r'<div\b[^<>]*class="table-scroll"[^<>]*>\s*\Z')
-_WRAPPER_CLOSE = re.compile(r"\s*</div>")
+
+
+def _scroll_wrapper_tag(segment: str) -> str | None:
+    """Return segment's tag if it is exactly one <div class="table-scroll"> tag
+    (plus trailing whitespace). Plain string checks: no backtracking."""
+    tag = segment.rstrip()
+    if (len(tag) > 5 and tag.startswith("<div") and (tag[4].isspace() or tag[4] == ">")
+            and tag.endswith(">") and "<" not in tag[1:] and ">" not in tag[:-1]
+            and 'class="table-scroll"' in tag):
+        return tag
+    return None
+
+
+def _closing_div_end(body: str, position: int) -> int | None:
+    """End offset of a </div> that follows position after only whitespace."""
+    index = position
+    while index < len(body) and body[index].isspace():
+        index += 1
+    return index + 6 if body.startswith("</div>", index) else None
 
 
 def _table_spans(body: str) -> list[tuple[int, int]]:
@@ -204,16 +221,12 @@ def _accessible_tables(body: str) -> str:
         # Reuse a renderer-owned <div class="table-scroll"> wrapper (and its
         # descriptive label) that directly encloses the table.
         wrapper_start, opening = start, '<div class="table-scroll">'
+        end_after = end
         tag_start = body.rfind("<", cursor, start)
-        if tag_start != -1 and _SCROLL_WRAPPER.match(body, tag_start, start):
-            close = _WRAPPER_CLOSE.match(body, end)
-            if close:
-                wrapper_start, opening = tag_start, body[tag_start:start].rstrip()
-                end_after = close.end()
-            else:
-                end_after = end
-        else:
-            end_after = end
+        wrapper_tag = _scroll_wrapper_tag(body[tag_start:start]) if tag_start != -1 else None
+        close_end = _closing_div_end(body, end) if wrapper_tag else None
+        if wrapper_tag and close_end is not None:
+            wrapper_start, opening, end_after = tag_start, wrapper_tag, close_end
         table = body[start:end]
         if "<caption" not in table.lower():
             open_end = table.find(">") + 1
