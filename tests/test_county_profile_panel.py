@@ -1,3 +1,4 @@
+import os
 import unittest
 import html
 import json
@@ -6,8 +7,12 @@ import shutil
 import re
 from clearparcel.datawatch.county_profile_panel import render_county_profile_body, render_county_profile_panel, profile_time
 
+# CI sets WATCHTOWER_REQUIRE_NODE=1 so these tests fail instead of silently skipping.
+NODE_AVAILABLE = bool(shutil.which('node')) or os.environ.get('WATCHTOWER_REQUIRE_NODE') == '1'
+
+
 class CountyProfilePanelTests(unittest.TestCase):
-    @unittest.skipUnless(shutil.which('node'), 'Inline async behavior requires Node.js')
+    @unittest.skipUnless(NODE_AVAILABLE, 'Inline async behavior requires Node.js')
     def test_inline_selection_races_cache_revision_retry_and_failure(self):
         from clearparcel.datawatch.county_profile_panel import render_inline_county_panel
         script = re.search(r'<script>(.*?)</script>', render_inline_county_panel(revision='old'), re.S | re.I).group(1)
@@ -102,7 +107,7 @@ const flush=()=>new Promise(resolve=>setImmediate(resolve));
         self.assertNotIn('innerHTML',page)
         self.assertEqual(page.count('<template data-profile='),87)
 
-    @unittest.skipUnless(shutil.which("node"), "JavaScript boundary execution requires Node.js")
+    @unittest.skipUnless(NODE_AVAILABLE, "JavaScript boundary execution requires Node.js")
     def test_percentage_class_boundaries_and_legend_match_emitted_javascript(self):
         from clearparcel.datawatch.county_profile_panel import percentage_color_js, percentage_legend, PERCENT_COLORS, NO_DATA_COLOR
         values = [0, 0.001, 29.999, 30, 30.001, 49.999, 50, 50.001,

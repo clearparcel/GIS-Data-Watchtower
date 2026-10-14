@@ -246,6 +246,39 @@ A wildcard/public bind fails closed without a password. For Internet exposure, p
 
 GCS support requires the `gcs` package extra.
 
+## Public publisher and public server
+
+The sanitized publisher (`watchtower public-publish`) reads the private
+aggregate, projects it through the public allowlist, validates it, and
+publishes it to public storage with compare-and-swap protection against
+rollback; it never contacts GIS providers.
+
+| Variable | Purpose | Default |
+| --- | --- | --- |
+| `WATCHTOWER_PUBLIC_SOURCE_BUCKET` | Bucket holding the private aggregate (required) | — |
+| `WATCHTOWER_PUBLIC_SOURCE_PREFIX` | Object prefix in the source bucket | empty |
+| `WATCHTOWER_PUBLIC_SOURCE_OBJECT` | Private aggregate object name | `aggregate-state.json` |
+| `WATCHTOWER_PUBLIC_DEST_BUCKET` | Bucket that receives the sanitized snapshot (required) | — |
+| `WATCHTOWER_PUBLIC_DEST_PREFIX` | Object prefix in the destination bucket | empty |
+| `WATCHTOWER_PUBLIC_DEST_OBJECT` | Sanitized snapshot object name | `aggregate-state.json` |
+| `WATCHTOWER_PUBLIC_PUBLISH_WORKDIR` | Parent of the unique temporary directory each publication uses | `/tmp/watchtower-public-publish` |
+
+The anonymous public server (`watchtower public-dashboard`) reads the sanitized
+snapshot through the ordinary storage settings (`WATCHTOWER_STORAGE`,
+`WATCHTOWER_AGGREGATE_OBJECT`, GCS bucket/prefix) and also reads:
+
+| Variable | Purpose | Default (bounds) |
+| --- | --- | --- |
+| `WATCHTOWER_PUBLIC_WORKDIR` | Local cache directory for the downloaded snapshot | `/tmp/watchtower-public` |
+| `WATCHTOWER_PUBLIC_REFRESH_SECONDS` | How often the server re-downloads the snapshot | `30` (5–300) |
+| `WATCHTOWER_PUBLIC_MAX_PUBLICATION_AGE_SECONDS` | Age after which publication reporting shows "Overdue" and `/healthz` returns 503 | `1800` (60–86400) |
+| `WATCHTOWER_PUBLIC_MAX_CONNECTIONS` | Concurrent request handler bound | `64` (1–256) |
+| `WATCHTOWER_PUBLIC_REQUEST_TIMEOUT_SECONDS` | See [network hardening](#network-hardening) | `10` (2–60) |
+
+Values are clamped to the bounds shown. A non-integer value for the refresh,
+connection, or publication-age setting stops the server at startup; only the
+request timeout falls back to its default.
+
 ## Network hardening
 
 - `WATCHTOWER_MAX_RESPONSE_BYTES` — response budget; 16 MiB default, hard-capped at 128 MiB.
@@ -315,4 +348,4 @@ or viewer-only findings; free statewide access does not override a direct fee.
 
 ## Observation and dashboard contracts
 
-Catalog retention timestamps/flags, public GAC observation time, compact read-only summary and revision-bound county routes, and private worker identity/receipt semantics are documented in [October 7 remediation](watchtower-remediation-2026-10-07.md). These additions do not change provider cadence or execution-profile assignments.
+Catalog retention timestamps/flags, public GAC observation time, compact read-only summary and revision-bound county routes, and private worker identity/receipt semantics are documented in [October 7 remediation](archive/watchtower-remediation-2026-10-07.md). These additions do not change provider cadence or execution-profile assignments.

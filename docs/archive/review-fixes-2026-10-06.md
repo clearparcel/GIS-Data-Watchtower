@@ -1,6 +1,6 @@
 # Manual review follow-up fixes
 
-The user approved merge and deployment. PR [44](https://github.com/clearparcel/GIS-Data-Watchtower/pull/44) merged at `284cf0c9695c3704a5e33c4ba88b4c16e2543771` on 2026-10-07 at 04:18:53 UTC (October 6 local time), with no protection bypass. These corrections are **deployed** from `afa908d` after the user restored the existing Google Cloud CLI account through remote browser consent. See the [October 7 release record](release-2026-10-07.md) and [current status](current-status.md). This follow-up used manual code inspection and offline regressions, without Deep Scan or GIS-provider requests.
+The user approved merge and deployment. PR [44](https://github.com/clearparcel/GIS-Data-Watchtower/pull/44) merged at `284cf0c9695c3704a5e33c4ba88b4c16e2543771` on 2026-10-07 at 04:18:53 UTC (October 6 local time), with no protection bypass. These corrections are **deployed** from `afa908d` after the user restored the existing Google Cloud CLI account through remote browser consent. See the [October 7 release record](release-2026-10-07.md) and [current status](../current-status.md). This follow-up used manual code inspection and offline regressions, without Deep Scan or GIS-provider requests.
 
 ## Corrected findings
 

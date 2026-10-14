@@ -281,7 +281,8 @@ class RefreshBehaviorTests(unittest.TestCase):
         import json
         import shutil
         import subprocess
-        if not shutil.which('node'):
+        import os
+        if not shutil.which('node') and os.environ.get('WATCHTOWER_REQUIRE_NODE') != '1':
             self.skipTest('Node required for executable refresh-controller regression')
         from clearparcel.datawatch.dashboard_refresh import _SCRIPT
         controller = _SCRIPT.replace('__DELAY__', '30000').replace('__PUBLIC__', 'true')

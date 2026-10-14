@@ -5,7 +5,7 @@ PRs [#73](https://github.com/clearparcel/GIS-Data-Watchtower/pull/73) and
 [#74](https://github.com/clearparcel/GIS-Data-Watchtower/pull/74) provide the
 corrections and supplied favicon. Exact deployed source:
 `aba3d23b28ccf93b0de56b4b1b50d2518e3ffd43`.
-The prior [v0.2.1 release](release-v0.2.1.md) remains the service rollback baseline.
+The prior [v0.2.1 release](archive/release-v0.2.1.md) remains the service rollback baseline.
 
 ## Review corrections
 
