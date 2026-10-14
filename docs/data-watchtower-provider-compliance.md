@@ -17,7 +17,7 @@ A direct county deep-QA check generally makes approximately 8–11 HTTP requests
 1. Do not scrape human-facing property-search pages.
 2. Prefer documented public APIs, OGC services, ArcGIS REST services explicitly published as open/public data, and MnGeo opt-in datasets.
 3. Do not bypass authentication, referrer restrictions, rate limits, robots controls, or provider access controls.
-4. Treat HTTP 429 as a stop signal; do not immediately retry through a fallback transport.
+4. Treat HTTP 429 as a stop signal for the provider's host: do not retry through a fallback transport, make no further requests to that host during the run, and persist a backoff honoring `Retry-After` before polling it again (see [configuration](configuration.md#provider-rate-limits-http-429)).
 5. Keep full deep-QA polling conservative. Until provider-specific permission says otherwise, target no more than four full checks/day/source in unattended production; daily is preferred for county parcel QA because source data typically changes much less frequently.
 6. Keep geometry retrieval bounded. Current default: 250 features/check.
 7. Do not redistribute raw provider records through Watchtower snapshots unless the provider's redistribution terms permit it.

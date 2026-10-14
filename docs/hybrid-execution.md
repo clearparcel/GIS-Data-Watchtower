@@ -14,9 +14,11 @@ or:
 "execution_profiles": ["local"]
 ```
 
-Sources without this field run only in ordinary unprofiled checks. When a worker requests a profile, only sources explicitly tagged for that profile (or `"any"`) run. This prevents one hybrid worker from overwriting another worker's observations.
+Sources without this field run only in ordinary unprofiled checks. When a worker declares a profile, only sources explicitly tagged for that profile (or `"any"`) run. This prevents one hybrid worker from overwriting another worker's observations.
 
-Use `watchtower check --execution-profile local` for a local worker. Cloud jobs default to the `cloud` profile and can override it with `WATCHTOWER_EXECUTION_PROFILE`.
+A worker declares its profile with `--execution-profile` or, when the flag is absent, `WATCHTOWER_EXECUTION_PROFILE`. A check with no declared profile does **not** poll assigned sources: only unassigned legacy sources and `["any"]` sources run, and the rest are listed in `skipped_sources` as `execution-profile-unresolved`. This keeps a profile-less command on a cloud host from polling local-only sources.
+
+Use `watchtower check --execution-profile local` for a local worker. The CLI resolves the flag or `WATCHTOWER_EXECUTION_PROFILE` once and publishes the worker report under that same profile. Cloud jobs default to the `cloud` profile and can override it with `WATCHTOWER_EXECUTION_PROFILE`.
 
 The built-in private dashboard requires `WATCHTOWER_EXECUTION_PROFILE` or `dashboard_execution_profile` when any configured source has profile assignments. Only `cloud` and `local` are accepted. Manual refresh passes that profile to the same source filter as worker checks, including `any` sources and excluding unassigned sources. Unprofiled legacy configurations remain supported. A separate deployment wrapper may disable refresh entirely; this requirement applies to the built-in handler.
 

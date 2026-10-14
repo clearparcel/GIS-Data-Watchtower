@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 from clearparcel.datawatch.dashboard import build_static_site, serve
-from clearparcel.datawatch.watch import _safe_diagnostic, check_sources, load_config, load_history, load_state
+from clearparcel.datawatch.watch import _resolve_execution_profile, _safe_diagnostic, check_sources, load_config, load_history, load_state
 
 
 def _default_config() -> Path | None:
@@ -95,10 +95,12 @@ def main() -> int:
             )
         config = load_config(args.config)
         if args.command == "check":
-            result = check_sources(config, source_filter=args.source, save=not args.no_save, execution_profile=args.execution_profile)
-            if args.execution_profile and not args.no_save:
+            # Resolve once so the polled profile and the published worker agree.
+            profile = _resolve_execution_profile(args.execution_profile)
+            result = check_sources(config, source_filter=args.source, save=not args.no_save, execution_profile=profile)
+            if profile and not args.no_save:
                 from clearparcel.datawatch.cloud_job import publish_worker_result
-                publish_worker_result(config, result, args.execution_profile)
+                publish_worker_result(config, result, profile)
             if args.source and args.json:
                 result["scope"] = {"type": "source_filter", "filter": args.source, "note": "counts and active_alerts in this response cover only the checked source(s); saved state retains fleet-wide status"}
             print(json.dumps(result, indent=2) if args.json else _render(result), end="" if not args.json else "\n")

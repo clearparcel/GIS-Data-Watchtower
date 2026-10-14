@@ -1,5 +1,28 @@
 # Project status
 
+## Provider-compliance fixes — in review on `fix/provider-compliance`, not deployed
+
+Source-only changes from the 2026-10-13 review (Package 1). Production remains
+v0.2.3 until a separately approved release.
+
+- `"enabled": false` sources are never polled (previously only the candidate
+  manifest honored it).
+- HTTP 429 now stops every request to the host that returned it (including a
+  `metadata_url` host) for the rest of the run and persists a private per-host
+  backoff honoring `Retry-After` (60 s–7 days, default 1 h). Deferred sources
+  keep their previous observation and `checked_at`; backoff timing and hosts
+  stay out of worker reports, the aggregate, and public output.
+- A check without `--execution-profile` or `WATCHTOWER_EXECUTION_PROFILE` no
+  longer polls profile-assigned sources; only unassigned and `any` sources run.
+- County hold-for-terms decisions come only from
+  `minnesota_county_parcel_access.json` (11 counties); the hard-coded
+  four-county override and the stale AGENTS.md list were removed.
+
+Release note: any source already in the aggregate that is now `"enabled": false`
+will be retired from the aggregate (and the public dashboard) by the next full
+report from its worker, consistent with the candidate manifest. Re-enabling it
+restores it on the following report.
+
 ## GIS Data Watchtower v0.2.3 — deployed and verified, 2026-10-13
 
 The user-approved branding PR #77 merged at `f95d9315510497ae25cfd058f9a175b240b6debd`.

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import email.utils
 import hashlib
 import ipaddress
 import json
@@ -26,8 +27,11 @@ from clearparcel.datawatch.gac_standards import canonical_minnesota_county, gac_
 class ProviderRateLimitError(RuntimeError):
     """Provider explicitly asked the client to slow down."""
 
-    def __init__(self, retry_after: str | None = None):
+    def __init__(self, retry_after: str | None = None, host: str | None = None):
         self.retry_after = retry_after
+        # Host of the URL actually requested (may differ from the source URL,
+        # e.g. a metadata service), so the backoff targets the right provider.
+        self.host = host
         super().__init__(f"provider rate limit (HTTP 429); retry-after={retry_after or 'unspecified'}")
 
 
@@ -40,6 +44,100 @@ class PermanentProviderError(RuntimeError):
 
 
 _PERMANENT_HTTP_STATUSES = {401, 403, 404, 410}
+
+# HTTP 429 backoff bounds. A provider's Retry-After is honored within these
+# limits; an absent or unparseable value uses the default.
+_RATE_LIMIT_DEFAULT_SECONDS = 3600
+_RATE_LIMIT_MIN_SECONDS = 60
+_RATE_LIMIT_MAX_SECONDS = 7 * 24 * 3600
+_EXECUTION_PROFILES = {"cloud", "local"}
+
+
+def _retry_after_seconds(value: str | None, now: dt.datetime, default: int = _RATE_LIMIT_DEFAULT_SECONDS) -> int:
+    """Parse Retry-After (delta-seconds or HTTP-date) into bounded seconds."""
+    # Provider-supplied header: never let a malformed value escape this function.
+    seconds = None
+    try:
+        text = str(value or "").strip()[:64]
+        if re.fullmatch(r"[0-9]{1,10}", text):
+            seconds = int(text)
+        elif text:
+            when = email.utils.parsedate_to_datetime(text)
+            if when.tzinfo is None:
+                when = when.replace(tzinfo=dt.timezone.utc)
+            seconds = int((when - now).total_seconds())
+    except Exception:
+        seconds = None
+    if seconds is None:
+        seconds = default
+    return max(_RATE_LIMIT_MIN_SECONDS, min(_RATE_LIMIT_MAX_SECONDS, seconds))
+
+
+def _hostname(url: object) -> str | None:
+    try:
+        host = urllib.parse.urlparse(str(url or "")).hostname
+    except ValueError:
+        return None
+    return host.lower().rstrip(".") if host else None
+
+
+def _source_host(source: dict) -> str | None:
+    return _hostname(source.get("url"))
+
+
+def _source_hosts(source: dict) -> list[str]:
+    """Every provider host a source check is configured to contact."""
+    hosts = [_source_host(source)]
+    for key in ("gac_completeness", "mngac_completeness"):
+        settings = source.get(key)
+        if isinstance(settings, dict):
+            hosts.append(_hostname(settings.get("metadata_url")))
+    return list(dict.fromkeys(host for host in hosts if host))
+
+
+def _active_rate_limits(previous: object, now: dt.datetime) -> dict:
+    """Return persisted per-host 429 backoffs that have not yet expired."""
+    active = {}
+    if not isinstance(previous, dict):
+        return active
+    for host, entry in previous.items():
+        if not isinstance(host, str) or not isinstance(entry, dict):
+            continue
+        try:
+            not_before = dt.datetime.fromisoformat(str(entry.get("not_before")))
+        except ValueError:
+            continue
+        if not_before.tzinfo is None:
+            continue
+        if not_before > now:
+            # Re-bound stored values so a skewed clock or edited file cannot
+            # block a host for longer than the maximum backoff.
+            ceiling = now + dt.timedelta(seconds=_RATE_LIMIT_MAX_SECONDS)
+            active[host] = {**entry, "not_before": min(not_before, ceiling).isoformat()}
+    return active
+
+
+def _resolve_execution_profile(execution_profile: str | None) -> str | None:
+    profile = (execution_profile or os.environ.get("WATCHTOWER_EXECUTION_PROFILE") or "").strip().lower() or None
+    if profile is not None and profile not in _EXECUTION_PROFILES | {"any"}:
+        raise ValueError(f"unsupported execution profile: {profile}")
+    return profile
+
+
+def _profile_skip_reason(source: dict, execution_profile: str | None) -> str | None:
+    """Explain why a source must not be polled by this worker, if it must not."""
+    if source.get("enabled") is False:
+        return "disabled"
+    profiles = source.get("execution_profiles")
+    if execution_profile:
+        if not profiles or (execution_profile not in profiles and "any" not in profiles):
+            return "execution-profile"
+        return None
+    # No worker profile: only unassigned (legacy) sources and "any" sources may
+    # run. Assigned sources require the worker to declare where it is running.
+    if profiles and "any" not in profiles:
+        return "execution-profile-unresolved"
+    return None
 
 
 USER_AGENT = "GIS-Data-Watchtower/0.1 (+https://github.com/clearparcel/GIS-Data-Watchtower)"
@@ -220,7 +318,7 @@ def _urllib_request_once(
         exc.close()
         retry_after = exc.headers.get("Retry-After") if exc.headers else None
         if exc.code == 429:
-            raise ProviderRateLimitError(retry_after) from exc
+            raise ProviderRateLimitError(retry_after, _hostname(url)) from exc
         if exc.code in _PERMANENT_HTTP_STATUSES:
             raise PermanentProviderError(exc.code, f"provider returned HTTP {exc.code}; fallback transport not attempted") from exc
         if exc.code in _REDIRECT_CODES:
@@ -380,13 +478,13 @@ def _curl_request_once(
         except subprocess.TimeoutExpired as exc:
             status, _, retry_after = _curl_response_metadata(exc.output, headers_path)
             if status == 429:
-                raise ProviderRateLimitError(retry_after) from None
+                raise ProviderRateLimitError(retry_after, _hostname(url)) from None
             if status in _PERMANENT_HTTP_STATUSES:
                 raise PermanentProviderError(status, f"curl HTTP status {status}; transfer timed out") from None
             raise TimeoutError("provider request wall-clock deadline exceeded") from None
         status, location, retry_after = _curl_response_metadata(cp.stdout, headers_path)
         if status == 429:
-            raise ProviderRateLimitError(retry_after)
+            raise ProviderRateLimitError(retry_after, _hostname(url))
         if status in _PERMANENT_HTTP_STATUSES:
             raise PermanentProviderError(status, f"curl HTTP status {status}")
         deadline.remaining()
@@ -556,7 +654,7 @@ def _json_request(url: str, timeout: int, *, prefer_curl: bool = False) -> tuple
             code = int(code)
         if type(code) is int:
             if code == 429:
-                raise ProviderRateLimitError()
+                raise ProviderRateLimitError(host=_hostname(meta.get("final_url") or url))
             if code in _PERMANENT_HTTP_STATUSES | {498, 499}:
                 raise PermanentProviderError(code, f"ArcGIS provider refused request (code {code})")
         raise RuntimeError(f"ArcGIS error: {_safe_diagnostic(data['error'])}")
@@ -1798,6 +1896,7 @@ def _build_alerts(
             message = _safe_diagnostic(
                 "; ".join(str(change.get("message", "source warning")) for change in warning_changes)
                 or "; ".join(str(x) for x in current.get("problems", []))
+                or (_DEFERRED_MESSAGE if current.get("deferred") else "")
                 or "source warning"
             )
             active.append({
@@ -1806,7 +1905,7 @@ def _build_alerts(
                 "name": current.get("name"),
                 "type": "source_warning",
                 "message": message,
-                "checked_at": current.get("checked_at", now),
+                "checked_at": current.get("checked_at") or now,
             })
 
         if sid not in checked_ids:
@@ -1856,6 +1955,44 @@ def _write_alert_text(path: Path, document: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
+_DEFERRED_MESSAGE = "provider requested backoff (HTTP 429); not polled this run"
+_RATE_LIMITED_MESSAGE = "provider rate limit (HTTP 429); backoff recorded"
+_OBSERVATION_CARRY_EXCLUDE = {"error", "changes", "deferred", "problems", "status", "checked_at", "elapsed_ms",
+                              "attempts", "provenance", "gac_check_status", "gac_check_error"}
+
+
+def _deferred_record(source: dict, previous: dict | None, now: str) -> dict:
+    """Record a source skipped because its host is under an HTTP 429 backoff.
+
+    The previous observation is retained, including its checked_at and
+    provenance, so provider-check freshness does not advance without a check.
+    """
+    previous = previous if isinstance(previous, dict) else {}
+    record = {k: v for k, v in previous.items() if k not in {"error", "changes", "deferred", "problems"}}
+    record.update({
+        "id": source["id"],
+        "name": source["name"],
+        "provider": source.get("provider"),
+        "category": source.get("category"),
+        "county_slug": source.get("county_slug"),
+        "kind": source.get("kind") or _adapter_name(source),
+        "adapter": _adapter_name(source),
+        "url": source["url"],
+        # Never report healthier than the last real observation.
+        "status": "error" if previous.get("status") == "error" else "warn",
+        "checked_at": previous.get("checked_at"),
+        "elapsed_ms": 0,
+        "attempts": 0,
+        # Timing and host stay in private worker state (rate_limits), not in
+        # records that flow into worker reports and the shared aggregate.
+        "deferred": {"reason": "provider-rate-limit"},
+        # Keep the original failure reason visible while an error is deferred.
+        "error": (previous.get("error") or _DEFERRED_MESSAGE) if previous.get("status") == "error" else _DEFERRED_MESSAGE,
+        "changes": [],
+    })
+    return record
+
+
 class WatchtowerRunLockedError(RuntimeError):
     pass
 
@@ -1889,17 +2026,29 @@ def _check_sources_unlocked(
     state_path = Path(config["state_file"])
     previous_state = load_state(state_path)
     previous_sources = previous_state.get("sources", {})
-    now = dt.datetime.now(dt.timezone.utc).isoformat()
+    run_started = dt.datetime.now(dt.timezone.utc)
+    now = run_started.isoformat()
     records = {}
+    skipped_sources = {}
     filtered = source_filter.lower() if source_filter else None
+    execution_profile = _resolve_execution_profile(execution_profile)
+    # Per-host HTTP 429 backoffs persist across runs; expired entries drop out.
+    rate_limits = _active_rate_limits(previous_state.get("rate_limits"), run_started)
+    default_backoff = int(config.get("rate_limit_default_backoff_seconds", _RATE_LIMIT_DEFAULT_SECONDS))
 
     for source in config.get("sources", []):
         if filtered and filtered not in source["id"].lower() and filtered not in source["name"].lower():
             continue
-        profiles = source.get("execution_profiles")
-        if execution_profile:
-            if not profiles or (execution_profile not in profiles and "any" not in profiles):
-                continue
+        skip_reason = _profile_skip_reason(source, execution_profile)
+        if skip_reason:
+            skipped_sources[str(source.get("id") or "<missing-id>")] = skip_reason
+            continue
+        hosts = _source_hosts(source)
+        if any(host in rate_limits for host in hosts):
+            # A provider asked us to back off: make no request to that host.
+            records[source["id"]] = _deferred_record(source, previous_sources.get(source["id"]), now)
+            continue
+        rate_limited = False
         started = dt.datetime.now(dt.timezone.utc)
         source_timeout = int(source.get("timeout_seconds", timeout))
         retries = int(source.get("retries", config.get("retries", 1)))
@@ -1914,7 +2063,19 @@ def _check_sources_unlocked(
                 break
             except Exception as exc:
                 last_error = exc
-                if isinstance(exc, (ProviderRateLimitError, PermanentProviderError)):
+                if isinstance(exc, ProviderRateLimitError):
+                    # Treat 429 as a stop signal for the whole host, for this
+                    # run and (persisted) for later runs until Retry-After.
+                    observed = dt.datetime.now(dt.timezone.utc)
+                    wait = _retry_after_seconds(exc.retry_after, observed, default_backoff)
+                    limited_host = exc.host or (hosts[0] if hosts else None)
+                    if limited_host:
+                        rate_limits[limited_host] = {
+                            "not_before": (observed + dt.timedelta(seconds=wait)).isoformat(),
+                            "recorded_at": observed.isoformat(), "source_id": source["id"]}
+                    rate_limited = True
+                    break
+                if isinstance(exc, PermanentProviderError):
                     break
                 if attempt < retries:
                     time.sleep(float(config.get("retry_delay_seconds", 1)))
@@ -2013,6 +2174,17 @@ def _check_sources_unlocked(
                     records[source["id"]][quality_key] = previous_quality
                 records[source["id"]]["gac_check_status"] = "error"
                 records[source["id"]]["gac_check_error"] = records[source["id"]]["error"]
+        if rate_limited:
+            # Keep the last good observation so change detection survives the backoff.
+            previous_observation = previous_sources.get(source["id"])
+            if isinstance(previous_observation, dict):
+                carried = {k: v for k, v in previous_observation.items() if k not in _OBSERVATION_CARRY_EXCLUDE}
+                records[source["id"]] = {**carried, **records[source["id"]]}
+            records[source["id"]]["rate_limited"] = True
+            # Fixed text: the raw Retry-After value is backoff timing and stays private.
+            records[source["id"]]["error"] = _RATE_LIMITED_MESSAGE
+            if "gac_check_error" in records[source["id"]]:
+                records[source["id"]]["gac_check_error"] = _RATE_LIMITED_MESSAGE
     counts = {
         status: sum(1 for x in records.values() if x["status"] == status)
         for status in ("ok", "warn", "error")
@@ -2047,11 +2219,18 @@ def _check_sources_unlocked(
         "overall": "error" if counts["error"] else "warn" if counts["warn"] else "ok",
         "counts": counts,
         "sources": records,
+        "skipped_sources": skipped_sources,
         "active_alerts": active_alerts,
         "events": events,
     }
     if save:
         state_records = dict(previous_sources) if filtered else {}
+        if not filtered:
+            # An ad-hoc run without a profile must not erase assigned sources'
+            # previous observations from a shared private state file.
+            for sid, reason in skipped_sources.items():
+                if reason == "execution-profile-unresolved" and sid in previous_sources:
+                    state_records[sid] = previous_sources[sid]
         state_records.update(records)
         state_counts = {
             status: sum(1 for x in state_records.values() if x.get("status") == status)
@@ -2073,6 +2252,8 @@ def _check_sources_unlocked(
             "sources": state_records,
             "active_alerts": state_active_alerts,
             "events": state_events,
+            # Private worker state only; never part of worker reports or the aggregate.
+            "rate_limits": rate_limits,
         }
         _save_json(state_path, state_result)
         alerts_document = {

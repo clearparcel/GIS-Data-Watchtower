@@ -67,11 +67,45 @@ Every source normally defines:
 
 Optional common controls include:
 
+- `enabled`: set `false` to park a source. A disabled source is never polled,
+  is excluded from candidate manifests, and is reported in the run's
+  `skipped_sources` with reason `disabled`. Defaults to enabled.
 - `timeout_seconds`
 - `retries`
 - `prefer_curl`
-- `execution_profiles`: for example `["cloud"]`, `["local"]`, or `["any"]`
+- `execution_profiles`: for example `["cloud"]`, `["local"]`, or `["any"]`.
+  A worker polls an assigned source only when it declares a matching profile
+  through `--execution-profile` or `WATCHTOWER_EXECUTION_PROFILE` (the
+  command-line flag wins). Without a declared profile, only unassigned legacy
+  sources and `["any"]` sources run; other assigned sources are skipped with
+  reason `execution-profile-unresolved`.
 - `thresholds`
+
+## Provider rate limits (HTTP 429)
+
+A 429 response is a stop signal for the provider's **host**, not only for the
+source that received it. Watchtower:
+
+1. stops retrying that source immediately (no fallback transport) and keeps its
+   last good observation alongside the error, so change detection survives the
+   backoff;
+2. backs off the host that actually returned the 429 (which can be a source's
+   `metadata_url` host rather than its main URL) and makes no further requests
+   to it for the rest of the run. Every source configured to contact that host
+   is recorded with `"deferred": {"reason": "provider-rate-limit"}`, its previous
+   observation (including `checked_at`) retained so provider-check freshness
+   does not advance without a real check, and status `warn` (or `error` if the
+   last real result was an error);
+3. persists a per-host `not_before` time in the worker's private `state.json`
+   (`rate_limits`) and skips the host on later runs until that time passes.
+
+`not_before` honors `Retry-After` (delta-seconds or HTTP-date), bounded to
+between 60 seconds and 7 days. When the header is absent or unparseable the
+top-level `rate_limit_default_backoff_seconds` applies (default `3600`).
+Backoff timing and hostnames are private worker state; they are not included
+in worker reports, the shared aggregate, or the public projection. Runs with
+`--no-save` do not write state and therefore do not record a backoff; avoid
+repeating them against a host that has just returned 429.
 
 ArcGIS layer checks may use `count`, `expected_geometry`, `expected_wkid`, `required_fields`, `parcel_quality`, `geometry_sample`, and `geometry_sample_size`.
 

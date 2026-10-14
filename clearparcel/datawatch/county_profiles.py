@@ -177,9 +177,8 @@ def compose_county_profiles(state: dict, research: dict[str, dict], *, now: dt.d
         health = next((status for status in ('error', 'warn', 'unknown', 'ok') if any(h == status for h, _ in statuses)), 'unknown')
         reporting = next((status for status in ('overdue', 'unknown', 'current') if any(r == status for _, r in statuses)), 'unknown')
         evidence = _evidence(record)
+        # The research dataset is the sole authority for monitoring decisions.
         decision = (record.get('monitoring') or {}).get('decision')
-        if slug in ('blue-earth', 'faribault', 'kandiyohi', 'lincoln'):
-            decision = 'hold-for-terms'
         profiles[slug] = {
             'schema_version': 1, 'county': {**county, 'fips': fips[name]},
             'monitoring': {'active': bool(active), 'paths': paths, 'health': health, 'reporting': reporting,
