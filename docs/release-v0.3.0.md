@@ -1,10 +1,74 @@
-# GIS Data Watchtower v0.3.0 — release candidate
+# GIS Data Watchtower v0.3.0
 
-**Status: merged to `main` on 2026-10-14 (`a531161`), not deployed.** Production remains
-[v0.2.3](release-v0.2.3.md), and v0.2.3 is the rollback baseline. The owner
-chose v0.3.0, a minor release, because the review stack changes CLI exit
-codes, aggregate and public-state fields, and the dashboards. Nothing here is
-merged, built or deployed without separate owner approval.
+**Deployed and verified October 14, 2026 (America/Chicago).** The owner
+approved the production release on 2026-10-14. Source is merged `main`
+`4e4dbec082dbd966e7af1e18a12f03d0557295c2`, which also carries the CSP
+hardening (#99) and the Cass County research update (#100).
+[v0.2.3](release-v0.2.3.md) is the rollback baseline. The owner chose v0.3.0,
+a minor release, because the review stack changes CLI exit codes, aggregate
+and public-state fields, and the dashboards.
+
+## Deployment evidence (2026-10-14)
+
+- **Preflight:** `scripts/check_release_version.py` passed against the live
+  site: deployed v0.2.3 → candidate v0.3.0. Afterwards it reports v0.3.0 as
+  deployed. CI was green on `main`.
+- **Build:** Cloud Build `a8848745-3460-496a-bb42-123b9e088022`, from a
+  committed-only `git archive` of the merged SHA. It followed the v0.2.3
+  pattern plus the gate's extra checks:
+  - both images verified identity `0.3.0` / full SHA / `production`;
+  - the private wrapper was copied unchanged from the audited v0.2.3 image,
+    with SHA-256 `786cccc2…5fb5e72a`.
+  - A new step runs every import in the wrapper and resolves every
+    `dashboard.*` attribute it uses. The wrapper starts its server on import,
+    so the module is not imported as a whole.
+- **Images:**
+  - `watchtower` `sha256:3df9fe0ce9373509ba1d80d1008e240274014626848c052cf8104eecd90f8f76`
+    serves the public dashboard, the provider job and the publisher job.
+  - `dashboard` `sha256:05599e269642ae0031d3d75682cadd3ffffc097ae5a224351edd06a4031ddb54`
+    serves the private dashboard.
+- **Services:** both were first deployed at zero traffic (tag `v030`),
+  checked Ready, and then promoted to 100% traffic. Ingress, IAP, IAM,
+  environment and secrets are unchanged.
+
+| Service or job | v0.3.0 | Rollback (v0.2.3 / v0.2.2) |
+| --- | --- | --- |
+| Public dashboard | `gis-data-watchtower-public-00031-ciw` | `gis-data-watchtower-public-00019-4zl` |
+| Private dashboard | `gis-data-watchtower-dashboard-00033-qor` | `gis-data-watchtower-dashboard-00026-6gg` |
+| Provider job | `watchtower@sha256:3df9fe0c…` | `watchtower@sha256:2d2f4a5f…` (v0.2.2) |
+| Public publisher job | `watchtower@sha256:3df9fe0c…` | `watchtower@sha256:2d2f4a5f…` (v0.2.2) |
+
+- **Execution-profile validation:** one owner-approved provider run on
+  v0.3.0, execution `gis-data-watchtower-staging-zwzt2`. It was a single
+  bounded check; the daily schedule is unchanged.
+  - The `cloud` profile checked 33 sources: 27 ok, 1 warn, 5 error.
+  - The run exited with code 2, which in v0.3.0 means a source error.
+  - Worker provenance is `cloud` for all 33 sources.
+  - All five errors were provider-side and happened during the MnGeo outage:
+    MnGeo addresses, roads and parcel catalog (HTTP 502/504), NWI (HTTP 502),
+    and FEMA NFHL (connection reset). Their last successful checks were kept.
+- **Hold-for-terms:** the run skipped the enabled Brown and Swift
+  county-direct parcel sources and retired them from the aggregate with
+  tombstones. The inventory guard accepted the report because deliberate
+  skips count as covered. As a result, counties with parcel observations
+  went from 70/87 to **68/87** (59 via MnGeo, 22 county-direct).
+  - The private registry still lists both sources as enabled. Disabling them
+    there is an owner configuration change.
+- **Publication and live acceptance:**
+  - The publisher ran on v0.3.0 (execution `gis-data-watchtower-public-publisher-746r9`).
+  - At [gis-watchtower.clear-parcel.com](https://gis-watchtower.clear-parcel.com),
+    every page returned HTTP 200 and the footer shows **v0.3.0**: Overview,
+    Counties, county profiles (Cass, Brown), MN GAC parcel statewide, MN GAC
+    address county, the county CSV and `/api/state`.
+  - Each HTML page's `Content-Security-Policy` lists SHA-256 script hashes,
+    has no script `'unsafe-inline'`, and no marker attributes are left in the HTML.
+  - `/healthz` returned `ok` with a fresh publication.
+  - There were no ERROR log entries on either new revision.
+  - The private dashboard is behind IAP. It was verified Ready and
+    wrapper-checked, but it was not rendered without a signed-in browser.
+- **Preview:** the isolated preview now runs the same SHA as a `preview`
+  build (`gis-data-watchtower-public-v2-preview-00023-ptp`). It uses a copy
+  of the sanitized public snapshot.
 
 ## Contents
 
@@ -66,7 +130,7 @@ See [STATUS.md](../STATUS.md) for the per-package detail.
   and request volume are unchanged. Hold-for-terms counties stay unpolled
   county-direct.
 
-## Release gate (per AGENTS.md and the release policy)
+## Release gate (per AGENTS.md and the release policy) — completed 2026-10-14
 
 1. The owner reviews and merges the stack, in order or squashed. CI must be
    green on `main`.

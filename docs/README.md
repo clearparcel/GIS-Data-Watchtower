@@ -34,9 +34,9 @@ Choose the path that matches what you want to do. For the live dashboard and a c
 | [Google Cloud deployment](google-cloud-deployment.md) | Optional Cloud Run and storage deployment |
 | [Public dashboard hosting](public-dashboard-hosting.md) | Anonymous sanitized service, access boundaries, publication, and freshness |
 | [Release policy](release-policy.md) | Versioning, evidence, and rollback expectations |
-| [v0.3.0 release (merged, not deployed)](release-v0.3.0.md) | Review stack contents, operator compatibility notes and release gate |
-| [Current v0.2.3 release](release-v0.2.3.md) | Branding update, immutable images, public/private acceptance, and rollback details |
-| [v0.2.2 release](release-v0.2.2.md) | Immediate rollback baseline for v0.2.3 |
+| [Current v0.3.0 release](release-v0.3.0.md) | Deployment evidence, review stack contents, operator compatibility notes and rollback |
+| [v0.2.3 release](release-v0.2.3.md) | Rollback baseline for v0.3.0 services; branding update |
+| [v0.2.2 release](release-v0.2.2.md) | Rollback baseline for the v0.3.0 job images |
 | [Current status](current-status.md) | Generated companion to authoritative [STATUS.md](../STATUS.md); do not edit directly |
 | [Private vulnerability reporting](../SECURITY.md) | Safe reporting and security expectations |
 
