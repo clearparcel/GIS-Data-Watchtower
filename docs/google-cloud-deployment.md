@@ -71,7 +71,7 @@ The job downloads the last saved state/history into ephemeral `/tmp`, performs o
 - `WATCHTOWER_STORAGE=gcs`
 - `WATCHTOWER_GCS_BUCKET=<bucket>`
 - optional `WATCHTOWER_GCS_PREFIX=<prefix>`
-- optional `WATCHTOWER_WORKDIR=/tmp/watchtower`
+- optional `WATCHTOWER_WORKDIR=<dir>` (default: a per-run temporary directory)
 
 Use the Cloud Run Job's service account and IAM instead of JSON service-account keys. The service account needs object read/write access only to the Watchtower bucket/prefix.
 
@@ -90,7 +90,8 @@ watchtower --config config/example_sources.json cloud-job
 
 `cloud-job` refuses to run when every configured source points at a reserved
 example host (the repository example), so a container started without the
-deployment registry exits with code 2 before contacting any provider or storage.
+deployment registry exits with code 3 (a Watchtower failure) before contacting
+any provider or storage.
 Set `WATCHTOWER_ALLOW_EXAMPLE_CONFIG=1` only for a deliberate synthetic test.
 A run whose execution profile matches no configured sources also exits 2 and
 uploads and publishes nothing; see [hybrid aggregation](hybrid-aggregation.md).

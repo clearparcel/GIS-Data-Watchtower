@@ -126,8 +126,6 @@ def render_direct_schema_findings(assessments: list[dict]) -> str:
               'MN GAC is a transfer standard; counties may use another internal schema or offer a separate standardized export. '
               'Names alone do not establish full compliance.</p></div>')
 
-def _json(value: object) -> str:
-    return json.dumps(value, ensure_ascii=False).replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
 
 def percentage_color(value: object) -> str:
     """Classify a measured 0-100 rate without turning missing values into zero."""
@@ -300,3 +298,9 @@ def render_county_profile_panel(profiles: dict[str, dict], *, revision: str | No
 })();
 </script>
 '''
+
+
+def __getattr__(name: str):
+    """Resolve names that v0.2.3 exposed here (see clearparcel.datawatch._compat)."""
+    from clearparcel.datawatch import _compat
+    return _compat.resolve(__name__, name)

@@ -244,13 +244,18 @@ class RateLimitTests(ProviderComplianceBase):
              "expired.example": {"not_before": "2020-01-01T00:00:00+00:00"},
              "bad.example": {"not_before": "soon"}}, now)
         self.assertEqual(set(active), {"h.example"})
-        self.assertEqual(dt.datetime.fromisoformat(active["h.example"]["not_before"]), now + dt.timedelta(days=7))
+        # Only re-bounded to the year-long maximum: a requested backoff is never shortened.
+        self.assertEqual(dt.datetime.fromisoformat(active["h.example"]["not_before"]), now + dt.timedelta(days=365))
+        month = (now + dt.timedelta(days=30)).isoformat()
+        kept = watch._active_rate_limits({"m.example": {"not_before": month}}, now)
+        self.assertEqual(kept["m.example"]["not_before"], month)
 
     def test_retry_after_parsing_is_bounded(self):
         now = dt.datetime(2026, 10, 13, 12, 0, tzinfo=dt.timezone.utc)
         self.assertEqual(watch._retry_after_seconds("120", now), 120)
         self.assertEqual(watch._retry_after_seconds("5", now), 60)  # minimum
-        self.assertEqual(watch._retry_after_seconds("99999999", now), 7 * 24 * 3600)  # maximum
+        self.assertEqual(watch._retry_after_seconds("2592000", now), 30 * 24 * 3600)  # a month is honoured
+        self.assertEqual(watch._retry_after_seconds("99999999", now), 365 * 24 * 3600)  # maximum (a year)
         self.assertEqual(watch._retry_after_seconds(None, now), 3600)  # default
         self.assertEqual(watch._retry_after_seconds("soon", now), 3600)
         self.assertEqual(watch._retry_after_seconds("Tue, 13 Oct 2026 12:30:00 GMT", now), 1800)

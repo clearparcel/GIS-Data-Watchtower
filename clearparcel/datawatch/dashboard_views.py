@@ -28,7 +28,6 @@ def render_dashboard(config: dict) -> str:
             changed_30 += 1
         meta = config_map.get(sid, {})
         enriched.append((sid, src, meta, stats, hist))
-    telemetry = state.get("telemetry") or {}
     workers = state.get("workers") or {}
     worker_cards = []
     for worker_name in ("cloud", "local"):
@@ -72,7 +71,6 @@ def render_dashboard(config: dict) -> str:
     rows = []
     categories = sorted({str(meta.get("category") or src.get("category") or "Other") for _,src,meta,_,_ in enriched})
     for sid, src, meta, stats, hist in sorted(enriched, key=lambda x: str(x[1].get("name", x[0])).lower()):
-        changes = src.get("changes") or []
         provider = meta.get("provider") or src.get("provider") or "—"
         category = meta.get("category") or src.get("category") or "Other"
         prev_count = next((x.get("feature_count") for x in reversed(hist[:-1]) if x.get("feature_count") is not None), None) if len(hist) > 1 else None
@@ -182,7 +180,7 @@ def render_source(config: dict, source_id: str) -> str:
 <div class="section-head"><div><h2>About this data</h2><p>Operational source facts first; low-level adapter and coordinate details remain expandable below.</p></div></div>
 <div class="definition-grid">
 <div class="definition-group"><h3>Source</h3><dl class="definition-list">
-<dt>Provided by</dt><dd>{_dashboard._esc(provider)}</dd><dt>Data type</dt><dd>{_dashboard._esc(category)}</dd><dt>Checked by</dt><dd>{_dashboard._esc(src.get('worker') or 'local/default')} worker</dd><dt>Reporting</dt><dd>{_dashboard._esc(src.get('reporting') or 'current')}</dd><dt>Last successful check</dt><dd>{_dashboard._format_time_pair(src.get('last_success_at'))}</dd><dt>Changes this check</dt><dd>{len(changes)}</dd><dt>Last change found</dt><dd>{_dashboard._format_time_pair(stats.get('last_change')) if stats.get('last_change') else 'Not yet recorded'}</dd>
+<dt>Provided by</dt><dd>{_dashboard._esc(provider)}</dd><dt>Data type</dt><dd>{_dashboard._esc(category)}</dd><dt>Checked by</dt><dd>{_dashboard._esc(src.get('worker') or 'local/default')} worker</dd><dt>Reporting</dt><dd>{_dashboard._esc(src.get('reporting') or 'current')}</dd><dt>Last successful check</dt><dd>{_dashboard._format_time_pair(src.get('last_success_at'))}</dd><dt>Last provider response</dt><dd>{_dashboard._format_time_pair(src.get('last_available_at')) if src.get('last_available_at') else 'Not yet recorded'}</dd><dt>Changes this check</dt><dd>{len(changes)}</dd><dt>Last change found</dt><dd>{_dashboard._format_time_pair(stats.get('last_change')) if stats.get('last_change') else 'Not yet recorded'}</dd>
 </dl></div>
 <div class="definition-group"><h3>Parcel quality</h3><dl class="definition-list">
 <dt>Records</dt><dd>{source_count_text}</dd><dt>Information fields</dt><dd>{_dashboard._esc(src.get('field_count','—'))}</dd><dt>Parcel ID field</dt><dd>{_dashboard._esc(src.get('parcel_id_field','Not identified'))} ({_dashboard._esc(src.get('parcel_id_confidence','none'))} confidence)</dd><dt>Missing parcel IDs</dt><dd>{_dashboard._esc(src.get('parcel_id_null_count','Not checked'))}</dd><dt>Duplicate-ID extra rows</dt><dd>{_dashboard._esc(src.get('duplicate_id_extra_rows','Not checked'))}</dd><dt>Missing mapped shape</dt><dd>{_dashboard._esc(src.get('null_geometry_count','Not checked'))}</dd>

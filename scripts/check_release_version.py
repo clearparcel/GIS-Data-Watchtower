@@ -7,6 +7,7 @@ release, not separately for every service in the same coordinated rollout.
 from __future__ import annotations
 
 import argparse
+import http.client
 from html.parser import HTMLParser
 from pathlib import Path
 import re
@@ -105,7 +106,7 @@ def main(argv: list[str] | None = None) -> int:
         candidate = candidate_version()
         deployed = live_version()
         require_new_version(candidate, deployed)
-    except (OSError, ValueError, KeyError, UnicodeError) as error:
+    except (OSError, ValueError, KeyError, UnicodeError, http.client.HTTPException) as error:
         print(f"RELEASE BLOCKED: {error}", file=sys.stderr)
         return 1
     print(f"RELEASE PREFLIGHT PASSED: deployed v{deployed} -> candidate v{candidate}")

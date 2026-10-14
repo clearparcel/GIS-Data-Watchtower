@@ -109,7 +109,7 @@ const flush=()=>new Promise(resolve=>setImmediate(resolve));
 
     @unittest.skipUnless(NODE_AVAILABLE, "JavaScript boundary execution requires Node.js")
     def test_percentage_class_boundaries_and_legend_match_emitted_javascript(self):
-        from clearparcel.datawatch.county_profile_panel import percentage_color_js, percentage_legend, PERCENT_COLORS, NO_DATA_FILL
+        from clearparcel.datawatch.county_profile_panel import percentage_color_js, PERCENT_COLORS, NO_DATA_FILL
         values = [0, 0.001, 29.999, 30, 30.001, 49.999, 50, 50.001,
                   69.999, 70, 70.001, 100, None, "", "30", -1, 101]
         expected = [PERCENT_COLORS[i] for i in [0, 0, 0, 1, 1, 1, 2, 2,
@@ -119,7 +119,7 @@ const flush=()=>new Promise(resolve=>setImmediate(resolve));
         self.assertEqual(json.loads(result.stdout), expected + [NO_DATA_FILL] * 4)
         self.assertEqual(result.stderr, "")
     def test_percentage_legend_classes_and_palette(self):
-        from clearparcel.datawatch.county_profile_panel import percentage_legend, PERCENT_COLORS, NO_DATA_COLOR
+        from clearparcel.datawatch.county_profile_panel import percentage_legend, PERCENT_COLORS
         legend = html.unescape(percentage_legend())
         self.assertEqual(PERCENT_COLORS, ["#30506f", "#4583b3", "#7cbedf", "#c9edf5"])
         self.assertEqual(legend.count('class="mngac-swatch'), 5)
