@@ -160,7 +160,7 @@ def render_public_dashboard(config: dict) -> str:
             f'<td>{_esc(source.get("provider") or "—")}</td>'
             f'<td><span class="pill {_status_class(status)}">{_esc(_health_status(status))}</span></td>'
             f'<td>{_esc(f"{source.get("feature_count"):,}" if isinstance(source.get("feature_count"), int) else source.get("feature_count") or "—")}</td>'
-            f'<td>{_esc(source.get("change_count") or 0)}</td>'
+            f'<td>{_esc(source.get("change_count") if source.get("change_count") is not None else "—")}</td>'
             f'<td>{_esc(_public_time(source.get("last_success_at")))}</td>'
             '</tr>'
         )
@@ -209,8 +209,8 @@ def render_public_dashboard(config: dict) -> str:
 <div class="summary-v2">
   <div class="card"><div class="muted">Dataset/service entries monitored</div><div class="metric">{len(sources)}</div><span class="subtext">All data types · entries, not counties or unique providers</span></div>
   <div class="card"><div class="muted">Entries healthy at last check</div><div class="metric ok">{healthy}</div><span class="subtext">{issues} had issues at their last check</span></div>
-  <div class="card"><div class="muted">Minnesota counties</div><div class="metric">87</div><span class="subtext">Statewide county profile index</span></div>
-  <div class="card"><div class="muted">Counties with parcel observations</div><div class="metric">{monitoring["active"]}/87</div><span class="subtext">{monitoring["mngeo_open"]} via MnGeo open parcels · {monitoring["county_direct"]} via county-direct sources · each county counted once</span></div>
+  <div class="card"><div class="muted">Minnesota counties</div><div class="metric">{monitoring["total"]}</div><span class="subtext">Statewide county profile index</span></div>
+  <div class="card"><div class="muted">Counties with parcel observations</div><div class="metric">{monitoring["active"]}/{monitoring["total"]}</div><span class="subtext">{monitoring["mngeo_open"]} via MnGeo open parcels · {monitoring["county_direct"]} via county-direct sources · {monitoring["both"]} via both · each county counted once</span></div>
   <div class="card"><div class="muted">Parcel all-field population</div><div class="metric">{_esc(f"{all_field:.2f}%" if isinstance(all_field,(int,float)) else "—")}</div><span class="subtext">Across all 91 standard fields</span></div>
   <div class="card"><div class="muted">Parcel mandatory-field population</div><div class="metric">{_esc(f"{mandatory:.2f}%" if isinstance(mandatory,(int,float)) else "—")}</div><span class="subtext">Record-weighted statewide rate</span></div>
 </div>
@@ -392,7 +392,7 @@ def render_public_source(config: dict, source_id: str) -> str:
         f'<dt>Data type</dt><dd>{_esc(source.get("category") or "—")}</dd>'
         f'<dt>Latest successful check</dt><dd>{_esc(_public_time(source.get("last_success_at")))}</dd>'
         f'<dt>Reporting</dt><dd>{_esc(source.get("reporting") or "current")}</dd>'
-        f'<dt>Changes found</dt><dd>{_esc(source.get("change_count") or 0)}</dd>'
+        f'<dt>Changes found</dt><dd>{_esc(source.get("change_count") if source.get("change_count") is not None else "Not recorded")}</dd>'
         f'<dt>Information fields</dt><dd>{_esc(source.get("field_count") if source.get("field_count") is not None else "—")}</dd>'
         f'<dt>Missing parcel IDs</dt><dd>{_esc(source.get("parcel_id_null_count") if source.get("parcel_id_null_count") is not None else "Not checked")}</dd>'
         f'<dt>Duplicate-ID extra rows</dt><dd>{_esc(source.get("duplicate_id_extra_rows") if source.get("duplicate_id_extra_rows") is not None else "Not checked")}</dd>'
@@ -407,6 +407,17 @@ def render_public_source(config: dict, source_id: str) -> str:
         refresh_seconds=30,
         static=True,
     )
+
+
+
+# Health and reporting labels depend on the current time as well as the
+# stored state: rebuild cached profiles/exports at least this often so
+# "current" turns "overdue" even when publication has stalled.
+FRESHNESS_RECOMPUTE_SECONDS = 600
+
+
+def _freshness_bucket() -> bytes:
+    return str(int(time.time() // FRESHNESS_RECOMPUTE_SECONDS)).encode()
 
 
 class _PublicStateCache:
@@ -484,6 +495,7 @@ class _PublicStateCache:
         identity = application_identity()
         key = hashlib.sha256(
             state_bytes + str(identity.get("revision")).encode() + str(identity.get("version")).encode()
+            + _freshness_bucket()
         ).hexdigest()
         if key != self._snapshot_key:
             self._snapshot_value = _statewide_snapshot(self.config)
@@ -502,7 +514,8 @@ class _PublicStateCache:
             research = load_parcel_access()
             key = hashlib.sha256(state_bytes + json.dumps(research, sort_keys=True).encode()
                                  + json.dumps(application_identity(), sort_keys=True).encode()
-                                 + json.dumps(self.config, sort_keys=True).encode()).hexdigest()
+                                 + json.dumps(self.config, sort_keys=True).encode()
+                                 + _freshness_bucket()).hexdigest()
             if key != self._view_key:
                 state = sanitize_public_render_state(json.loads(state_bytes))
                 profiles = _county_profiles(self.config, state, research)

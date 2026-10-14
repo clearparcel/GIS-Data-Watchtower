@@ -18,6 +18,26 @@ def provider_edit_timestamp(value: object) -> str | None:
         return None
 
 
+def provider_edit_date(value: object) -> str | None:
+    """Calendar date (YYYY-MM-DD) for an ArcGIS date-only field in epoch ms.
+
+    ArcGIS stores date-only values as UTC midnight. Converting them to a local
+    instant would display the previous day in Minnesota, so keep the UTC date.
+    """
+    stamp = provider_edit_timestamp(value)
+    return stamp[:10] if stamp else None
+
+
+def spreadsheet_text(value: object) -> str:
+    """Text for an XLSX inline-string cell.
+
+    Inline strings are never evaluated as formulas, so the CSV formula guard
+    (a leading apostrophe) would only corrupt values such as "+1 507..." or "-".
+    """
+    text = '' if value is None else str(value)
+    return re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", "", text)
+
+
 def spreadsheet_cell(value: object) -> str:
     text = '' if value is None else str(value)
     start = 0

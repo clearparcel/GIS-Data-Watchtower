@@ -17,6 +17,10 @@ from clearparcel.datawatch.gac_standards import (
 from .dashboard_gac_counties import navigation, resolve_county, county_map, render_county_results
 
 
+def _n(value) -> str:
+    """Thousands-separated integer, or "—" when the statistic is missing."""
+    return f"{value:,}" if isinstance(value, int) and not isinstance(value, bool) else "—"
+
 def _gac_standard_selector(active: str, county: dict | None = None) -> str:
     return navigation(active, 'statewide', county)
 
@@ -318,14 +322,22 @@ def render_mngac(config: dict, standard_key: str = "parcel", *, county: str = ''
         total = stats.get("record_count")
         pct = stats.get("percent")
         median = stats.get("county_median_percent")
-        county_values = int(stats.get("counties_with_values") or 0)
+        # Missing statistics stay "—"; they are never shown as zero counties.
+        county_values = stats.get("counties_with_values")
+        county_values = county_values if isinstance(county_values, int) and not isinstance(county_values, bool) else None
+        counties_cell = (f'{county_values}/{total_counties}<br><span class="subtext">{county_values}/{covered} represented counties</span>'
+                         if county_values is not None else '—')
+        scanned = stats.get("population_scanned") is not False and total is not None
+        schema_cell = ("Present" if stats.get("present_in_source_schema") is True
+                       else "Missing" if stats.get("present_in_source_schema") is False else "Unknown")
         field_rows.append(
             f'<tr data-name="{_dashboard._esc((str(spec.get("label") or "") + " " + field).lower())}" '
             f'data-inclusion="{_dashboard._esc(spec.get("inclusion") or "")}">'
             f'<td><button type="button" class="mngac-field-select" data-field="{_dashboard._esc(field)}">'
             f'<strong>{_dashboard._esc(spec.get("label"))}</strong><br><code>{_dashboard._esc(field)}</code></button></td>'
             f'<td>{_dashboard._esc(spec.get("section_name"))}</td><td>{_dashboard._esc(spec.get("inclusion"))}</td>'
-            f'<td>{county_values}/{total_counties}<br><span class="subtext">{county_values}/{covered} represented counties</span></td>'
+            f'<td>{schema_cell}</td><td>{"Scanned" if scanned else "Not scanned"}</td>'
+            f'<td>{counties_cell}</td>'
             f'<td>{_dashboard._esc(f"{populated:,}" if isinstance(populated, int) else "—")} / '
             f'{_dashboard._esc(f"{total:,}" if isinstance(total, int) else "—")}</td>'
             f'<td><strong>{_dashboard._esc(f"{pct:.2f}%" if isinstance(pct, (int,float)) else "—")}</strong></td>'
@@ -457,24 +469,25 @@ def _render_county_mngac(state: dict, county: dict) -> str:
             '<div class="card"><h2>MN GAC field completeness</h2>'
             '<p>This county is not represented in the current MnGeo Plan Parcels Open layer. '
             'Statewide population statistics are unavailable; this does not establish county-direct noncompliance.</p>'
-            f'<p class="subtext">The statewide open layer currently represents {_dashboard._esc(data.get("covered_counties") or 0)} of 87 Minnesota counties.</p>'
+            f'<p class="subtext">The statewide open layer currently represents {_dashboard._esc(_n(data.get("covered_counties")))} of {len(_dashboard._load_counties())} Minnesota counties.</p>'
             '<p><a href="/mngac">Explore the statewide MN GAC map →</a></p></div>'
         )
-    record_count = int(stats.get("record_count") or 0)
-    field_count = int(stats.get("field_count") or 0)
-    fields_with_values = int(stats.get("fields_with_values") or 0)
+    # Missing statistics render as "—", never as zero.
+    record_count = _n(stats.get("record_count"))
+    field_count = _n(stats.get("field_count"))
+    fields_with_values = _n(stats.get("fields_with_values"))
     population_pct = stats.get("field_population_percent")
     mandatory_pct = stats.get("mandatory_population_percent")
-    mandatory_full = int(stats.get("mandatory_fields_full") or 0)
-    mandatory_count = int(stats.get("mandatory_field_count") or 0)
+    mandatory_full = _n(stats.get("mandatory_fields_full"))
+    mandatory_count = _n(stats.get("mandatory_field_count"))
     rows = _dashboard._mngac_field_rows(stats)
     return f"""
 <div class="section-head"><div><h2>MN GAC field completeness</h2><p>Population of the official Minnesota GAC parcel-transfer fields for this county in MnGeo Plan Parcels Open.</p></div><a href="/mngac">Statewide map →</a></div>
 <div class="grid primary-grid">
-  <div class="card"><div class="muted">MnGeo parcel records</div><div class="metric">{record_count:,}</div><span class="subtext">Records used as the denominator for county field-population percentages.</span></div>
-  <div class="card"><div class="muted">Fields with values</div><div class="metric">{fields_with_values}/{field_count}</div><span class="subtext">Standard fields containing at least one populated value in this county.</span></div>
+  <div class="card"><div class="muted">MnGeo parcel records</div><div class="metric">{_dashboard._esc(record_count)}</div><span class="subtext">Records used as the denominator for county field-population percentages.</span></div>
+  <div class="card"><div class="muted">Fields with values</div><div class="metric">{_dashboard._esc(fields_with_values)}/{_dashboard._esc(field_count)}</div><span class="subtext">Standard fields containing at least one populated value in this county.</span></div>
   <div class="card"><div class="muted">All-field fill rate</div><div class="metric">{_dashboard._esc(f"{population_pct:.2f}%" if isinstance(population_pct,(int,float)) else "—")}</div><span class="subtext">Populated cells across all standard fields. This is descriptive, not a compliance score.</span></div>
-  <div class="card"><div class="muted">Mandatory-field fill rate</div><div class="metric">{_dashboard._esc(f"{mandatory_pct:.2f}%" if isinstance(mandatory_pct,(int,float)) else "—")}</div><span class="subtext">{mandatory_full}/{mandatory_count} Mandatory fields are populated for 100% of records.</span></div>
+  <div class="card"><div class="muted">Mandatory-field fill rate</div><div class="metric">{_dashboard._esc(f"{mandatory_pct:.2f}%" if isinstance(mandatory_pct,(int,float)) else "—")}</div><span class="subtext">{_dashboard._esc(mandatory_full)}/{_dashboard._esc(mandatory_count)} Mandatory fields are populated for 100% of records.</span></div>
 </div>
 <div class="mngac-note">The GAC standard uses four inclusion categories: Mandatory, Conditional, If Available, and Optional. A blank Conditional, If Available, or Optional field can be valid, so these percentages should not be interpreted as a pass/fail compliance grade. Standard: {_dashboard._esc(standard.get("short_name") or "MN GAC Parcel Data Standard")} v{_dashboard._esc(standard.get("version") or "—")}.</div>
 <div class="card">

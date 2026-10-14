@@ -205,7 +205,8 @@ def sanitize_public_render_state(state: dict) -> dict:
         summary['id'] = summary.get('id') or source_id
         summary['status'] = summary.get('status') or 'unknown'
         changes = source.get('changes')
-        summary['change_count'] = len(changes) if isinstance(changes, list) else (_public_count(source.get('change_count')) or 0)
+        # No change data is "unknown", not zero changes.
+        summary['change_count'] = len(changes) if isinstance(changes, list) else _public_count(source.get('change_count'))
         if isinstance(source.get('completeness_profiles'), dict):
             summary['completeness_profiles'] = _sanitize_completeness(source['completeness_profiles'])
         metadata = sanitize_source_metadata(source)

@@ -572,7 +572,7 @@ class PublicDashboardTests(unittest.TestCase):
         # Two parcel entries cover two counties, including overlap; imagery adds an entry only.
         self.assertIn('Dataset/service entries monitored</div><div class="metric">3</div>', overview)
         self.assertIn('Counties with parcel observations</div><div class="metric">2/87</div>', overview)
-        self.assertIn("2 via MnGeo open parcels · 1 via county-direct sources · each county counted once", overview)
+        self.assertIn("2 via MnGeo open parcels · 1 via county-direct sources · 1 via both · each county counted once", overview)
         for page in (overview, mngac):
             self.assertIn("<h1>Minnesota Open Data Watchtower</h1>", page)
             self.assertIn(percentage_color_js(), page)

@@ -290,6 +290,26 @@ def _load_counties() -> list[dict]:
         return []
 
 
+_PLACEHOLDER_CONTACT_NAMES = {"", "tbd", "tba", "n/a", "na", "none", "vacant", "unknown"}
+
+
+def _reachable(contact: dict) -> bool:
+    return bool(str(contact.get("phone") or "").strip() or str(contact.get("email") or "").strip())
+
+
+def _listed_contacts(contacts) -> list[dict]:
+    """Drop placeholder entries (e.g. name "TBD" with no phone or email)."""
+    listed = []
+    for contact in contacts or []:
+        if not isinstance(contact, dict):
+            continue
+        name = str(contact.get("name") or "").strip().lower()
+        if name in _PLACEHOLDER_CONTACT_NAMES and not _reachable(contact):
+            continue
+        listed.append(contact)
+    return listed
+
+
 def _load_county_contact_records() -> dict[str, dict]:
     try:
         baseline = json.loads(COUNTY_CONTACTS_FILE.read_text(encoding="utf-8"))
@@ -308,10 +328,12 @@ def _load_county_contact_records() -> dict[str, dict]:
         if not county:
             continue
         check = verified.get(county) or {}
-        official_contacts = check.get("contacts") or []
-        use_county = check.get("authority") == "county" and bool(official_contacts)
+        official_contacts = _listed_contacts(check.get("contacts"))
+        # The county site is authoritative only when it gives a way to reach
+        # someone; otherwise keep the MnGeo baseline that does.
+        use_county = check.get("authority") == "county" and any(_reachable(c) for c in official_contacts)
         records[county] = {
-            "contacts": official_contacts if use_county else (item.get("contacts") or []),
+            "contacts": official_contacts if use_county else _listed_contacts(item.get("contacts")),
             "authority": "county" if use_county else ("mngeo" if check.get("verified") else "mngeo_unverified"),
             "source_name": "Official county website" if use_county else (mngeo_source.get("name") or "MnGeo County GIS Contacts"),
             "source_url": (check.get("official_contact_page_url") or check.get("official_county_url")) if use_county else mngeo_source.get("url"),
@@ -321,10 +343,11 @@ def _load_county_contact_records() -> dict[str, dict]:
             "verification_note": check.get("evidence_note"),
         }
     for county, check in verified.items():
-        if county in records or check.get("authority") != "county" or not check.get("contacts"):
+        if county in records or check.get("authority") != "county" or not any(
+                _reachable(c) for c in _listed_contacts(check.get("contacts"))):
             continue
         records[county] = {
-            "contacts": check.get("contacts") or [], "authority": "county",
+            "contacts": _listed_contacts(check.get("contacts")), "authority": "county",
             "source_name": "Official county website",
             "source_url": check.get("official_contact_page_url") or check.get("official_county_url"),
             "official_county_url": check.get("official_county_url"),
@@ -394,6 +417,10 @@ def _county_status(config: dict, county: dict, state: dict, *, profiles: dict | 
     monitoring_paths = profile['monitoring']['paths']
     if profile['monitoring']['active']:
         status = profile['monitoring']['health']
+        # A healthy result that has not been re-checked within the freshness
+        # window is not "actively checked": keep availability and check age apart.
+        if profile['monitoring'].get('reporting') == 'overdue' and status in ('ok', 'unknown'):
+            status = 'overdue'
     return {
         "name": name,
         "slug": county["slug"],
@@ -647,6 +674,7 @@ from clearparcel.datawatch.dashboard_routes import dispatch_snapshot_exports
 def _coverage_status(value: str) -> str:
     return {
         "ok": "Actively checked",
+        "overdue": "Check overdue",
         "catalog": "MnGeo catalog only",
         "needs-source": "No active parcel monitoring",
         "not-configured": "No source information yet",

@@ -13,6 +13,10 @@ from .gac_standards import standard_keys
 from .public_projection import sanitize_public_render_state
 
 
+def _count(value) -> str:
+    """Thousands-separated record count, or "Unavailable" (never zero)."""
+    return f"{value:,}" if isinstance(value, int) and not isinstance(value, bool) else "Unavailable"
+
 def _digest(value: object) -> str:
     return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(",", ":"),
                                     ensure_ascii=False).encode("utf-8")).hexdigest()
@@ -100,7 +104,9 @@ def build_summary(state: dict, profiles: dict, *, identity: dict, research: dict
             "retained": source.get("gac_check_status") in {"error", "unsupported"} or source.get("status") == "error",
             "metadata_summary": data.get("metadata_summary", {}), "source_feature_count": data.get("source_feature_count"),
             "ungrouped_record_count": data.get("ungrouped_record_count"),
-            "gaps": sorted(gaps, key=lambda f: (-f["unpopulated"], f["name"]))[:6]}
+            # Only real gaps: fully populated fields are not padding for the list.
+            "gaps": sorted((f for f in gaps if f["unpopulated"] > 0), key=lambda f: (-f["unpopulated"], f["name"]))[:6],
+            "measured_mandatory_count": len(measured) if denominator else 0}
     stable = {k: v for k, v in public.items() if k != "public_published_at"}
     # Never hash relative ages/reporting labels: wall clock changes are not new observations.
     revision = _digest({"state": stable, "identity": identity, "research": research if research is not None else county_rows,
@@ -142,20 +148,23 @@ def render_diagnostics(summary: dict) -> str:
         time = profile_time(data["observed_at"]) + (" (inferred from successful check)" if data["time_inferred"] else "")
         time += " · retained after failed check" if data["retained"] else ""
         rows.append(f'<tr><th scope="row"><a href="/mngac?standard={key}">{label}</a><br>v{esc(data["version"] or "unavailable")}</th>'
-                    f'<td>{data["covered_counties"]}/{coverage["total"]}</td><td>{esc(data["record_count"] if data["record_count"] is not None else "Unavailable")}</td>'
+                    f'<td>{data["covered_counties"]}/{coverage["total"]}</td><td>{esc(_count(data["record_count"]))}</td>'
                     f'<td>{esc(pct(data["mandatory_population_percent"]))}</td><td>{esc(pct(data["county_median_percent"]))}</td>'
                     f'<td>{esc(data["mandatory_field_count"] if data["mandatory_field_count"] is not None else "—")} mandatory; '
                     f'{esc(data["scanned_field_count"] if data["scanned_field_count"] is not None else "—")} scanned / '
                     f'{esc(data["field_count"] if data["field_count"] is not None else "—")} schema fields<br>{esc(data["population_scope"] or "Not measured")}</td>'
                     f'<td>{esc(time)}</td></tr>')
         field_rows = "".join(f'<tr><th scope="row">{esc(f["label"])} <code>{esc(f["name"])}</code></th>'
-                             f'<td>{esc(pct(f["percent"]))}<br><meter min="0" max="100" value="{f["percent"] or 0}" aria-label="{esc(f["label"])} population">{esc(pct(f["percent"]))}</meter></td>'
+                             f'<td>{esc(pct(f["percent"]))}'
+                             + (f'<br><meter min="0" max="100" value="{f["percent"]}" aria-label="{esc(f["label"])} population">{esc(pct(f["percent"]))}</meter>'
+                                if f["percent"] is not None else '') + '</td>'
                              f'<td>{f["populated"]:,} / {f["records"]:,}</td><td>{f["unpopulated"]:,}</td></tr>' for f in data["gaps"])
         gaps.append(f'<section data-gap-standard="{key}" {"hidden" if key != "parcel" else ""}><h3>{label}: mandatory-field gaps</h3>'
-                    f'<p>{esc(time)} · Denominator: {esc(data["record_count"] if data["record_count"] is not None else "Unavailable")} records. '
-                    'Six largest unpopulated counts; an unpopulated field does not establish an invalid record.</p>'
+                    f'<p>{esc(time)} · Denominator: {esc(_count(data["record_count"]))} records. '
+                    'Up to six fields with the largest unpopulated counts; an unpopulated field does not establish an invalid record.</p>'
                     '<div class="table-scroll" tabindex="0" role="region" aria-label="Mandatory-field gaps"><table><thead><tr><th scope="col">Field</th><th scope="col">Population</th><th scope="col">Populated / records</th><th scope="col">Unpopulated records</th></tr></thead>'
-                    f'<tbody>{field_rows}</tbody></table></div>' + ('<p>No scanned mandatory-field measurements available.</p>' if not field_rows else '')
+                    f'<tbody>{field_rows}</tbody></table></div>' + ('' if field_rows else '<p>Every scanned mandatory field is fully populated.</p>'
+                       if data.get("measured_mandatory_count") else '<p>No scanned mandatory-field measurements available.</p>')
                     + f'<a href="/mngac.csv?standard={key}">Download field measurements (CSV)</a></section>')
     road = summary["standards"]["road"]
     metadata = road["metadata_summary"]

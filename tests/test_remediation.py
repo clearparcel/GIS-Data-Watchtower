@@ -97,7 +97,9 @@ class SummaryTests(unittest.TestCase):
         parcel = summary["standards"]["parcel"]
         self.assertEqual(parcel["mandatory_population_percent"], 50)
         self.assertEqual(parcel["county_median_percent"], 50)
-        self.assertEqual([f["name"] for f in parcel["gaps"]], ["B", "A"])
+        # A is fully populated, so it is not listed as a gap.
+        self.assertEqual([f["name"] for f in parcel["gaps"]], ["B"])
+        self.assertEqual(parcel["measured_mandatory_count"], 2)
         self.assertEqual(parcel["gaps"][0]["percent"], 0)
         self.assertIsNone(summary["standards"]["address"]["mandatory_population_percent"])
         self.assertNotIn("private", str(summary))
