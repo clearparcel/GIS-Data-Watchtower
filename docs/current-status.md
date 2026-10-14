@@ -22,6 +22,10 @@ Housekeeping from the 2026-10-13 review (Package 8), stacked on
   helpers, an overwritten monitoring-paths build in `_county_status`, the
   unused `_json` panel helper, two unused locals, and unused imports. Names
   other modules or tests reach through `dashboard.*` stay re-exported.
+- Compatibility: every module attribute that v0.2.3 exposed and the review
+  stack removed or moved still resolves, through `clearparcel.datawatch._compat`,
+  for code built against v0.2.3 such as the private dashboard wrapper.
+  `tests/test_compat.py` pins the list.
 - New topic test modules: `test_aggregate.py`, `test_storage.py`,
   `test_cli.py` and `test_analytics.py` (the PostHog tests moved out of
   `test_gac_standards.py`, with added script-URL and token checks).

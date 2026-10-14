@@ -2434,3 +2434,9 @@ def load_history(
         "entry_count": len(rows),
         "entries": rows,
     }
+
+
+def __getattr__(name: str):
+    """Resolve names that v0.2.3 exposed here (see clearparcel.datawatch._compat)."""
+    from clearparcel.datawatch import _compat
+    return _compat.resolve(__name__, name)

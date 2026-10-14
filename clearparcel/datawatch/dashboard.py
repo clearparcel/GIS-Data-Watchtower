@@ -1028,3 +1028,9 @@ def serve(config: dict, host: str = "127.0.0.1", port: int = 8765) -> None:
         pass
     finally:
         server.server_close()
+
+
+def __getattr__(name: str):
+    """Resolve names that v0.2.3 exposed here (see clearparcel.datawatch._compat)."""
+    from clearparcel.datawatch import _compat
+    return _compat.resolve(__name__, name)

@@ -298,3 +298,9 @@ def render_county_profile_panel(profiles: dict[str, dict], *, revision: str | No
 })();
 </script>
 '''
+
+
+def __getattr__(name: str):
+    """Resolve names that v0.2.3 exposed here (see clearparcel.datawatch._compat)."""
+    from clearparcel.datawatch import _compat
+    return _compat.resolve(__name__, name)
