@@ -214,6 +214,24 @@ the built image ID as a workflow artifact.
 The lock and base-image digest are deliberate release inputs. Refresh them in a
 reviewed dependency-update change rather than allowing an ordinary rebuild to
 silently select different Python packages or a different base image.
+Dependabot proposes monthly updates for GitHub Actions, Python packages and the
+Docker base image; the Dockerfile is the only place the base-image digest is
+written (CI reads it from there for the provenance record). Every workflow
+action is pinned to a full commit SHA, and a test enforces that.
+
+Container builds with `WATCHTOWER_BUILD_ENVIRONMENT=preview` or `production`
+fail unless `WATCHTOWER_BUILD_REVISION` is the full source commit SHA, so a
+deployable image always carries its provenance. Development builds may omit it.
+The OS `curl` package (the fallback transport) comes from the pinned base
+image's Debian release and is not version-pinned separately, because Debian
+removes superseded package versions from its archive; Trivy fails CI on fixable
+High/Critical findings instead.
+
+CI runs on pushes to `main`, on every pull request (whatever its base branch),
+and on manual dispatch. A newer push to a pull request cancels the older run.
+CodeQL runs for branches in this repository; pull requests from forks get a
+read-only token, so they skip the CodeQL upload but still run tests and the
+dependency audit.
 
 ## Path environment overrides
 

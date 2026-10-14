@@ -10,5 +10,6 @@
 !clearparcel/**
 clearparcel/**/__pycache__/**
 clearparcel/**/*.pyc
+clearparcel/datawatch/build_info.json
 !config/
 !config/example_sources.json

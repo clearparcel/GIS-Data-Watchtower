@@ -1,5 +1,24 @@
 # Project status
 
+## CI, build and supply-chain maintenance — in review on `ci/maintenance`, not deployed
+
+Repository-tooling changes from the 2026-10-13 review (Package 6). No
+application behavior changes. The owner has set **v0.3.0** as the next
+release version (prepared separately at the top of the review stack).
+
+- Dependabot now also updates the Docker base image; CI reads the base-image
+  digest from the Dockerfile instead of keeping a second copy, and the
+  supply-chain tests check that actions are SHA-pinned rather than which SHA,
+  so Dependabot updates no longer fail the suite.
+- CI: pushes to `main`, every pull request, and manual dispatch; superseded
+  PR runs are cancelled; 30-minute job timeouts; CodeQL skipped for fork PRs.
+- Preview/production container builds require the source revision;
+  `setuptools>=77` matches the PEP 639 license field; the PowerShell setup
+  helper checks Python 3.12+ and warns about Node 24; release, receipt and
+  SBOM scripts handle truncated responses, byte-order marks and malformed
+  inventory lines; ignore and line-ending rules cover agent scratch, the
+  generated `build_info.json`, the Dockerfile and Windows scripts.
+
 ## Mobile and accessibility — in review on `ui/mobile-a11y`, not deployed
 
 UI changes from the 2026-10-13 review (Package 5), stacked on the

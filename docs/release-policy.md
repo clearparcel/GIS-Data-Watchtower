@@ -50,7 +50,7 @@ Public page footers display **only the semantic application version** (for examp
 
 The source commit and build environment **remain inside immutable `build_info.json` and release/provenance records**, and may continue to inform optional analytics. They are intentionally not shown in the public footer. Container builds still require `WATCHTOWER_BUILD_REVISION` (full commit SHA) and `WATCHTOWER_BUILD_ENVIRONMENT` (`preview` or `production`). The production source package and visible version must agree. Build only from a clean, committed checkout; do not infer revision identity from the runtime Git state.
 
-**v0.2.3 was deployed and verified on October 13, 2026.** The release preflight blocks redeployment of an unchanged v0.2.3 candidate; the next coordinated application-code release must use a strictly newer semantic version (for example v0.2.4).
+**v0.2.3 was deployed and verified on October 13, 2026.** The release preflight blocks redeployment of an unchanged v0.2.3 candidate; the next coordinated application-code release must use a strictly newer semantic version (the owner has set v0.3.0 as the next release).
 
 ## Security fixes
 

@@ -4,6 +4,7 @@ import argparse
 import datetime as dt
 import hashlib
 import json
+import re
 import sys
 import tomllib
 from pathlib import Path
@@ -19,6 +20,8 @@ def main() -> int:
     parser.add_argument("--sbom", required=True)
     parser.add_argument("--provenance", required=True)
     args = parser.parse_args()
+    if not re.fullmatch(r"\S+@sha256:[0-9a-f]{64}", args.base_image):
+        raise SystemExit(f"--base-image must be a digest-pinned reference (name@sha256:<64 hex>): {args.base_image!r}")
 
     constraints = Path(args.constraints)
     lock_bytes = constraints.read_bytes()
@@ -38,8 +41,13 @@ def main() -> int:
     for raw in Path(args.os_inventory).read_text(encoding="utf-8").splitlines():
         if not raw.strip():
             continue
+        if "\t" not in raw:
+            raise SystemExit(f"Malformed OS inventory line (expected name<TAB>version): {raw!r}")
         name, version = raw.split("\t", 1)
-        clean_name = name.split(":", 1)[0]
+        clean_name = name.split(":", 1)[0].strip()
+        version = version.strip()
+        if not clean_name or not version:
+            raise SystemExit(f"Malformed OS inventory line (empty name or version): {raw!r}")
         components.append({
             "type": "operating-system", "name": clean_name, "version": version,
             "purl": f"pkg:deb/debian/{clean_name}@{version}",

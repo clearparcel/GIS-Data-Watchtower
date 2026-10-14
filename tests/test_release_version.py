@@ -42,6 +42,12 @@ class ReleaseVersionTests(unittest.TestCase):
         with patch.object(version_check, "live_version", side_effect=ValueError("public page unavailable")):
             self.assertEqual(version_check.main([]), 1)
 
+    def test_main_blocks_closed_on_truncated_response(self):
+        import http.client
+        with patch.object(version_check, "live_version", side_effect=http.client.IncompleteRead(b"partial")), \
+                patch("sys.stderr"):
+            self.assertEqual(version_check.main([]), 1)
+
     def test_main_passes_with_bumped_release(self):
         with patch.object(version_check, "live_version", return_value="0.2.0"):
             self.assertEqual(version_check.main([]), 0)
