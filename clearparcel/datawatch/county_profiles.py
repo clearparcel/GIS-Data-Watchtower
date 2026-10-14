@@ -49,7 +49,9 @@ def _health(source, state, now, policy):
     checked = _timestamp(source.get('checked_at'))
     success = _timestamp(source.get('last_success_at'))
     health = source.get('status') if checked and source.get('status') in {'ok', 'warn', 'error'} else 'unknown'
-    observed = _timestamp(source.get('last_report_at')) or checked or success
+    # Provider-check time decides freshness; a deferred record's report time
+    # does not, because no request was made (legacy records fall back).
+    observed = checked if (checked or source.get('deferred')) else (_timestamp(source.get('last_report_at')) or success)
     reporting = 'unknown' if observed is None else 'overdue' if now - observed > dt.timedelta(minutes=policy.source_stale_minutes) else 'current'
     worker = (state.get('workers') or {}).get(source.get('worker'))
     if isinstance(worker, dict):
@@ -208,3 +210,9 @@ def county_profile_counts(profiles: dict[str, dict]) -> dict[str, int]:
             'county_direct': sum('county-direct' in m['paths'] for m in monitoring),
             'mngeo_open': sum('mngeo-open' in m['paths'] for m in monitoring),
             'both': sum(set(m['paths']) == {'county-direct', 'mngeo-open'} for m in monitoring)}
+
+
+def __getattr__(name: str):
+    """Resolve names that v0.2.3 exposed here (see clearparcel.datawatch._compat)."""
+    from clearparcel.datawatch import _compat
+    return _compat.resolve(__name__, name)

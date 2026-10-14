@@ -182,7 +182,7 @@ class TransportSecurityTests(unittest.TestCase):
 
     def test_redirect_carries_validated_dns_snapshot(self):
         public = [(socket.AF_INET, socket.SOCK_STREAM, 6, '', ('93.184.216.34', 443))]
-        with patch.object(watch.socket, 'getaddrinfo', return_value=public), patch.object(watch, '_destination_publicity', return_value=True):
+        with patch.object(watch.socket, 'getaddrinfo', return_value=public):
             target = watch._validated_redirect('https://provider.example/a', 'https://cdn.example/b', 'https://provider.example/a')
         self.assertEqual(target.addresses, tuple(public))
 

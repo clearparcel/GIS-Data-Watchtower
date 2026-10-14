@@ -10,7 +10,8 @@
 
 The current production release is **v0.2.3**. See [STATUS.md](STATUS.md) for what is
 deployed and what is in review, and the [v0.2.3 release record](docs/release-v0.2.3.md)
-for verification and rollback evidence.
+for verification and rollback evidence. **v0.3.0** is a release candidate in
+review ([candidate record](docs/release-v0.3.0.md)); it is not deployed.
 
 ![Live Watchtower overview with source health, county coverage, and a Minnesota county map](docs/images/watchtower-overview.png)
 

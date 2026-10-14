@@ -11,3 +11,11 @@ updates:
     schedule:
       interval: "monthly"
     open-pull-requests-limit: 5
+
+  # Keeps the digest-pinned base image in the Dockerfile current. CI reads the
+  # base image from the Dockerfile, so there is no second copy to update.
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 2

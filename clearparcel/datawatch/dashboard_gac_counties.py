@@ -53,8 +53,7 @@ def navigation(standard: str, view: str, county: dict | None) -> str:
 .gac-county-form{{display:flex;align-items:end;flex-wrap:wrap;gap:12px}}.gac-county-form label{{display:grid;gap:6px;flex:1;min-width:180px;max-width:420px}}
 .gac-county-form input{{width:100%;box-sizing:border-box;min-height:42px;padding:10px 12px;border:1px solid #33465e;border-radius:8px;background:#0c121d;color:#edf5ff;font:inherit}}.gac-county-form button{{min-height:42px}}
 .gac-county-heading{{margin:20px 0 12px}}.gac-county-heading h2{{margin-bottom:6px}}
-.gac-map-link:focus .mngac-county,.gac-map-link:hover .mngac-county{{stroke:#fff;stroke-width:3}}
-.gac-map-link[aria-current="page"] .mngac-county{{stroke:#fff;stroke-width:3}}
+.gac-map-link:hover .mngac-county{{stroke:#fff;stroke-width:3;filter:drop-shadow(0 0 1.5px #0b111b)}}
 .gac-field-table tr[hidden]{{display:none!important}}
 .gac-county-map{{max-width:620px;margin:16px auto}}.gac-field-table td,.gac-field-table th{{white-space:normal}}
 @media(max-width:760px){{.gac-county-form label{{max-width:none}}.gac-county-form button{{width:100%}}}}
@@ -80,7 +79,7 @@ def county_map(standard: str, data: dict | None = None, selected: str = '') -> s
         field = 'field_population_percent' if standard == 'parcel' else 'mandatory_population_percent'
         value = (counties.get(name) or {}).get(field)
         color = percentage_color(value)
-        path = path.replace('tabindex="0" role="button" aria-pressed="false" ', '')
+        path = path.replace('tabindex="0" role="button" ', '')
         path = path.replace('class="mngac-county"', f'class="mngac-county" style="fill:{color}"')
         current = ' aria-current="page"' if slug == selected else ''
         return (f'<a class="gac-map-link" href="{dashboard._esc(gac_url(standard, county=slug))}"'
@@ -132,7 +131,7 @@ def render_county_results(config: dict, standard_key: str, county: dict | None) 
             all_card = f'<div class="card"><div class="muted">All-field population</div><div class="metric">{all_rate}</div></div>'
             mandatory_card = f'<div class="card"><div class="muted">Mandatory-field population</div><div class="metric">{_percent(stats.get("mandatory_population_percent"))}</div></div>'
             ordered_cards = (all_card + mandatory_card) if standard_key == 'parcel' else (mandatory_card + all_card)
-            body += f'''<div class="grid primary-grid" aria-label="Selected county summary">
+            body += f'''<div class="grid primary-grid" role="group" aria-label="Selected county summary">
 <div class="card"><div class="muted">County {esc(defaults['record_label'])}</div><div class="metric">{_count(stats.get('record_count'))}</div></div>
 {ordered_cards}
 <div class="card"><div class="muted">Standard fields</div><div class="metric">{len(schema['fields'])}</div></div></div>
@@ -172,9 +171,15 @@ def render_county_results(config: dict, standard_key: str, county: dict | None) 
         body += f'<p><a href="/county?slug={esc(slug)}">Open full {esc(name)} County profile</a> · <a href="{esc(gac_url(standard_key, county=slug))}">Link to these county results</a></p>'
     map_label = (f'All-field population across {len(schema["fields"])} standard fields'
                  if standard_key == 'parcel' else 'Mandatory-field population')
+    map_html = county_map(standard_key, data, slug)
+    # Inside <details> nothing tabbable follows the map, so the skip target must
+    # sit after the disclosure or Tab would loop back into the county links.
+    map_end = '<span id="mngac-map-end" class="map-end" tabindex="-1"></span>'
+    if county:
+        map_html = map_html.replace(map_end, '')
     map_content = (f'<div class="gac-county-map"><h2>Interactive Minnesota county map</h2><p>{map_label}. Select a county to open its results.</p>'
-                   + county_map(standard_key, data, slug) + percentage_legend() + '</div>')
-    body += f'<details><summary>Choose another county on the map</summary>{map_content}</details>' if county else map_content
+                   + map_html + percentage_legend() + '</div>')
+    body += f'<details><summary>Choose another county on the map</summary>{map_content}</details>{map_end}' if county else map_content
     body += f'<p class="subtext">Public publication: {esc(profile_time(state.get("public_published_at")))}</p>'
     return dashboard._layout(f'MN GAC {name + " County — " if name else ""}{LABELS[standard_key]} — Watchtower', body,
                              refresh_seconds=30 if config.get('_public_mode') else 0,

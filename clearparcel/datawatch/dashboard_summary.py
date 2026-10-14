@@ -162,7 +162,7 @@ def render_diagnostics(summary: dict) -> str:
         gaps.append(f'<section data-gap-standard="{key}" {"hidden" if key != "parcel" else ""}><h3>{label}: mandatory-field gaps</h3>'
                     f'<p>{esc(time)} · Denominator: {esc(_count(data["record_count"]))} records. '
                     'Up to six fields with the largest unpopulated counts; an unpopulated field does not establish an invalid record.</p>'
-                    '<div class="table-scroll" tabindex="0" role="region" aria-label="Mandatory-field gaps"><table><thead><tr><th scope="col">Field</th><th scope="col">Population</th><th scope="col">Populated / records</th><th scope="col">Unpopulated records</th></tr></thead>'
+                    f'<div class="table-scroll" tabindex="0" role="region" aria-label="{label}: mandatory-field gaps"><table><thead><tr><th scope="col">Field</th><th scope="col">Population</th><th scope="col">Populated / records</th><th scope="col">Unpopulated records</th></tr></thead>'
                     f'<tbody>{field_rows}</tbody></table></div>' + ('' if field_rows else '<p>Every scanned mandatory field is fully populated.</p>'
                        if data.get("measured_mandatory_count") else '<p>No scanned mandatory-field measurements available.</p>')
                     + f'<a href="/mngac.csv?standard={key}">Download field measurements (CSV)</a></section>')

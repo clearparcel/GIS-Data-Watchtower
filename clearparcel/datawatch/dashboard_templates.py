@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import html
+import re
 from pathlib import Path
 
 from clearparcel.datawatch.build_info import application_identity
@@ -64,9 +65,30 @@ table{width:100%;border-collapse:collapse;background:transparent}th,td{padding:1
 code{font-size:11px;color:#b9c6d8}.technical summary,.diagnostics summary{cursor:pointer;font-weight:700;color:var(--blue);padding:4px 0}.diagnostics{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);margin:18px 0}.flat-note{padding:20px 4px;color:var(--muted);font-size:12px}
 .public-footnote{margin:30px 2px 0;padding-top:16px;border-top:1px solid var(--line);color:#66778f;font-size:10px;display:flex;justify-content:space-between;gap:20px}.public-footnote strong{color:#8da4c4}.footer-brand{display:inline-flex;vertical-align:middle}.footer-brand img{width:120px;height:42px;object-fit:contain}.profile-evidence{margin:12px 0;padding:12px;border:1px solid var(--line);border-radius:8px}.profile-evidence summary{cursor:pointer;color:var(--blue);font-weight:600}.profile-evidence li{margin:12px 0;overflow-wrap:anywhere}.profile-evidence p{max-width:80ch}.county-complete-profile section{border-top:1px solid var(--line);padding-top:16px;margin-top:20px}.county-complete-profile dl{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:12px}.county-complete-profile dd{margin:4px 0}.county-complete-profile dt{color:var(--muted);font-size:12px}
 @media(max-width:1050px){.summary-v2{grid-template-columns:repeat(3,minmax(0,1fr))}.primary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.hero-panel{grid-template-columns:1fr}.mngac-layout{grid-template-columns:1fr}.definition-grid{grid-template-columns:1fr}}
-@media(max-width:760px){.public-header{height:74px;padding:13px 14px}.public-header h1{font-size:20px}.brand-eyebrow{font-size:8px}.live-state span:last-child{display:none}.public-main{padding:0 12px 76px}.public-tabs{top:74px;overflow-x:auto;margin:0 -12px 18px;padding:0 12px}.public-tabs a{padding:12px 10px 10px}.public-tools{margin-left:4px}.summary-v2{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.grid,.primary-grid,.worker-grid,.activity-strip{grid-template-columns:1fr;gap:9px}.card{padding:14px}.hero-copy{padding:16px}.hero-copy h2{font-size:21px}.hero-stat{grid-template-columns:1fr 1fr}.section-head{margin-top:22px}.section-head span{display:none}.filters{display:grid;grid-template-columns:1fr}.filters input,.filters select{width:100%;min-width:0}#counties thead,#datasets thead,.contacts-table thead,.history-table thead,#mngac-fields thead,#county-mngac-fields thead{display:none}#counties,#counties tbody,#counties tr,#counties td,#datasets,#datasets tbody,#datasets tr,#datasets td,.contacts-table,.contacts-table tbody,.contacts-table tr,.contacts-table td,.history-table,.history-table tbody,.history-table tr,.history-table td,#mngac-fields,#mngac-fields tbody,#mngac-fields tr,#mngac-fields td,#county-mngac-fields,#county-mngac-fields tbody,#county-mngac-fields tr,#county-mngac-fields td{display:block;width:100%}#counties tr,#datasets tr,.contacts-table tr,.history-table tr,#mngac-fields tr,#county-mngac-fields tr{padding:10px 0;border-bottom:1px solid #1b2535}#counties td,#datasets td,.contacts-table td,.history-table td,#mngac-fields td,#county-mngac-fields td{border:0;padding:4px 2px;white-space:normal;overflow-wrap:anywhere}.worker-card{grid-template-columns:1fr}.worker-meta{display:grid;grid-template-columns:1fr 1fr}.definition-list{grid-template-columns:1fr;gap:2px}.definition-list dd{margin-bottom:8px}.mngac-controls label,.mngac-controls select{width:100%}.public-footnote{flex-direction:column;gap:4px}}
+@media(max-width:760px){.public-header{height:74px;padding:13px 14px}.public-header h1{font-size:20px}.brand-eyebrow{font-size:8px}.public-main{padding:0 12px 76px}.public-tabs{top:74px;overflow-x:auto;margin:0 -12px 18px;padding:0 12px}.public-tabs a{padding:12px 10px 10px}.public-tools{margin-left:4px}.summary-v2{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.grid,.primary-grid,.worker-grid,.activity-strip{grid-template-columns:1fr;gap:9px}.card{padding:14px}.hero-copy{padding:16px}.hero-copy h2{font-size:21px}.hero-stat{grid-template-columns:1fr 1fr}.section-head{margin-top:22px}.section-head span{display:none}.filters{display:grid;grid-template-columns:1fr}.filters input,.filters select{width:100%;min-width:0}#counties thead,#datasets thead,.contacts-table thead,.history-table thead,#mngac-fields thead,#county-mngac-fields thead{display:none}#counties,#counties tbody,#counties tr,#counties td,#datasets,#datasets tbody,#datasets tr,#datasets td,.contacts-table,.contacts-table tbody,.contacts-table tr,.contacts-table td,.history-table,.history-table tbody,.history-table tr,.history-table td,#mngac-fields,#mngac-fields tbody,#mngac-fields tr,#mngac-fields td,#county-mngac-fields,#county-mngac-fields tbody,#county-mngac-fields tr,#county-mngac-fields td{display:block;width:100%}#counties tr,#datasets tr,.contacts-table tr,.history-table tr,#mngac-fields tr,#county-mngac-fields tr{padding:10px 0;border-bottom:1px solid #1b2535}#counties td,#datasets td,.contacts-table td,.history-table td,#mngac-fields td,#county-mngac-fields td{border:0;padding:4px 2px;white-space:normal;overflow-wrap:anywhere}.worker-card{grid-template-columns:1fr}.worker-meta{display:grid;grid-template-columns:1fr 1fr}.definition-list{grid-template-columns:1fr;gap:2px}.definition-list dd{margin-bottom:8px}.mngac-controls label,.mngac-controls select{width:100%}.public-footnote{flex-direction:column;gap:4px}}
 @media(max-width:430px){.summary-v2{grid-template-columns:1fr 1fr}.summary-v2 .card{padding:12px}.summary-v2 .metric{font-size:21px}.hero-stat{grid-template-columns:1fr 1fr}.public-export summary{padding:7px 8px}.page-kicker{padding-top:18px}.page-kicker h2{font-size:23px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+/* Accessibility and phone layout (review package 5). */
+html{scroll-padding-top:150px}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+#main-content:focus{outline:none}
+.live-short,.tab-short{display:none}
+/* Two-tone outlines stay visible on dark and light fills alike: focus is a dark
+   core with a yellow halo, selection a white core with a dark halo. */
+.mngac-county.selected,.gac-map-link[aria-current="page"] .mngac-county{stroke:#fff;stroke-width:3;filter:drop-shadow(0 0 1.5px #0b111b) drop-shadow(0 0 1px #0b111b)}
+.mngac-county:focus-visible,.gac-map-link:focus-visible .mngac-county{stroke:#0b111b;stroke-width:3.2;filter:drop-shadow(0 0 1.5px #ffd166) drop-shadow(0 0 1px #ffd166)}.gac-map-link:focus-visible{outline:none}
+.skip-link.map-skip{left:auto;top:auto;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}.skip-link.map-skip:focus{position:static;display:inline-block;width:auto;height:auto;overflow:visible;clip:auto;margin:0 0 8px}
+.pct-no-data-swatch{background-image:repeating-linear-gradient(45deg,transparent 0 3px,#8593a6 3px 4px)}.map-end:focus{outline:none}
+th{font-size:11px}.subtext{font-size:12px}.worker-meta .muted,.worker-meta span,.hero-stat small{font-size:11px}.section-head p,.section-head span,.section-head>a{font-size:12px}
+.filters input::placeholder,.mngac-controls input::placeholder{color:#8a97ab}
+td>a,td>strong>a,td>a>strong,.mngac-legend+p a,a[href$=".csv"],a[href*=".csv?"],a[href$=".xlsx"],a[href$=".json"]{display:inline-block;min-height:24px;padding:3px 0}
+.export-pop a{min-height:36px}
+@media(max-width:760px){html{scroll-padding-top:140px}.live-long,.tab-long{display:none}.live-short,.tab-short{display:inline}.live-state>.live-label{display:inline!important;font-size:10px}.live-state button{white-space:nowrap;max-width:none;padding:8px 10px}
+.public-nav-row .public-tabs{-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 28px),transparent);scroll-snap-type:x proximity;padding-right:28px}.public-tabs a{scroll-snap-align:start}
+.public-nav-row .public-tools{border-left:1px solid var(--line)}}
+@media(max-width:430px){.live-state{display:grid;grid-template-columns:1fr auto;align-items:center;justify-items:end;gap:3px 5px}.live-state button{grid-column:1 / -1;padding:7px 8px;font-size:11px;min-height:36px}.public-tabs a{padding:12px 7px 10px;font-size:13px}.bar-row{grid-template-columns:minmax(84px,1.2fr) minmax(56px,2fr) 44px;gap:7px}.public-nav-row .public-tabs{padding-right:16px;-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 16px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 16px),transparent)}}
+/* Links inside running text must not rely on colour alone. */
+#main-content p a,#main-content li a,.mngac-note a{text-decoration:underline;text-underline-offset:2px}
 /* Compact, public-facing project description and release identity. */
 .public-about{padding:22px 24px;background:linear-gradient(125deg,#131d2c,#101620 76%);border-color:#304159}
 .public-about-header{display:flex;align-items:start;justify-content:space-between;gap:20px}
@@ -90,24 +112,151 @@ def _refresh_script(seconds: int, *, public: bool = False) -> str:
     return refresh_script(seconds, public=public)
 
 
+# Tag patterns stop at the next "<", so every scan is linear in the input on
+# every supported Python. (html.parser before CPython 3.12.11 is quadratic on
+# runs of unclosed tags, and tag-stripping patterns such as <[^>]+> are
+# polynomial on runs of "<".)
+_LABEL_TAG = re.compile(r"<(/?)(h[1-4]|table|caption)\b[^<>]*>", re.IGNORECASE)
+_ANY_TAG = re.compile(r"<[^<>]*>")
+
+
+def _table_labels(body: str) -> list[str]:
+    """A label for each top-level table, in document order.
+
+    The label is the table's caption text, else the text of the nearest
+    preceding h1-h4 heading, else "Data table".
+    """
+    labels: list[str] = []
+    last_heading = ""
+    depth = 0
+    caption = ""
+    open_at: dict[str, int] = {}
+
+    def text(start: int, stop: int) -> str:
+        return " ".join(html.unescape(_ANY_TAG.sub(" ", body[start:stop])).split())
+
+    for match in _LABEL_TAG.finditer(body):
+        closing, name = match.group(1) == "/", match.group(2).lower()
+        if name == "table":
+            if not closing:
+                depth += 1
+                if depth == 1:
+                    caption = ""
+            elif depth:
+                depth -= 1
+                if depth == 0:
+                    labels.append(caption or last_heading or "Data table")
+        elif not closing:
+            open_at[name] = match.end()
+        elif name in open_at:
+            content = text(open_at.pop(name), match.start())
+            if name == "caption" and depth == 1:
+                caption = content
+            elif name != "caption" and depth == 0 and content:
+                last_heading = content
+    return labels
+
+
+_TABLE_TAG = re.compile(r"<(/?)table\b[^<>]*>", re.IGNORECASE)
+
+
+def _scroll_wrapper_tag(segment: str) -> str | None:
+    """Return segment's tag if it is exactly one <div class="table-scroll"> tag
+    (plus trailing whitespace). Plain string checks: no backtracking."""
+    tag = segment.rstrip()
+    if (len(tag) > 5 and tag.startswith("<div") and (tag[4].isspace() or tag[4] == ">")
+            and tag.endswith(">") and "<" not in tag[1:] and ">" not in tag[:-1]
+            and 'class="table-scroll"' in tag):
+        return tag
+    return None
+
+
+def _closing_div_end(body: str, position: int) -> int | None:
+    """End offset of a </div> that follows position after only whitespace."""
+    index = position
+    while index < len(body) and body[index].isspace():
+        index += 1
+    return index + 6 if body.startswith("</div>", index) else None
+
+
+_SCOPE_EVENT = re.compile(r"<(/?)(table|tbody)\b[^<>]*>|<th\b(?![^<>]*\bscope=)([^<>]*)>", re.IGNORECASE)
+
+
+def _scope_headers(body: str) -> str:
+    """Add scope to unscoped <th> cells in one ordered pass.
+
+    A stack holds, for each open table, whether it is inside a <tbody>, so a
+    nested table cannot change the scope of its parent's later headers.
+    """
+    stack: list[bool] = []
+    pieces, cursor = [], 0
+    for match in _SCOPE_EVENT.finditer(body):
+        closing, tag, th_attrs = match.group(1), (match.group(2) or "").lower(), match.group(3)
+        if tag == "table":
+            if closing:
+                if stack:
+                    stack.pop()
+            else:
+                stack.append(False)
+            continue
+        if tag == "tbody":
+            if stack:
+                stack[-1] = not closing
+            continue
+        in_body = bool(stack and stack[-1])
+        pieces += [body[cursor:match.start()], f'<th scope="{"row" if in_body else "col"}"{th_attrs}>']
+        cursor = match.end()
+    pieces.append(body[cursor:])
+    return "".join(pieces)
+
+
+def _table_spans(body: str) -> list[tuple[int, int]]:
+    """Start/end offsets of closed top-level tables (linear scan)."""
+    spans, depth, start = [], 0, 0
+    for match in _TABLE_TAG.finditer(body):
+        if match.group(1) != "/":
+            if depth == 0:
+                start = match.start()
+            depth += 1
+        elif depth:
+            depth -= 1
+            if depth == 0:
+                spans.append((start, match.end()))
+    return spans
+
+
 def _accessible_tables(body: str) -> str:
-    import re
-    body = re.sub(r"<th\b(?![^>]*scope=)([^>]*)>", r'<th scope="col"\1>', body)
+    """Make every table a labelled, scrollable region with scoped headers.
 
-    def wrap(match: re.Match) -> str:
-        opening = (match.group("wrapper") or '<div class="table-scroll">').rstrip()
-        for name, value in (("tabindex", "0"), ("role", "region"), ("aria-label", "Scrollable data table")):
+    Header cells in a table body describe their row; header cells elsewhere
+    describe their column. A table without a caption gets a visually hidden
+    one, and its region label, from the nearest preceding heading. Every scan
+    is linear in the size of the page.
+    """
+    body = _scope_headers(body)
+    labels = _table_labels(body)
+    pieces, cursor = [], 0
+    for (start, end), label in zip(_table_spans(body), labels):
+        # Reuse a renderer-owned <div class="table-scroll"> wrapper (and its
+        # descriptive label) that directly encloses the table.
+        wrapper_start, opening = start, '<div class="table-scroll">'
+        end_after = end
+        tag_start = body.rfind("<", cursor, start)
+        wrapper_tag = _scroll_wrapper_tag(body[tag_start:start]) if tag_start != -1 else None
+        close_end = _closing_div_end(body, end) if wrapper_tag else None
+        if wrapper_tag and close_end is not None:
+            wrapper_start, opening, end_after = tag_start, wrapper_tag, close_end
+        table = body[start:end]
+        if "<caption" not in table.lower():
+            open_end = table.find(">") + 1
+            table = table[:open_end] + f'<caption class="sr-only">{_esc(label)}</caption>' + table[open_end:]
+        for name, value in (("tabindex", "0"), ("role", "region"), ("aria-label", label)):
             if not re.search(rf"\b{name}\s*=", opening):
-                opening = opening[:-1] + f' {name}="{value}">'
-        return opening + match.group("table") + '</div>'
-
-    # Reuse renderer-owned wrappers (including their descriptive labels).
-    # These are controlled templates, not arbitrary provider HTML.
-    return re.sub(
-        r'(?P<wrapper><div\b[^>]*class="table-scroll"[^>]*>\s*)?'
-        r'(?P<table><table\b.*?</table>)(?(wrapper)\s*</div>)',
-        wrap, body, flags=re.S,
-    )
+                opening = opening[:-1] + f' {name}="{_esc(value)}">'
+        pieces += [body[cursor:wrapper_start], opening, table, "</div>"]
+        cursor = end_after
+    pieces.append(body[cursor:])
+    return "".join(pieces)
 
 
 _TABLE_CSS = """
@@ -147,12 +296,14 @@ def _public_layout_v2(title: str, body: str, *, refresh_seconds: int = 30, publi
         ("mngac", "/mngac", "MN GAC"),
         ("sources", "/#datasets", "Data Sources"),
     ])
+    short_labels = {"Minnesota Counties": "Counties", "Data Sources": "Sources", "Sanitized state JSON": "State JSON"}
     if static_bundle:
         active = "overview" if title == "GIS Data Watchtower" else ""
     nav = "".join(
         f'<a href="{href}" class="{"active" if key == active else ""}"'
         + (' aria-current="page"' if key == active else "")
-        + f'>{label}</a>'
+        + (f'><span class="tab-long">{label}</span><span class="tab-short">{short_labels[label]}</span></a>'
+           if label in short_labels else f'>{label}</a>')
         for key, href, label in tabs
     )
     page_name = (
@@ -184,21 +335,22 @@ def _public_layout_v2(title: str, body: str, *, refresh_seconds: int = 30, publi
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 {_favicon_html()}{refresh_meta}{analytics_script}<title>{_esc(title)}</title><style>{_PUBLIC_V2_CSS}{_TABLE_CSS}</style></head><body>
+<a class="skip-link" href="#main-content">Skip to content</a>
 <header class="public-header">
   <a class="public-brand" href="{brand_href}" aria-label="GIS Data Watchtower overview">
     <img class="public-brand-logo" src="{watchtower_logo_src}" width="54" height="54" alt="GIS Data Watchtower logo" decoding="async">
     <div class="public-brand-title"><div class="brand-eyebrow">CLEARPARCEL GIS DATA WATCHTOWER</div><h1>Minnesota Open Data Watchtower</h1></div>
   </a>
-  <div class="live-state"><span class="live-dot"></span><span>PUBLIC · READ ONLY</span>{'<button type="button" id="refresh-pause" aria-pressed="false">Pause refresh</button>' if refresh_seconds else ''}</div>
+  <div class="live-state"><span class="live-dot" aria-hidden="true"></span><span class="live-label"><span class="live-long">PUBLIC · READ ONLY</span><span class="live-short">READ ONLY</span></span>{'<button type="button" id="refresh-pause">Pause refresh</button>' if refresh_seconds else ''}</div>
 </header>
 <main class="public-main">
-  <a class="skip-link" href="#main-content">Skip to content</a><div class="public-nav-row"><nav class="public-tabs" aria-label="Watchtower views">{nav}</nav>
+  <div class="public-nav-row"><nav class="public-tabs" aria-label="Watchtower views">{nav}</nav>
     <div class="public-tools"><details class="public-export"><summary>{export_label}</summary><div class="export-pop">{export_links}</div></details></div>
   </div>
   <div class="page-kicker"><div class="eyebrow">PUBLIC DATA INTELLIGENCE</div><h2>{_esc(page_name)}</h2><p>{_esc(subtitle)}</p></div>
-  <p id="refresh-status" role="status"></p><div id="main-content">{body}</div>
+  <p id="refresh-status" role="status"></p><div id="main-content" tabindex="-1">{body}</div>
   <footer class="public-footnote"><a class="footer-brand" href="https://clear-parcel.com" aria-label="ClearParcel home"><img src="{logo_src}" alt="ClearParcel" width="120" height="42"></a><span class="public-footer-meta"><strong class="application-version">{_esc(release_label)}</strong></span></footer>
-</main><script>(function(){{const menu=document.querySelector('.public-export');if(!menu)return;document.addEventListener('keydown',e=>{{if(e.key==='Escape'&&menu.open){{menu.open=false;menu.querySelector('summary').focus()}}}});document.addEventListener('click',e=>{{if(menu.open&&!menu.contains(e.target))menu.open=false}});}})();</script></body></html>"""
+</main><script>(function(){{const row=document.querySelector('.public-tabs'),active=row&&row.querySelector('a.active');if(active&&row.scrollWidth>row.clientWidth&&active.offsetLeft+active.offsetWidth>row.clientWidth)row.scrollLeft=active.offsetLeft-12;}})();</script><script>(function(){{const menu=document.querySelector('.public-export');if(!menu)return;document.addEventListener('keydown',e=>{{if(e.key==='Escape'&&menu.open){{menu.open=false;menu.querySelector('summary').focus()}}}});document.addEventListener('click',e=>{{if(menu.open&&!menu.contains(e.target))menu.open=false}});}})();</script></body></html>"""
 
 def _layout(title: str, body: str, *, refresh_seconds: int = 30, static: bool = False, csrf_token: str = "", public_summary: bool = True,
             static_bundle: bool = False) -> str:
@@ -233,9 +385,10 @@ def _layout(title: str, body: str, *, refresh_seconds: int = 30, static: bool = 
 {_favicon_html()}{refresh_meta}
 <title>{_esc(title)}</title>
 <style>
-:root{{--navy:#10263b;--navy-2:#17324d;--green:#2d6a4f;--bg:#edf2f6;--card:#fff;--text:#17212b;--muted:#64727e;--accent:#0b6fa4;--soft:#f6f8fa;--line:#d9e1e7;--warn:#8a4600;--err:#a3342f;--shadow:0 3px 14px rgb(23 50 77 / 9%);--radius:13px}}
+:root{{--navy:#10263b;--navy-2:#17324d;--green:#2d6a4f;--bg:#edf2f6;--card:#fff;--text:#17212b;--muted:#58656f;--accent:#0b6fa4;--soft:#f6f8fa;--line:#d9e1e7;--warn:#8a4600;--err:#a3342f;--shadow:0 3px 14px rgb(23 50 77 / 9%);--radius:13px}}
 *{{box-sizing:border-box}}
-html{{scroll-behavior:smooth}}
+html{{scroll-behavior:smooth;scroll-padding-top:130px}}
+@media(prefers-reduced-motion:reduce){{*,*::before,*::after{{scroll-behavior:auto!important;transition:none!important;animation:none!important}}}}
 body{{margin:0;font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--text);max-width:100%}}
 a{{color:var(--accent);text-decoration:none}} a:hover{{text-decoration:underline}} a:focus-visible,button:focus-visible,summary:focus-visible,input:focus-visible,select:focus-visible{{outline:3px solid #5bb6e8;outline-offset:2px}}
 button{{background:var(--accent);color:#fff;border:0;border-radius:8px;padding:9px 13px;font-weight:650;cursor:pointer}}
@@ -251,7 +404,7 @@ header h1{{margin:0;font-size:20px;letter-spacing:-.2px}}
 .sidebar nav a{{display:flex;align-items:center;gap:10px;color:#b8cbd9;padding:10px 11px;border-radius:8px;margin:3px 0;font-weight:550}}
 .sidebar nav a:hover{{background:#ffffff0d;color:#fff;text-decoration:none}}
 .nav-icon{{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}}
-.side-note{{position:absolute;bottom:18px;left:22px;color:#6f8da4;font-size:11px}}
+.side-note{{position:absolute;bottom:18px;left:22px;color:#9db4c7;font-size:11px}}
 .content-shell{{flex:1;min-width:0;max-width:100%}}
 .pagebar{{width:100%;min-width:0;min-height:52px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:8px 24px;position:sticky;top:64px;z-index:20}}
 .pagebar-title{{font-size:15px;font-weight:700;color:var(--navy-2)}}
@@ -285,7 +438,7 @@ code{{font-size:12px;overflow-wrap:anywhere}}
 .filters{{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 14px}}
 .filters input,.filters select{{padding:9px 10px;border:1px solid #ccd4db;border-radius:8px;background:#fff;min-height:38px}}
 .spark{{width:100%;height:78px;color:var(--accent);display:block}}
-.bar-row{{min-width:0;display:grid;grid-template-columns:minmax(120px,1.35fr) minmax(100px,3fr) 64px;gap:9px;align-items:center;margin:9px 0;font-size:12px}}
+.bar-row{{min-width:0;display:grid;grid-template-columns:minmax(0,1.35fr) minmax(60px,3fr) minmax(40px,64px);gap:9px;align-items:center;margin:9px 0;font-size:12px}}
 .bar-row > span{{min-width:0;overflow-wrap:anywhere}} .bar-track{{height:9px;background:#e5ebf0;border-radius:999px;overflow:hidden}} .bar-track i{{display:block;height:100%;background:var(--accent);border-radius:999px}}
 .not-configured,.needs-source{{color:var(--muted)}} .catalog{{color:var(--accent)}}
 .chart-range{{font-size:11px;color:var(--muted);margin-top:2px}}
@@ -310,13 +463,18 @@ code{{font-size:12px;overflow-wrap:anywhere}}
 .mngac-map{{display:block;width:100%;height:auto;max-height:690px}}
 .mngac-county{{fill:#dfe5ea;stroke:#fff;stroke-width:1.2;vector-effect:non-scaling-stroke;cursor:pointer;transition:fill .12s ease,stroke .12s ease,stroke-width .12s ease}}
 .mngac-county:hover,.mngac-county:focus{{stroke:#10263b;stroke-width:2.2;outline:none}}
-.mngac-county.selected{{stroke:#10263b;stroke-width:3}}
+.mngac-county.selected,.gac-map-link[aria-current="page"] .mngac-county{{stroke:#fff;stroke-width:3;filter:drop-shadow(0 0 1.5px #10263b) drop-shadow(0 0 1px #10263b)}}
+.mngac-county:focus-visible,.gac-map-link:focus-visible .mngac-county{{stroke:#10263b;stroke-width:3.2;filter:drop-shadow(0 0 1.5px #ffd166) drop-shadow(0 0 1px #ffd166)}}
+.gac-map-link:focus-visible{{outline:none}} #main-content p a,#main-content li a,.mngac-note a{{text-decoration:underline;text-underline-offset:2px}}
+.skip-link.map-skip{{left:auto;top:auto;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}}.skip-link.map-skip:focus{{position:static;display:inline-block;width:auto;height:auto;overflow:visible;clip:auto;margin:0 0 8px}}
 .mngac-detail{{min-height:220px}}
 .mngac-detail h3{{margin-bottom:4px}}
 .mngac-kpi{{font-size:25px;font-weight:760;letter-spacing:-.3px}}
 .mngac-legend{{display:flex;flex-wrap:wrap;gap:7px 12px;margin:10px 0 0;font-size:11px;color:var(--muted)}}
 .mngac-legend span{{display:inline-flex;align-items:center;gap:5px}}
 .mngac-swatch{{width:13px;height:13px;border-radius:3px;border:1px solid #0002;display:inline-block}}
+.pct-no-data-swatch{{background-image:repeating-linear-gradient(45deg,transparent 0 3px,#8593a6 3px 4px)}} .map-end:focus{{outline:none}}
+.sr-only{{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}} #main-content:focus{{outline:none}}
 .mngac-note{{border-left:3px solid var(--accent);padding:10px 12px;background:var(--soft);border-radius:0 8px 8px 0;color:var(--muted);margin:12px 0}}
 .mngac-table-wrap{{overflow-x:auto}}
 #mngac-fields code{{white-space:nowrap}} .mngac-field-select{{background:none;color:var(--accent);padding:0;border:0;text-align:left;font:inherit;cursor:pointer}} .mngac-field-select:hover{{text-decoration:underline}}
@@ -399,7 +557,7 @@ code{{font-size:12px;overflow-wrap:anywhere}}
   .bar-row{{grid-template-columns:100px minmax(60px,1fr) 40px}}
 }}
 {_TABLE_CSS}</style></head><body>
-<a class="skip-link" href="#main-content">Skip to content</a><header><h1>GIS Data Watchtower</h1><div class="actions"><span>{_esc(refresh_label)}</span>{refresh_form}{'<button type="button" id="refresh-pause" aria-pressed="false">Pause automatic refresh</button>' if auto_refresh else ''}</div></header>
+<a class="skip-link" href="#main-content">Skip to content</a><header><h1>GIS Data Watchtower</h1><div class="actions"><span>{_esc(refresh_label)}</span>{refresh_form}{'<button type="button" id="refresh-pause">Pause refresh</button>' if auto_refresh else ''}</div></header>
 <div class="app-shell">
 <aside class="sidebar"><div class="side-brand"><strong>ClearParcel</strong><small>GIS Data Watchtower</small></div><nav>
 <a href="/">{icon("overview")}<span>Overview</span></a>
@@ -411,8 +569,8 @@ code{{font-size:12px;overflow-wrap:anywhere}}
 <a href="/snapshot.xlsx">{icon("export")}<span>Export</span></a>
 </nav><div class="side-note">{side_context}<br><small>Central Time primary</small></div></aside>
 <section class="content-shell">
-<div class="pagebar"><div class="pagebar-title">{_esc(page_title)}</div><div class="page-actions"><details class="export-menu"><summary>Export</summary><div class="export-pop"><a href="/snapshot.xlsx">Excel (.xlsx)</a><a href="/county-profiles.csv">County profiles (CSV)</a><a href="/parcel-sources.csv">Parcel sources (CSV)</a><a href="/snapshot.csv">Monitored sources (CSV)</a><a href="/snapshot.json">JSON</a></div></details></div></div>
-<main id="main-content">{body}</main>
+<div class="pagebar" role="region" aria-label="Page title and export"><div class="pagebar-title">{_esc(page_title)}</div><div class="page-actions"><details class="export-menu"><summary>Export</summary><div class="export-pop"><a href="/snapshot.xlsx">Excel (.xlsx)</a><a href="/county-profiles.csv">County profiles (CSV)</a><a href="/parcel-sources.csv">Parcel sources (CSV)</a><a href="/snapshot.csv">Monitored sources (CSV)</a><a href="/snapshot.json">JSON</a></div></details></div></div>
+<main id="main-content" tabindex="-1">{body}</main>
 </section></div>
 <nav class="mobile-nav" aria-label="Mobile navigation">
 <a href="/">{icon("overview")}<span>Overview</span></a><a href="/counties">{icon("counties")}<span>Counties</span></a><a href="/mngac">{icon("mngac")}<span>MN GAC</span></a><a href="/#datasets">{icon("sources")}<span>Sources</span></a><a href="/snapshot.xlsx">{icon("export")}<span>Export</span></a>

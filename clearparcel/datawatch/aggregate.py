@@ -9,6 +9,7 @@ import time
 from copy import deepcopy
 from pathlib import Path
 
+from . import strict_json
 from .storage import StorageBackend, StorageConflictError
 from .file_lock import atomic_write
 
@@ -59,6 +60,9 @@ def merge_states(base: dict | None, partial: dict, worker: str, *, now: dt.datet
     scope_type = (partial.get("scope") or {}).get("type")
     if scope_type == "empty":
         raise ValueError("refusing to merge a worker report that checked no sources")
+    if not partial_sources and not (scope_type == "fleet" and partial.get("allow_inventory_shrink") is True):
+        # Judge by contents, not the label: only an explicit fleet drain may be empty.
+        raise ValueError("refusing to merge a worker report with no source observations")
     retired_workers = deepcopy(base.get('retired_workers') or {})
     if worker in retired_workers:
         retired_at = _parse_time(retired_workers[worker].get('retired_at'))
@@ -89,7 +93,7 @@ def merge_states(base: dict | None, partial: dict, worker: str, *, now: dt.datet
         # observed or deliberately skipped (disabled or reassigned in the
         # registry); unrelated or renamed IDs do not count.
         intended = {sid for sid, reason in (partial.get("skipped_sources") or {}).items()
-                    if reason in {"disabled", "execution-profile"}}
+                    if reason in {"disabled", "execution-profile", "hold-for-terms"}}
         covered = sum(1 for sid in owned if sid in partial_sources or sid in intended)
         allowed = (partial.get("allow_inventory_shrink") is True
                    or covered >= math.ceil(len(owned) * FLEET_RETIREMENT_MIN_SHARE))
@@ -108,6 +112,10 @@ def merge_states(base: dict | None, partial: dict, worker: str, *, now: dt.datet
         seen = _parse_time(previous.get("last_report_at") or previous.get("checked_at"))
         if seen and seen >= incoming_time:
             continue
+        if shrink_refused and previous.get("worker") not in (None, worker):
+            # A report that failed the inventory guard (for example a wrong
+            # registry) must not take sources over from another worker.
+            continue
         record["status"] = _normalized_status(record.get("status"))
         record["worker"] = worker
         retired_sources.pop(source_id, None)
@@ -116,6 +124,13 @@ def merge_states(base: dict | None, partial: dict, worker: str, *, now: dt.datet
             record["last_success_at"] = generated
         elif previous.get("last_success_at"):
             record["last_success_at"] = previous["last_success_at"]
+        # The provider answered (ok or warn), even if checks raised warnings;
+        # deferred (rate-limit backoff) records made no request.
+        if record.get("status") in ("ok", "warn") and not record.get("deferred") and not record.get("rate_limited"):
+            observed = record.get("checked_at")
+            record["last_available_at"] = observed if _parse_time(observed) else generated
+        elif previous.get("last_available_at"):
+            record["last_available_at"] = previous["last_available_at"]
         merged_sources[source_id] = record
 
     counts = {
@@ -125,9 +140,10 @@ def merge_states(base: dict | None, partial: dict, worker: str, *, now: dt.datet
     # Report publication is the worker heartbeat even when one or more sources fail.
     # Keep that clock separate from the most recent all-clear worker run.
     worker_status = _normalized_status(partial.get("overall"))
-    if scope_type in _PARTIAL_SCOPES and previous_worker:
-        # A filtered run proves the worker is alive but says nothing about its
-        # whole inventory: keep the fleet-level health from the last full run.
+    if (scope_type in _PARTIAL_SCOPES or shrink_refused) and previous_worker:
+        # A filtered run, or a fleet report whose inventory shrink was refused,
+        # proves the worker is alive but cannot vouch for its whole inventory:
+        # keep the fleet-level health from the last full run.
         workers[worker] = {**previous_worker, "last_report_at": generated, "last_partial_report_at": generated}
     else:
         workers[worker] = {
@@ -226,6 +242,19 @@ def _age_seconds(now: dt.datetime, seen: dt.datetime) -> float:
     return (now - seen.astimezone(dt.timezone.utc)).total_seconds()
 
 
+def _source_check_time(source: dict) -> dt.datetime | None:
+    """When a provider was last actually checked for this source.
+
+    A deferred (rate-limit) record carries the previous check time and gets a
+    new report time without any request, so report time never stands in for
+    it. Legacy records without a check time fall back to report time.
+    """
+    checked = _parse_time(source.get("checked_at"))
+    if checked or source.get("deferred"):
+        return checked
+    return _parse_time(source.get("last_report_at") or source.get("last_success_at"))
+
+
 def with_freshness(state: dict, *, worker_stale_minutes: int = 1560, source_stale_minutes: int = 1560, now=None) -> dict:
     """Annotate reporting freshness without conflating it with source health."""
     result = deepcopy(state or {})
@@ -238,7 +267,7 @@ def with_freshness(state: dict, *, worker_stale_minutes: int = 1560, source_stal
         worker["clock_skew"] = bool(seen and _age_seconds(now, seen) < -CLOCK_SKEW_TOLERANCE_SECONDS)
     workers = result.get("workers") or {}
     for source in (result.get("sources") or {}).values():
-        seen = _parse_time(source.get("last_report_at") or source.get("checked_at") or source.get("last_success_at"))
+        seen = _source_check_time(source)
         source["stale"] = not seen or _age_seconds(now, seen) > source_stale_minutes * 60
         source["worker_stale"] = bool((workers.get(source.get("worker")) or {}).get("stale"))
         status = source.get("status")
@@ -276,11 +305,11 @@ def load_json(path: Path) -> dict:
     raw = path.read_bytes()
     for encoding in ("utf-8-sig", "utf-16"):
         try:
-            return json.loads(raw.decode(encoding))
+            return strict_json.loads(raw.decode(encoding))
         except (UnicodeDecodeError, json.JSONDecodeError):
             continue
     raise ValueError(f"unable to decode JSON state file: {path}")
 
 
 def save_json(path: Path, document: dict) -> None:
-    atomic_write(path, (json.dumps(document, indent=2, ensure_ascii=False) + "\n").encode("utf-8"))
+    atomic_write(path, (json.dumps(document, indent=2, ensure_ascii=False, allow_nan=False) + "\n").encode("utf-8"))
