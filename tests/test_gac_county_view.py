@@ -71,13 +71,13 @@ class GACCountyViewTests(unittest.TestCase):
     def test_unrepresented_county_and_missing_observation_remain_unavailable(self):
         page = self.render(county='aitkin')
         self.assertIn('Not in MnGeo Open Parcels', page)
-        self.assertIn('N/A', page)
+        self.assertIn('No data', page)
         self.assertNotIn('>0.00%', page)
         with patch('clearparcel.datawatch.dashboard._dashboard_state', return_value={}):
             page = render_mngac({'_public_mode': True}, 'address', county='douglas')
         self.assertIn('Douglas County', page)
         self.assertIn('Statewide results unavailable', page)
-        self.assertIn('N/A', page)
+        self.assertIn("No data", page)
         self.assertIn('Choose county', page)
 
     def test_invalid_county_and_scope_are_rejected(self):
@@ -103,7 +103,7 @@ class GACCountyViewTests(unittest.TestCase):
 
     def test_parcel_map_uses_all_field_population_but_address_uses_mandatory(self):
         from clearparcel.datawatch.dashboard_gac_counties import county_map
-        from clearparcel.datawatch.county_profile_panel import PERCENT_COLORS, NO_DATA_COLOR
+        from clearparcel.datawatch.county_profile_panel import PERCENT_COLORS, NO_DATA_FILL
 
         data = {'counties': {'Douglas': {
             'field_population_percent': 20.0,
@@ -119,9 +119,9 @@ class GACCountyViewTests(unittest.TestCase):
         self.assertEqual(douglas_fill('parcel'), PERCENT_COLORS[0])
         self.assertEqual(douglas_fill('address'), PERCENT_COLORS[3])
         data['counties']['Douglas']['field_population_percent'] = float('nan')
-        self.assertEqual(douglas_fill('parcel'), NO_DATA_COLOR)
+        self.assertEqual(douglas_fill('parcel'), NO_DATA_FILL)
         data['counties']['Douglas']['field_population_percent'] = 101.0
-        self.assertEqual(douglas_fill('parcel'), NO_DATA_COLOR)
+        self.assertEqual(douglas_fill('parcel'), NO_DATA_FILL)
 
     def test_parcel_county_result_explains_repeated_mandatory_rates(self):
         state, _, _ = county_state('parcel')

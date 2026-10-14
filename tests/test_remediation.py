@@ -278,10 +278,10 @@ class PublicDetailTests(unittest.TestCase):
 
 class RefreshBehaviorTests(unittest.TestCase):
     def test_manual_pause_dialog_release_and_pending_revision_after_304(self):
-        import json
         import shutil
         import subprocess
-        if not shutil.which('node'):
+        import os
+        if not shutil.which('node') and os.environ.get('WATCHTOWER_REQUIRE_NODE') != '1':
             self.skipTest('Node required for executable refresh-controller regression')
         from clearparcel.datawatch.dashboard_refresh import _SCRIPT
         controller = _SCRIPT.replace('__DELAY__', '30000').replace('__PUBLIC__', 'true')
@@ -296,7 +296,7 @@ global.setTimeout=(fn,delay)=>{timers.set(++next,{fn,delay});return next};global
 let status=200,revision='a',pending=null;global.fetch=async()=>{if(pending)await pending;return {status,ok:status===200,headers:{get(){return 'etag'}},json:async()=>({schema_version:1,content_revision:revision,public_published_at:'2026-10-07T12:00:00Z'})}};
 '''
         scenario = r'''
-(async()=>{events.DOMContentLoaded();window.watchtowerRefresh.pause();window.watchtowerRefresh.suspend('county-dialog');window.watchtowerRefresh.release('county-dialog');assert.equal(button.attrs['aria-pressed'],'true');assert.equal(timers.size,0);window.watchtowerRefresh.resume();
+(async()=>{events.DOMContentLoaded();window.watchtowerRefresh.pause();window.watchtowerRefresh.suspend('county-dialog');window.watchtowerRefresh.release('county-dialog');assert.equal(button.textContent,'Resume refresh');assert.equal((button.attrs||{})['aria-pressed'],undefined);assert.equal(timers.size,0);window.watchtowerRefresh.resume();
 async function tick(){const entry=[...timers].find(([id,v])=>v.delay===30000);assert.ok(entry);timers.delete(entry[0]);await entry[1].fn()}
 await tick();assert.equal(reloads,0);assert.equal(publicationBadge.dataset.ageTime,'2026-10-07T12:00:00Z');assert.notEqual(publicationTime.textContent,'old');
 let resolve;pending=new Promise(r=>resolve=r);revision='b';const inFlight=tick();window.watchtowerRefresh.pause();resolve();await inFlight;assert.equal(reloads,0);pending=null;window.watchtowerRefresh.resume();

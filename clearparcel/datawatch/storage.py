@@ -3,6 +3,8 @@ from __future__ import annotations
 import abc
 import hashlib
 import os
+import random
+import time
 from pathlib import Path
 
 from .file_lock import FileLock, atomic_write
@@ -17,9 +19,8 @@ class StorageBackend(abc.ABC):
     def download(self, name: str, destination: Path) -> bool:
         """Copy an object to destination. Return False when it does not exist."""
 
-    @abc.abstractmethod
-    def upload(self, name: str, source: Path) -> None:
-        """Upload source to the named object."""
+    # There is deliberately no unconditional upload: every shared write goes
+    # through upload_if_version so concurrent workers cannot overwrite each other.
 
     def download_versioned(self, name: str, destination: Path) -> tuple[bool, str | int | None]:
         exists = self.download(name, destination)
@@ -60,11 +61,6 @@ class LocalStorage(StorageBackend):
         destination.parent.mkdir(parents=True, exist_ok=True)
         destination.write_bytes(raw)
         return True, hashlib.sha256(raw).hexdigest()
-
-    def upload(self, name: str, source: Path) -> None:
-        destination = self._path(name)
-        with FileLock(destination.with_suffix(destination.suffix + ".lock"), timeout=10):
-            atomic_write(destination, source.read_bytes())
 
     def upload_if_version(self, name: str, source: Path, version: str | int | None) -> None:
         destination = self._path(name)
@@ -120,15 +116,14 @@ class GCSStorage(StorageBackend):
                         raise StorageConflictError(f"object changed while reading: {name}") from exc
                     if isinstance(exc, PreconditionFailed):
                         if attempt < 2:
+                            # Another writer is mid-update: back off briefly before re-reading.
+                            time.sleep(0.25 * (2 ** attempt) + random.uniform(0, 0.25))
                             continue
                         raise StorageConflictError(f"object changed while reading: {name}") from exc
                 except ImportError:
                     pass
                 raise
         raise StorageConflictError(f"object changed repeatedly while reading: {name}")
-
-    def upload(self, name: str, source: Path) -> None:
-        self.bucket.blob(self._name(name)).upload_from_filename(str(source))
 
     def upload_if_version(self, name: str, source: Path, version: str | int | None) -> None:
         blob = self.bucket.blob(self._name(name))

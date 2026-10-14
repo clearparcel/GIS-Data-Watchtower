@@ -88,9 +88,9 @@ regression uses `county/space ü?#` and checks every generated internal link
 and fragment under a subdirectory.
 
 Relevant files:
-[`dashboard.py`](../clearparcel/datawatch/dashboard.py),
-[`dashboard_templates.py`](../clearparcel/datawatch/dashboard_templates.py),
-[`test_watchtower.py`](../tests/test_watchtower.py).
+[`dashboard.py`](../../clearparcel/datawatch/dashboard.py),
+[`dashboard_templates.py`](../../clearparcel/datawatch/dashboard_templates.py),
+[`test_watchtower.py`](../../tests/test_watchtower.py).
 
 ### R2 — Permanent provider responses
 
@@ -118,9 +118,9 @@ fallback propagation, one-attempt behavior, transient retries, and prevention
 of subsequent optional probes. These use mocked transports; they do not
 contact providers.
 
-Relevant files: [`watch.py`](../clearparcel/datawatch/watch.py),
-[`test_transport_security.py`](../tests/test_transport_security.py),
-[configuration reference](configuration.md).
+Relevant files: [`watch.py`](../../clearparcel/datawatch/watch.py),
+[`test_transport_security.py`](../../tests/test_transport_security.py),
+[configuration reference](../configuration.md).
 
 ### R3 — Control sizing
 
@@ -308,7 +308,7 @@ release notes document intermittent Windows temporary-file permission errors;
 this is a follow-up if reproduced, not a reason to speculate about storage
 changes.
 
-Per [AGENTS.md](../AGENTS.md), merging, pushing main, deploying, and changing
+Per [AGENTS.md](../../AGENTS.md), merging, pushing main, deploying, and changing
 production data/configuration or authoritative schedules require explicit
 approval in the current task. This review prepared a feature-branch change
 and performed reversible stale-item cleanup. It did not merge or deploy the

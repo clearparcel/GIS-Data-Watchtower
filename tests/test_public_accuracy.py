@@ -1,6 +1,5 @@
 """Regression tests for public-accuracy fixes (review package 3)."""
 import datetime as dt
-import html
 import re
 import unittest
 from html.parser import HTMLParser

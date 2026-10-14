@@ -2,8 +2,11 @@ import datetime as dt
 import json
 import tempfile
 import unittest
+
 from pathlib import Path
 from unittest.mock import patch
+
+from tests.html_text import metric, page_text
 
 from clearparcel.datawatch.dashboard import _layout, render_counties, render_county, render_mngac
 from clearparcel.datawatch.public_dashboard import (
@@ -22,8 +25,9 @@ class PublicDashboardTests(unittest.TestCase):
             page = render_public_dashboard({"_public_mode": True})
         self.assertIn('id="about-watchtower"', page)
         self.assertIn('Making Minnesota GIS data easier to understand.', page)
-        self.assertIn("<strong>GIS Data Watchtower is an open-source ClearParcel project</strong>", page)
-        self.assertIn("public dataset availability, source monitoring, county access research,", page)
+        about = page_text(page)
+        self.assertIn("GIS Data Watchtower is an open-source ClearParcel project", about)
+        self.assertIn("county access research", about)
         self.assertIn("Minnesota GAC field-population insights", page)
         self.assertIn("Disclaimer:", page)
         self.assertIn('href="https://github.com/clearparcel/GIS-Data-Watchtower"', page)
@@ -52,12 +56,12 @@ class PublicDashboardTests(unittest.TestCase):
         self.assertIn('2 days ago', page)
         self.assertIn('Source reporting: 2 overdue', page)
         self.assertIn('Reporting on time', page)
-        self.assertIn('Last successful provider check</span><strong>—', page)
+        self.assertEqual(metric(page, 'Last successful provider check'), '—')
         self.assertIn('does not check GIS providers again', page)
         state['sources'] = {'missing': {'checked_at': None}, 'invalid': {'checked_at': 'invalid'}}
         with patch('clearparcel.datawatch.public_dashboard._dashboard_state', return_value=state):
             page = render_public_dashboard({'_public_mode': True})
-        self.assertIn('Source reporting: 0 overdue · 2 without a check time', page)
+        self.assertIn('Source reporting: 0 overdue · 2 without a check time', page_text(page))
 
     def test_feedback_mandatory_map_research_brand_and_record_format(self):
         from unittest.mock import patch
@@ -133,14 +137,13 @@ class PublicDashboardTests(unittest.TestCase):
         self.assertLess(page.index('id="county-coverage-all"'), page.index('id="county-coverage-mandatory"'))
         self.assertIn('id="overview-map-pane"', page)
         self.assertIn('Statewide completeness is unavailable', page)
-        self.assertIn('These statistics are separate from county-direct monitoring', page)
+        self.assertIn('These statistics are separate from county-direct monitoring', page)  # tooltip text
 
     def test_overview_map_lazy_loads_all_87_county_targets(self):
         import re
         from unittest.mock import patch
-        from clearparcel.datawatch.dashboard import render_mngac, _county_profiles
+        from clearparcel.datawatch.dashboard import _county_profiles
         from clearparcel.datawatch.parcel_access import load_parcel_access
-        from clearparcel.datawatch.county_profile_panel import GROUPS
         state = sanitize_public_render_state(self._state())
         expected = _county_profiles({}, state, load_parcel_access())
         for renderer in (render_public_dashboard,):
@@ -169,7 +172,8 @@ class PublicDashboardTests(unittest.TestCase):
             page=render_mngac({'_public_mode':True})
         self.assertEqual(len(re.findall(r'<path class="mngac-county"',page)),87)
         self.assertIn('class="gac-map-link"',page)
-        self.assertIn('style="fill:#151d2b"',page)
+        self.assertIn('style="fill:url(#pct-no-data)"',page)
+        self.assertIn('<pattern id="pct-no-data"',page)
 
     def test_county_detail_uses_complete_composed_profile(self):
         from unittest.mock import patch
@@ -180,7 +184,7 @@ class PublicDashboardTests(unittest.TestCase):
         self.assertIn('Research incomplete', page)
 
     def test_shared_profile_coverage_kpi_and_public_metadata(self):
-        from test_county_profiles import coverage_state, NOW
+        from tests.test_county_profiles import coverage_state, NOW
         from clearparcel.datawatch.county_profiles import compose_county_profiles, county_profile_counts, FreshnessPolicy
         from clearparcel.datawatch.parcel_access import load_parcel_access
         from clearparcel.datawatch.dashboard import _county_monitoring_counts
@@ -217,14 +221,15 @@ class PublicDashboardTests(unittest.TestCase):
         broken_dash = '—'.encode('utf-8').decode('cp1252')
         identifier = 'source-' + broken_dash
         state = {'sources': {identifier: {
-            'id': identifier, 'worker': identifier, 'county_slug': identifier,
+            'id': identifier, 'worker': 'cloud', 'county_slug': identifier,
             'name': '測量 — Parcels ' + broken_dash + ' Direct',
             'provider': 'Café ' + broken_dash + ' GIS',
         }}}
         public = sanitize_public_render_state(state)
         source = public['sources'][identifier]
-        for field in ('id', 'worker', 'county_slug'):
+        for field in ('id', 'county_slug'):
             self.assertEqual(source[field], identifier)
+        self.assertEqual(source['worker'], 'cloud')
         self.assertEqual(source['name'], '測量 — Parcels — Direct')
         self.assertEqual(source['provider'], 'Café — GIS')
         self.assertEqual(sanitize_public_render_state(public), public)
@@ -384,8 +389,9 @@ class PublicDashboardTests(unittest.TestCase):
             self.assertIn("Explore Minnesota GIS data", page)
             self.assertIn("Counties with parcel observations", page)
             self.assertIn("Dataset/service entries monitored", page)
-            self.assertIn("All data types · entries, not counties or unique providers", page)
-            self.assertIn("One statewide source can cover many counties", page)
+            text = page_text(page)
+            self.assertIn("entries, not counties or unique providers", text)
+            self.assertIn("One statewide source can cover many counties", text)
             self.assertIn("2/87", page)
             self.assertIn("2 via MnGeo open parcels", page)
             self.assertIn("1 via county-direct sources", page)
@@ -409,7 +415,7 @@ class PublicDashboardTests(unittest.TestCase):
                 "_public_mode": True,
             }
             page = render_public_source(config, "county-parcels-direct")
-            self.assertIn('class="active" aria-current="page">Data Sources</a>', page)
+            self.assertRegex(page, r'class="active" aria-current="page"><span class="tab-long">Data Sources</span><span class="tab-short">Sources</span></a>')
             self.assertIn("Data Source — County Parcels", page)
 
     def test_public_overview_uses_v2_shell_and_interactive_map(self):
@@ -498,7 +504,7 @@ class PublicDashboardTests(unittest.TestCase):
                 "_public_mode": True,
             }
             page = render_public_source(config, "county-parcels-direct")
-            self.assertIn('<a href="/#datasets" class="active" aria-current="page">Data Sources</a>', page)
+            self.assertIn('<a href="/#datasets" class="active" aria-current="page"><span class="tab-long">Data Sources</span>', page)
             self.assertNotIn(raw["sources"]["county-parcels-direct"]["checked_at"], page)
 
     def test_private_layout_does_not_use_public_v2_shell(self):
@@ -570,9 +576,10 @@ class PublicDashboardTests(unittest.TestCase):
         with patch("clearparcel.datawatch.dashboard._dashboard_state", return_value=public):
             mngac = render_mngac({"_public_mode": True}, view="statewide")
         # Two parcel entries cover two counties, including overlap; imagery adds an entry only.
-        self.assertIn('Dataset/service entries monitored</div><div class="metric">3</div>', overview)
-        self.assertIn('Counties with parcel observations</div><div class="metric">2/87</div>', overview)
-        self.assertIn("2 via MnGeo open parcels · 1 via county-direct sources · 1 via both · each county counted once", overview)
+        self.assertEqual(metric(overview, 'Dataset/service entries monitored'), '3')
+        self.assertEqual(metric(overview, 'Counties with parcel observations'), '2/87')
+        self.assertIn("2 via MnGeo open parcels · 1 via county-direct sources · 1 via both · each county counted once",
+                      page_text(overview))
         for page in (overview, mngac):
             self.assertIn("<h1>Minnesota Open Data Watchtower</h1>", page)
             self.assertIn(percentage_color_js(), page)

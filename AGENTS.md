@@ -98,9 +98,12 @@ For repository changes, run:
 
 ```text
 python -W error::ResourceWarning -m unittest discover -s tests -q
-python -m compileall -q clearparcel tests
+python -m compileall -q clearparcel tests scripts
+python scripts/sync_current_status.py --check
 git diff --check
 ```
+
+JavaScript behavior tests need Node.js 24; they skip locally without it and are required in CI (`WATCHTOWER_REQUIRE_NODE=1`).
 
 For deployment/staging changes, also validate the applicable execution profile(s), source-level results, aggregate worker provenance, and rendered dashboard metrics. Do not treat a successful container exit alone as proof that every source passed.
 

@@ -7,6 +7,7 @@ import tempfile
 from pathlib import Path
 
 from clearparcel.datawatch.public_dashboard import sanitize_public_render_state, sanitize_source_metadata
+from clearparcel.datawatch import strict_json
 from clearparcel.datawatch.storage import GCSStorage, StorageBackend, StorageConflictError
 from clearparcel.datawatch.aggregate import _parse_time
 
@@ -127,7 +128,7 @@ def publish_public_snapshot(
         if not source.download(source_object, raw_path):
             raise FileNotFoundError(f"source aggregate not found: {source_object}")
 
-        raw = json.loads(raw_path.read_text(encoding="utf-8"))
+        raw = strict_json.loads(raw_path.read_text(encoding="utf-8"))
         public = sanitize_public_render_state(raw)
         validate_public_state(public)
         current_path = scratch_root / "destination.json"
@@ -135,7 +136,7 @@ def publish_public_snapshot(
         for attempt in range(8):
             try:
                 exists, version = destination.download_versioned(destination_object, current_path)
-                current = json.loads(current_path.read_text(encoding="utf-8")) if exists else {}
+                current = strict_json.loads(current_path.read_text(encoding="utf-8")) if exists else {}
                 if _snapshot_is_superseded(public, current):
                     public = current
                     break

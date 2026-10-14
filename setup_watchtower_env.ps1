@@ -5,6 +5,14 @@ param(
 $ErrorActionPreference = 'Stop'
 $Root = (Resolve-Path $Root).Path
 $python = Get-Command python -ErrorAction Stop
+& $python.Source -c "import sys; raise SystemExit(0 if sys.version_info >= (3, 12) else 1)"
+if ($LASTEXITCODE -ne 0) { throw "Watchtower requires Python 3.12 or newer" }
+$node = Get-Command node -ErrorAction SilentlyContinue
+if (-not $node) {
+    Write-Warning "Node.js 24 was not found; JavaScript behavior tests will be skipped locally (CI requires them)."
+} elseif (-not ((& $node.Source --version) -match '^v(2[4-9]|[3-9][0-9])\.')) {
+    Write-Warning "Node.js 24 or newer is recommended for the JavaScript behavior tests."
+}
 $venv = Join-Path $Root '.venv-watchtower'
 & $python.Source -m venv $venv
 if ($LASTEXITCODE -ne 0) { throw "Unable to create Watchtower virtual environment" }

@@ -24,7 +24,7 @@ def _public_status(value: object) -> str | None:
 
 
 def _observation_status(value: object) -> str | None:
-    return value if isinstance(value, str) and value in {'complete', 'partial', 'error', 'unsupported', 'unknown'} else None
+    return value if isinstance(value, str) and value in {'complete', 'partial', 'none', 'error', 'unsupported', 'unknown'} else None
 
 
 def _public_date(value: object) -> str | None:
@@ -53,14 +53,24 @@ def _project(record: object, schema: dict) -> dict:
             if (value := validate(record.get(key))) is not None}
 
 
+# Execution profiles a worker can report as; tests keep this equal to watch._EXECUTION_PROFILES.
+_PUBLIC_WORKERS = frozenset({'cloud', 'local'})
+
+
+def _worker_name(value: object) -> str | None:
+    """Only known execution profiles reach the public state; other names may be hostnames."""
+    return value if isinstance(value, str) and value in _PUBLIC_WORKERS else None
+
+
 def _records(value: object) -> dict:
     return value if isinstance(value, dict) else {}
 
 
 _SOURCE_SCHEMA = {
-    **{key: _metadata_text for key in ('id', 'worker', 'county_slug')},
+    **{key: _metadata_text for key in ('id', 'county_slug')},
+    'worker': _worker_name,
     **{key: _display_text for key in ('name', 'provider', 'category')},
-    **{key: _public_date for key in ('checked_at', 'last_success_at', 'last_report_at')},
+    **{key: _public_date for key in ('checked_at', 'last_success_at', 'last_available_at', 'last_report_at')},
     **{key: _public_count for key in ('feature_count', 'field_count', 'parcel_id_null_count',
         'duplicate_id_extra_rows', 'null_geometry_count')},
     **{key: _public_number for key in ('geometry_sample_multipart_percent', 'geometry_sample_avg_vertices', 'elapsed_ms')},
@@ -69,6 +79,8 @@ _SOURCE_SCHEMA = {
     'catalog_observed_at': _public_date,
     **{key: lambda value: value if type(value) is bool else None
        for key in ('catalog_retained', 'catalog_time_inferred')},
+    # Private deferral details (reason, timing, host) reduce to a flag publicly.
+    'deferred': lambda value: True if value else None,
 }
 _WORKER_SCHEMA = {**{key: _public_date for key in ('checked_at', 'last_success_at', 'last_report_at')},
                   'overall': _public_status, 'source_count': _public_count}
@@ -186,16 +198,16 @@ def sanitize_public_render_state(state: dict) -> dict:
     public.update(counts=_project(state.get('counts'), {key: _public_count for key in ('ok', 'warn', 'error')}),
                   workers={}, sources={}, retired_sources={}, retired_workers={})
     for name, worker in _records(state.get('retired_workers')).items():
-        if _metadata_text(name) and isinstance(worker, dict):
+        if _worker_name(name) and isinstance(worker, dict):
             public['retired_workers'][name] = _project(worker, {**_WORKER_SCHEMA, 'retired_at': _public_date})
     for source_id, record in _records(state.get('retired_sources')).items():
         if _metadata_text(source_id) and isinstance(record, dict):
             public['retired_sources'][source_id] = _project(
-                record, {'worker': _metadata_text, 'retired_at': _public_date}
+                record, {'worker': _worker_name, 'retired_at': _public_date}
             )
 
     for worker_name, worker in _records(state.get('workers')).items():
-        if _metadata_text(worker_name) and isinstance(worker, dict):
+        if _worker_name(worker_name) and isinstance(worker, dict):
             public['workers'][worker_name] = _project(worker, _WORKER_SCHEMA)
 
     for source_id, source in _records(state.get('sources')).items():

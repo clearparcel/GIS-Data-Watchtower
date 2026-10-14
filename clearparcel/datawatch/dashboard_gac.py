@@ -231,7 +231,7 @@ def _render_gac_standard(config: dict, standard_key: str, county: dict | None = 
  function value(n,k){{const c=data.counties[n];if(!c||c.available===false)return null;if(k==='__overall__')return c.field_population_percent;if(k==='__mandatory__')return c.mandatory_population_percent;if(k==='__fields_with_values__')return typeof c.fields_with_values==='number'&&c.field_count?Math.round(c.fields_with_values/c.field_count*10000)/100:null;const f=(c.fields||{{}})[k];return f&&typeof f.percent==='number'?f.percent:null}}
  {percentage_color_js()}
  function update(){{const k=metric.value,mm=meta(k);paths.forEach(p=>{{const v=value(p.dataset.county,k);p.style.fill=percentageColor(v);p.setAttribute('aria-label',p.dataset.county+' County, '+(mm.label||k)+', '+(typeof v==='number'?v.toFixed(2)+'%':'no data'))}})}}
- metric.addEventListener('change',update);root.querySelectorAll('.mngac-field-select').forEach(b=>b.addEventListener('click',()=>{{metric.value=b.dataset.field;update();root.getElementById('mngac-map').scrollIntoView({{behavior:'smooth',block:'center'}})}}));
+ metric.addEventListener('change',update);root.querySelectorAll('.mngac-field-select').forEach(b=>b.addEventListener('click',()=>{{metric.value=b.dataset.field;update();root.getElementById('mngac-map').scrollIntoView({{behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'center'}})}}));
  function filter(){{const t=(q.value||'').toLowerCase(),c=inc.value;root.querySelectorAll('#mngac-fields tbody tr').forEach(r=>r.style.display=(!t||r.dataset.name.includes(t))&&(!c||r.dataset.inclusion===c)?'':'none')}}q.addEventListener('input',filter);inc.addEventListener('change',filter);update();
 }})();
 </script>
@@ -442,7 +442,7 @@ def render_mngac(config: dict, standard_key: str = "parcel", *, county: str = ''
     }});
   }}
   metric.addEventListener('change',updateMap);
-  root.querySelectorAll('.mngac-field-select').forEach(b=>b.addEventListener('click',()=>{{metric.value=b.dataset.field;updateMap();root.getElementById('mngac-map').scrollIntoView({{behavior:'smooth',block:'center'}})}}));
+  root.querySelectorAll('.mngac-field-select').forEach(b=>b.addEventListener('click',()=>{{metric.value=b.dataset.field;updateMap();root.getElementById('mngac-map').scrollIntoView({{behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'center'}})}}));
   function filterFields(){{
     const text=(q.value||'').toLowerCase(),cat=inc.value;
     root.querySelectorAll('#mngac-fields tbody tr').forEach(row=>{{row.style.display=(!text||row.dataset.name.includes(text))&&(!cat||row.dataset.inclusion===cat)?'':'none'}});
@@ -496,17 +496,6 @@ def _render_county_mngac(state: dict, county: dict) -> str:
 </div>
 <script>(function(){{const q=document.getElementById('cmq'),i=document.getElementById('cmi');function f(){{const t=(q.value||'').toLowerCase(),c=i.value;document.querySelectorAll('#county-mngac-fields tbody tr').forEach(r=>r.style.display=(!t||r.dataset.name.includes(t))&&(!c||r.dataset.inclusion===c)?'':'none')}}q.addEventListener('input',f);i.addEventListener('change',f)}})();</script>
 """
-
-def _county_mngac_summary(state: dict, county: dict) -> dict:
-    data, county_stats = _dashboard._mngac_county_record(state, county["name"])
-    source_id, source = _dashboard._mngac_source(state)
-    return {
-        "data": data,
-        "county": county_stats,
-        "source_id": source_id,
-        "source": source,
-        "checked_at": (source or {}).get("checked_at") or (source or {}).get("last_success_at"),
-    }
 
 def _render_county_gac_summaries(state: dict, county: dict) -> str:
     name = str(county.get("name") or "")
@@ -579,3 +568,9 @@ def _gac_county_payload(state: dict, standard_key: str, county_name: str) -> dic
         "county": county,
         "metadata": metadata if isinstance(metadata, dict) else {},
     }
+
+
+def __getattr__(name: str):
+    """Resolve names that v0.2.3 exposed here (see clearparcel.datawatch._compat)."""
+    from clearparcel.datawatch import _compat
+    return _compat.resolve(__name__, name)

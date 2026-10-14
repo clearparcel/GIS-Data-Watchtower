@@ -1,6 +1,6 @@
 # GIS Data Watchtower v0.2.0 — County percentage clarity deployment
 
-Deployment date: **2026-10-11** (America/Chicago). Production environment: Google Cloud project `dark-bit-503017-j7`, region `us-central1`.
+Deployment date: **2026-10-11** (America/Chicago). Production environment: Google Cloud project `<project-id>`, region `us-central1`.
 
 ## Source and approval
 
@@ -43,9 +43,9 @@ Each candidate revision was initially deployed at **0% traffic**. Ready state, e
 If a regression requires reversal, first verify the active revision and receive the appropriate rollback approval. The retained revisions can be restored independently without changing data or schedules:
 
 ```powershell
-gcloud run services update-traffic gis-data-watchtower-public --project dark-bit-503017-j7 --region us-central1 --to-revisions gis-data-watchtower-public-00014-jsr=100
-gcloud run services update-traffic gis-data-watchtower-dashboard --project dark-bit-503017-j7 --region us-central1 --to-revisions gis-data-watchtower-dashboard-00021-hr8=100
-gcloud run services update-traffic gis-data-watchtower-public-v2-preview --project dark-bit-503017-j7 --region us-central1 --to-revisions gis-data-watchtower-public-v2-preview-00019-x5b=100
+gcloud run services update-traffic gis-data-watchtower-public --project <project-id> --region us-central1 --to-revisions gis-data-watchtower-public-00014-jsr=100
+gcloud run services update-traffic gis-data-watchtower-dashboard --project <project-id> --region us-central1 --to-revisions gis-data-watchtower-dashboard-00021-hr8=100
+gcloud run services update-traffic gis-data-watchtower-public-v2-preview --project <project-id> --region us-central1 --to-revisions gis-data-watchtower-public-v2-preview-00019-x5b=100
 ```
 
 Existing operational follow-ups stay open: provider use/terms (#1/#2), the incomplete five-day cloud observation study (#20), dormant privacy-gated PostHog analytics (#50), and any separately triaged CodeQL alerts. The Windows offline suite showed intermittent temporary-file permissions errors in separate runs: an earlier atomic replacement during snapshot replay and, during this documentation reconciliation, `test_local_uploads_use_independent_temporary_files` reported one `PermissionError`. The targeted regression module subsequently passed **29/29**, and the full ResourceWarning-strict suite passed **343/343** on rerun. No storage implementation was changed speculatively; investigate file-lock/antivirus timing separately if the issue recurs.

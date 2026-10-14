@@ -6,7 +6,7 @@ import copy
 import json
 from pathlib import Path
 from urllib.parse import urlsplit
-from .public_values import safe_public_url, public_access_classification, safe_geometry_type, safe_file_type
+from .public_values import safe_public_url, safe_geometry_type, safe_file_type
 
 DIRECT_CLASSIFICATIONS = {
     "free-parcel-data": "Open parcel data",
@@ -293,3 +293,9 @@ def statewide_access_label(record: dict | None, *, live_available: bool | None =
     if coverage.get("available") is True:
         return STATEWIDE_OPEN_LABEL
     return "No MnGeo open parcel coverage verified in the audit"
+
+
+def __getattr__(name: str):
+    """Resolve names that v0.2.3 exposed here (see clearparcel.datawatch._compat)."""
+    from clearparcel.datawatch import _compat
+    return _compat.resolve(__name__, name)

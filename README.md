@@ -8,9 +8,10 @@
 
 **[Explore the live public dashboard](https://gis-watchtower.clear-parcel.com/)** · **[User guide](docs/user-guide.md)** · **[Documentation index](docs/README.md)**
 
-The deployed v0.2.2 maintenance release corrects public diagnostic sanitization,
-provider refusal handling, statistics validation, export redundancy, and table
-accessibility. See the [release status and verification record](docs/release-v0.2.2.md).
+The current production release is **v0.2.3**. See [STATUS.md](STATUS.md) for what is
+deployed and what is in review, and the [v0.2.3 release record](docs/release-v0.2.3.md)
+for verification and rollback evidence. **v0.3.0** is a release candidate in
+review ([candidate record](docs/release-v0.3.0.md)); it is not deployed.
 
 ![Live Watchtower overview with source health, county coverage, and a Minnesota county map](docs/images/watchtower-overview.png)
 
@@ -101,8 +102,8 @@ the open-source ClearParcel mission, disclaimer, and GitHub link.
 - **[Validated operational status](STATUS.md)** — current monitoring and remaining gates
 - **[GitHub releases](https://github.com/clearparcel/GIS-Data-Watchtower/releases)** — versioned summaries
 - **[Documentation index](docs/README.md)** — user guides, methodology, engineering references and dated history
-- **[Original v0.2.0 release](docs/release-v0.2.0.md)** and
-  **[October 11 correction](docs/release-county-percentage-fix-2026-10-11.md)** — retained history
+- **[Original v0.2.0 release](docs/archive/release-v0.2.0.md)** and
+  **[October 11 correction](docs/archive/release-county-percentage-fix-2026-10-11.md)** — retained history
 
 Earlier merged PR #69 static-output/provider retry corrections also ship in
 the v0.2.2 application image. The coordinated v0.2.2 release updated both
