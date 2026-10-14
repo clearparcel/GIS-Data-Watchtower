@@ -56,6 +56,24 @@ class RetryAfterTests(unittest.TestCase):
 
 
 class RedirectBackoffTests(RunConfig):
+    def test_a_blocked_redirect_stops_the_source_without_retries(self):
+        calls = []
+
+        def check(source, timeout):
+            calls.append(source["id"])
+            if source["id"] == "first":
+                raise watch.ProviderRateLimitError("120", "limited.example")
+            watch._validated_redirect("https://b.example/x", "https://limited.example/y", "https://b.example/x")
+
+        config = self.config([{"id": "first", "name": "First", "adapter": "arcgis_layer", "url": "https://limited.example/0"},
+                              {"id": "second", "name": "Second", "adapter": "arcgis_layer", "url": "https://b.example/0"}])
+        config["retries"] = 3
+        with patch.object(watch, "_source_check", side_effect=check), patch.object(watch.time, "sleep"):
+            result = watch.check_sources(config, save=False)
+        self.assertEqual(calls, ["first", "second"])  # no retries against the origin
+        self.assertEqual(result["sources"]["second"]["attempts"], 1)
+        self.assertIn("HTTP 429 backoff", result["sources"]["second"]["error"])
+
     def test_redirect_to_a_host_under_backoff_is_refused_without_lookup(self):
         token = watch._RUN_BLOCKED_HOSTS.set({"limited.example"})
         try:
@@ -85,6 +103,23 @@ class RedirectBackoffTests(RunConfig):
         self.assertIsNone(watch._RUN_BLOCKED_HOSTS.get(None))
 
 
+class HoldUntilClearedTests(unittest.TestCase):
+    def test_requests_beyond_the_maximum_never_resume_automatically(self):
+        now = NOW
+        entry = {"not_before": (now + dt.timedelta(days=365)).isoformat(), "hold_until_cleared": True}
+        later = now + dt.timedelta(days=800)
+        self.assertIn("h.example", watch._active_rate_limits({"h.example": entry}, later))
+        with tempfile.TemporaryDirectory() as td:
+            config = {"state_file": str(Path(td) / "state.json"), "history_file": str(Path(td) / "h.jsonl"),
+                      "alerts_file": str(Path(td) / "a.json"), "alerts_text_file": str(Path(td) / "a.txt"),
+                      "retries": 0, "sources": [{"id": "a", "name": "A", "adapter": "arcgis_layer",
+                                                  "url": "https://a.example/0"}]}
+            with patch.object(watch, "_source_check", side_effect=watch.ProviderRateLimitError("9999999999", "a.example")):
+                watch.check_sources(config, save=True)
+            saved = json.loads(Path(config["state_file"]).read_text(encoding="utf-8"))["rate_limits"]["a.example"]
+        self.assertTrue(saved["hold_until_cleared"])
+
+
 class HoldForTermsRuntimeTests(RunConfig):
     def held_slug(self):
         research = load_parcel_access()
@@ -109,7 +144,11 @@ class HoldForTermsRuntimeTests(RunConfig):
         slug = self.held_slug()
         sources = [{"id": "held", "name": "Held", "adapter": "arcgis_layer", "url": "https://h.example/0",
                     "county_slug": slug, "category": "Parcels"}]
-        with patch.object(watch, "_held_county_slugs", return_value=frozenset()), \
+        research = load_parcel_access()
+        for record in research.values():
+            if (record.get("monitoring") or {}).get("decision") == "hold-for-terms":
+                record["monitoring"]["decision"] = "candidate-low-frequency"  # evidence changed
+        with patch("clearparcel.datawatch.parcel_access.load_parcel_access", return_value=research), \
                 patch.object(watch, "_source_check", return_value={"problems": []}) as check:
             watch.check_sources(self.config(sources), save=False)
         self.assertEqual(check.call_count, 1)
@@ -152,6 +191,15 @@ class RefusedShrinkTests(unittest.TestCase):
         for key in ("source_count", "last_success_at", "checked_at", "overall"):
             self.assertEqual(worker[key], before[key], key)
         self.assertEqual(worker["last_report_at"], stamp(10))
+
+    def test_a_refused_shrink_cannot_take_sources_from_another_worker(self):
+        base = aggregate.merge_states({}, report(0, [f"c{i}" for i in range(10)]), "cloud", now=NOW)
+        base = aggregate.merge_states(base, report(1, ["local-only"]), "local", now=NOW)
+        # A wrong registry: the local worker reports one cloud source and drops its own.
+        wrong = report(10, ["c0"])
+        merged = aggregate.merge_states(base, wrong, "local", now=NOW + dt.timedelta(hours=1))
+        self.assertEqual(merged["sources"]["c0"]["worker"], "cloud")
+        self.assertIn("local-only", merged["sources"])
 
 
 class FreshnessTests(unittest.TestCase):

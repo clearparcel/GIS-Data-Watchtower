@@ -45,6 +45,14 @@ class PermanentProviderError(RuntimeError):
         super().__init__(message or f"provider returned HTTP {status}")
 
 
+class BackedOffHostError(PermanentProviderError):
+    """A redirect led to a host under HTTP 429 backoff; stop this source without retries or fallback."""
+
+    def __init__(self, host: str):
+        self.host = host
+        super().__init__(429, f"redirect rejected: {host} is under an HTTP 429 backoff")
+
+
 _PERMANENT_HTTP_STATUSES = {401, 403, 404, 410}
 
 # HTTP 429 backoff bounds. A provider's Retry-After is honored within these
@@ -75,6 +83,8 @@ def _retry_after_seconds(value: str | None, now: dt.datetime, default: int = _RA
         seconds = None
     if seconds is None:
         seconds = default
+    # Requests beyond the maximum come back as the maximum; the caller marks
+    # them hold-until-cleared, so they are never resumed automatically.
     return max(_RATE_LIMIT_MIN_SECONDS, min(_RATE_LIMIT_MAX_SECONDS, seconds))
 
 
@@ -113,6 +123,11 @@ def _active_rate_limits(previous: object, now: dt.datetime) -> dict:
         except ValueError:
             continue
         if not_before.tzinfo is None:
+            continue
+        if entry.get("hold_until_cleared") is True:
+            # The provider asked for longer than the maximum: stay blocked until
+            # an operator clears the entry, however much time passes.
+            active[host] = dict(entry)
             continue
         if not_before > now:
             # Re-bound stored values only to the (year-long) maximum; a provider's
@@ -255,7 +270,7 @@ def _validated_redirect(current_url: str, location: str, initial_url: str, *, de
     target = urllib.parse.urljoin(current_url, location)
     target_host = _url_host(target)
     if target_host in _RUN_BLOCKED_HOSTS.get(()):
-        raise RuntimeError(f"redirect rejected: {target_host} is under an HTTP 429 backoff")
+        raise BackedOffHostError(target_host)
     _url_host(initial_url)
     _url_host(current_url)
     if urllib.parse.urlsplit(target).scheme.lower() == "http" and "https" in {
@@ -2134,6 +2149,8 @@ def _check_sources_unlocked(
                             "recorded_at": observed.isoformat(), "source_id": source["id"]}
                         if wait > _RATE_LIMIT_REVIEW_SECONDS:
                             rate_limits[limited_host]["operator_review"] = True
+                        if wait >= _RATE_LIMIT_MAX_SECONDS:
+                            rate_limits[limited_host]["hold_until_cleared"] = True
                     _block_hosts(rate_limits)
                     rate_limited = True
                     break

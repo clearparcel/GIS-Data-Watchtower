@@ -115,11 +115,13 @@ source that received it. Watchtower:
 60-second minimum and a one-year maximum (an effectively indefinite hold); a
 requested backoff is never shortened. Backoffs longer than a week are marked
 `"operator_review": true` in the private `rate_limits` entry so an operator can
-confirm the provider's intent; clearing one early is a deliberate, manual
-change to private state. When the header is absent or unparseable the
+confirm the provider's intent. A request at or beyond the maximum is also
+marked `"hold_until_cleared": true` and is never resumed automatically.
+Clearing either early is a deliberate, manual change to private state. When the header is absent or unparseable the
 top-level `rate_limit_default_backoff_seconds` applies (default `3600`).
 During a run, redirects to a host under backoff are refused before any
-lookup or request, whichever source would follow them.
+lookup or request, whichever source would follow them; that source stops at
+once, without retries or a fallback transport.
 Backoff timing and hostnames are private worker state; they are not included
 in worker reports, the shared aggregate, or the public projection. Runs with
 `--no-save` do not write state and therefore do not record a backoff; avoid
@@ -419,7 +421,8 @@ or viewer-only findings; free statewide access does not override a direct fee.
 - A run whose source filter matches nothing is an empty run (exit 2), and the
   shared aggregate refuses any report with no source observations except an
   explicit fleet drain. A fleet report whose inventory shrink is refused
-  keeps the worker's fleet-level health from its last complete report.
+  keeps the worker's fleet-level health from its last complete report and
+  cannot take sources over from another worker.
 - `last_available_at` is the source's own check time.
 - Aggregate source records carry `last_success_at` (last check with status
   `ok`) and `last_available_at` (last check where the provider answered,

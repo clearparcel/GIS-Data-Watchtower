@@ -8,7 +8,9 @@ found 14 issues. The fixes sit on top of `release/v0.3.0`:
 - **Provider compliance:**
   - `Retry-After` is honoured in full up to a year, and is no longer capped at
     7 days. Backoffs longer than a week are flagged for operator review.
-  - Redirects to a host under 429 backoff are refused for the rest of the run.
+    Longer requests are held until an operator clears them.
+  - Redirects to a host under 429 backoff are refused for the rest of the run,
+    and the source stops without retries.
   - Enabled county-direct parcel sources for `hold-for-terms` counties are now
     skipped at run time, read from the data file on every run. Before this
     fix, only the dashboards applied hold-for-terms.
@@ -16,7 +18,7 @@ found 14 issues. The fixes sit on top of `release/v0.3.0`:
   - Reports with no source observations are refused, except an explicit
     fleet drain. A filter that matches nothing is an empty run.
   - A fleet report whose inventory shrink is refused keeps the worker's last
-    fleet-level health.
+    fleet-level health and cannot take sources from another worker.
   - Source freshness follows the provider-check time, so a deferred record no
     longer looks freshly checked. `last_available_at` uses the source's check
     time.

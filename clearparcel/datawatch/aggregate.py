@@ -112,6 +112,10 @@ def merge_states(base: dict | None, partial: dict, worker: str, *, now: dt.datet
         seen = _parse_time(previous.get("last_report_at") or previous.get("checked_at"))
         if seen and seen >= incoming_time:
             continue
+        if shrink_refused and previous.get("worker") not in (None, worker):
+            # A report that failed the inventory guard (for example a wrong
+            # registry) must not take sources over from another worker.
+            continue
         record["status"] = _normalized_status(record.get("status"))
         record["worker"] = worker
         retired_sources.pop(source_id, None)
