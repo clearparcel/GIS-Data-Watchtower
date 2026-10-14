@@ -733,3 +733,9 @@ def serve_public(host: str = "0.0.0.0", port: int = 8080) -> None:
         pass
     finally:
         server.server_close()
+
+
+def __getattr__(name: str):
+    """Resolve names that v0.2.3 exposed here (see clearparcel.datawatch._compat)."""
+    from clearparcel.datawatch import _compat
+    return _compat.resolve(__name__, name)

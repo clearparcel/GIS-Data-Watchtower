@@ -208,3 +208,9 @@ def county_profile_counts(profiles: dict[str, dict]) -> dict[str, int]:
             'county_direct': sum('county-direct' in m['paths'] for m in monitoring),
             'mngeo_open': sum('mngeo-open' in m['paths'] for m in monitoring),
             'both': sum(set(m['paths']) == {'county-direct', 'mngeo-open'} for m in monitoring)}
+
+
+def __getattr__(name: str):
+    """Resolve names that v0.2.3 exposed here (see clearparcel.datawatch._compat)."""
+    from clearparcel.datawatch import _compat
+    return _compat.resolve(__name__, name)

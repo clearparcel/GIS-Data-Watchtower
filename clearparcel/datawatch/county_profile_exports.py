@@ -93,3 +93,9 @@ def county_profile_xlsx_sheets(profiles: dict[str, dict]) -> list[tuple[str, lis
         return spreadsheet_text(value)
     return [(name, [list(fields)] + [[cell(row.get(k)) for k in fields] for row in rows])
             for name, fields, rows in [('County Access', SUMMARY_FIELDS, summaries), ('Parcel Sources', SOURCE_FIELDS, sources)]]
+
+
+def __getattr__(name: str):
+    """Resolve names that v0.2.3 exposed here (see clearparcel.datawatch._compat)."""
+    from clearparcel.datawatch import _compat
+    return _compat.resolve(__name__, name)
