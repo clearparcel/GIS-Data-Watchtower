@@ -140,6 +140,14 @@ class TableTests(unittest.TestCase):
         self.assertIn('aria-label="Gaps"', out)
         self.assertEqual(out.count("<caption"), 1)
 
+    def test_table_processing_stays_fast_on_adversarial_markup(self):
+        import time
+        for hostile in ("<" * 60000, "<h1" * 20000, "<tbody" * 20000, "<caption" * 20000,
+                        "<h2>" + "<" * 60000 + "<table><tr><td>1</td></tr></table>"):
+            started = time.perf_counter()
+            _accessible_tables(hostile)
+            self.assertLess(time.perf_counter() - started, 2.0, hostile[:12])
+
     def test_table_without_any_heading_still_gets_a_label(self):
         out = _accessible_tables("<table><tr><td>1</td></tr></table>")
         self.assertIn('aria-label="Data table"', out)

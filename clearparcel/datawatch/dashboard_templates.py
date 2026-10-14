@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import html
+from html.parser import HTMLParser
 from pathlib import Path
 
 from clearparcel.datawatch.build_info import application_identity
@@ -111,6 +112,52 @@ def _refresh_script(seconds: int, *, public: bool = False) -> str:
     return refresh_script(seconds, public=public)
 
 
+class _TableLabels(HTMLParser):
+    """One linear pass: a label for each top-level table, in document order.
+
+    The label is the table's caption text, else the text of the nearest
+    preceding h1-h4 heading. (A parser instead of tag-stripping regexes keeps
+    this linear on any input.)
+    """
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.labels: list[str] = []
+        self._heading: list[str] | None = None
+        self._last_heading = ""
+        self._depth = 0
+        self._caption: list[str] | None = None
+        self._table_caption = ""
+
+    def handle_starttag(self, tag, attrs):
+        if tag in ("h1", "h2", "h3", "h4") and self._depth == 0:
+            self._heading = []
+        elif tag == "table":
+            self._depth += 1
+            if self._depth == 1:
+                self._table_caption = ""
+        elif tag == "caption" and self._depth == 1:
+            self._caption = []
+
+    def handle_endtag(self, tag):
+        if tag in ("h1", "h2", "h3", "h4") and self._heading is not None:
+            self._last_heading = " ".join("".join(self._heading).split())
+            self._heading = None
+        elif tag == "caption" and self._caption is not None:
+            self._table_caption = " ".join("".join(self._caption).split())
+            self._caption = None
+        elif tag == "table" and self._depth:
+            self._depth -= 1
+            if self._depth == 0:
+                self.labels.append(self._table_caption or self._last_heading or "Data table")
+
+    def handle_data(self, data):
+        if self._heading is not None:
+            self._heading.append(data)
+        if self._caption is not None:
+            self._caption.append(data)
+
+
 def _accessible_tables(body: str) -> str:
     """Make every table a labelled, scrollable region with scoped headers.
 
@@ -118,22 +165,28 @@ def _accessible_tables(body: str) -> str:
     describe their column. A table without a caption gets a visually hidden
     one, and its region label, from the nearest preceding heading.
     """
+    import bisect
     import re
 
-    def scope_body_headers(match: re.Match) -> str:
-        return re.sub(r"<th\b(?![^>]*scope=)([^>]*)>", r'<th scope="row"\1>', match.group(0))
+    # Positions of <tbody> / </tbody> tags; a header cell is a row header when
+    # the nearest preceding one opens a body. (A position scan, not a
+    # <tbody>.*?</tbody> match, so the cost stays linear.)
+    marks = [(m.start(), not m.group(0).startswith("</")) for m in re.finditer(r"</?tbody\b", body)]
+    positions = [pos for pos, _ in marks]
 
-    body = re.sub(r"<tbody\b.*?</tbody>", scope_body_headers, body, flags=re.S)
-    body = re.sub(r"<th\b(?![^>]*scope=)([^>]*)>", r'<th scope="col"\1>', body)
-    headings = [(m.end(), re.sub(r"<[^>]+>", " ", m.group(2))) for m in
-                re.finditer(r"<h([1-4])\b[^>]*>(.*?)</h\1>", body, flags=re.S)]
+    def scope(match: re.Match) -> str:
+        index = bisect.bisect_right(positions, match.start()) - 1
+        in_body = index >= 0 and marks[index][1]
+        return f'<th scope="{"row" if in_body else "col"}"{match.group(1)}>'
+
+    body = re.sub(r"<th\b(?![^>]*scope=)([^>]*)>", scope, body)
+    parser = _TableLabels()
+    parser.feed(body)
+    parser.close()
+    labels = iter(parser.labels)
 
     def label_for(position: int, table: str) -> str:
-        caption = re.search(r"<caption\b[^>]*>(.*?)</caption>", table, flags=re.S)
-        text = re.sub(r"<[^>]+>", " ", caption.group(1)) if caption else next(
-            (h for end, h in reversed(headings) if end <= position), "")
-        text = html.unescape(" ".join(text.split()))
-        return text or "Data table"
+        return next(labels, "Data table")
 
     def wrap(match: re.Match) -> str:
         opening = (match.group("wrapper") or '<div class="table-scroll">').rstrip()
