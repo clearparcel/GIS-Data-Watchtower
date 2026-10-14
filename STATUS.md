@@ -10,7 +10,8 @@ shared-state guards branch. Production remains v0.2.3.
 - A county whose last result was healthy (or unknown) but whose check or worker
   report is older than the freshness window shows **Check overdue** instead of
   "Actively checked"; the counties card is now "Counties with a monitoring
-  path" and states how many are overdue.
+  path" and states how many are overdue. AGENTS.md now defines "actively
+  checked" as a monitoring path plus a recent check (owner decision).
 - Cached county profiles and exports recompute freshness at least every ten
   minutes, so "current" becomes "overdue" even if publication stalls.
 - The private statewide parcel field table has one cell per column again
