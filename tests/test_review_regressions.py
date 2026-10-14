@@ -189,7 +189,7 @@ class ReviewRegressions(unittest.TestCase):
 
     def test_duplicate_report_is_idempotent_and_late_report_cannot_resurrect(self):
         state = merge_states({}, report(10, {"old": {"status": "ok"}}), "cloud")
-        state = merge_states(state, report(12, {}), "cloud")
+        state = merge_states(state, {**report(12, {}), "allow_inventory_shrink": True}, "cloud")  # explicit drain
         self.assertEqual(merge_states(state, report(12, {"old": {"status": "error"}}), "cloud"), state)
         self.assertEqual(merge_states(state, report(11, {"old": {"status": "ok"}}), "cloud"), state)
 
@@ -202,7 +202,8 @@ class ReviewRegressions(unittest.TestCase):
                 candidate[key] = {"a": {timestamp: report(10, {})["generated_at"]}}
                 self.assertTrue(_snapshot_is_superseded(candidate, current))
         state = merge_states({}, report(10, {"old": {"status": "ok"}}), "cloud")
-        self.assertFalse(_snapshot_is_superseded(merge_states(state, report(12, {}), "cloud"), state))
+        drained = merge_states(state, {**report(12, {}), "allow_inventory_shrink": True}, "cloud")
+        self.assertFalse(_snapshot_is_superseded(drained, state))
 
     def test_dashboard_profile_is_required_and_validated(self):
         config = {"sources": [{"execution_profiles": ["local"]}]}

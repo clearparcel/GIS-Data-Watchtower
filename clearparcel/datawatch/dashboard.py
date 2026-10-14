@@ -727,8 +727,9 @@ def build_static_site(config: dict, output_dir: str | Path) -> dict:
     public = _sanitize_public_state(state)
     sources = public.get("sources", {})
     raw_counts = public.get("counts") if isinstance(public.get("counts"), dict) else {}
-    # Project to plain non-negative integers before the values reach markup.
-    counts = {key: raw_counts[key] if type(raw_counts.get(key)) is int and raw_counts[key] >= 0 else 0
+    # Project to plain non-negative integers before the values reach markup;
+    # a missing or malformed count is unavailable ("—"), never a measured zero.
+    counts = {key: raw_counts[key] if type(raw_counts.get(key)) is int and raw_counts[key] >= 0 else "—"
               for key in ("ok", "warn", "error")}
     rows = []
     for sid, src in sorted(sources.items(), key=lambda x: str((x[1] or {}).get("name", x[0])).lower()):
@@ -758,8 +759,8 @@ def build_static_site(config: dict, output_dir: str | Path) -> dict:
 
     body = f'<div class="grid"><div class="card"><div class="muted">Overall status</div><div class="metric {_status_class(public.get("overall","unknown"))}">{_esc(_health_status(public.get("overall","unknown")))}</div></div>' \
         f'<div class="card"><div class="muted">Data sources</div><div class="metric">{len(sources)}</div><span class="subtext">Total source observations currently represented in the unified Watchtower state.</span></div>' \
-        f'<div class="card"><div class="muted">Working normally</div><div class="metric ok">{counts.get("ok",0)}</div></div>' \
-        f'<div class="card"><div class="muted">Warnings / errors</div><div class="metric">{counts.get("warn",0)} / {counts.get("error",0)}</div></div></div>' \
+        f'<div class="card"><div class="muted">Working normally</div><div class="metric ok">{counts["ok"]}</div></div>' \
+        f'<div class="card"><div class="muted">Warnings / errors</div><div class="metric">{counts["warn"]} / {counts["error"]}</div></div></div>' \
         f'<div class="card"><div class="muted">Last checked</div><strong>{_esc(public.get("generated_at","No saved observation"))}</strong></div><br>' \
         '<div class="card"><h2>Data being watched</h2><table><thead><tr><th>Data source</th><th>Status</th><th>Provided by</th><th>Type</th><th>Records</th><th>Changes found</th><th>Last checked</th></tr></thead><tbody>' + "".join(rows) + "</tbody></table></div>"
     page = _layout("GIS Data Watchtower", body, refresh_seconds=300, static=True,

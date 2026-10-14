@@ -70,6 +70,22 @@ class FileLock:
         self.close()
 
 
+def _fsync_directory(directory: Path) -> None:
+    """Make a completed rename durable across power loss where the OS supports it."""
+    if os.name != "posix":
+        return  # Windows has no directory handles to flush; NTFS journals the rename.
+    try:
+        handle = os.open(directory, os.O_RDONLY)
+    except OSError:
+        return
+    try:
+        os.fsync(handle)
+    except OSError:
+        pass
+    finally:
+        os.close(handle)
+
+
 def atomic_write(path: Path, raw: bytes, *, mode: int | None = None) -> None:
     """Replace a file atomically via unique scratch in the destination directory.
 
@@ -97,6 +113,7 @@ def atomic_write(path: Path, raw: bytes, *, mode: int | None = None) -> None:
             except OSError:
                 pass  # Best effort; Windows honors only the read-only bit.
         scratch.replace(path)
+        _fsync_directory(path.parent)
     finally:
         if scratch is not None:
             try:

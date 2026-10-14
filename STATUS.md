@@ -1,5 +1,44 @@
 # Project status
 
+## Codex review fixes — in review on `fix/codex-review`, not deployed
+
+An independent Codex review of the whole v0.3.0 stack (`adf3c38`...`a1cb2c7`)
+found 14 issues. The fixes sit on top of `release/v0.3.0`:
+
+- **Provider compliance:**
+  - `Retry-After` is honoured in full up to a year, and is no longer capped at
+    7 days. Backoffs longer than a week are flagged for operator review.
+    Longer requests are held until an operator clears them.
+  - Redirects to a host under 429 backoff are refused for the rest of the run,
+    and the source stops without retries.
+  - Enabled county-direct parcel sources for `hold-for-terms` counties are now
+    skipped at run time, read from the data file on every run. Before this
+    fix, only the dashboards applied hold-for-terms.
+- **Shared aggregate:**
+  - Reports with no source observations are refused, except an explicit
+    fleet drain. A filter that matches nothing is an empty run.
+  - A fleet report whose inventory shrink is refused keeps the worker's last
+    fleet-level health and cannot take sources from another worker.
+  - Source freshness follows the provider-check time, so a deferred record no
+    longer looks freshly checked. `last_available_at` uses the source's check
+    time.
+- **Public accuracy:**
+  - Stale warnings and failures count as overdue on the Counties page.
+  - Missing static-site counts show "—" instead of 0.
+  - Nested tables keep correct header scope.
+- **Robustness:** huge decimal strings never become Infinity, and atomic
+  writes also flush the directory on POSIX.
+
+## v0.3.0 release candidate — in review on `release/v0.3.0`, not deployed
+
+The owner set **v0.3.0** as the next release. `pyproject.toml` is bumped on
+this branch, which sits at the top of the review stack (#79–#86). Production
+remains v0.2.3. Read the
+[candidate record](docs/release-v0.3.0.md) for its contents, the operator
+compatibility notes (exit code 3, required build revision, publishable
+profiles, new state fields) and the release gate. Merging, building and
+deploying each need explicit owner approval.
+
 ## Tests and dead code — in review on `chore/tests-deadcode`, not deployed
 
 Housekeeping from the 2026-10-13 review (Package 8), stacked on
