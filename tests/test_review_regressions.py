@@ -1,4 +1,5 @@
 """Offline regressions for the October 6 manual review findings."""
+import contextlib
 import io
 import json
 import os
@@ -56,7 +57,8 @@ class ReviewRegressions(unittest.TestCase):
                  patch.object(module, "render_county", return_value="County detail"), \
                  patch.object(module, "render_source" if module is dashboard else "render_public_source", return_value="Source detail"), \
                  patch.object(dashboard, "_dashboard_auth", return_value=(None, "watchtower")), \
-                 patch.object(public_dashboard, "_PublicStateCache", Cache):
+                 patch.object(public_dashboard, "_PublicStateCache", Cache), \
+                 contextlib.redirect_stdout(io.StringIO()):
                 if module is dashboard:
                     dashboard.serve({"_render_state": state})
                 else:
@@ -187,7 +189,7 @@ class ReviewRegressions(unittest.TestCase):
 
     def test_duplicate_report_is_idempotent_and_late_report_cannot_resurrect(self):
         state = merge_states({}, report(10, {"old": {"status": "ok"}}), "cloud")
-        state = merge_states(state, report(12, {}), "cloud")
+        state = merge_states(state, {**report(12, {}), "allow_inventory_shrink": True}, "cloud")  # explicit drain
         self.assertEqual(merge_states(state, report(12, {"old": {"status": "error"}}), "cloud"), state)
         self.assertEqual(merge_states(state, report(11, {"old": {"status": "ok"}}), "cloud"), state)
 
@@ -200,7 +202,8 @@ class ReviewRegressions(unittest.TestCase):
                 candidate[key] = {"a": {timestamp: report(10, {})["generated_at"]}}
                 self.assertTrue(_snapshot_is_superseded(candidate, current))
         state = merge_states({}, report(10, {"old": {"status": "ok"}}), "cloud")
-        self.assertFalse(_snapshot_is_superseded(merge_states(state, report(12, {}), "cloud"), state))
+        drained = merge_states(state, {**report(12, {}), "allow_inventory_shrink": True}, "cloud")
+        self.assertFalse(_snapshot_is_superseded(drained, state))
 
     def test_dashboard_profile_is_required_and_validated(self):
         config = {"sources": [{"execution_profiles": ["local"]}]}
@@ -535,7 +538,8 @@ LocalStorage(sys.argv[1]).upload_if_version('state.json',Path(sys.argv[2]),None)
             with patch.dict(os.environ, {"WATCHTOWER_EXECUTION_PROFILE": "cloud"}), \
                  patch.object(dashboard, "_BoundedThreadingHTTPServer", Server), \
                  patch.object(dashboard.threading, "Thread", InlineThread), \
-                 patch.object(watch, "_source_check", side_effect=lambda source,timeout: (calls.append(source["id"]) or {"problems": []})):
+                 patch.object(watch, "_source_check", side_effect=lambda source,timeout: (calls.append(source["id"]) or {"problems": []})), \
+                 contextlib.redirect_stdout(io.StringIO()):
                 dashboard.serve(config)
             self.assertEqual(calls, ["cloud"])
 

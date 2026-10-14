@@ -1,16 +1,17 @@
 from __future__ import annotations
 
+import contextvars
 import datetime as dt
 import email.utils
 import hashlib
 import ipaddress
 import json
+import math
 import os
 import re
 import shutil
-import socket
+import socket  # noqa: F401 - tests patch watch.socket.getaddrinfo
 import subprocess
-import sys
 import tempfile
 import tracemalloc
 import time
@@ -44,13 +45,24 @@ class PermanentProviderError(RuntimeError):
         super().__init__(message or f"provider returned HTTP {status}")
 
 
+class BackedOffHostError(PermanentProviderError):
+    """A redirect led to a host under HTTP 429 backoff; stop this source without retries or fallback."""
+
+    def __init__(self, host: str):
+        self.host = host
+        super().__init__(429, f"redirect rejected: {host} is under an HTTP 429 backoff")
+
+
 _PERMANENT_HTTP_STATUSES = {401, 403, 404, 410}
 
 # HTTP 429 backoff bounds. A provider's Retry-After is honored within these
 # limits; an absent or unparseable value uses the default.
 _RATE_LIMIT_DEFAULT_SECONDS = 3600
 _RATE_LIMIT_MIN_SECONDS = 60
-_RATE_LIMIT_MAX_SECONDS = 7 * 24 * 3600
+# Retry-After is honoured in full up to a year (an effectively indefinite hold);
+# backoffs longer than a week are flagged for operator review rather than shortened.
+_RATE_LIMIT_MAX_SECONDS = 365 * 24 * 3600
+_RATE_LIMIT_REVIEW_SECONDS = 7 * 24 * 3600
 _EXECUTION_PROFILES = {"cloud", "local"}
 
 
@@ -71,6 +83,8 @@ def _retry_after_seconds(value: str | None, now: dt.datetime, default: int = _RA
         seconds = None
     if seconds is None:
         seconds = default
+    # Requests beyond the maximum come back as the maximum; the caller marks
+    # them hold-until-cleared, so they are never resumed automatically.
     return max(_RATE_LIMIT_MIN_SECONDS, min(_RATE_LIMIT_MAX_SECONDS, seconds))
 
 
@@ -110,9 +124,14 @@ def _active_rate_limits(previous: object, now: dt.datetime) -> dict:
             continue
         if not_before.tzinfo is None:
             continue
+        if entry.get("hold_until_cleared") is True:
+            # The provider asked for longer than the maximum: stay blocked until
+            # an operator clears the entry, however much time passes.
+            active[host] = dict(entry)
+            continue
         if not_before > now:
-            # Re-bound stored values so a skewed clock or edited file cannot
-            # block a host for longer than the maximum backoff.
+            # Re-bound stored values only to the (year-long) maximum; a provider's
+            # requested backoff is never shortened.
             ceiling = now + dt.timedelta(seconds=_RATE_LIMIT_MAX_SECONDS)
             active[host] = {**entry, "not_before": min(not_before, ceiling).isoformat()}
     return active
@@ -141,11 +160,27 @@ def _profile_skip_reason(source: dict, execution_profile: str | None) -> str | N
     return None
 
 
+def _held_county_slugs() -> frozenset[str]:
+    """Counties whose research decision is hold-for-terms, read from the data file each run."""
+    from clearparcel.datawatch.parcel_access import load_parcel_access
+    counties = json.loads(Path(__file__).with_name("minnesota_counties.json").read_text(encoding="utf-8"))["counties"]
+    slug_by_name = {str(c.get("name")): str(c.get("slug")) for c in counties}
+    return frozenset(slug_by_name[name] for name, record in load_parcel_access().items()
+                     if (record.get("monitoring") or {}).get("decision") == "hold-for-terms" and name in slug_by_name)
+
+
+def _hold_skip_reason(source: dict, held_counties: frozenset[str]) -> str | None:
+    """County-direct parcel sources for hold-for-terms counties are never polled (AGENTS.md)."""
+    slug = str(source.get("county_slug") or "").strip().lower()
+    if slug and slug in held_counties and str(source.get("category") or "").strip().lower().startswith("parcel"):
+        return "hold-for-terms"
+    return None
+
+
 USER_AGENT = "GIS-Data-Watchtower/0.1 (+https://github.com/clearparcel/GIS-Data-Watchtower)"
 _REDIRECT_CODES = {301, 302, 303, 307, 308}
 _ANSI_ESCAPE_RE = re.compile(r"\x1b(?:\[[0-?]*[ -/]*[@-~]|\][^\x07]*(?:\x07|\x1b\\))")
 _MAX_DIAGNOSTIC_CHARS = 1024
-MNGAC_FIELDS_FILE = Path(__file__).with_name("mngac_parcel_fields.json")
 _MNGAC_NUMERIC_NO_VALUE_FIELDS = {"EMV_LAND","EMV_BLDG","EMV_TOTAL","TAX_YEAR","MKT_YEAR","TAX_CAPAC","TOTAL_TAX","SPEC_ASSES"}
 
 
@@ -220,37 +255,22 @@ def _url_host(url: str) -> str:
     return parsed.hostname.lower().rstrip(".")
 
 
-def _destination_publicity(url: str, *, deadline: RequestDeadline | None = None) -> bool | None:
-    """Return True for globally routable, False for local/reserved, None if unresolved."""
-    if deadline is None:
-        with RequestDeadline(20) as bounded:
-            return _destination_publicity(url, deadline=bounded)
-    parsed = urllib.parse.urlparse(url)
-    host = _url_host(url)
-    if host in {"localhost", "metadata.google.internal"} or host.endswith(".localhost") or host.endswith(".internal"):
-        return False
-    try:
-        addresses = [ipaddress.ip_address(host)]
-    except ValueError:
-        port = parsed.port or (443 if parsed.scheme.lower() == "https" else 80)
-        try:
-            infos = resolve_addresses(host, port, deadline)
-        except socket.gaierror:
-            return None
-        addresses = []
-        for info in infos:
-            try:
-                addresses.append(ipaddress.ip_address(info[4][0]))
-            except ValueError:
-                continue
-        if not addresses:
-            return None
-    return all(address.is_global for address in addresses)
+# Hosts under an HTTP 429 backoff during the current check run. Redirects to
+# them are refused so a different source cannot reach a host that asked to stop.
+_RUN_BLOCKED_HOSTS: contextvars.ContextVar[set] = contextvars.ContextVar("watchtower_blocked_hosts")
+
+
+def _block_hosts(hosts) -> None:
+    blocked = _RUN_BLOCKED_HOSTS.get(None)
+    if blocked is not None:
+        blocked.update(hosts)
 
 
 def _validated_redirect(current_url: str, location: str, initial_url: str, *, deadline: RequestDeadline | None = None) -> str:
     target = urllib.parse.urljoin(current_url, location)
     target_host = _url_host(target)
+    if target_host in _RUN_BLOCKED_HOSTS.get(()):
+        raise BackedOffHostError(target_host)
     _url_host(initial_url)
     _url_host(current_url)
     if urllib.parse.urlsplit(target).scheme.lower() == "http" and "https" in {
@@ -865,11 +885,6 @@ def _field_completeness(url: str, field: str, total: int | None, timeout: int, *
     populated = None if total is None or missing is None else max(0, total - missing)
     pct = None if total in (None, 0) or populated is None else round((populated / total) * 100.0, 2)
     return {"field": field, "missing": missing, "populated": populated, "complete_percent": pct}
-
-
-def _load_mngac_schema() -> dict:
-    """Backward-compatible parcel-standard loader."""
-    return load_gac_standard("parcel")
 
 
 def _gac_population_expression(field_spec: dict, actual_field: str, *, standard_key: str = "parcel") -> str:
@@ -1715,7 +1730,10 @@ def _coerce_scalar(value):
     stripped = value.strip()
     if not _PLAIN_NUMBER.fullmatch(stripped):
         return value
-    return float(stripped) if "." in stripped else int(stripped)
+    if "." not in stripped:
+        return int(stripped) if len(stripped) <= 4000 else value  # int() refuses huge digit strings
+    number = float(stripped)
+    return number if math.isfinite(number) else None
 
 def _sda_query(source: dict, timeout: int) -> dict:
     payload = {
@@ -2087,11 +2105,13 @@ def _check_sources_unlocked(
     # Per-host HTTP 429 backoffs persist across runs; expired entries drop out.
     rate_limits = _active_rate_limits(previous_state.get("rate_limits"), run_started)
     default_backoff = int(config.get("rate_limit_default_backoff_seconds", _RATE_LIMIT_DEFAULT_SECONDS))
+    _block_hosts(rate_limits)
+    held_counties = _held_county_slugs()
 
     for source in config.get("sources", []):
         if filtered and filtered not in source["id"].lower() and filtered not in source["name"].lower():
             continue
-        skip_reason = _profile_skip_reason(source, execution_profile)
+        skip_reason = _profile_skip_reason(source, execution_profile) or _hold_skip_reason(source, held_counties)
         if skip_reason:
             skipped_sources[str(source.get("id") or "<missing-id>")] = skip_reason
             continue
@@ -2127,6 +2147,11 @@ def _check_sources_unlocked(
                         rate_limits[limited_host] = {
                             "not_before": (observed + dt.timedelta(seconds=wait)).isoformat(),
                             "recorded_at": observed.isoformat(), "source_id": source["id"]}
+                        if wait > _RATE_LIMIT_REVIEW_SECONDS:
+                            rate_limits[limited_host]["operator_review"] = True
+                        if wait >= _RATE_LIMIT_MAX_SECONDS:
+                            rate_limits[limited_host]["hold_until_cleared"] = True
+                    _block_hosts(rate_limits)
                     rate_limited = True
                     break
                 if isinstance(exc, PermanentProviderError):
@@ -2267,7 +2292,9 @@ def _check_sources_unlocked(
     # An operator may deliberately drain a worker's inventory (worker
     # migration/retirement); otherwise an empty run is an error.
     allow_shrink = os.environ.get("WATCHTOWER_ALLOW_INVENTORY_SHRINK") == "1"
-    empty_run = not records and not source_filter and not allow_shrink
+    # A filter that matched nothing is an empty run too; only an explicit
+    # fleet drain may report no sources.
+    empty_run = not records and not (allow_shrink and not source_filter)
     if empty_run:
         scope = {"type": "empty"}
     elif source_filter:
@@ -2290,7 +2317,8 @@ def _check_sources_unlocked(
     if empty_run:
         # Nothing was checked (for example a profile typo or no assigned
         # sources). Report an error and leave saved state untouched.
-        result["error"] = (f"no configured sources matched execution profile {execution_profile!r}"
+        result["error"] = (f"no configured sources matched source filter {source_filter!r}" if source_filter
+                           else f"no configured sources matched execution profile {execution_profile!r}"
                            if execution_profile else "no configured sources were eligible to run")
         return result
     if allow_shrink:
@@ -2390,6 +2418,21 @@ def check_sources(
     save: bool = True,
     execution_profile: str | None = None,
 ) -> dict:
+    # A fresh set of 429-blocked hosts for this run only.
+    token = _RUN_BLOCKED_HOSTS.set(set())
+    try:
+        return _check_sources(config, source_filter=source_filter, save=save, execution_profile=execution_profile)
+    finally:
+        _RUN_BLOCKED_HOSTS.reset(token)
+
+
+def _check_sources(
+    config: dict,
+    *,
+    source_filter: str | None,
+    save: bool,
+    execution_profile: str | None,
+) -> dict:
     if not save:
         try:
             return _check_sources_unlocked(
@@ -2469,3 +2512,9 @@ def load_history(
         "entry_count": len(rows),
         "entries": rows,
     }
+
+
+def __getattr__(name: str):
+    """Resolve names that v0.2.3 exposed here (see clearparcel.datawatch._compat)."""
+    from clearparcel.datawatch import _compat
+    return _compat.resolve(__name__, name)

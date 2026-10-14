@@ -13,7 +13,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from clearparcel.datawatch import aggregate, cloud_job, watch
+from clearparcel.datawatch import cloud_job, watch
 from clearparcel.datawatch.aggregate import merge_states, with_freshness
 from clearparcel.datawatch.file_lock import atomic_write
 from clearparcel.datawatch.hybrid_validation import candidate_manifest, validation_receipt

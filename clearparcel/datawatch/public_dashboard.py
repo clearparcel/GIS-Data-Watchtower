@@ -14,7 +14,6 @@ from pathlib import Path
 from clearparcel.datawatch.dashboard import (
     _BoundedThreadingHTTPServer,
     _county_snapshot,
-    _county_monitoring_counts,
     _county_profiles,
     _dashboard_state,
     _health_status,
@@ -27,7 +26,7 @@ from clearparcel.datawatch.dashboard import (
     render_county,
     render_mngac,
 )
-from clearparcel.datawatch.dashboard_exports import _mngac_csv, _snapshot_csv, _snapshot_xlsx
+from clearparcel.datawatch.dashboard_exports import _mngac_csv, _snapshot_xlsx
 from clearparcel.datawatch.dashboard_templates import _esc, _layout
 from clearparcel.datawatch.dashboard_routes import dispatch_snapshot_exports
 from clearparcel.datawatch.parcel_access import load_parcel_access
@@ -46,21 +45,7 @@ from clearparcel.datawatch.dashboard_summary import summary_for, render_diagnost
 from clearparcel.datawatch.public_details import dispatch_public_details, encode_response
 
 
-from clearparcel.datawatch.public_projection import (
-    _approval,
-    _catalog_date,
-    _project,
-    _public_count,
-    _public_date,
-    _public_number,
-    _public_status,
-    _records,
-    _sanitize_catalog_records,
-    _sanitize_completeness,
-    _sanitize_gac,
-    _sanitize_mngac,
-    sanitize_public_render_state,
-)
+from clearparcel.datawatch.public_projection import sanitize_public_render_state
 
 
 def _publication_max_age_seconds() -> int:
@@ -748,3 +733,9 @@ def serve_public(host: str = "0.0.0.0", port: int = 8080) -> None:
         pass
     finally:
         server.server_close()
+
+
+def __getattr__(name: str):
+    """Resolve names that v0.2.3 exposed here (see clearparcel.datawatch._compat)."""
+    from clearparcel.datawatch import _compat
+    return _compat.resolve(__name__, name)

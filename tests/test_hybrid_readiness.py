@@ -321,7 +321,7 @@ class HybridReadinessTests(unittest.TestCase):
         recent = "2026-10-06T19:30:00+00:00"
         state = {"workers": {"local": {"last_success_at": old, "last_report_at": recent}},
                  "sources": {"a": {"status": "error", "worker": "local", "last_success_at": old,
-                                    "last_report_at": recent, "checked_at": old}}}
+                                    "last_report_at": recent, "checked_at": recent}}}
         result = with_freshness(state, now=now)
         self.assertFalse(result["workers"]["local"]["stale"])
         self.assertEqual(result["sources"]["a"]["reporting"], "current")

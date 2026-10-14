@@ -11,7 +11,10 @@ def render_counties(config: dict) -> str:
     profiles = _dashboard._county_profiles(config, state, research)
     counties = [_dashboard._county_status(config, x, state, profiles=profiles, research=research) for x in _dashboard._load_counties()]
     active_count = sum(1 for x in counties if x["actively_monitored"])
-    overdue_count = sum(1 for x in counties if x["status"] == "overdue")
+    # Overdue is about check age, independent of health: a stale warning or
+    # failure is overdue too, even though its status pill keeps the health.
+    overdue_count = sum(1 for x in counties if x["actively_monitored"]
+                        and (x.get("profile") or {}).get("monitoring", {}).get("reporting") == "overdue")
     direct_count = sum(1 for x in counties if "county-direct" in x["monitoring_paths"])
     mngeo_count = sum(1 for x in counties if "mngeo-open" in x["monitoring_paths"])
     status_counts = {}
