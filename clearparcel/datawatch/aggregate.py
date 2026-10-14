@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import math
 import random
 import tempfile
 import time
@@ -12,6 +13,12 @@ from .storage import StorageBackend, StorageConflictError
 from .file_lock import atomic_write
 
 _ALLOWED_STATUS = {"ok", "warn", "error"}
+# Tolerated clock difference between a worker and the aggregate writer.
+CLOCK_SKEW_TOLERANCE_SECONDS = 300
+# A full ("fleet") report may retire a worker's other sources only when it
+# still covers at least this share of the sources the worker owned.
+FLEET_RETIREMENT_MIN_SHARE = 0.5
+_PARTIAL_SCOPES = {"source", "source_filter"}
 
 def _normalized_status(value) -> str:
     value = str(value or "").strip().lower()
@@ -26,8 +33,14 @@ def stamp_worker(result: dict, worker: str) -> dict:
     return stamped
 
 
-def merge_states(base: dict | None, partial: dict, worker: str) -> dict:
-    """Merge one worker report without deleting observations from other workers."""
+def merge_states(base: dict | None, partial: dict, worker: str, *, now: dt.datetime | None = None) -> dict:
+    """Merge one worker report without deleting observations from other workers.
+
+    Raises:
+        ValueError: The report has no valid generated_at, is dated in the
+            future beyond the clock-skew tolerance, checked no sources, or
+            comes from a retired worker.
+    """
     base = deepcopy(base or {})
     merged_sources = deepcopy(base.get("sources") or {})
     partial_sources = deepcopy(partial.get("sources") or {})
@@ -35,6 +48,17 @@ def merge_states(base: dict | None, partial: dict, worker: str) -> dict:
     incoming_time = _parse_time(generated)
     if incoming_time is None:
         raise ValueError("worker report requires a valid generated_at")
+    now = now or dt.datetime.now(dt.timezone.utc)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=dt.timezone.utc)
+    # Effective only when the merging clock is independent of the worker's
+    # (e.g. the offline `aggregate` command or another worker's publish).
+    if incoming_time > now + dt.timedelta(seconds=CLOCK_SKEW_TOLERANCE_SECONDS):
+        # A future-dated report would block every later report from this worker.
+        raise ValueError("worker report generated_at is in the future; check the worker clock")
+    scope_type = (partial.get("scope") or {}).get("type")
+    if scope_type == "empty":
+        raise ValueError("refusing to merge a worker report that checked no sources")
     retired_workers = deepcopy(base.get('retired_workers') or {})
     if worker in retired_workers:
         retired_at = _parse_time(retired_workers[worker].get('retired_at'))
@@ -48,14 +72,33 @@ def merge_states(base: dict | None, partial: dict, worker: str) -> dict:
                                        or (workers.get(worker) or {}).get("checked_at"))
     if previous_worker_time and incoming_time <= previous_worker_time:
         return base
-    if (partial.get("scope") or {}).get("type") == "fleet":
+    shrink_refused = 0
+    if scope_type == "fleet":
         # A complete report is authoritative only for this worker's inventory.
         # Legacy and filtered reports remain additive, including shared IDs.
-        for source_id, record in list(merged_sources.items()):
+        owned = [sid for sid, record in merged_sources.items() if record.get("worker") == worker]
+        retirable = []
+        for source_id in owned:
+            record = merged_sources[source_id]
             seen = _parse_time(record.get("last_report_at") or record.get("checked_at"))
-            if record.get("worker") == worker and source_id not in partial_sources and (seen is None or seen <= incoming_time):
+            if source_id not in partial_sources and (seen is None or seen <= incoming_time):
+                retirable.append(source_id)
+        # Refuse to retire most of a worker's inventory from one report (for
+        # example a profile typo or a truncated registry) unless explicitly allowed.
+        # Coverage counts only this worker's own sources that the report either
+        # observed or deliberately skipped (disabled or reassigned in the
+        # registry); unrelated or renamed IDs do not count.
+        intended = {sid for sid, reason in (partial.get("skipped_sources") or {}).items()
+                    if reason in {"disabled", "execution-profile"}}
+        covered = sum(1 for sid in owned if sid in partial_sources or sid in intended)
+        allowed = (partial.get("allow_inventory_shrink") is True
+                   or covered >= math.ceil(len(owned) * FLEET_RETIREMENT_MIN_SHARE))
+        if allowed:
+            for source_id in retirable:
                 del merged_sources[source_id]
                 retired_sources[source_id] = {"worker": worker, "retired_at": generated}
+        else:
+            shrink_refused = len(retirable)
     for source_id, record in partial_sources.items():
         previous = merged_sources.get(source_id) or {}
         tombstone = retired_sources.get(source_id) or {}
@@ -82,15 +125,26 @@ def merge_states(base: dict | None, partial: dict, worker: str) -> dict:
     # Report publication is the worker heartbeat even when one or more sources fail.
     # Keep that clock separate from the most recent all-clear worker run.
     worker_status = _normalized_status(partial.get("overall"))
-    workers[worker] = {
-        "checked_at": generated,
-        "last_report_at": generated,
-        "last_success_at": generated if worker_status == "ok" else previous_worker.get("last_success_at"),
-        "source_count": len(partial_sources),
-        "overall": worker_status,
-        "counts": partial.get("counts") or {},
-        "telemetry": partial.get("telemetry") or {},
-    }
+    if scope_type in _PARTIAL_SCOPES and previous_worker:
+        # A filtered run proves the worker is alive but says nothing about its
+        # whole inventory: keep the fleet-level health from the last full run.
+        workers[worker] = {**previous_worker, "last_report_at": generated, "last_partial_report_at": generated}
+    else:
+        workers[worker] = {
+            "checked_at": generated,
+            "last_report_at": generated,
+            "last_success_at": generated if worker_status == "ok" else previous_worker.get("last_success_at"),
+            "source_count": len(partial_sources),
+            "overall": worker_status,
+            "counts": partial.get("counts") or {},
+            "telemetry": partial.get("telemetry") or {},
+        }
+    if scope_type == "fleet":
+        # Only a complete report can establish or clear a refused shrink.
+        if shrink_refused:
+            workers[worker]["inventory_shrink_refused"] = shrink_refused
+        else:
+            workers[worker].pop("inventory_shrink_refused", None)
     previous_generated = _parse_time(base.get("generated_at"))
     fleet_generated = base["generated_at"] if previous_generated and previous_generated > incoming_time else generated
     return {
@@ -168,17 +222,24 @@ def _parse_time(value):
         return None
 
 
+def _age_seconds(now: dt.datetime, seen: dt.datetime) -> float:
+    return (now - seen.astimezone(dt.timezone.utc)).total_seconds()
+
+
 def with_freshness(state: dict, *, worker_stale_minutes: int = 1560, source_stale_minutes: int = 1560, now=None) -> dict:
     """Annotate reporting freshness without conflating it with source health."""
     result = deepcopy(state or {})
     now = now or dt.datetime.now(dt.timezone.utc)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=dt.timezone.utc)
     for worker in (result.get("workers") or {}).values():
         seen = _parse_time(worker.get("last_report_at") or worker.get("checked_at") or worker.get("last_success_at"))
-        worker["stale"] = not seen or (now - seen.astimezone(dt.timezone.utc)).total_seconds() > worker_stale_minutes * 60
+        worker["stale"] = not seen or _age_seconds(now, seen) > worker_stale_minutes * 60
+        worker["clock_skew"] = bool(seen and _age_seconds(now, seen) < -CLOCK_SKEW_TOLERANCE_SECONDS)
     workers = result.get("workers") or {}
     for source in (result.get("sources") or {}).values():
         seen = _parse_time(source.get("last_report_at") or source.get("checked_at") or source.get("last_success_at"))
-        source["stale"] = not seen or (now - seen.astimezone(dt.timezone.utc)).total_seconds() > source_stale_minutes * 60
+        source["stale"] = not seen or _age_seconds(now, seen) > source_stale_minutes * 60
         source["worker_stale"] = bool((workers.get(source.get("worker")) or {}).get("stale"))
         status = source.get("status")
         source["health"] = "healthy" if status == "ok" else "unhealthy" if status in ("warn", "error") else "unknown"

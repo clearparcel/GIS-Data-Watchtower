@@ -1,5 +1,30 @@
 # Project status
 
+## Shared-state guards — in review on `fix/aggregate-guards`, not deployed
+
+Source-only changes from the 2026-10-13 review (Package 2), stacked on the
+provider-compliance branch. Production remains v0.2.3.
+
+- A run that checks no sources is an error (exit 2): no state save, upload or
+  aggregate merge. A full report covering under half of a worker's own
+  sources (counting deliberately disabled or reassigned ones as covered)
+  retires nothing unless `WATCHTOWER_ALLOW_INVENTORY_SHRINK=1` marks a
+  one-time deliberate drain.
+- Single-source reports no longer overwrite the worker's fleet-level health.
+- Reports dated more than five minutes in the future are rejected by
+  independent mergers (the offline `aggregate` command); readers flag
+  `clock_skew`. A worker's own publish cannot detect its own clock skew.
+- State and aggregate files are written atomically with fsync and keep the
+  replaced file's permissions; an undecodable state file falls back to its
+  backup, and an unreadable primary never overwrites a good backup.
+- `cloud-job` refuses the placeholder example configuration, so the container
+  default exits 2 instead of silently checking nothing.
+- GAC metric times and optional-metric diagnostics no longer register as
+  dataset changes (expect one info-level "fingerprint changed" event per GAC
+  source on the first run after upgrade); a failing optional
+  parcel-ID null-count query no longer fails the whole source; the validation
+  receipt reports a failed GAC check instead of crashing.
+
 ## Provider-compliance fixes — in review on `fix/provider-compliance`, not deployed
 
 Source-only changes from the 2026-10-13 review (Package 1). Production remains

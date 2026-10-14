@@ -332,13 +332,14 @@ class ReviewRegressions(unittest.TestCase):
     def test_full_report_retires_only_that_workers_omitted_sources(self):
         state = merge_states({}, report(10, {"old": {"status": "ok"}}), "cloud")
         state = merge_states(state, report(11, {"local": {"status": "ok"}}), "local")
-        state = merge_states(state, report(12, {}), "cloud")
+        # Draining a worker's whole inventory is an explicit operator action.
+        state = merge_states(state, {**report(12, {}), "allow_inventory_shrink": True}, "cloud")
         self.assertEqual(set(state["sources"]), {"local"})
         self.assertEqual(state["workers"]["cloud"]["source_count"], 0)
 
     def test_delayed_cross_worker_report_cannot_resurrect_retired_source(self):
         state = merge_states({}, report(10, {"shared": {"status": "ok"}}), "cloud")
-        state = merge_states(state, report(12, {}), "cloud")
+        state = merge_states(state, {**report(12, {}), "allow_inventory_shrink": True}, "cloud")
         merged = merge_states(state, report(11, {"shared": {"status": "ok"}}), "local")
         self.assertNotIn("shared", merged["sources"])
         self.assertEqual(merged["retired_sources"]["shared"]["retired_at"], report(12, {})["generated_at"])

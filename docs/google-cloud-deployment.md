@@ -88,6 +88,13 @@ The default container command runs:
 watchtower --config config/example_sources.json cloud-job
 ```
 
+`cloud-job` refuses to run when every configured source points at a reserved
+example host (the repository example), so a container started without the
+deployment registry exits with code 2 before contacting any provider or storage.
+Set `WATCHTOWER_ALLOW_EXAMPLE_CONFIG=1` only for a deliberate synthetic test.
+A run whose execution profile matches no configured sources also exits 2 and
+uploads and publishes nothing; see [hybrid aggregation](hybrid-aggregation.md).
+
 ## Cloud Run Job
 
 Example outline:

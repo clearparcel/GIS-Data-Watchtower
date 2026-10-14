@@ -4,6 +4,13 @@ Hybrid deployments may run different source sets from cloud and local workers. E
 
 A complete `scope.type=fleet` report retires omitted sources owned by that worker, provided their observation is not newer than the report. Filtered `scope.type=source` and legacy reports without scope remain additive. A filtered check does not establish a complete inventory; retirement occurs on the next complete report. Other workers' observations remain intact.
 
+Guards against accidental inventory loss and clock errors:
+
+- **Empty runs are refused.** A run that checks no sources (for example a mistyped profile, or a registry with nothing assigned to that profile) reports `scope.type=empty` and `overall=error` (exit code 2). It saves no state, uploads nothing, and is never merged into the aggregate.
+- **Large shrinks are refused.** A fleet report may retire a worker's omitted sources only when it still covers at least half of the sources that worker owned. A source counts as covered when the report observed it or listed it in `skipped_sources` as deliberately `disabled` or reassigned (`execution-profile`); unrelated, renamed, or other workers' IDs do not count. Otherwise the report merges additively, nothing is retired, and the worker entry records `inventory_shrink_refused` with the number of sources kept (only a later complete report clears it). To drain a worker deliberately, run **one** check with `WATCHTOWER_ALLOW_INVENTORY_SHRINK=1`; the report then carries `allow_inventory_shrink` and may retire everything it omits, including when it checked no sources. Do not leave the variable set in a scheduled job's environment, because it disables this guard on every run. A worker whose sources are *all* disabled checks nothing, so its run is refused as empty before its skips are counted; retiring those parked sources also needs the one-run drain.
+- **Filtered reports keep fleet-level worker health.** A `scope.type=source` report updates the checked sources and the worker's `last_report_at` (and `last_partial_report_at`) but leaves the worker's `overall`, `counts`, `source_count`, `checked_at` and `last_success_at` from the last complete run.
+- **Future-dated reports are rejected when the merging clock is independent.** A report whose `generated_at` is more than five minutes ahead of the merging clock raises an error instead of blocking that worker's later reports. In the normal direct-publish topology each worker merges its own report with its own clock, so this check cannot catch that worker's skew; it applies to the offline `aggregate` command and other independent mergers. Readers still detect skew: freshness annotation flags `clock_skew` on a worker whose last report is more than five minutes ahead of the reader's clock. Keep worker clocks synchronized (NTP).
+
 Retirement tombstones also apply across worker identities: an incoming source observation at or before `retired_at` is ignored, even when its worker has no newer heartbeat. This keeps the private aggregate and the public publisher's anti-resurrection check consistent when a source ID is reassigned or a delayed worker report arrives.
 
 Each merged source records its worker provenance, last report time, and last successful observation time. Aggregate state also records per-worker check time, last-success time, counts, and telemetry.
@@ -51,7 +58,7 @@ receipt does not authorize activation or scheduling.
 
 ## Explicit worker retirement
 
-Changing profile assignments does not remove a worker from retained state. Once
+Changing profile assignments does not remove a worker from retained state. After every source has moved away, that worker's scheduled checks match no sources and exit with code 2 (an empty run, nothing published) until the worker is unscheduled. Once
 fresh observations have moved every source away from a worker, prepare an
 offline retirement using a timestamp later than the aggregate and that worker's
 retained clocks:

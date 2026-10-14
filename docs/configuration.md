@@ -81,6 +81,18 @@ Optional common controls include:
   reason `execution-profile-unresolved`.
 - `thresholds`
 
+## Run-safety environment variables
+
+State, backup, alert, and local aggregate files are replaced atomically and keep
+the permissions of the file they replace. A file created for the first time is
+owner-only (0600 on POSIX); grant read access explicitly (permissions or ACLs)
+if a dashboard or publisher runs as a different user.
+
+| Variable | Effect |
+| --- | --- |
+| `WATCHTOWER_ALLOW_INVENTORY_SHRINK=1` | Marks the run's fleet report as a deliberate inventory drain so it may retire most or all of the worker's sources. Without it, an empty run is an error and a report covering under half of the worker's sources retires nothing. |
+| `WATCHTOWER_ALLOW_EXAMPLE_CONFIG=1` | Lets `cloud-job` run against a configuration whose sources all use reserved example hosts. For synthetic tests only. |
+
 ## Provider rate limits (HTTP 429)
 
 A 429 response is a stop signal for the provider's **host**, not only for the

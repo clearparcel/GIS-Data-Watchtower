@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import errno
 import os
+import stat
 import tempfile
 import time
 from pathlib import Path
@@ -69,16 +70,41 @@ class FileLock:
         self.close()
 
 
-def atomic_write(path: Path, raw: bytes) -> None:
-    """Use unique scratch in the destination directory, including on Windows."""
+def atomic_write(path: Path, raw: bytes, *, mode: int | None = None) -> None:
+    """Replace a file atomically via unique scratch in the destination directory.
+
+    File data is flushed to disk before the rename. Permission bits come from
+    ``mode`` when given, else from the file being replaced, so readers keep
+    access; a brand-new file keeps the private 0600 of its scratch file.
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
+    if mode is None:
+        try:
+            mode = path.stat().st_mode & 0o777
+        except FileNotFoundError:
+            mode = None
     scratch = None
     try:
         with tempfile.NamedTemporaryFile(dir=path.parent, prefix="." + path.name + ".",
                                          suffix=".tmp", delete=False) as stream:
             scratch = Path(stream.name)
             stream.write(raw)
+            stream.flush()
+            os.fsync(stream.fileno())
+        if mode is not None:
+            try:
+                os.chmod(scratch, mode)
+            except OSError:
+                pass  # Best effort; Windows honors only the read-only bit.
         scratch.replace(path)
     finally:
         if scratch is not None:
-            scratch.unlink(missing_ok=True)
+            try:
+                scratch.unlink(missing_ok=True)
+            except OSError:
+                # Windows cannot delete a read-only file; clear the bit and retry.
+                try:
+                    os.chmod(scratch, stat.S_IWRITE | stat.S_IREAD)
+                    scratch.unlink(missing_ok=True)
+                except OSError:
+                    pass

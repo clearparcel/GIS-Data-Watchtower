@@ -24,6 +24,8 @@ def _render(report: dict) -> str:
         f'GIS Data Watchtower - {str(report.get("overall", "unknown")).upper()}',
         f'Checks: ok={counts.get("ok", 0)}, warn={counts.get("warn", 0)}, error={counts.get("error", 0)}',
     ]
+    if report.get("error"):
+        lines.append(f'Run error: {_safe_diagnostic(report["error"])}')
     for source in (report.get("sources") or {}).values():
         line = f'[{str(source.get("status", "unknown")).upper()}] {source.get("name") or source.get("id")}'
         if source.get("feature_count") is not None:

@@ -21,7 +21,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from clearparcel.datawatch.public_values import provider_edit_timestamp
 from clearparcel.datawatch.transport import RequestDeadline, PinnedURL, resolve_addresses, effective_proxy, guarded_opener
-from clearparcel.datawatch.file_lock import FileLock
+from clearparcel.datawatch.file_lock import FileLock, atomic_write
 from clearparcel.datawatch.gac_standards import canonical_minnesota_county, gac_defaults, load_gac_standard, normalize_standard_key
 
 class ProviderRateLimitError(RuntimeError):
@@ -367,7 +367,7 @@ def load_state(path: str | Path) -> dict:
         return {"schema_version": 1, "sources": {}}
     try:
         return json.loads(p.read_text(encoding="utf-8-sig"))
-    except (OSError, json.JSONDecodeError) as primary:
+    except (OSError, ValueError) as primary:  # JSONDecodeError and UnicodeDecodeError
         backup = p.with_suffix(p.suffix + ".bak")
         if backup.is_file():
             try:
@@ -375,21 +375,24 @@ def load_state(path: str | Path) -> dict:
                 if isinstance(recovered, dict):
                     recovered["_state_recovered_from_backup"] = True
                     return recovered
-            except (OSError, json.JSONDecodeError):
+            except (OSError, ValueError):
                 pass
         raise RuntimeError(f"Watchtower state is unreadable: {p}") from primary
 
 def _save_json(path: Path, value: dict) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(path.suffix + ".tmp")
-    tmp.write_text(json.dumps(value, indent=2), encoding="utf-8")
+    # Serialize first so a bad value cannot leave a partial file behind.
+    raw = json.dumps(value, indent=2).encode("utf-8")
     if path.is_file():
-        backup = path.with_suffix(path.suffix + ".bak")
+        # Keep the last good file as .bak, itself written atomically, so a
+        # crash mid-write never leaves both the primary and backup truncated.
+        # Never replace a good backup with an unreadable primary.
         try:
-            backup.write_bytes(path.read_bytes())
-        except OSError:
+            current = path.read_bytes()
+            json.loads(current.decode("utf-8-sig"))
+            atomic_write(path.with_suffix(path.suffix + ".bak"), current, mode=path.stat().st_mode & 0o777)
+        except (OSError, ValueError):
             pass
-    tmp.replace(path)
+    atomic_write(path, raw)
 
 def _hash_json(value) -> str:
     raw = json.dumps(value, sort_keys=True, separators=(",", ":")).encode("utf-8")
@@ -1464,7 +1467,15 @@ def _arcgis_layer(source: dict, timeout: int) -> dict:
             result["null_geometry_check"] = "unsupported"
             result["null_geometry_check_error"] = _safe_diagnostic(exc)
         if id_field and confidence == "high":
-            null_count = _arcgis_count_query(source["url"], f"{id_field} IS NULL OR {id_field} = ''", timeout, prefer_curl=bool(source.get("prefer_curl")))
+            try:
+                null_count = _arcgis_count_query(source["url"], f"{id_field} IS NULL OR {id_field} = ''", timeout, prefer_curl=bool(source.get("prefer_curl")))
+            except (ProviderRateLimitError, PermanentProviderError):
+                raise
+            except Exception as exc:
+                # Optional quality metric: record it as unsupported, not as a source failure.
+                null_count = None
+                result["parcel_id_null_check"] = "unsupported"
+                result["parcel_id_null_check_error"] = _safe_diagnostic(exc)
             result["parcel_id_null_count"] = null_count
             profiles = {}
             owner_field = _field_candidate(result["field_names"], ["owner_name","owner","tax_name","ownername"], ["owner"])
@@ -1764,8 +1775,15 @@ def _observation_fingerprint(details: dict) -> str:
         "http_status", "transport", "problems", "elapsed_ms", "attempts",
         "checked_at", "changes", "error", "observation_fingerprint",
         "gac_check_status", "gac_check_error",
+        # Optional-metric diagnostics can flap without any dataset change.
+        "null_geometry_check_error", "parcel_id_null_check_error",
     }
     stable = {k: v for k, v in details.items() if k not in volatile}
+    # Nested metric blocks (e.g. gac_completeness) carry their own observation
+    # time; it changes every run and must not register as a dataset change.
+    for key, value in list(stable.items()):
+        if isinstance(value, dict) and "observed_at" in value:
+            stable[key] = {k: v for k, v in value.items() if k != "observed_at"}
     return _hash_json(stable)
 
 
@@ -2210,19 +2228,37 @@ def _check_sources_unlocked(
     }
     from .hybrid_validation import runtime_identity
     identity = runtime_identity(config)
+    # An operator may deliberately drain a worker's inventory (worker
+    # migration/retirement); otherwise an empty run is an error.
+    allow_shrink = os.environ.get("WATCHTOWER_ALLOW_INVENTORY_SHRINK") == "1"
+    empty_run = not records and not source_filter and not allow_shrink
+    if empty_run:
+        scope = {"type": "empty"}
+    elif source_filter:
+        scope = {"type": "source", "source_id": source_filter}
+    else:
+        scope = {"type": "fleet"}
     result = {
         "schema_version": 2,
         "runtime_identity": identity,
         "generated_at": now,
-        "scope": {"type": "source", "source_id": source_filter} if source_filter else {"type": "fleet"},
+        "scope": scope,
         "telemetry": telemetry,
-        "overall": "error" if counts["error"] else "warn" if counts["warn"] else "ok",
+        "overall": "error" if counts["error"] or empty_run else "warn" if counts["warn"] else "ok",
         "counts": counts,
         "sources": records,
         "skipped_sources": skipped_sources,
         "active_alerts": active_alerts,
         "events": events,
     }
+    if empty_run:
+        # Nothing was checked (for example a profile typo or no assigned
+        # sources). Report an error and leave saved state untouched.
+        result["error"] = (f"no configured sources matched execution profile {execution_profile!r}"
+                           if execution_profile else "no configured sources were eligible to run")
+        return result
+    if allow_shrink:
+        result["allow_inventory_shrink"] = True
     if save:
         state_records = dict(previous_sources) if filtered else {}
         if not filtered:
