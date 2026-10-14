@@ -25,6 +25,7 @@ from clearparcel.datawatch.watch import check_sources, load_history, load_state
 from clearparcel.datawatch.transport import RequestDeadline
 from clearparcel.datawatch.aggregate import with_freshness
 from clearparcel.datawatch.parcel_access import access_label, load_parcel_access, statewide_access_label
+from clearparcel.datawatch.public_values import safe_public_url
 from clearparcel.datawatch.county_profile_panel import render_county_profile_panel, render_county_profile_body, percentage_legend, percentage_color_js, percentage_patterns, profile_time, research_summary, PERCENT_COLORS, NO_DATA_COLOR
 from clearparcel.datawatch.county_profile_exports import county_profiles_csv, parcel_sources_csv
 from clearparcel.datawatch.county_profiles import FreshnessPolicy, compose_county_profiles, county_profile_counts
@@ -38,13 +39,12 @@ COUNTY_BOUNDARIES_FILE = Path(__file__).with_name("minnesota_county_boundaries.j
 
 
 def _safe_url(value) -> str | None:
-    if not value:
-        return None
-    try:
-        parsed = urllib.parse.urlparse(str(value))
-    except ValueError:
-        return None
-    return str(value) if parsed.scheme.lower() in ("http", "https") and bool(parsed.netloc) else None
+    """Linkable URL for the private dashboard, using the public sanitizer's rules.
+
+    Credential-like query parameters, userinfo and private/reserved hosts are
+    never rendered as links, even on the loopback-only private dashboard.
+    """
+    return safe_public_url(str(value)) if value else None
 
 
 CENTRAL_TZ = ZoneInfo("America/Chicago")
@@ -730,7 +730,7 @@ def _sanitize_public_state(state: dict) -> dict:
             key: src.get(key)
             for key in (
                 "id", "name", "provider", "category", "status", "feature_count",
-                "checked_at", "worker", "last_success_at", "last_report_at",
+                "checked_at", "worker", "last_success_at", "last_available_at", "last_report_at",
                 "stale", "worker_stale", "health", "reporting",
             )
             if src.get(key) is not None
@@ -748,7 +748,10 @@ def build_static_site(config: dict, output_dir: str | Path) -> dict:
     state = _dashboard_state(config)
     public = _sanitize_public_state(state)
     sources = public.get("sources", {})
-    counts = public.get("counts", {})
+    raw_counts = public.get("counts") if isinstance(public.get("counts"), dict) else {}
+    # Project to plain non-negative integers before the values reach markup.
+    counts = {key: raw_counts[key] if type(raw_counts.get(key)) is int and raw_counts[key] >= 0 else 0
+              for key in ("ok", "warn", "error")}
     rows = []
     for sid, src in sorted(sources.items(), key=lambda x: str((x[1] or {}).get("name", x[0])).lower()):
         filename = "source-" + urllib.parse.quote(sid, safe="") + ".html"
@@ -789,7 +792,9 @@ def build_static_site(config: dict, output_dir: str | Path) -> dict:
 
 def _valid_refresh_request(token: str, expected_token: str, sec_fetch_site: str | None) -> bool:
     sec_fetch = (sec_fetch_site or "").lower()
-    return sec_fetch in ("same-origin", "same-site", "none", "") and hmac.compare_digest(token, expected_token)
+    # Compare bytes: str comparison raises TypeError for non-ASCII input.
+    return sec_fetch in ("same-origin", "same-site", "none", "") and hmac.compare_digest(
+        str(token).encode("utf-8"), str(expected_token).encode("utf-8"))
 
 
 
@@ -914,7 +919,10 @@ def serve(config: dict, host: str = "127.0.0.1", port: int = 8765) -> None:
                 user, password = decoded.split(":", 1)
             except Exception:
                 return False
-            return hmac.compare_digest(user, auth_username) and hmac.compare_digest(password, auth_password)
+            # Compare bytes (str raises TypeError on non-ASCII) and always check both.
+            user_ok = hmac.compare_digest(user.encode("utf-8"), auth_username.encode("utf-8"))
+            password_ok = hmac.compare_digest(password.encode("utf-8"), auth_password.encode("utf-8"))
+            return user_ok and password_ok
 
         def _require_auth(self) -> bool:
             if self._authorized():

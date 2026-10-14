@@ -9,6 +9,7 @@ import time
 from copy import deepcopy
 from pathlib import Path
 
+from . import strict_json
 from .storage import StorageBackend, StorageConflictError
 from .file_lock import atomic_write
 
@@ -116,6 +117,12 @@ def merge_states(base: dict | None, partial: dict, worker: str, *, now: dt.datet
             record["last_success_at"] = generated
         elif previous.get("last_success_at"):
             record["last_success_at"] = previous["last_success_at"]
+        # The provider answered (ok or warn), even if checks raised warnings;
+        # deferred (rate-limit backoff) records made no request.
+        if record.get("status") in ("ok", "warn") and not record.get("deferred") and not record.get("rate_limited"):
+            record["last_available_at"] = generated
+        elif previous.get("last_available_at"):
+            record["last_available_at"] = previous["last_available_at"]
         merged_sources[source_id] = record
 
     counts = {
@@ -276,11 +283,11 @@ def load_json(path: Path) -> dict:
     raw = path.read_bytes()
     for encoding in ("utf-8-sig", "utf-16"):
         try:
-            return json.loads(raw.decode(encoding))
+            return strict_json.loads(raw.decode(encoding))
         except (UnicodeDecodeError, json.JSONDecodeError):
             continue
     raise ValueError(f"unable to decode JSON state file: {path}")
 
 
 def save_json(path: Path, document: dict) -> None:
-    atomic_write(path, (json.dumps(document, indent=2, ensure_ascii=False) + "\n").encode("utf-8"))
+    atomic_write(path, (json.dumps(document, indent=2, ensure_ascii=False, allow_nan=False) + "\n").encode("utf-8"))

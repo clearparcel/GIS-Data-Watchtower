@@ -22,6 +22,7 @@ from pathlib import Path
 from clearparcel.datawatch.public_values import provider_edit_timestamp
 from clearparcel.datawatch.transport import RequestDeadline, PinnedURL, resolve_addresses, effective_proxy, guarded_opener
 from clearparcel.datawatch.file_lock import FileLock, atomic_write
+from clearparcel.datawatch import strict_json
 from clearparcel.datawatch.gac_standards import canonical_minnesota_county, gac_defaults, load_gac_standard, normalize_standard_key
 
 class ProviderRateLimitError(RuntimeError):
@@ -252,6 +253,10 @@ def _validated_redirect(current_url: str, location: str, initial_url: str, *, de
     target_host = _url_host(target)
     _url_host(initial_url)
     _url_host(current_url)
+    if urllib.parse.urlsplit(target).scheme.lower() == "http" and "https" in {
+        urllib.parse.urlsplit(current_url).scheme.lower(), urllib.parse.urlsplit(initial_url).scheme.lower()
+    }:
+        raise RuntimeError("redirect rejected: HTTPS request redirected to plain HTTP")
     if deadline is None:
         with RequestDeadline(20) as bounded:
             return _validated_redirect(current_url, location, initial_url, deadline=bounded)
@@ -366,12 +371,12 @@ def load_state(path: str | Path) -> dict:
     if not p.exists():
         return {"schema_version": 1, "sources": {}}
     try:
-        return json.loads(p.read_text(encoding="utf-8-sig"))
+        return strict_json.loads(p.read_text(encoding="utf-8-sig"))
     except (OSError, ValueError) as primary:  # JSONDecodeError and UnicodeDecodeError
         backup = p.with_suffix(p.suffix + ".bak")
         if backup.is_file():
             try:
-                recovered = json.loads(backup.read_text(encoding="utf-8-sig"))
+                recovered = strict_json.loads(backup.read_text(encoding="utf-8-sig"))
                 if isinstance(recovered, dict):
                     recovered["_state_recovered_from_backup"] = True
                     return recovered
@@ -381,7 +386,7 @@ def load_state(path: str | Path) -> dict:
 
 def _save_json(path: Path, value: dict) -> None:
     # Serialize first so a bad value cannot leave a partial file behind.
-    raw = json.dumps(value, indent=2).encode("utf-8")
+    raw = json.dumps(value, indent=2, allow_nan=False).encode("utf-8")
     if path.is_file():
         # Keep the last good file as .bak, itself written atomically, so a
         # crash mid-write never leaves both the primary and backup truncated.
@@ -395,7 +400,7 @@ def _save_json(path: Path, value: dict) -> None:
     atomic_write(path, raw)
 
 def _hash_json(value) -> str:
-    raw = json.dumps(value, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    raw = json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8")
     return hashlib.sha256(raw).hexdigest()
 
 def _curl_response_metadata(output: bytes | str | None, headers_path: Path) -> tuple[int | None, str | None, str | None]:
@@ -645,9 +650,14 @@ def _http_file(source: dict, timeout: int) -> dict:
     }
 
 
+def _provider_json(body: bytes):
+    """Parse provider JSON; NaN/Infinity values are read as missing (None)."""
+    return strict_json.loads(body.decode("utf-8-sig"))
+
+
 def _json_request(url: str, timeout: int, *, prefer_curl: bool = False) -> tuple[dict, dict]:
     body, meta = _request(url, timeout, prefer_curl=prefer_curl)
-    data = json.loads(body.decode("utf-8-sig"))
+    data = _provider_json(body)
     if isinstance(data, dict) and "error" in data:
         error = data["error"]
         code = error.get("code") if isinstance(error, dict) else None
@@ -691,7 +701,7 @@ def _post_json(url: str, payload: dict, timeout: int, *, deadline: RequestDeadli
                     content_type="application/json",
                 )
                 meta["primary_error"] = _safe_diagnostic(f"{type(primary).__name__}: {primary}")
-                data_obj = json.loads(raw.decode("utf-8-sig"))
+                data_obj = _provider_json(raw)
                 return data_obj, meta
             except (ProviderRateLimitError, PermanentProviderError):
                 raise
@@ -715,7 +725,7 @@ def _post_json(url: str, payload: dict, timeout: int, *, deadline: RequestDeadli
             raise PermanentProviderError(status)
         if status < 200 or status >= 300:
             raise RuntimeError(f"provider returned HTTP {status}")
-        data_obj = json.loads(raw.decode("utf-8-sig"))
+        data_obj = _provider_json(raw)
         return data_obj, meta
     raise RuntimeError(f"provider redirect limit exceeded ({max_redirects})")
 
@@ -747,6 +757,8 @@ def _parcel_id_candidate(field_names: list[str]) -> tuple[str | None, str]:
         ("taxparcelid", "high"), ("tax_parcel_id", "high"),
         ("parcel", "medium"), ("taxid", "medium"), ("tax_id", "medium"),
     ]
+    # Provider-supplied names are later placed in query clauses; skip anything unusual.
+    field_names = [str(x) for x in field_names if _SQL_IDENTIFIER.fullmatch(str(x))]
     by_lower = {str(x).lower(): str(x) for x in field_names}
     for candidate, confidence in ranked:
         if candidate in by_lower:
@@ -766,6 +778,16 @@ def _validated_provider_count(value, *, label: str = "count", maximum: int = 2_1
     return value
 
 
+_SQL_IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+
+
+def _sql_identifier(field: str) -> str:
+    """Return a provider field name only if it is safe to place in a where/having clause."""
+    if not isinstance(field, str) or not _SQL_IDENTIFIER.fullmatch(field):
+        raise ValueError(f"unsupported field name for an ArcGIS query: {_safe_diagnostic(str(field))}")
+    return field
+
+
 def _arcgis_count_query(url: str, where: str, timeout: int, *, prefer_curl: bool = False) -> int:
     query_url = url.rstrip("/") + "/query?" + urllib.parse.urlencode({
         "where": where, "returnCountOnly": "true", "f": "json",
@@ -775,6 +797,7 @@ def _arcgis_count_query(url: str, where: str, timeout: int, *, prefer_curl: bool
 
 
 def _arcgis_statistics_query(url: str, field: str, timeout: int, *, prefer_curl: bool = False) -> dict:
+    field = _sql_identifier(field)
     stats = [
         {"statisticType": "count", "onStatisticField": field, "outStatisticFieldName": "nonnull_count"},
         {"statisticType": "count", "onStatisticField": field, "outStatisticFieldName": "row_count"},
@@ -788,6 +811,7 @@ def _arcgis_statistics_query(url: str, field: str, timeout: int, *, prefer_curl:
 
 
 def _arcgis_duplicate_id_summary(url: str, field: str, timeout: int, *, prefer_curl: bool = False) -> dict:
+    field = _sql_identifier(field)
     query_url = url.rstrip("/") + "/query?" + urllib.parse.urlencode({
         "where": f"{field} IS NOT NULL",
         "outFields": field,
@@ -804,6 +828,8 @@ def _arcgis_duplicate_id_summary(url: str, field: str, timeout: int, *, prefer_c
 
 
 def _field_candidate(field_names: list[str], exact: list[str], contains: list[str] | None = None) -> str | None:
+    # Provider-supplied names are later placed in query clauses; skip anything unusual.
+    field_names = [str(x) for x in field_names if _SQL_IDENTIFIER.fullmatch(str(x))]
     by_lower = {str(x).lower(): str(x) for x in field_names}
     for name in exact:
         if name.lower() in by_lower:
@@ -834,6 +860,7 @@ def _extent_change(previous: dict | None, current: dict | None) -> dict | None:
 
 
 def _field_completeness(url: str, field: str, total: int | None, timeout: int, *, prefer_curl: bool = False) -> dict:
+    field = _sql_identifier(field)
     missing = _arcgis_count_query(url, f"{field} IS NULL OR {field} = ''", timeout, prefer_curl=prefer_curl)
     populated = None if total is None or missing is None else max(0, total - missing)
     pct = None if total in (None, 0) or populated is None else round((populated / total) * 100.0, 2)
@@ -939,6 +966,8 @@ def _arcgis_gac_completeness(
     county_field = by_lower.get(str(configured_county).lower())
     code_field = by_lower.get(str(configured_code).lower()) if configured_code else None
     oid_field = object_id_field or by_lower.get("objectid")
+    if oid_field and not _SQL_IDENTIFIER.fullmatch(str(oid_field)):
+        raise ValueError("GAC object-id field name is not a plain identifier")
     if not county_field or not oid_field or (configured_code and not code_field):
         required = f"{configured_county}"
         if configured_code:
@@ -1191,7 +1220,8 @@ def _arcgis_gac_completeness(
         ),
         "counties": counties,
         "fields": field_summaries,
-        "observation_status": "complete",
+        # "none": the schema was checked but no field population was scanned.
+        "observation_status": "complete" if scanned_fields else "none",
     }
 
 
@@ -1468,7 +1498,7 @@ def _arcgis_layer(source: dict, timeout: int) -> dict:
             result["null_geometry_check_error"] = _safe_diagnostic(exc)
         if id_field and confidence == "high":
             try:
-                null_count = _arcgis_count_query(source["url"], f"{id_field} IS NULL OR {id_field} = ''", timeout, prefer_curl=bool(source.get("prefer_curl")))
+                null_count = _arcgis_count_query(source["url"], f"{_sql_identifier(id_field)} IS NULL OR {_sql_identifier(id_field)} = ''", timeout, prefer_curl=bool(source.get("prefer_curl")))
             except (ProviderRateLimitError, PermanentProviderError):
                 raise
             except Exception as exc:
@@ -1671,17 +1701,21 @@ def _wfs(source: dict, timeout: int) -> dict:
         "problems": problems,
     }
 
+_PLAIN_NUMBER = re.compile(r"-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?")
+
+
 def _coerce_scalar(value):
+    """Convert plain decimal strings to numbers; keep everything else as text.
+
+    Leading-zero codes (FIPS, ZIP) stay strings, and nan/inf/1e5/"1_000"
+    are never treated as numbers.
+    """
     if not isinstance(value, str):
         return value
     stripped = value.strip()
-    try:
-        return int(stripped)
-    except ValueError:
-        try:
-            return float(stripped)
-        except ValueError:
-            return value
+    if not _PLAIN_NUMBER.fullmatch(stripped):
+        return value
+    return float(stripped) if "." in stripped else int(stripped)
 
 def _sda_query(source: dict, timeout: int) -> dict:
     payload = {
@@ -2068,6 +2102,8 @@ def _check_sources_unlocked(
             continue
         rate_limited = False
         started = dt.datetime.now(dt.timezone.utc)
+        # When this source's check began; long runs no longer stamp every source with the run start.
+        source_checked_at = started.isoformat()
         source_timeout = int(source.get("timeout_seconds", timeout))
         retries = int(source.get("retries", config.get("retries", 1)))
         details = None
@@ -2108,7 +2144,7 @@ def _check_sources_unlocked(
                             details[quality_key] = previous[quality_key]
                 details["observation_fingerprint"] = _observation_fingerprint(details)
                 if source["id"] == "mn-parcel-county-catalog" and isinstance(details.get("county_records"), dict):
-                    details["catalog_observed_at"] = now
+                    details["catalog_observed_at"] = source_checked_at
                     details["catalog_retained"] = False
                     details["catalog_time_inferred"] = False
                 changes = _compare(previous_sources.get(source["id"]), details, source)
@@ -2128,11 +2164,11 @@ def _check_sources_unlocked(
                     "provenance": {
                         "source_url": source["url"],
                         "adapter": _adapter_name(source),
-                        "observed_at": now,
+                        "observed_at": source_checked_at,
                         "publisher_modified": details.get("last_modified") or details.get("modified") or details.get("editing_info"),
                     },
                     "status": status,
-                    "checked_at": now,
+                    "checked_at": source_checked_at,
                     "elapsed_ms": elapsed_ms,
                     "attempts": attempts,
                     **details,
@@ -2158,11 +2194,11 @@ def _check_sources_unlocked(
                 "provenance": {
                     "source_url": source["url"],
                     "adapter": _adapter_name(source),
-                    "observed_at": now,
+                    "observed_at": source_checked_at,
                     "publisher_modified": None,
                 },
                 "status": "error",
-                "checked_at": now,
+                "checked_at": source_checked_at,
                 "elapsed_ms": elapsed_ms,
                 "attempts": attempts,
                 "error": _safe_diagnostic(f"{type(last_error).__name__}: {last_error}"),
@@ -2394,7 +2430,7 @@ def load_history(
                 if not line:
                     continue
                 try:
-                    item = json.loads(line)
+                    item = strict_json.loads(line)
                 except json.JSONDecodeError:
                     continue
                 if isinstance(item, dict):

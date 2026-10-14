@@ -258,11 +258,37 @@ A wildcard/public bind fails closed without a password. For Internet exposure, p
 - `WATCHTOWER_STORAGE_ROOT`
 - `WATCHTOWER_GCS_BUCKET`
 - `WATCHTOWER_GCS_PREFIX`
-- `WATCHTOWER_WORKDIR`
+- `WATCHTOWER_WORKDIR` (optional; when unset, each `cloud-job` run uses its
+  own temporary directory, removed when the run ends)
 - `WATCHTOWER_EXECUTION_PROFILE`
 - `WATCHTOWER_AGGREGATE_OBJECT`
 
 GCS support requires the `gcs` package extra.
+
+Every shared object write is version-conditional (`upload_if_version`); the
+storage backends deliberately have no unconditional upload. A GCS read that
+races a writer backs off briefly (with jitter) before retrying, up to three
+attempts.
+
+## Exit codes
+
+`check`, `status` and `cloud-job` exit with:
+
+| Code | Meaning |
+| --- | --- |
+| 0 | Every checked source is OK. |
+| 1 | At least one warning (an expected non-zero exit for scheduled runs). |
+| 2 | A source reported an error, or the run checked no sources (`scope.type=empty`). |
+| 3 | Watchtower itself failed: bad configuration, a storage conflict, a refused aggregate merge or an unexpected exception. |
+
+Command-line usage errors (an unknown option or an invalid `--worker`) are
+rejected by the argument parser with its conventional exit code 2 before any
+work starts. A run that would publish to the shared aggregate must use the
+`cloud` or `local` execution profile; any other profile (including `any`) is
+refused with exit 3 before any provider request.
+
+Keep the Cloud Run Job at `--max-retries=0` so a non-zero exit never repeats
+provider requests.
 
 ## Public publisher and public server
 
@@ -305,6 +331,16 @@ request timeout falls back to its default.
 - `WATCHTOWER_PUBLIC_REQUEST_TIMEOUT_SECONDS` — anonymous public server idle socket timeout and absolute accepted-connection socket deadline; 10 seconds default, bounded to 2–60; malformed values use the default.
 
 Enabled redirects bind urllib/curl connections to captured validated addresses and preserve Host/TLS hostname checks. Effective proxies reject redirected requests before dispatch because the proxy cannot enforce the binding. Initial operator URLs/proxy use remain supported; non-allowlisted redirect destinations must resolve exclusively public. All curl requests ignore local curl configuration (`--disable` first); curlrc options are unsupported, including automatic redirect/TLS overrides. Initial environment proxy behavior remains supported. Provider request deadlines also bound DNS caller waits; native DNS calls may continue in up to eight daemon workers, retaining capacity until completion. Resolver saturation fails closed. An observed final HTTP 429 stops remaining optional checks and retries for that source even when curl reports a failed/truncated/oversized transfer or a timeout with a usable final 429 marker.
+
+Redirects from HTTPS to plain HTTP are always refused, including for
+allowlisted hosts. `NaN`, `Infinity` and out-of-range numbers in provider
+JSON (and in older state files) are read as missing values (`null`), and state
+is always written as standard JSON. Provider field names are used in
+ArcGIS `where`/`having` clauses only when they are plain identifiers
+(`[A-Za-z_][A-Za-z0-9_]*`). The curl fallback is bounded by the response
+budget (`--max-filesize` plus a size check before reading), `--max-time` and
+the request's shared deadline; Watchtower adds no extra retry layer on top of
+the per-source `retries` setting.
 
 Do not use the redirect allowlist to bypass provider access controls or to authorize cloud metadata, loopback, link-local, private, or other privileged endpoints without a deliberate network-boundary review.
 
@@ -365,5 +401,17 @@ access, `FEE BASED` for county-direct dataset fees, and `AMBIGUOUS` for incomple
 or viewer-only findings; free statewide access does not override a direct fee.
 
 ## Observation and dashboard contracts
+
+- Each source's `checked_at` (and `provenance.observed_at`) is when that
+  source's check began; the run's `generated_at` is when the run began.
+- Aggregate source records carry `last_success_at` (last check with status
+  `ok`) and `last_available_at` (last check where the provider answered,
+  status `ok` or `warn`; rate-limit deferrals do not count).
+- A GAC quality observation reports `observation_status` `none` when the
+  schema was checked but no field population was scanned.
+- The public state lists only the `cloud` and `local` workers; other worker
+  names are dropped, since they may be host names. `aggregate --worker`
+  accepts only those two.
+- The public server answers `HEAD` with the same status and headers as `GET`.
 
 Catalog retention timestamps/flags, public GAC observation time, compact read-only summary and revision-bound county routes, and private worker identity/receipt semantics are documented in [October 7 remediation](archive/watchtower-remediation-2026-10-07.md). These additions do not change provider cadence or execution-profile assignments.

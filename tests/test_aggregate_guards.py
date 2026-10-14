@@ -132,7 +132,7 @@ class EmptyRunTests(IsolatedEnv):
         with patch("sys.argv", ["watchtower", "--config", str(cfg), "aggregate", "--base", str(base),
                                 "--partial", str(part), "--worker", "cloud", "--output", str(out)]), \
                 contextlib.redirect_stderr(io.StringIO()):
-            self.assertEqual(cli.main(), 2)
+            self.assertEqual(cli.main(), cli.EXIT_TOOL_FAILURE)  # refused input, nothing written
         self.assertFalse(out.exists())
 
     def test_explicit_drain_produces_a_fleet_report_that_may_retire(self):

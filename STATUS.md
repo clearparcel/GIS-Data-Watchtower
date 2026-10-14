@@ -1,5 +1,45 @@
 # Project status
 
+## Engine and server hardening — in review on `fix/engine-hardening`, not deployed
+
+Lower-severity engine items from the 2026-10-13 review (Package 7), stacked
+on `ci/maintenance`. Production remains v0.2.3. Provider cadence, execution
+profiles and request volume are unchanged.
+
+- Exit codes: 0 ok, 1 warnings, 2 source error or empty run, 3 Watchtower
+  failure (configuration, storage, refused merge, unexpected exception;
+  previously 2).
+- Provider values: only plain decimal strings become numbers, so leading-zero
+  codes stay text (an SDA tracked value such as `007` may report one change
+  after deployment). `NaN`/`Infinity` in provider JSON or older state files is
+  read as missing, and state is always written as standard JSON.
+- Requests: HTTPS→HTTP redirects are refused. Provider field names are placed
+  in ArcGIS query clauses only when they are plain identifiers.
+- Observations: each source's `checked_at` is its own check start. Aggregate
+  records add `last_available_at` (the provider answered) next to
+  `last_success_at`, and the private source page shows both. GAC
+  observations report `observation_status` `none` when no population was
+  scanned.
+- Public: only `cloud` and `local` worker names are published, and
+  `aggregate --worker` accepts only those; a run that publishes to the shared
+  aggregate under any other profile (including `any`) is refused before
+  polling. The public server answers `HEAD`.
+  County exports are cached per published state, without blocking page views.
+- Private dashboard: Basic-auth and refresh-token comparisons handle non-ASCII
+  input. Links use the public URL sanitizer. Static-site counts are projected
+  to integers.
+- Storage: the unused unconditional `upload()` is removed, so every shared
+  write is version-conditional. GCS read races back off with jitter.
+  `cloud-job` uses a per-run temporary directory unless `WATCHTOWER_WORKDIR`
+  is set.
+- Deferred, needing owner direction: whether schema-missing GAC fields leave
+  the mandatory-population denominator, which would change published
+  percentages; dropping `'unsafe-inline'` from the CSP, which needs nonces for
+  every inline script; and removing stored query strings from private state.
+  Not changed, by decision: `tracemalloc` stays on, because it feeds the
+  private memory chart, and no extra retry layer was added, because it would
+  increase provider load.
+
 ## CI, build and supply-chain maintenance — in review on `ci/maintenance`, not deployed
 
 Repository-tooling changes from the 2026-10-13 review (Package 6). No
@@ -111,7 +151,8 @@ provider-compliance branch. Production remains v0.2.3.
   replaced file's permissions; an undecodable state file falls back to its
   backup, and an unreadable primary never overwrites a good backup.
 - `cloud-job` refuses the placeholder example configuration, so the container
-  default exits 2 instead of silently checking nothing.
+  default exits with an error (code 3 since the engine-hardening change)
+  instead of silently checking nothing.
 - GAC metric times and optional-metric diagnostics no longer register as
   dataset changes (expect one info-level "fingerprint changed" event per GAC
   source on the first run after upgrade); a failing optional

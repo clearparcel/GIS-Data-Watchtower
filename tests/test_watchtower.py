@@ -1304,7 +1304,7 @@ class DataWatchTests(unittest.TestCase):
             root=Path(td)
             source=root/"source.json"; source.write_text('{"ok":true}',encoding="utf-8")
             backend=LocalStorage(root/"objects")
-            backend.upload("state.json",source)
+            backend.upload_if_version("state.json",source,None)
             destination=root/"downloaded.json"
             self.assertTrue(backend.download("state.json",destination))
             self.assertEqual(destination.read_text(encoding="utf-8"),'{"ok":true}')

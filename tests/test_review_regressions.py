@@ -50,6 +50,7 @@ class ReviewRegressions(unittest.TestCase):
                             "summary": {"content_revision": "test"}}
                 def snapshot(self): return {}
                 def snapshot_xlsx(self): return b""
+                def county_snapshot(self, slug): return None
             with self.subTest(dashboard=module.__name__), \
                  patch.object(module, "_BoundedThreadingHTTPServer", Server), \
                  patch.object(module, "render_county", return_value="County detail"), \
@@ -230,7 +231,7 @@ class ReviewRegressions(unittest.TestCase):
                 FileLock(path).acquire()
             self.assertTrue(path.is_dir())
 
-    def test_unconditional_upload_cannot_interrupt_conditional_write(self):
+    def test_second_writer_waits_for_the_cas_lock_and_then_conflicts(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             backend = LocalStorage(root / "objects")
@@ -254,7 +255,8 @@ class ReviewRegressions(unittest.TestCase):
             def write_unconditional():
                 second_started.set()
                 try:
-                    backend.upload("object", second)
+                    # Same stale token (object absent): must wait for the lock, then conflict.
+                    backend.upload_if_version("object", second, None)
                 except Exception as exc:
                     errors.append(exc)
                 finally:
@@ -267,15 +269,16 @@ class ReviewRegressions(unittest.TestCase):
                     self.assertTrue(ready.wait(5))
                     unconditional.start()
                     self.assertTrue(second_started.wait(5))
-                    self.assertFalse(second_done.wait(0.2), "unconditional writer bypassed the CAS lock")
+                    self.assertFalse(second_done.wait(0.2), "second writer bypassed the CAS lock")
                 finally:
                     release.set()
                     conditional.join(timeout=5)
                     if unconditional.ident is not None:
                         unconditional.join(timeout=5)
             self.assertFalse(conditional.is_alive() or unconditional.is_alive())
-            self.assertEqual(errors, [])
-            self.assertEqual((backend.root / "object").read_bytes(), b"second")
+            self.assertEqual([type(x) for x in errors], [StorageConflictError])
+            self.assertEqual((backend.root / "object").read_bytes(), b"first")
+            self.assertFalse(hasattr(backend, "upload"), "shared storage must not offer unconditional uploads")
 
     def test_same_worker_concurrent_merges_have_independent_scratch(self):
         with tempfile.TemporaryDirectory() as td:
@@ -472,7 +475,6 @@ LocalStorage(sys.argv[1]).upload_if_version('state.json',Path(sys.argv[2]),None)
                 (root / name / "aggregate-state.json").write_text(json.dumps(report(hour, {})), encoding="utf-8")
             ready = threading.Event(); release = threading.Event(); errors = []
             destination = LocalStorage(root / "destination")
-            original_upload = destination.upload
             original_cas = destination.upload_if_version
             def pause_then(method, *args):
                 if threading.current_thread().name == "old-publisher":
@@ -485,8 +487,7 @@ LocalStorage(sys.argv[1]).upload_if_version('state.json',Path(sys.argv[2]),None)
                     publish_public_snapshot(LocalStorage(root / "old"), destination, workdir=root / "work")
                 except Exception as exc:
                     errors.append(exc)
-            with patch.object(destination, "upload", side_effect=lambda *args: pause_then(original_upload, *args)), \
-                 patch.object(destination, "upload_if_version", side_effect=lambda *args: pause_then(original_cas, *args)):
+            with patch.object(destination, "upload_if_version", side_effect=lambda *args: pause_then(original_cas, *args)):
                 thread = threading.Thread(target=run_old, name="old-publisher"); thread.start()
                 try:
                     self.assertTrue(ready.wait(5))

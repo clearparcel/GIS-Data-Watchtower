@@ -18,7 +18,7 @@ class SupplyChainTests(unittest.TestCase):
         stderr = io.StringIO()
         with patch.dict(os.environ, {}, clear=True), patch.object(Path, "is_file", return_value=False), \
              patch("sys.argv", ["watchtower", "status"]), patch("sys.stderr", stderr):
-            self.assertEqual(main(), 2)
+            self.assertEqual(main(), 3)  # tool failure, not a source error
         self.assertIn("Pass --config PATH or set CLEARPARCEL_WATCHTOWER_CONFIG", stderr.getvalue())
 
     def test_runtime_dependencies_are_exactly_constrained(self):

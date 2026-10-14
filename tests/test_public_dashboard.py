@@ -218,14 +218,15 @@ class PublicDashboardTests(unittest.TestCase):
         broken_dash = '—'.encode('utf-8').decode('cp1252')
         identifier = 'source-' + broken_dash
         state = {'sources': {identifier: {
-            'id': identifier, 'worker': identifier, 'county_slug': identifier,
+            'id': identifier, 'worker': 'cloud', 'county_slug': identifier,
             'name': '測量 — Parcels ' + broken_dash + ' Direct',
             'provider': 'Café ' + broken_dash + ' GIS',
         }}}
         public = sanitize_public_render_state(state)
         source = public['sources'][identifier]
-        for field in ('id', 'worker', 'county_slug'):
+        for field in ('id', 'county_slug'):
             self.assertEqual(source[field], identifier)
+        self.assertEqual(source['worker'], 'cloud')
         self.assertEqual(source['name'], '測量 — Parcels — Direct')
         self.assertEqual(source['provider'], 'Café — GIS')
         self.assertEqual(sanitize_public_render_state(public), public)
