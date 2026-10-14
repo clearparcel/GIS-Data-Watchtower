@@ -1,6 +1,11 @@
 # Project status
 
-## Codex review fixes — in review on `fix/codex-review`, not deployed
+**2026-10-14:** the v0.3.0 review stack (#79–#88) is merged to `main` as
+`a531161` with CI green. **It is not deployed; production remains v0.2.3.**
+Releasing it follows the gate in [docs/release-v0.3.0.md](docs/release-v0.3.0.md).
+Wait until MnGeo is reachable again before staging validation.
+
+## Codex review fixes — merged to `main` 2026-10-14 (#79–#88), not deployed
 
 An independent Codex review of the whole v0.3.0 stack (`adf3c38`...`a1cb2c7`)
 found 14 issues. The fixes sit on top of `release/v0.3.0`:
@@ -29,7 +34,7 @@ found 14 issues. The fixes sit on top of `release/v0.3.0`:
 - **Robustness:** huge decimal strings never become Infinity, and atomic
   writes also flush the directory on POSIX.
 
-## v0.3.0 release candidate — in review on `release/v0.3.0`, not deployed
+## v0.3.0 release candidate — merged to `main` 2026-10-14 (#79–#88), not deployed
 
 The owner set **v0.3.0** as the next release. `pyproject.toml` is bumped on
 this branch, which sits at the top of the review stack (#79–#86). Production
@@ -39,7 +44,7 @@ compatibility notes (exit code 3, required build revision, publishable
 profiles, new state fields) and the release gate. Merging, building and
 deploying each need explicit owner approval.
 
-## Tests and dead code — in review on `chore/tests-deadcode`, not deployed
+## Tests and dead code — merged to `main` 2026-10-14 (#79–#88), not deployed
 
 Housekeeping from the 2026-10-13 review (Package 8), stacked on
 `fix/engine-hardening`. No behavior changes.
@@ -62,7 +67,7 @@ Housekeeping from the 2026-10-13 review (Package 8), stacked on
 - The test run prints nothing beyond unittest's own summary. `TOOLS_ROOT` is
   now `REPO_ROOT`.
 
-## Engine and server hardening — in review on `fix/engine-hardening`, not deployed
+## Engine and server hardening — merged to `main` 2026-10-14 (#79–#88), not deployed
 
 Lower-severity engine items from the 2026-10-13 review (Package 7), stacked
 on `ci/maintenance`. Production remains v0.2.3. Provider cadence, execution
@@ -102,7 +107,7 @@ profiles and request volume are unchanged.
   private memory chart, and no extra retry layer was added, because it would
   increase provider load.
 
-## CI, build and supply-chain maintenance — in review on `ci/maintenance`, not deployed
+## CI, build and supply-chain maintenance — merged to `main` 2026-10-14 (#79–#88), not deployed
 
 Repository-tooling changes from the 2026-10-13 review (Package 6). No
 application behavior changes. The owner has set **v0.3.0** as the next
@@ -121,7 +126,7 @@ release version (prepared separately at the top of the review stack).
   inventory lines; ignore and line-ending rules cover agent scratch, the
   generated `build_info.json`, the Dockerfile and Windows scripts.
 
-## Mobile and accessibility — in review on `ui/mobile-a11y`, not deployed
+## Mobile and accessibility — merged to `main` 2026-10-14 (#79–#88), not deployed
 
 UI changes from the 2026-10-13 review (Package 5), stacked on the
 public-hygiene branch. Production remains v0.2.3.
@@ -148,7 +153,7 @@ public-hygiene branch. Production remains v0.2.3.
   and MN GAC pages or the private overview, counties, and MN GAC pages, at
   320–1280 px (synthetic data), and none of them scrolls sideways.
 
-## Public-repository hygiene — in review on `docs/public-hygiene`, not deployed
+## Public-repository hygiene — merged to `main` 2026-10-14 (#79–#88), not deployed
 
 Documentation and test changes from the 2026-10-13 review (Package 4),
 stacked on the public-accuracy branch. No application behavior changes.
@@ -168,7 +173,7 @@ stacked on the public-accuracy branch. No application behavior changes.
 - Repository screenshots will be refreshed after the next release so they
   show the released UI.
 
-## Public-accuracy fixes — in review on `fix/public-accuracy`, not deployed
+## Public-accuracy fixes — merged to `main` 2026-10-14 (#79–#88), not deployed
 
 Source-only changes from the 2026-10-13 review (Package 3), stacked on the
 shared-state guards branch. Production remains v0.2.3.
@@ -195,7 +200,7 @@ shared-state guards branch. Production remains v0.2.3.
 - Missing statistics show "—" instead of zero; publication status uses
   Central time.
 
-## Shared-state guards — in review on `fix/aggregate-guards`, not deployed
+## Shared-state guards — merged to `main` 2026-10-14 (#79–#88), not deployed
 
 Source-only changes from the 2026-10-13 review (Package 2), stacked on the
 provider-compliance branch. Production remains v0.2.3.
@@ -221,7 +226,7 @@ provider-compliance branch. Production remains v0.2.3.
   parcel-ID null-count query no longer fails the whole source; the validation
   receipt reports a failed GAC check instead of crashing.
 
-## Provider-compliance fixes — in review on `fix/provider-compliance`, not deployed
+## Provider-compliance fixes — merged to `main` 2026-10-14 (#79–#88), not deployed
 
 Source-only changes from the 2026-10-13 review (Package 1). Production remains
 v0.2.3 until a separately approved release.

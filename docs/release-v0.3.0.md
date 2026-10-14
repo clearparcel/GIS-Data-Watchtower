@@ -1,6 +1,6 @@
 # GIS Data Watchtower v0.3.0 — release candidate
 
-**Status: candidate, not deployed.** Production remains
+**Status: merged to `main` on 2026-10-14 (`a531161`), not deployed.** Production remains
 [v0.2.3](release-v0.2.3.md), and v0.2.3 is the rollback baseline. The owner
 chose v0.3.0, a minor release, because the review stack changes CLI exit
 codes, aggregate and public-state fields, and the dashboards. Nothing here is
