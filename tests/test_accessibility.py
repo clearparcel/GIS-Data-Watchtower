@@ -142,8 +142,12 @@ class TableTests(unittest.TestCase):
 
     def test_table_processing_stays_fast_on_adversarial_markup(self):
         import time
+        # Unclosed tags made html.parser (before CPython 3.12.11) and .*? table
+        # matching quadratic; every case here must stay linear.
         for hostile in ("<" * 60000, "<h1" * 20000, "<tbody" * 20000, "<caption" * 20000,
-                        "<h2>" + "<" * 60000 + "<table><tr><td>1</td></tr></table>"):
+                        "<h2>" + "<" * 60000 + "<table><tr><td>1</td></tr></table>",
+                        "<h3>" * 20000, "<table>" * 20000, "<th" * 20000,
+                        '<div class="table-scroll">' * 20000 + "<table></table>"):
             started = time.perf_counter()
             _accessible_tables(hostile)
             self.assertLess(time.perf_counter() - started, 2.0, hostile[:12])

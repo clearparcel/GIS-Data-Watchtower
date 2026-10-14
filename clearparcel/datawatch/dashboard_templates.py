@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import base64
 import html
-from html.parser import HTMLParser
+import re
 from pathlib import Path
 
 from clearparcel.datawatch.build_info import application_identity
@@ -112,50 +112,71 @@ def _refresh_script(seconds: int, *, public: bool = False) -> str:
     return refresh_script(seconds, public=public)
 
 
-class _TableLabels(HTMLParser):
-    """One linear pass: a label for each top-level table, in document order.
+# Tag patterns stop at the next "<", so every scan is linear in the input on
+# every supported Python. (html.parser before CPython 3.12.11 is quadratic on
+# runs of unclosed tags, and tag-stripping patterns such as <[^>]+> are
+# polynomial on runs of "<".)
+_LABEL_TAG = re.compile(r"<(/?)(h[1-4]|table|caption)\b[^<>]*>", re.IGNORECASE)
+_ANY_TAG = re.compile(r"<[^<>]*>")
+
+
+def _table_labels(body: str) -> list[str]:
+    """A label for each top-level table, in document order.
 
     The label is the table's caption text, else the text of the nearest
-    preceding h1-h4 heading. (A parser instead of tag-stripping regexes keeps
-    this linear on any input.)
+    preceding h1-h4 heading, else "Data table".
     """
+    labels: list[str] = []
+    last_heading = ""
+    depth = 0
+    caption = ""
+    open_at: dict[str, int] = {}
 
-    def __init__(self) -> None:
-        super().__init__(convert_charrefs=True)
-        self.labels: list[str] = []
-        self._heading: list[str] | None = None
-        self._last_heading = ""
-        self._depth = 0
-        self._caption: list[str] | None = None
-        self._table_caption = ""
+    def text(start: int, stop: int) -> str:
+        return " ".join(html.unescape(_ANY_TAG.sub(" ", body[start:stop])).split())
 
-    def handle_starttag(self, tag, attrs):
-        if tag in ("h1", "h2", "h3", "h4") and self._depth == 0:
-            self._heading = []
-        elif tag == "table":
-            self._depth += 1
-            if self._depth == 1:
-                self._table_caption = ""
-        elif tag == "caption" and self._depth == 1:
-            self._caption = []
+    for match in _LABEL_TAG.finditer(body):
+        closing, name = match.group(1) == "/", match.group(2).lower()
+        if name == "table":
+            if not closing:
+                depth += 1
+                if depth == 1:
+                    caption = ""
+            elif depth:
+                depth -= 1
+                if depth == 0:
+                    labels.append(caption or last_heading or "Data table")
+        elif not closing:
+            open_at[name] = match.end()
+        elif name in open_at:
+            content = text(open_at.pop(name), match.start())
+            if name == "caption" and depth == 1:
+                caption = content
+            elif name != "caption" and depth == 0 and content:
+                last_heading = content
+    return labels
 
-    def handle_endtag(self, tag):
-        if tag in ("h1", "h2", "h3", "h4") and self._heading is not None:
-            self._last_heading = " ".join("".join(self._heading).split())
-            self._heading = None
-        elif tag == "caption" and self._caption is not None:
-            self._table_caption = " ".join("".join(self._caption).split())
-            self._caption = None
-        elif tag == "table" and self._depth:
-            self._depth -= 1
-            if self._depth == 0:
-                self.labels.append(self._table_caption or self._last_heading or "Data table")
 
-    def handle_data(self, data):
-        if self._heading is not None:
-            self._heading.append(data)
-        if self._caption is not None:
-            self._caption.append(data)
+_TABLE_TAG = re.compile(r"<(/?)table\b[^<>]*>", re.IGNORECASE)
+_TBODY_TAG = re.compile(r"</?tbody\b", re.IGNORECASE)
+_UNSCOPED_TH = re.compile(r"<th\b(?![^<>]*\bscope=)([^<>]*)>", re.IGNORECASE)
+_SCROLL_WRAPPER = re.compile(r'<div\b[^<>]*class="table-scroll"[^<>]*>\s*\Z')
+_WRAPPER_CLOSE = re.compile(r"\s*</div>")
+
+
+def _table_spans(body: str) -> list[tuple[int, int]]:
+    """Start/end offsets of closed top-level tables (linear scan)."""
+    spans, depth, start = [], 0, 0
+    for match in _TABLE_TAG.finditer(body):
+        if match.group(1) != "/":
+            if depth == 0:
+                start = match.start()
+            depth += 1
+        elif depth:
+            depth -= 1
+            if depth == 0:
+                spans.append((start, match.end()))
+    return spans
 
 
 def _accessible_tables(body: str) -> str:
@@ -163,15 +184,12 @@ def _accessible_tables(body: str) -> str:
 
     Header cells in a table body describe their row; header cells elsewhere
     describe their column. A table without a caption gets a visually hidden
-    one, and its region label, from the nearest preceding heading.
+    one, and its region label, from the nearest preceding heading. Every scan
+    is linear in the size of the page.
     """
     import bisect
-    import re
 
-    # Positions of <tbody> / </tbody> tags; a header cell is a row header when
-    # the nearest preceding one opens a body. (A position scan, not a
-    # <tbody>.*?</tbody> match, so the cost stays linear.)
-    marks = [(m.start(), not m.group(0).startswith("</")) for m in re.finditer(r"</?tbody\b", body)]
+    marks = [(m.start(), not m.group(0).startswith("</")) for m in _TBODY_TAG.finditer(body)]
     positions = [pos for pos, _ in marks]
 
     def scope(match: re.Match) -> str:
@@ -179,33 +197,34 @@ def _accessible_tables(body: str) -> str:
         in_body = index >= 0 and marks[index][1]
         return f'<th scope="{"row" if in_body else "col"}"{match.group(1)}>'
 
-    body = re.sub(r"<th\b(?![^>]*scope=)([^>]*)>", scope, body)
-    parser = _TableLabels()
-    parser.feed(body)
-    parser.close()
-    labels = iter(parser.labels)
-
-    def label_for(position: int, table: str) -> str:
-        return next(labels, "Data table")
-
-    def wrap(match: re.Match) -> str:
-        opening = (match.group("wrapper") or '<div class="table-scroll">').rstrip()
-        table = match.group("table")
-        label = label_for(match.start(), table)
-        if "<caption" not in table:
-            table = re.sub(r"(<table\b[^>]*>)", lambda m: m.group(1) + f'<caption class="sr-only">{_esc(label)}</caption>', table, count=1)
+    body = _UNSCOPED_TH.sub(scope, body)
+    labels = _table_labels(body)
+    pieces, cursor = [], 0
+    for (start, end), label in zip(_table_spans(body), labels):
+        # Reuse a renderer-owned <div class="table-scroll"> wrapper (and its
+        # descriptive label) that directly encloses the table.
+        wrapper_start, opening = start, '<div class="table-scroll">'
+        tag_start = body.rfind("<", cursor, start)
+        if tag_start != -1 and _SCROLL_WRAPPER.match(body, tag_start, start):
+            close = _WRAPPER_CLOSE.match(body, end)
+            if close:
+                wrapper_start, opening = tag_start, body[tag_start:start].rstrip()
+                end_after = close.end()
+            else:
+                end_after = end
+        else:
+            end_after = end
+        table = body[start:end]
+        if "<caption" not in table.lower():
+            open_end = table.find(">") + 1
+            table = table[:open_end] + f'<caption class="sr-only">{_esc(label)}</caption>' + table[open_end:]
         for name, value in (("tabindex", "0"), ("role", "region"), ("aria-label", label)):
             if not re.search(rf"\b{name}\s*=", opening):
                 opening = opening[:-1] + f' {name}="{_esc(value)}">'
-        return opening + table + '</div>'
-
-    # Reuse renderer-owned wrappers (including their descriptive labels).
-    # These are controlled templates, not arbitrary provider HTML.
-    return re.sub(
-        r'(?P<wrapper><div\b[^>]*class="table-scroll"[^>]*>\s*)?'
-        r'(?P<table><table\b.*?</table>)(?(wrapper)\s*</div>)',
-        wrap, body, flags=re.S,
-    )
+        pieces += [body[cursor:wrapper_start], opening, table, "</div>"]
+        cursor = end_after
+    pieces.append(body[cursor:])
+    return "".join(pieces)
 
 
 _TABLE_CSS = """
