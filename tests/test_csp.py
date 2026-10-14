@@ -14,7 +14,7 @@ from clearparcel.datawatch.dashboard_counties import render_counties, render_cou
 from clearparcel.datawatch.public_dashboard import render_public_dashboard
 
 HANDLER = re.compile(r"<[a-z][^<>]*\son[a-z]+\s*=", re.IGNORECASE)
-INLINE_SCRIPT = re.compile(r"<script\b(?![^<>]*\b(?:src|type)\s*=)[^<>]*>(.*?)</script>", re.IGNORECASE | re.S)
+INLINE_SCRIPT = re.compile(r"<script\b(?![^<>]*\b(?:src|type)\s*=)[^<>]*>(.*?)</script[^>]*>", re.IGNORECASE | re.S)
 
 
 def sha(text):
