@@ -278,7 +278,6 @@ class PublicDetailTests(unittest.TestCase):
 
 class RefreshBehaviorTests(unittest.TestCase):
     def test_manual_pause_dialog_release_and_pending_revision_after_304(self):
-        import json
         import shutil
         import subprocess
         import os

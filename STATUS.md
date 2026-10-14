@@ -1,5 +1,107 @@
 # Project status
 
+## Codex review fixes — in review on `fix/codex-review`, not deployed
+
+An independent Codex review of the whole v0.3.0 stack (`adf3c38`...`a1cb2c7`)
+found 14 issues. The fixes sit on top of `release/v0.3.0`:
+
+- **Provider compliance:**
+  - `Retry-After` is honoured in full up to a year, and is no longer capped at
+    7 days. Backoffs longer than a week are flagged for operator review.
+    Longer requests are held until an operator clears them.
+  - Redirects to a host under 429 backoff are refused for the rest of the run,
+    and the source stops without retries.
+  - Enabled county-direct parcel sources for `hold-for-terms` counties are now
+    skipped at run time, read from the data file on every run. Before this
+    fix, only the dashboards applied hold-for-terms.
+- **Shared aggregate:**
+  - Reports with no source observations are refused, except an explicit
+    fleet drain. A filter that matches nothing is an empty run.
+  - A fleet report whose inventory shrink is refused keeps the worker's last
+    fleet-level health and cannot take sources from another worker.
+  - Source freshness follows the provider-check time, so a deferred record no
+    longer looks freshly checked. `last_available_at` uses the source's check
+    time.
+- **Public accuracy:**
+  - Stale warnings and failures count as overdue on the Counties page.
+  - Missing static-site counts show "—" instead of 0.
+  - Nested tables keep correct header scope.
+- **Robustness:** huge decimal strings never become Infinity, and atomic
+  writes also flush the directory on POSIX.
+
+## v0.3.0 release candidate — in review on `release/v0.3.0`, not deployed
+
+The owner set **v0.3.0** as the next release. `pyproject.toml` is bumped on
+this branch, which sits at the top of the review stack (#79–#86). Production
+remains v0.2.3. Read the
+[candidate record](docs/release-v0.3.0.md) for its contents, the operator
+compatibility notes (exit code 3, required build revision, publishable
+profiles, new state fields) and the release gate. Merging, building and
+deploying each need explicit owner approval.
+
+## Tests and dead code — in review on `chore/tests-deadcode`, not deployed
+
+Housekeeping from the 2026-10-13 review (Package 8), stacked on
+`fix/engine-hardening`. No behavior changes.
+
+- Removed dead code: the uncalled `_destination_publicity`, `MNGAC_FIELDS_FILE`
+  copies, the watch-module `_load_mngac_schema`, both `_county_mngac_summary`
+  helpers, an overwritten monitoring-paths build in `_county_status`, the
+  unused `_json` panel helper, two unused locals, and unused imports. Names
+  other modules or tests reach through `dashboard.*` stay re-exported.
+- Compatibility: every module attribute that v0.2.3 exposed and the review
+  stack removed or moved still resolves, through `clearparcel.datawatch._compat`,
+  for code built against v0.2.3 such as the private dashboard wrapper.
+  `tests/test_compat.py` pins the list.
+- New topic test modules: `test_aggregate.py`, `test_storage.py`,
+  `test_cli.py` and `test_analytics.py` (the PostHog tests moved out of
+  `test_gac_standards.py`, with added script-URL and token checks).
+- UI tests check visible text (`tests/html_text.py`) instead of exact markup
+  and full sentences, so copy and layout edits don't break CI. Policy caveats
+  are still pinned.
+- The test run prints nothing beyond unittest's own summary. `TOOLS_ROOT` is
+  now `REPO_ROOT`.
+
+## Engine and server hardening — in review on `fix/engine-hardening`, not deployed
+
+Lower-severity engine items from the 2026-10-13 review (Package 7), stacked
+on `ci/maintenance`. Production remains v0.2.3. Provider cadence, execution
+profiles and request volume are unchanged.
+
+- Exit codes: 0 ok, 1 warnings, 2 source error or empty run, 3 Watchtower
+  failure (configuration, storage, refused merge, unexpected exception;
+  previously 2).
+- Provider values: only plain decimal strings become numbers, so leading-zero
+  codes stay text (an SDA tracked value such as `007` may report one change
+  after deployment). `NaN`/`Infinity` in provider JSON or older state files is
+  read as missing, and state is always written as standard JSON.
+- Requests: HTTPS→HTTP redirects are refused. Provider field names are placed
+  in ArcGIS query clauses only when they are plain identifiers.
+- Observations: each source's `checked_at` is its own check start. Aggregate
+  records add `last_available_at` (the provider answered) next to
+  `last_success_at`, and the private source page shows both. GAC
+  observations report `observation_status` `none` when no population was
+  scanned.
+- Public: only `cloud` and `local` worker names are published, and
+  `aggregate --worker` accepts only those; a run that publishes to the shared
+  aggregate under any other profile (including `any`) is refused before
+  polling. The public server answers `HEAD`.
+  County exports are cached per published state, without blocking page views.
+- Private dashboard: Basic-auth and refresh-token comparisons handle non-ASCII
+  input. Links use the public URL sanitizer. Static-site counts are projected
+  to integers.
+- Storage: the unused unconditional `upload()` is removed, so every shared
+  write is version-conditional. GCS read races back off with jitter.
+  `cloud-job` uses a per-run temporary directory unless `WATCHTOWER_WORKDIR`
+  is set.
+- Deferred, needing owner direction: whether schema-missing GAC fields leave
+  the mandatory-population denominator, which would change published
+  percentages; dropping `'unsafe-inline'` from the CSP, which needs nonces for
+  every inline script; and removing stored query strings from private state.
+  Not changed, by decision: `tracemalloc` stays on, because it feeds the
+  private memory chart, and no extra retry layer was added, because it would
+  increase provider load.
+
 ## CI, build and supply-chain maintenance — in review on `ci/maintenance`, not deployed
 
 Repository-tooling changes from the 2026-10-13 review (Package 6). No
@@ -111,7 +213,8 @@ provider-compliance branch. Production remains v0.2.3.
   replaced file's permissions; an undecodable state file falls back to its
   backup, and an unreadable primary never overwrites a good backup.
 - `cloud-job` refuses the placeholder example configuration, so the container
-  default exits 2 instead of silently checking nothing.
+  default exits with an error (code 3 since the engine-hardening change)
+  instead of silently checking nothing.
 - GAC metric times and optional-metric diagnostics no longer register as
   dataset changes (expect one info-level "fingerprint changed" event per GAC
   source on the first run after upgrade); a failing optional

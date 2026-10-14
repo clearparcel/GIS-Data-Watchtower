@@ -9,7 +9,6 @@ import os
 import secrets
 import threading
 import urllib.parse
-import re
 from zoneinfo import ZoneInfo
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -18,14 +17,14 @@ from clearparcel.datawatch.dashboard_templates import (
     _esc,
     _layout,
     _public_layout_v2,
-    _refresh_script,
 )
 
 from clearparcel.datawatch.watch import check_sources, load_history, load_state
 from clearparcel.datawatch.transport import RequestDeadline
 from clearparcel.datawatch.aggregate import with_freshness
 from clearparcel.datawatch.parcel_access import access_label, load_parcel_access, statewide_access_label
-from clearparcel.datawatch.county_profile_panel import render_county_profile_panel, render_county_profile_body, percentage_legend, percentage_color_js, percentage_patterns, profile_time, research_summary, PERCENT_COLORS, NO_DATA_COLOR
+from clearparcel.datawatch.public_values import safe_public_url
+from clearparcel.datawatch.county_profile_panel import render_county_profile_body, percentage_patterns, research_summary
 from clearparcel.datawatch.county_profile_exports import county_profiles_csv, parcel_sources_csv
 from clearparcel.datawatch.county_profiles import FreshnessPolicy, compose_county_profiles, county_profile_counts
 from clearparcel.datawatch.gac_standards import gac_defaults, load_gac_standard, normalize_standard_key, standard_keys
@@ -33,18 +32,16 @@ from clearparcel.datawatch.gac_standards import gac_defaults, load_gac_standard,
 COUNTIES_FILE = Path(__file__).with_name("minnesota_counties.json")
 COUNTY_CONTACTS_FILE = Path(__file__).with_name("minnesota_county_contacts.json")
 COUNTY_CONTACT_VERIFICATION_FILE = Path(__file__).with_name("minnesota_county_contact_verification.json")
-MNGAC_FIELDS_FILE = Path(__file__).with_name("mngac_parcel_fields.json")
 COUNTY_BOUNDARIES_FILE = Path(__file__).with_name("minnesota_county_boundaries.json")
 
 
 def _safe_url(value) -> str | None:
-    if not value:
-        return None
-    try:
-        parsed = urllib.parse.urlparse(str(value))
-    except ValueError:
-        return None
-    return str(value) if parsed.scheme.lower() in ("http", "https") and bool(parsed.netloc) else None
+    """Linkable URL for the private dashboard, using the public sanitizer's rules.
+
+    Credential-like query parameters, userinfo and private/reserved hosts are
+    never rendered as links, even on the loopback-only private dashboard.
+    """
+    return safe_public_url(str(value)) if value else None
 
 
 CENTRAL_TZ = ZoneInfo("America/Chicago")
@@ -411,12 +408,6 @@ def _county_status(config: dict, county: dict, state: dict, *, profiles: dict | 
     else:
         status = "not-configured"
 
-    monitoring_paths = []
-    if matches:
-        monitoring_paths.append("county-direct")
-    if statewide_monitored:
-        monitoring_paths.append("mngeo-open")
-
     parcel_access = research.get(name)
     monitoring_paths = profile['monitoring']['paths']
     if profile['monitoring']['active']:
@@ -510,14 +501,6 @@ def render_counties(config: dict) -> str:
 def _render_county_mngac(state: dict, county: dict) -> str:
     from clearparcel.datawatch.dashboard_gac import _render_county_mngac as render
     return render(state, county)
-
-
-
-
-def _county_mngac_summary(state: dict, county: dict) -> dict:
-    from clearparcel.datawatch.dashboard_gac import _county_mngac_summary as build
-    return build(state, county)
-
 
 
 
@@ -664,14 +647,9 @@ def _statewide_snapshot(config: dict) -> dict:
 
 
 from clearparcel.datawatch.dashboard_exports import (
-    _csv_safe,
-    _gac_xlsx_sheets,
     _mngac_csv,
-    _mngac_xlsx_sheets,
     _snapshot_csv,
     _snapshot_xlsx,
-    _xlsx_col_name,
-    _xlsx_sheet_xml,
 )
 from clearparcel.datawatch.dashboard_routes import dispatch_snapshot_exports
 
@@ -730,7 +708,7 @@ def _sanitize_public_state(state: dict) -> dict:
             key: src.get(key)
             for key in (
                 "id", "name", "provider", "category", "status", "feature_count",
-                "checked_at", "worker", "last_success_at", "last_report_at",
+                "checked_at", "worker", "last_success_at", "last_available_at", "last_report_at",
                 "stale", "worker_stale", "health", "reporting",
             )
             if src.get(key) is not None
@@ -748,7 +726,11 @@ def build_static_site(config: dict, output_dir: str | Path) -> dict:
     state = _dashboard_state(config)
     public = _sanitize_public_state(state)
     sources = public.get("sources", {})
-    counts = public.get("counts", {})
+    raw_counts = public.get("counts") if isinstance(public.get("counts"), dict) else {}
+    # Project to plain non-negative integers before the values reach markup;
+    # a missing or malformed count is unavailable ("—"), never a measured zero.
+    counts = {key: raw_counts[key] if type(raw_counts.get(key)) is int and raw_counts[key] >= 0 else "—"
+              for key in ("ok", "warn", "error")}
     rows = []
     for sid, src in sorted(sources.items(), key=lambda x: str((x[1] or {}).get("name", x[0])).lower()):
         filename = "source-" + urllib.parse.quote(sid, safe="") + ".html"
@@ -777,8 +759,8 @@ def build_static_site(config: dict, output_dir: str | Path) -> dict:
 
     body = f'<div class="grid"><div class="card"><div class="muted">Overall status</div><div class="metric {_status_class(public.get("overall","unknown"))}">{_esc(_health_status(public.get("overall","unknown")))}</div></div>' \
         f'<div class="card"><div class="muted">Data sources</div><div class="metric">{len(sources)}</div><span class="subtext">Total source observations currently represented in the unified Watchtower state.</span></div>' \
-        f'<div class="card"><div class="muted">Working normally</div><div class="metric ok">{counts.get("ok",0)}</div></div>' \
-        f'<div class="card"><div class="muted">Warnings / errors</div><div class="metric">{counts.get("warn",0)} / {counts.get("error",0)}</div></div></div>' \
+        f'<div class="card"><div class="muted">Working normally</div><div class="metric ok">{counts["ok"]}</div></div>' \
+        f'<div class="card"><div class="muted">Warnings / errors</div><div class="metric">{counts["warn"]} / {counts["error"]}</div></div></div>' \
         f'<div class="card"><div class="muted">Last checked</div><strong>{_esc(public.get("generated_at","No saved observation"))}</strong></div><br>' \
         '<div class="card"><h2>Data being watched</h2><table><thead><tr><th>Data source</th><th>Status</th><th>Provided by</th><th>Type</th><th>Records</th><th>Changes found</th><th>Last checked</th></tr></thead><tbody>' + "".join(rows) + "</tbody></table></div>"
     page = _layout("GIS Data Watchtower", body, refresh_seconds=300, static=True,
@@ -789,7 +771,9 @@ def build_static_site(config: dict, output_dir: str | Path) -> dict:
 
 def _valid_refresh_request(token: str, expected_token: str, sec_fetch_site: str | None) -> bool:
     sec_fetch = (sec_fetch_site or "").lower()
-    return sec_fetch in ("same-origin", "same-site", "none", "") and hmac.compare_digest(token, expected_token)
+    # Compare bytes: str comparison raises TypeError for non-ASCII input.
+    return sec_fetch in ("same-origin", "same-site", "none", "") and hmac.compare_digest(
+        str(token).encode("utf-8"), str(expected_token).encode("utf-8"))
 
 
 
@@ -914,7 +898,10 @@ def serve(config: dict, host: str = "127.0.0.1", port: int = 8765) -> None:
                 user, password = decoded.split(":", 1)
             except Exception:
                 return False
-            return hmac.compare_digest(user, auth_username) and hmac.compare_digest(password, auth_password)
+            # Compare bytes (str raises TypeError on non-ASCII) and always check both.
+            user_ok = hmac.compare_digest(user.encode("utf-8"), auth_username.encode("utf-8"))
+            password_ok = hmac.compare_digest(password.encode("utf-8"), auth_password.encode("utf-8"))
+            return user_ok and password_ok
 
         def _require_auth(self) -> bool:
             if self._authorized():
@@ -1042,3 +1029,9 @@ def serve(config: dict, host: str = "127.0.0.1", port: int = 8765) -> None:
         pass
     finally:
         server.server_close()
+
+
+def __getattr__(name: str):
+    """Resolve names that v0.2.3 exposed here (see clearparcel.datawatch._compat)."""
+    from clearparcel.datawatch import _compat
+    return _compat.resolve(__name__, name)

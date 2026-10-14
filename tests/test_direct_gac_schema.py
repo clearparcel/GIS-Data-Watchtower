@@ -3,7 +3,10 @@ import datetime as dt
 import csv
 import io
 import unittest
+
 from unittest.mock import patch
+
+from tests.html_text import page_text
 
 from clearparcel.datawatch.county_profiles import compose_county_profiles, FreshnessPolicy, county_profile_counts
 from clearparcel.datawatch.county_profile_panel import render_county_profile_body
@@ -66,7 +69,7 @@ class DirectGacSchemaTests(unittest.TestCase):
         self.assertEqual(result['status'], 'standard-field-names')
         self.assertEqual(result['standard_fields_present'], len(load_gac_standard('parcel')['fields']))
         page = render_county_profile_body(self.profiles()['wabasha'])
-        self.assertIn('Names alone do not establish full compliance', page)
+        self.assertIn('Names alone do not establish full compliance', page_text(page))
         self.assertEqual(direct_schema_assessment('new-feed', self.state['sources'][sid])['status'], 'not-assessed')
         self.assertEqual(direct_schema_assessment(sid, {'category': 'Parcels', 'county_slug': 'beltrami'})['status'], 'not-assessed')
         self.state['sources'][sid]['field_count'] += 1

@@ -391,8 +391,9 @@ class CountyProfilesTests(unittest.TestCase):
         self.assertEqual(source['reporting'], 'current')
         self.assertEqual(source['feature_count'], 42)
         self.assertEqual(source['last_success_at'], '2026-10-01T00:00:00+00:00')
+        # A fresh report without a fresh provider check does not make the check current.
         state['sources']['parcel'].update(checked_at='2026-10-01T00:00:00+00:00', last_report_at=STAMP)
-        self.assertEqual(compose(state)['anoka']['monitoring']['reporting'], 'current')
+        self.assertEqual(compose(state)['anoka']['monitoring']['reporting'], 'overdue')
         state['sources']['parcel']['last_report_at'] = '2026-10-01T00:00:00+00:00'
         self.assertEqual(compose(state)['anoka']['monitoring']['reporting'], 'overdue')
         self.assertEqual(p['becker']['monitoring']['health'], 'unknown')

@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import os
+import tempfile
 import urllib.parse
 from pathlib import Path
 
 from .aggregate import publish_partial
 from .storage import StorageConflictError, backend_from_env
-from .watch import check_sources, load_config
+from .watch import _EXECUTION_PROFILES, _resolve_execution_profile, check_sources, load_config
 
 
 ARTIFACTS = {
@@ -35,13 +36,27 @@ def is_placeholder_config(config: dict) -> bool:
     return True
 
 
+def _aggregate_object(config: dict) -> str | None:
+    return os.environ.get("WATCHTOWER_AGGREGATE_OBJECT") or config.get("aggregate_object")
+
+
+def require_publishable_profile(config: dict, profile: str | None) -> None:
+    """Refuse, before any provider request, a worker name the shared aggregate cannot carry."""
+    if _aggregate_object(config) and profile not in _EXECUTION_PROFILES:
+        raise ValueError(f"only {' or '.join(sorted(_EXECUTION_PROFILES))} workers publish to the shared "
+                         f"aggregate; got execution profile {profile!r}")
+
+
 def publish_worker_result(config: dict, result: dict, profile: str, *, workdir: Path | None = None) -> dict | None:
     """Publish a worker report when a shared aggregate object is configured."""
-    aggregate_name = os.environ.get("WATCHTOWER_AGGREGATE_OBJECT") or config.get("aggregate_object")
+    aggregate_name = _aggregate_object(config)
     if not aggregate_name:
         return None
-    if (result.get("scope") or {}).get("type") == "empty":
-        return None  # Never publish a report that checked nothing.
+    require_publishable_profile(config, profile)
+    scope_type = (result.get("scope") or {}).get("type")
+    explicit_drain = scope_type == "fleet" and result.get("allow_inventory_shrink") is True
+    if scope_type == "empty" or (not result.get("sources") and not explicit_drain):
+        return None  # Never publish a report that checked nothing (an explicit drain excepted).
     root = config.get("_root_dir") or Path(config.get("state_file", ".")).parent
     storage = backend_from_env(root)
     workdir = workdir or Path(os.environ.get("WATCHTOWER_WORKDIR") or root)
@@ -49,12 +64,20 @@ def publish_worker_result(config: dict, result: dict, profile: str, *, workdir: 
 
 
 def run_cloud_job(config_path: str | Path) -> dict:
+    configured = os.environ.get("WATCHTOWER_WORKDIR")
+    if configured:
+        return _run_cloud_job(config_path, Path(configured).expanduser())
+    # A private per-run directory: concurrent or leftover runs never share downloaded state.
+    with tempfile.TemporaryDirectory(prefix="watchtower-job-") as scratch:
+        return _run_cloud_job(config_path, Path(scratch))
+
+
+def _run_cloud_job(config_path: str | Path, workdir: Path) -> dict:
     config = load_config(config_path)
     if is_placeholder_config(config) and os.environ.get("WATCHTOWER_ALLOW_EXAMPLE_CONFIG") != "1":
         # Fail closed: the container default points at the repository example.
         raise RuntimeError("cloud-job refuses the placeholder example configuration; pass --config with the "
                            "deployment registry (or set WATCHTOWER_ALLOW_EXAMPLE_CONFIG=1 for a synthetic test)")
-    workdir = Path(os.environ.get("WATCHTOWER_WORKDIR", "/tmp/watchtower")).expanduser()
     workdir.mkdir(parents=True, exist_ok=True)
     storage = backend_from_env(config.get("_root_dir") or Path(config_path).parent.parent)
 
@@ -84,7 +107,8 @@ def run_cloud_job(config_path: str | Path) -> dict:
         except FileNotFoundError:
             pass
 
-    profile = os.environ.get("WATCHTOWER_EXECUTION_PROFILE", "cloud")
+    profile = _resolve_execution_profile(os.environ.get("WATCHTOWER_EXECUTION_PROFILE") or "cloud")
+    require_publishable_profile(config, profile)
     result = check_sources(config, save=True, execution_profile=profile)
     if (result.get("scope") or {}).get("type") == "empty":
         # Nothing was checked: upload nothing and publish nothing (exit 2).
