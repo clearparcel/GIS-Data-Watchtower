@@ -48,6 +48,10 @@ See [STATUS.md](../STATUS.md) for the per-package detail.
   text, so they may report one change after deployment.
 - **Public state.** Worker names other than `cloud` and `local` are no longer
   published.
+- **Legacy imports.** Every module attribute that v0.2.3 exposed and this
+  stack removed or moved still resolves through
+  `clearparcel.datawatch._compat` (pinned by `tests/test_compat.py`), so code
+  built against v0.2.3 keeps importing. New code should not use those names.
 - **No provider-cadence change.** Scheduling, execution-profile assignments
   and request volume are unchanged. Hold-for-terms counties stay unpolled
   county-direct.
@@ -58,7 +62,19 @@ See [STATUS.md](../STATUS.md) for the per-package detail.
    green on `main`.
 2. Run `python scripts/check_release_version.py` against the live site
    (expect v0.2.3 → v0.3.0). Keep the output.
-3. Run Cloud Build from a clean committed checkout with the full revision.
+3. Run Cloud Build from a clean committed checkout. The October 13 v0.2.3
+   build pattern already passes the full commit SHA and the environment, so
+   it satisfies the new revision check. Reusing that pattern needs these
+   changes:
+   - The identity checks after each image build must expect
+     `{'version': '0.3.0', 'revision': '<full merge SHA>', 'environment': 'production'}`.
+   - After the private dashboard image is built, add a step that imports the
+     private wrapper module inside that image (without starting the server)
+     and fails the build on `ImportError`/`AttributeError`. The wrapper's
+     hash check alone cannot detect an incompatible package.
+   - The provider and publisher jobs still run v0.2.2 images. Moving them to
+     v0.3.0 needs their own image built with the same revision and
+     environment arguments.
 4. Validate on preview/staging:
    - the applicable execution profile(s);
    - source-level results;
