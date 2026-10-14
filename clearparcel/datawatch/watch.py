@@ -8,9 +8,8 @@ import json
 import os
 import re
 import shutil
-import socket
+import socket  # noqa: F401 - tests patch watch.socket.getaddrinfo
 import subprocess
-import sys
 import tempfile
 import tracemalloc
 import time
@@ -145,7 +144,6 @@ USER_AGENT = "GIS-Data-Watchtower/0.1 (+https://github.com/clearparcel/GIS-Data-
 _REDIRECT_CODES = {301, 302, 303, 307, 308}
 _ANSI_ESCAPE_RE = re.compile(r"\x1b(?:\[[0-?]*[ -/]*[@-~]|\][^\x07]*(?:\x07|\x1b\\))")
 _MAX_DIAGNOSTIC_CHARS = 1024
-MNGAC_FIELDS_FILE = Path(__file__).with_name("mngac_parcel_fields.json")
 _MNGAC_NUMERIC_NO_VALUE_FIELDS = {"EMV_LAND","EMV_BLDG","EMV_TOTAL","TAX_YEAR","MKT_YEAR","TAX_CAPAC","TOTAL_TAX","SPEC_ASSES"}
 
 
@@ -218,34 +216,6 @@ def _url_host(url: str) -> str:
     if not parsed.hostname:
         raise RuntimeError("redirect rejected: destination has no hostname")
     return parsed.hostname.lower().rstrip(".")
-
-
-def _destination_publicity(url: str, *, deadline: RequestDeadline | None = None) -> bool | None:
-    """Return True for globally routable, False for local/reserved, None if unresolved."""
-    if deadline is None:
-        with RequestDeadline(20) as bounded:
-            return _destination_publicity(url, deadline=bounded)
-    parsed = urllib.parse.urlparse(url)
-    host = _url_host(url)
-    if host in {"localhost", "metadata.google.internal"} or host.endswith(".localhost") or host.endswith(".internal"):
-        return False
-    try:
-        addresses = [ipaddress.ip_address(host)]
-    except ValueError:
-        port = parsed.port or (443 if parsed.scheme.lower() == "https" else 80)
-        try:
-            infos = resolve_addresses(host, port, deadline)
-        except socket.gaierror:
-            return None
-        addresses = []
-        for info in infos:
-            try:
-                addresses.append(ipaddress.ip_address(info[4][0]))
-            except ValueError:
-                continue
-        if not addresses:
-            return None
-    return all(address.is_global for address in addresses)
 
 
 def _validated_redirect(current_url: str, location: str, initial_url: str, *, deadline: RequestDeadline | None = None) -> str:
@@ -865,11 +835,6 @@ def _field_completeness(url: str, field: str, total: int | None, timeout: int, *
     populated = None if total is None or missing is None else max(0, total - missing)
     pct = None if total in (None, 0) or populated is None else round((populated / total) * 100.0, 2)
     return {"field": field, "missing": missing, "populated": populated, "complete_percent": pct}
-
-
-def _load_mngac_schema() -> dict:
-    """Backward-compatible parcel-standard loader."""
-    return load_gac_standard("parcel")
 
 
 def _gac_population_expression(field_spec: dict, actual_field: str, *, standard_key: str = "parcel") -> str:

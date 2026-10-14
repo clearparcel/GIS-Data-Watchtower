@@ -1,6 +1,5 @@
 import unittest
 from unittest.mock import patch
-from pathlib import Path
 
 from scripts import check_release_version as version_check
 
@@ -39,7 +38,8 @@ class ReleaseVersionTests(unittest.TestCase):
                 version_check.require_new_version(candidate, deployed)
 
     def test_main_blocks_closed_when_live_version_unverifiable(self):
-        with patch.object(version_check, "live_version", side_effect=ValueError("public page unavailable")):
+        with patch.object(version_check, "live_version", side_effect=ValueError("public page unavailable")), \
+                patch("sys.stderr"):
             self.assertEqual(version_check.main([]), 1)
 
     def test_main_blocks_closed_on_truncated_response(self):
@@ -49,7 +49,7 @@ class ReleaseVersionTests(unittest.TestCase):
             self.assertEqual(version_check.main([]), 1)
 
     def test_main_passes_with_bumped_release(self):
-        with patch.object(version_check, "live_version", return_value="0.2.0"):
+        with patch.object(version_check, "live_version", return_value="0.2.0"), patch("sys.stdout"):
             self.assertEqual(version_check.main([]), 0)
 
 

@@ -9,7 +9,6 @@ import os
 import secrets
 import threading
 import urllib.parse
-import re
 from zoneinfo import ZoneInfo
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -18,7 +17,6 @@ from clearparcel.datawatch.dashboard_templates import (
     _esc,
     _layout,
     _public_layout_v2,
-    _refresh_script,
 )
 
 from clearparcel.datawatch.watch import check_sources, load_history, load_state
@@ -26,7 +24,7 @@ from clearparcel.datawatch.transport import RequestDeadline
 from clearparcel.datawatch.aggregate import with_freshness
 from clearparcel.datawatch.parcel_access import access_label, load_parcel_access, statewide_access_label
 from clearparcel.datawatch.public_values import safe_public_url
-from clearparcel.datawatch.county_profile_panel import render_county_profile_panel, render_county_profile_body, percentage_legend, percentage_color_js, percentage_patterns, profile_time, research_summary, PERCENT_COLORS, NO_DATA_COLOR
+from clearparcel.datawatch.county_profile_panel import render_county_profile_body, percentage_patterns, research_summary
 from clearparcel.datawatch.county_profile_exports import county_profiles_csv, parcel_sources_csv
 from clearparcel.datawatch.county_profiles import FreshnessPolicy, compose_county_profiles, county_profile_counts
 from clearparcel.datawatch.gac_standards import gac_defaults, load_gac_standard, normalize_standard_key, standard_keys
@@ -34,7 +32,6 @@ from clearparcel.datawatch.gac_standards import gac_defaults, load_gac_standard,
 COUNTIES_FILE = Path(__file__).with_name("minnesota_counties.json")
 COUNTY_CONTACTS_FILE = Path(__file__).with_name("minnesota_county_contacts.json")
 COUNTY_CONTACT_VERIFICATION_FILE = Path(__file__).with_name("minnesota_county_contact_verification.json")
-MNGAC_FIELDS_FILE = Path(__file__).with_name("mngac_parcel_fields.json")
 COUNTY_BOUNDARIES_FILE = Path(__file__).with_name("minnesota_county_boundaries.json")
 
 
@@ -411,12 +408,6 @@ def _county_status(config: dict, county: dict, state: dict, *, profiles: dict | 
     else:
         status = "not-configured"
 
-    monitoring_paths = []
-    if matches:
-        monitoring_paths.append("county-direct")
-    if statewide_monitored:
-        monitoring_paths.append("mngeo-open")
-
     parcel_access = research.get(name)
     monitoring_paths = profile['monitoring']['paths']
     if profile['monitoring']['active']:
@@ -510,14 +501,6 @@ def render_counties(config: dict) -> str:
 def _render_county_mngac(state: dict, county: dict) -> str:
     from clearparcel.datawatch.dashboard_gac import _render_county_mngac as render
     return render(state, county)
-
-
-
-
-def _county_mngac_summary(state: dict, county: dict) -> dict:
-    from clearparcel.datawatch.dashboard_gac import _county_mngac_summary as build
-    return build(state, county)
-
 
 
 
@@ -664,14 +647,9 @@ def _statewide_snapshot(config: dict) -> dict:
 
 
 from clearparcel.datawatch.dashboard_exports import (
-    _csv_safe,
-    _gac_xlsx_sheets,
     _mngac_csv,
-    _mngac_xlsx_sheets,
     _snapshot_csv,
     _snapshot_xlsx,
-    _xlsx_col_name,
-    _xlsx_sheet_xml,
 )
 from clearparcel.datawatch.dashboard_routes import dispatch_snapshot_exports
 

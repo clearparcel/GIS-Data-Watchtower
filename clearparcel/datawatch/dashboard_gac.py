@@ -497,17 +497,6 @@ def _render_county_mngac(state: dict, county: dict) -> str:
 <script>(function(){{const q=document.getElementById('cmq'),i=document.getElementById('cmi');function f(){{const t=(q.value||'').toLowerCase(),c=i.value;document.querySelectorAll('#county-mngac-fields tbody tr').forEach(r=>r.style.display=(!t||r.dataset.name.includes(t))&&(!c||r.dataset.inclusion===c)?'':'none')}}q.addEventListener('input',f);i.addEventListener('change',f)}})();</script>
 """
 
-def _county_mngac_summary(state: dict, county: dict) -> dict:
-    data, county_stats = _dashboard._mngac_county_record(state, county["name"])
-    source_id, source = _dashboard._mngac_source(state)
-    return {
-        "data": data,
-        "county": county_stats,
-        "source_id": source_id,
-        "source": source,
-        "checked_at": (source or {}).get("checked_at") or (source or {}).get("last_success_at"),
-    }
-
 def _render_county_gac_summaries(state: dict, county: dict) -> str:
     name = str(county.get("name") or "")
     cards = []

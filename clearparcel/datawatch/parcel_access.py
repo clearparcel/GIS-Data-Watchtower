@@ -6,7 +6,7 @@ import copy
 import json
 from pathlib import Path
 from urllib.parse import urlsplit
-from .public_values import safe_public_url, public_access_classification, safe_geometry_type, safe_file_type
+from .public_values import safe_public_url, safe_geometry_type, safe_file_type
 
 DIRECT_CLASSIFICATIONS = {
     "free-parcel-data": "Open parcel data",

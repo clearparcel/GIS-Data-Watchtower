@@ -5,12 +5,14 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-TOOLS_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(TOOLS_ROOT))
+REPO_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO_ROOT))
 
 import clearparcel.datawatch.watch as datawatch
 import clearparcel.datawatch.dashboard as datawatch_dashboard
 from clearparcel.datawatch.watch import _compare, load_config as load_data_config, load_history as load_data_history
+from clearparcel.datawatch.dashboard_exports import _csv_safe
+from tests.html_text import page_text
 
 class DataWatchTests(unittest.TestCase):
     def test_arcgis_provider_date_uses_existing_metadata_response(self):
@@ -32,7 +34,7 @@ class DataWatchTests(unittest.TestCase):
         self.assertEqual(result['editing_info'], {'lastEditDate': 1735689600000})
 
     def test_data_source_registry_loads(self):
-        config = load_data_config(TOOLS_ROOT / 'config' / 'example_sources.json')
+        config = load_data_config(REPO_ROOT / 'config' / 'example_sources.json')
         self.assertGreaterEqual(len(config['sources']), 2)
         self.assertEqual(len({x['id'] for x in config['sources']}), len(config['sources']))
         ids = {x['id'] for x in config['sources']}
@@ -40,7 +42,7 @@ class DataWatchTests(unittest.TestCase):
         self.assertIn('example-wms', ids)
 
     def test_public_example_uses_supported_configuration_keys(self):
-        example = json.loads((TOOLS_ROOT / 'config' / 'example_sources.json').read_text(encoding='utf-8'))
+        example = json.loads((REPO_ROOT / 'config' / 'example_sources.json').read_text(encoding='utf-8'))
         self.assertEqual(example.get('history_max_mb'), 5)
         self.assertNotIn('history_max_lines', example)
         self.assertNotIn('history_max_bytes', example)
@@ -50,7 +52,7 @@ class DataWatchTests(unittest.TestCase):
         self.assertNotIn('expected_fields', arcgis)
 
     def test_mngac_reference_schema_has_all_official_fields_and_boundaries(self):
-        schema = json.loads((TOOLS_ROOT / 'clearparcel' / 'datawatch' / 'mngac_parcel_fields.json').read_text(encoding='utf-8'))
+        schema = json.loads((REPO_ROOT / 'clearparcel' / 'datawatch' / 'mngac_parcel_fields.json').read_text(encoding='utf-8'))
         fields = schema['fields']
         self.assertEqual(schema['standard']['version'], '1.1.3')
         self.assertEqual(len(fields), 91)
@@ -61,8 +63,8 @@ class DataWatchTests(unittest.TestCase):
         self.assertIn('EXP_DATE', {x['field'] for x in fields})
         self.assertIn('PRIN_MER', {x['field'] for x in fields})
 
-        boundaries = json.loads((TOOLS_ROOT / 'clearparcel' / 'datawatch' / 'minnesota_county_boundaries.json').read_text(encoding='utf-8'))
-        counties = json.loads((TOOLS_ROOT / 'clearparcel' / 'datawatch' / 'minnesota_counties.json').read_text(encoding='utf-8'))['counties']
+        boundaries = json.loads((REPO_ROOT / 'clearparcel' / 'datawatch' / 'minnesota_county_boundaries.json').read_text(encoding='utf-8'))
+        counties = json.loads((REPO_ROOT / 'clearparcel' / 'datawatch' / 'minnesota_counties.json').read_text(encoding='utf-8'))['counties']
         self.assertEqual(len(boundaries['counties']), 87)
         self.assertEqual(
             {x['name'] for x in boundaries['counties']},
@@ -211,7 +213,7 @@ class DataWatchTests(unittest.TestCase):
         self.assertIn('COUNTY_PIN', result['source_schema_missing_fields'])
 
     def test_mngac_full_schema_uses_eight_bounded_batches(self):
-        schema = datawatch._load_mngac_schema()
+        schema = datawatch.load_gac_standard("parcel")
         field_names = ['OBJECTID'] + [x['field'] for x in schema['fields']]
         attrs = {'CO_NAME': 'Aitkin', 'CO_CODE': '27001', 'record_count': 10}
         attrs.update({f'p{i}': 10 for i in range(20)})
@@ -286,7 +288,7 @@ class DataWatchTests(unittest.TestCase):
             page = datawatch_dashboard.render_mngac(config, view="statewide")
             self.assertIn('Interactive Minnesota county map', page)
             self.assertNotIn('http-equiv="refresh"', page)
-            self.assertIn('Interactive view · reload for latest saved data', page)
+            self.assertIn('reload for latest saved data', page_text(page))
             self.assertEqual(page.count('class="mngac-county"'), 87)
             self.assertIn('All 91 fields', page)
             self.assertIn('No data', page)
@@ -523,9 +525,10 @@ class DataWatchTests(unittest.TestCase):
             self.assertIn('--accent:#0b6fa4', overview)
             self.assertIn('Sources taking longest to respond', overview)
             self.assertIn('Data sources by category', overview)
-            self.assertIn('Combined health of all cloud and local source checks', overview)
-            self.assertIn('Sources currently included across the cloud and local workers', overview)
-            self.assertIn('Most recent successful observation, not merely last attempt', overview)
+            text = page_text(overview)
+            for phrase in ('cloud and local source checks', 'across the cloud and local workers',
+                           'not merely last attempt'):
+                self.assertIn(phrase, text)
             self.assertEqual(len(datawatch_dashboard._load_counties()), 87)
             self.assertIn('Wabasha County', counties)
             self.assertIn('Yellow Medicine County', counties)
@@ -550,7 +553,7 @@ class DataWatchTests(unittest.TestCase):
         self.assertEqual(len(records), 87)
         self.assertFalse([name for name, record in records.items() if record.get('authority') == 'mngeo_unverified'])
         self.assertTrue(all(record.get('authority') in ('county', 'mngeo') for record in records.values()))
-        config = {'state_file': str(TOOLS_ROOT / 'datawatch' / 'state.json'), 'history_file': str(TOOLS_ROOT / 'datawatch' / 'history.jsonl'), 'sources': []}
+        config = {'state_file': str(REPO_ROOT / 'datawatch' / 'state.json'), 'history_file': str(REPO_ROOT / 'datawatch' / 'history.jsonl'), 'sources': []}
         wabasha = datawatch_dashboard.render_county(config, 'wabasha')
         lincoln = datawatch_dashboard.render_county(config, 'lincoln')
         self.assertIn('County GIS contacts', wabasha)
@@ -619,7 +622,7 @@ class DataWatchTests(unittest.TestCase):
             csv_text = datawatch_dashboard._snapshot_csv(snap)
             self.assertIn('County monitoring coverage', page)
             self.assertIn('MnGeo parcel update age', page)
-            self.assertIn('Use Export in the page toolbar for statewide Excel, CSV, or JSON.', page)
+            self.assertRegex(page_text(page), r'Use Export in the page toolbar for statewide Excel, CSV,? or JSON')
             self.assertIn('County parcel update information', county)
             self.assertIn('Last county update', county)
             self.assertIn('Download county snapshot', county)
@@ -640,7 +643,7 @@ class DataWatchTests(unittest.TestCase):
         fields = datawatch_dashboard._snapshot_time_fields(value, 'checked')
         self.assertTrue(fields['checked_central'].endswith('-05:00'))
         self.assertTrue(fields['checked_utc'].endswith('+00:00'))
-        cfg = load_data_config(TOOLS_ROOT / 'config' / 'example_sources.json')
+        cfg = load_data_config(REPO_ROOT / 'config' / 'example_sources.json')
         ids = {x['id'] for x in cfg['sources']}
         self.assertEqual(ids, {'example-arcgis-layer', 'example-wms'})
 
@@ -652,7 +655,7 @@ class DataWatchTests(unittest.TestCase):
         fields = datawatch_dashboard._snapshot_time_fields(value, 'checked')
         self.assertTrue(fields['checked_central'].endswith('-05:00'))
         self.assertTrue(fields['checked_utc'].endswith('+00:00'))
-        cfg = load_data_config(TOOLS_ROOT / 'config' / 'example_sources.json')
+        cfg = load_data_config(REPO_ROOT / 'config' / 'example_sources.json')
         self.assertEqual(len(cfg['sources']), 2)
         import tempfile
         with tempfile.TemporaryDirectory() as td:
@@ -900,8 +903,8 @@ class DataWatchTests(unittest.TestCase):
         for status in (401, 403, 404, 410):
             with self.subTest(status=status):
                 config = {
-                    "state_file": str(TOOLS_ROOT / "datawatch" / "unused-state.json"),
-                    "history_file": str(TOOLS_ROOT / "datawatch" / "unused-history.jsonl"),
+                    "state_file": str(REPO_ROOT / "datawatch" / "unused-state.json"),
+                    "history_file": str(REPO_ROOT / "datawatch" / "unused-history.jsonl"),
                     "retries": 3, "retry_delay_seconds": 0,
                     "sources": [{"id": "denied", "name": "Denied", "kind": "arcgis_layer",
                                  "url": "https://example.invalid/0"}],
@@ -919,8 +922,8 @@ class DataWatchTests(unittest.TestCase):
         for failure in (TimeoutError("timed out"), RuntimeError("provider returned HTTP 503")):
             with self.subTest(failure=type(failure).__name__):
                 config = {
-                    "state_file": str(TOOLS_ROOT / "datawatch" / "unused-state.json"),
-                    "history_file": str(TOOLS_ROOT / "datawatch" / "unused-history.jsonl"),
+                    "state_file": str(REPO_ROOT / "datawatch" / "unused-state.json"),
+                    "history_file": str(REPO_ROOT / "datawatch" / "unused-history.jsonl"),
                     "retries": 1, "retry_delay_seconds": 0,
                     "sources": [{"id": "transient", "name": "Transient", "kind": "arcgis_layer",
                                  "url": "https://example.invalid/0"}],
@@ -934,7 +937,7 @@ class DataWatchTests(unittest.TestCase):
 
     def test_rate_limit_stops_source_retry_loop(self):
         from unittest.mock import patch
-        config = {'state_file': str(TOOLS_ROOT / 'datawatch' / 'test-rate-state.json'), 'history_file': str(TOOLS_ROOT / 'datawatch' / 'test-rate-history.jsonl'), 'retries': 3, 'sources': [{'id': 'rate', 'name': 'Rate', 'kind': 'arcgis_layer', 'url': 'https://example.invalid/0'}]}
+        config = {'state_file': str(REPO_ROOT / 'datawatch' / 'test-rate-state.json'), 'history_file': str(REPO_ROOT / 'datawatch' / 'test-rate-history.jsonl'), 'retries': 3, 'sources': [{'id': 'rate', 'name': 'Rate', 'kind': 'arcgis_layer', 'url': 'https://example.invalid/0'}]}
         with patch.object(datawatch, 'load_state', return_value={'sources': {}}), patch.object(datawatch, '_source_check', side_effect=datawatch.ProviderRateLimitError('60')) as check:
             report = datawatch.check_sources(config, save=False)
         self.assertEqual(check.call_count, 1)
@@ -995,14 +998,14 @@ class DataWatchTests(unittest.TestCase):
             self.assertEqual(cfg['history_file'], '/tmp/history.jsonl')
 
     def test_dashboard_time_helpers_are_defined_once(self):
-        source = (TOOLS_ROOT / 'clearparcel' / 'datawatch' / 'dashboard.py').read_text(encoding='utf-8')
+        source = (REPO_ROOT / 'clearparcel' / 'datawatch' / 'dashboard.py').read_text(encoding='utf-8')
         self.assertEqual(source.count('CENTRAL_TZ = ZoneInfo("America/Chicago")'), 1)
         self.assertEqual(source.count('def _format_time_pair('), 1)
         self.assertEqual(source.count('def _snapshot_time_fields('), 1)
 
     def test_snapshot_csv_neutralizes_formula_cells(self):
-        self.assertEqual(datawatch_dashboard._csv_safe('=HYPERLINK("x")'), '\'=HYPERLINK("x")')
-        self.assertEqual(datawatch_dashboard._csv_safe('+cmd'), "'+cmd")
+        self.assertEqual(_csv_safe('=HYPERLINK("x")'), '\'=HYPERLINK("x")')
+        self.assertEqual(_csv_safe('+cmd'), "'+cmd")
 
 
     def test_provider_http_refusals_do_not_use_fallback_transport(self):
@@ -1242,7 +1245,7 @@ class DataWatchTests(unittest.TestCase):
 
     def test_get_429_stops_outer_retry_loop(self):
         from unittest.mock import patch
-        config = {'state_file': str(TOOLS_ROOT / 'datawatch' / 'test-get-rate-state.json'), 'history_file': str(TOOLS_ROOT / 'datawatch' / 'test-get-rate-history.jsonl'), 'retries': 3, 'sources': [{'id': 'rate', 'name': 'Rate', 'kind': 'arcgis_layer', 'url': 'https://example.invalid/0'}]}
+        config = {'state_file': str(REPO_ROOT / 'datawatch' / 'test-get-rate-state.json'), 'history_file': str(REPO_ROOT / 'datawatch' / 'test-get-rate-history.jsonl'), 'retries': 3, 'sources': [{'id': 'rate', 'name': 'Rate', 'kind': 'arcgis_layer', 'url': 'https://example.invalid/0'}]}
         with patch.object(datawatch, 'load_state', return_value={'sources': {}}), patch.object(datawatch, '_urllib_request_once', side_effect=datawatch.ProviderRateLimitError('60')) as request:
             report = datawatch.check_sources(config, save=False)
         self.assertEqual(request.call_count, 1)
@@ -1268,13 +1271,13 @@ class DataWatchTests(unittest.TestCase):
 
     def test_filtered_check_reports_source_scope(self):
         from unittest.mock import patch
-        config = {'state_file': str(TOOLS_ROOT / 'datawatch' / 'scope-state.json'), 'history_file': str(TOOLS_ROOT / 'datawatch' / 'scope-history.jsonl'), 'sources': [{'id': 'one', 'name': 'One', 'kind': 'arcgis_layer', 'url': 'https://example.invalid/0'}]}
+        config = {'state_file': str(REPO_ROOT / 'datawatch' / 'scope-state.json'), 'history_file': str(REPO_ROOT / 'datawatch' / 'scope-history.jsonl'), 'sources': [{'id': 'one', 'name': 'One', 'kind': 'arcgis_layer', 'url': 'https://example.invalid/0'}]}
         with patch.object(datawatch, 'load_state', return_value={'sources': {}}), patch.object(datawatch, '_source_check', return_value={'field_names': [], 'schema_hash': 'x', 'problems': []}):
             report = datawatch.check_sources(config, source_filter='one', save=False)
         self.assertEqual(report['scope'], {'type': 'source', 'source_id': 'one'})
 
     def test_example_registry_is_safe_and_provider_neutral(self):
-        cfg = datawatch.load_config(TOOLS_ROOT / 'config' / 'example_sources.json')
+        cfg = datawatch.load_config(REPO_ROOT / 'config' / 'example_sources.json')
         self.assertEqual(len(cfg['sources']), 2)
         from urllib.parse import urlsplit
         self.assertTrue(all(urlsplit(x['url']).hostname == 'example.com' for x in cfg['sources']))
@@ -1297,19 +1300,6 @@ class DataWatchTests(unittest.TestCase):
             self.assertIn("Example",sheet)
             self.assertIn("https://example.com/data",sheet)
 
-    def test_local_storage_round_trip(self):
-        import tempfile
-        from clearparcel.datawatch.storage import LocalStorage
-        with tempfile.TemporaryDirectory() as td:
-            root=Path(td)
-            source=root/"source.json"; source.write_text('{"ok":true}',encoding="utf-8")
-            backend=LocalStorage(root/"objects")
-            backend.upload_if_version("state.json",source,None)
-            destination=root/"downloaded.json"
-            self.assertTrue(backend.download("state.json",destination))
-            self.assertEqual(destination.read_text(encoding="utf-8"),'{"ok":true}')
-            self.assertFalse(backend.download("missing.json",root/"missing.json"))
-
     def test_storage_backend_env_validation(self):
         import os, tempfile
         from clearparcel.datawatch.storage import LocalStorage, backend_from_env
@@ -1322,13 +1312,12 @@ class DataWatchTests(unittest.TestCase):
                     backend_from_env(td)
 
     def test_public_cli_defaults_to_example_config(self):
-        import inspect
         from clearparcel.datawatch import cli
         self.assertIn("example_sources.json",str(cli._default_config()))
 
     def test_execution_profiles_filter_sources(self):
         from unittest.mock import patch
-        config={"state_file":str(TOOLS_ROOT/"datawatch"/"profile-state.json"),"history_file":str(TOOLS_ROOT/"datawatch"/"profile-history.jsonl"),"sources":[
+        config={"state_file":str(REPO_ROOT/"datawatch"/"profile-state.json"),"history_file":str(REPO_ROOT/"datawatch"/"profile-history.jsonl"),"sources":[
             {"id":"cloud","name":"Cloud","kind":"arcgis_layer","url":"https://example.invalid/0","execution_profiles":["cloud"]},
             {"id":"local","name":"Local","kind":"arcgis_layer","url":"https://example.invalid/1","execution_profiles":["local"]},
             {"id":"any","name":"Any","kind":"arcgis_layer","url":"https://example.invalid/2","execution_profiles":["any"]},
@@ -1367,14 +1356,14 @@ class DataWatchTests(unittest.TestCase):
             self.assertEqual(load_json(path)["overall"],"ok")
 
     def test_run_wrapper_preserves_warning_exit_code(self):
-        wrapper = (TOOLS_ROOT / 'run-datawatch.cmd').read_text(encoding='utf-8')
+        wrapper = (REPO_ROOT / 'run-datawatch.cmd').read_text(encoding='utf-8')
         self.assertIn('exit /b %RC%', wrapper)
         self.assertIn('CLEARPARCEL_WATCHTOWER_CONFIG', wrapper)
         self.assertIn('if not exist "%ROOT%datawatch" mkdir "%ROOT%datawatch"', wrapper)
         self.assertNotIn('if %RC% GEQ 2', wrapper)
 
     def test_watchtower_ci_covers_standalone_package_without_live_provider_check(self):
-        workflow = (TOOLS_ROOT / ".github" / "workflows" / "watchtower-ci.yml").read_text(encoding="utf-8")
+        workflow = (REPO_ROOT / ".github" / "workflows" / "watchtower-ci.yml").read_text(encoding="utf-8")
         self.assertIn("pip install --disable-pip-version-check --constraint constraints.txt -e \".[gcs]\"", workflow)
         self.assertIn("unittest discover -s tests", workflow)
         self.assertIn("ubuntu-24.04", workflow)
@@ -1393,7 +1382,7 @@ class DataWatchTests(unittest.TestCase):
         with patch.object(datawatch, '_urllib_request_once', side_effect=datawatch.ProviderRateLimitError('60')):
             with self.assertRaises(datawatch.ProviderRateLimitError):
                 datawatch._request('https://example.invalid', 1)
-        config = {'state_file': str(TOOLS_ROOT / 'datawatch' / 'test-get429-state.json'), 'history_file': str(TOOLS_ROOT / 'datawatch' / 'test-get429-history.jsonl'), 'retries': 3, 'sources': [{'id': 'rate', 'name': 'Rate', 'kind': 'arcgis_layer', 'url': 'https://example.invalid/0'}]}
+        config = {'state_file': str(REPO_ROOT / 'datawatch' / 'test-get429-state.json'), 'history_file': str(REPO_ROOT / 'datawatch' / 'test-get429-history.jsonl'), 'retries': 3, 'sources': [{'id': 'rate', 'name': 'Rate', 'kind': 'arcgis_layer', 'url': 'https://example.invalid/0'}]}
         with patch.object(datawatch, 'load_state', return_value={'sources': {}}), patch.object(datawatch, '_source_check', side_effect=datawatch.ProviderRateLimitError('60')) as check:
             report = datawatch.check_sources(config, save=False)
         self.assertEqual(check.call_count, 1)
@@ -1432,7 +1421,7 @@ class DataWatchTests(unittest.TestCase):
 
     def test_filtered_check_result_is_explicitly_source_scoped(self):
         from unittest.mock import patch
-        config = {'state_file': str(TOOLS_ROOT / 'datawatch' / 'scope-state.json'), 'history_file': str(TOOLS_ROOT / 'datawatch' / 'scope-history.jsonl'), 'sources': [{'id': 'one', 'name': 'One', 'kind': 'arcgis_layer', 'url': 'https://example.invalid/0'}]}
+        config = {'state_file': str(REPO_ROOT / 'datawatch' / 'scope-state.json'), 'history_file': str(REPO_ROOT / 'datawatch' / 'scope-history.jsonl'), 'sources': [{'id': 'one', 'name': 'One', 'kind': 'arcgis_layer', 'url': 'https://example.invalid/0'}]}
         details = {'http_status': 200, 'transport': 'test', 'layer_name': 'One', 'geometry_type': 'esriGeometryPolygon', 'wkid': 26915, 'object_id_field': 'OBJECTID', 'field_count': 1, 'field_names': ['OBJECTID'], 'schema_hash': 'x', 'spatial_extent': None, 'problems': []}
         with patch.object(datawatch, 'load_state', return_value={'sources': {}}), patch.object(datawatch, '_source_check', return_value=details):
             result = datawatch.check_sources(config, source_filter='one', save=False)

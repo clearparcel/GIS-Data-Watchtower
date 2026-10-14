@@ -28,7 +28,6 @@ def render_dashboard(config: dict) -> str:
             changed_30 += 1
         meta = config_map.get(sid, {})
         enriched.append((sid, src, meta, stats, hist))
-    telemetry = state.get("telemetry") or {}
     workers = state.get("workers") or {}
     worker_cards = []
     for worker_name in ("cloud", "local"):
@@ -72,7 +71,6 @@ def render_dashboard(config: dict) -> str:
     rows = []
     categories = sorted({str(meta.get("category") or src.get("category") or "Other") for _,src,meta,_,_ in enriched})
     for sid, src, meta, stats, hist in sorted(enriched, key=lambda x: str(x[1].get("name", x[0])).lower()):
-        changes = src.get("changes") or []
         provider = meta.get("provider") or src.get("provider") or "—"
         category = meta.get("category") or src.get("category") or "Other"
         prev_count = next((x.get("feature_count") for x in reversed(hist[:-1]) if x.get("feature_count") is not None), None) if len(hist) > 1 else None

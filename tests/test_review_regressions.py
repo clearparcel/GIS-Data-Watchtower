@@ -1,4 +1,5 @@
 """Offline regressions for the October 6 manual review findings."""
+import contextlib
 import io
 import json
 import os
@@ -56,7 +57,8 @@ class ReviewRegressions(unittest.TestCase):
                  patch.object(module, "render_county", return_value="County detail"), \
                  patch.object(module, "render_source" if module is dashboard else "render_public_source", return_value="Source detail"), \
                  patch.object(dashboard, "_dashboard_auth", return_value=(None, "watchtower")), \
-                 patch.object(public_dashboard, "_PublicStateCache", Cache):
+                 patch.object(public_dashboard, "_PublicStateCache", Cache), \
+                 contextlib.redirect_stdout(io.StringIO()):
                 if module is dashboard:
                     dashboard.serve({"_render_state": state})
                 else:
@@ -535,7 +537,8 @@ LocalStorage(sys.argv[1]).upload_if_version('state.json',Path(sys.argv[2]),None)
             with patch.dict(os.environ, {"WATCHTOWER_EXECUTION_PROFILE": "cloud"}), \
                  patch.object(dashboard, "_BoundedThreadingHTTPServer", Server), \
                  patch.object(dashboard.threading, "Thread", InlineThread), \
-                 patch.object(watch, "_source_check", side_effect=lambda source,timeout: (calls.append(source["id"]) or {"problems": []})):
+                 patch.object(watch, "_source_check", side_effect=lambda source,timeout: (calls.append(source["id"]) or {"problems": []})), \
+                 contextlib.redirect_stdout(io.StringIO()):
                 dashboard.serve(config)
             self.assertEqual(calls, ["cloud"])
 
