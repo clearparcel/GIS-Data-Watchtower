@@ -169,7 +169,8 @@ class PublicDashboardTests(unittest.TestCase):
             page=render_mngac({'_public_mode':True})
         self.assertEqual(len(re.findall(r'<path class="mngac-county"',page)),87)
         self.assertIn('class="gac-map-link"',page)
-        self.assertIn('style="fill:#151d2b"',page)
+        self.assertIn('style="fill:url(#pct-no-data)"',page)
+        self.assertIn('<pattern id="pct-no-data"',page)
 
     def test_county_detail_uses_complete_composed_profile(self):
         from unittest.mock import patch
@@ -409,7 +410,7 @@ class PublicDashboardTests(unittest.TestCase):
                 "_public_mode": True,
             }
             page = render_public_source(config, "county-parcels-direct")
-            self.assertIn('class="active" aria-current="page">Data Sources</a>', page)
+            self.assertRegex(page, r'class="active" aria-current="page"><span class="tab-long">Data Sources</span><span class="tab-short">Sources</span></a>')
             self.assertIn("Data Source — County Parcels", page)
 
     def test_public_overview_uses_v2_shell_and_interactive_map(self):
@@ -498,7 +499,7 @@ class PublicDashboardTests(unittest.TestCase):
                 "_public_mode": True,
             }
             page = render_public_source(config, "county-parcels-direct")
-            self.assertIn('<a href="/#datasets" class="active" aria-current="page">Data Sources</a>', page)
+            self.assertIn('<a href="/#datasets" class="active" aria-current="page"><span class="tab-long">Data Sources</span>', page)
             self.assertNotIn(raw["sources"]["county-parcels-direct"]["checked_at"], page)
 
     def test_private_layout_does_not_use_public_v2_shell(self):

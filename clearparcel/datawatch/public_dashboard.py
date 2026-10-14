@@ -292,6 +292,7 @@ def render_public_dashboard(config: dict) -> str:
   const monitoringPaths={monitoring_json};
   const countyStatuses={status_json},statusStyles={status_styles_json};
   const selector=root.getElementById("overview-metric");
+  root.querySelectorAll('.mngac-county').forEach(p=>p.setAttribute('aria-pressed','false'));
   let selectedPath=null;
   function monitoringLabel(paths){{
     return paths.length===2?'Both county-direct and MnGeo open parcel monitoring paths':paths.includes('county-direct')?'County-direct parcel monitoring path':paths.includes('mngeo-open')?'MnGeo open parcel monitoring path':'No active parcel monitoring path';
@@ -312,12 +313,12 @@ def render_public_dashboard(config: dict) -> str:
     const schema=selector.value==='schema';
     root.querySelectorAll(".mngac-county").forEach(p=>{{
       const paths=monitoringPaths[p.dataset.slug]||[],d=countyData[p.dataset.county];
-      p.style.fill=schema?statusStyles[countyStatuses[p.dataset.slug]].fill:monitoring?(paths.length===2?"#4c9b7b":paths.includes("county-direct")?"#3c708f":paths.includes("mngeo-open")?"#315373":"#151d2b"):fill(d&&d.all_pct);
+      p.style.fill=schema?statusStyles[countyStatuses[p.dataset.slug]].fill:monitoring?(paths.length===2?"#4c9b7b":paths.includes("county-direct")?"#3c708f":paths.includes("mngeo-open")?"#315373":"#3a4556"):fill(d&&d.all_pct);
       const label=schema?statusStyles[countyStatuses[p.dataset.slug]].label:monitoring?monitoringLabel(paths):d&&d.all_pct!=null?Number(d.all_pct).toFixed(2)+'% MN GAC all-field population':'Statewide completeness is unavailable';
       p.setAttribute('aria-label',p.dataset.county+' County, '+label);
     }});
     updateDescription();
-    root.getElementById("overview-legend").innerHTML=schema?{json.dumps(status_legend())}:monitoring?'<div class="mngac-legend"><span><i class="mngac-swatch" style="background:#4c9b7b"></i>Both paths</span><span><i class="mngac-swatch" style="background:#3c708f"></i>County-direct</span><span><i class="mngac-swatch" style="background:#315373"></i>MnGeo open</span><span><i class="mngac-swatch" style="background:#151d2b"></i>No active parcel path</span></div>':{json.dumps(percentage_legend())};
+    root.getElementById("overview-legend").innerHTML=schema?{json.dumps(status_legend())}:monitoring?'<div class="mngac-legend" role="group" aria-label="Monitoring path legend"><span><i class="mngac-swatch" style="background:#4c9b7b"></i>Both paths</span><span><i class="mngac-swatch" style="background:#3c708f"></i>County-direct</span><span><i class="mngac-swatch" style="background:#315373"></i>MnGeo open</span><span><i class="mngac-swatch" style="background:#3a4556"></i>No active parcel path</span></div>':{json.dumps(percentage_legend())};
     root.getElementById('overview-map-note').textContent=schema?'MN GAC availability uses MnGeo county observations or checked standard field names. A differing direct feed does not rule out a separate standardized export. No confirmed open data means current research found no open product; unresolved cases remain separate.':monitoring?'Monitoring paths describe saved observations, not all available parcel products.':'Percentages describe statewide population across all 91 MN GAC fields, including conditional and optional fields; they are not compliance grades. Unavailable is not 0% and does not establish a different direct schema.';
   }}
   selector.addEventListener("change",updateOverview);

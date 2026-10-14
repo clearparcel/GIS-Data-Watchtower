@@ -49,7 +49,9 @@ The Overview **Map view** selector includes **MN GAC / open-data status**, **Mon
 - **Monitoring paths:** Is the county represented through a statewide source, a county-direct source, both, or neither in the current observations?
 - **MN GAC all-field population:** How extensively are standardized parcel fields populated in the recorded statewide observation?
 
-Map colors and patterns must be read with their legend. They are **not** rankings of county GIS quality.
+Map colors and patterns must be read with their legend. They are **not** rankings of county GIS quality. On percentage maps, counties without a measured rate are hatched and labelled **No data**; that is never the same as a low percentage.
+
+**Keyboard and screen readers:** the first Tab on every page offers **Skip to content**, and each county map starts with **Skip county map** so you can move past its 87 county targets. Every county on a map has a text label, data tables are captioned with their section heading, and automatic refresh can be paused with the **Pause refresh** button in the header.
 
 ## 3. Compare standard fields under MN GAC
 

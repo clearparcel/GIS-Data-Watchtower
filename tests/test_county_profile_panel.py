@@ -109,20 +109,33 @@ const flush=()=>new Promise(resolve=>setImmediate(resolve));
 
     @unittest.skipUnless(NODE_AVAILABLE, "JavaScript boundary execution requires Node.js")
     def test_percentage_class_boundaries_and_legend_match_emitted_javascript(self):
-        from clearparcel.datawatch.county_profile_panel import percentage_color_js, percentage_legend, PERCENT_COLORS, NO_DATA_COLOR
+        from clearparcel.datawatch.county_profile_panel import percentage_color_js, percentage_legend, PERCENT_COLORS, NO_DATA_FILL
         values = [0, 0.001, 29.999, 30, 30.001, 49.999, 50, 50.001,
                   69.999, 70, 70.001, 100, None, "", "30", -1, 101]
         expected = [PERCENT_COLORS[i] for i in [0, 0, 0, 1, 1, 1, 2, 2,
-                    2, 2, 3, 3]] + [NO_DATA_COLOR] * 5
+                    2, 2, 3, 3]] + [NO_DATA_FILL] * 5
         script = percentage_color_js() + "\nconsole.log(JSON.stringify(" + json.dumps(values) + ".map(percentageColor).concat([percentageColor(undefined),percentageColor(NaN),percentageColor(Infinity),percentageColor(-Infinity)])))"
         result = subprocess.run(["node", "-e", script], check=True, capture_output=True, text=True)
-        self.assertEqual(json.loads(result.stdout), expected + [NO_DATA_COLOR] * 4)
+        self.assertEqual(json.loads(result.stdout), expected + [NO_DATA_FILL] * 4)
         self.assertEqual(result.stderr, "")
     def test_percentage_legend_classes_and_palette(self):
         from clearparcel.datawatch.county_profile_panel import percentage_legend, PERCENT_COLORS, NO_DATA_COLOR
         legend = html.unescape(percentage_legend())
-        self.assertEqual(PERCENT_COLORS, ["#1b2b40", "#315373", "#3c708f", "#4c9b7b"])
-        self.assertEqual(legend.count('class="mngac-swatch"'), 5)
-        for color, label in zip([NO_DATA_COLOR] + PERCENT_COLORS,
-                                ["N/A", "<30%", "30% - 50%", "50% - 70%", ">70%"]):
-            self.assertIn(f'background:{color}"></i>{label}</span>', legend)
+        self.assertEqual(PERCENT_COLORS, ["#30506f", "#4583b3", "#7cbedf", "#c9edf5"])
+        self.assertEqual(legend.count('class="mngac-swatch'), 5)
+        self.assertIn('role="group"', legend)
+        self.assertIn('class="mngac-swatch pct-no-data-swatch" style="background-color:#151d2b" aria-hidden="true"></i>No data</span>', legend)
+        for color, label in zip(PERCENT_COLORS, ["<30%", "30% - 50%", "50% - 70%", ">70%"]):
+            self.assertIn(f'background-color:{color}" aria-hidden="true"></i>{label}</span>', legend)
+
+    def test_adjacent_percentage_classes_have_usable_contrast(self):
+        from clearparcel.datawatch.county_profile_panel import PERCENT_COLORS
+
+        def luminance(color):
+            channels = [int(color[i:i + 2], 16) / 255 for i in (1, 3, 5)]
+            r, g, b = [c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4 for c in channels]
+            return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+        for darker, lighter in zip(PERCENT_COLORS, PERCENT_COLORS[1:]):
+            ratio = (luminance(lighter) + 0.05) / (luminance(darker) + 0.05)
+            self.assertGreaterEqual(ratio, 1.6, (darker, lighter))

@@ -25,7 +25,7 @@ from clearparcel.datawatch.watch import check_sources, load_history, load_state
 from clearparcel.datawatch.transport import RequestDeadline
 from clearparcel.datawatch.aggregate import with_freshness
 from clearparcel.datawatch.parcel_access import access_label, load_parcel_access, statewide_access_label
-from clearparcel.datawatch.county_profile_panel import render_county_profile_panel, render_county_profile_body, percentage_legend, percentage_color_js, profile_time, research_summary, PERCENT_COLORS, NO_DATA_COLOR
+from clearparcel.datawatch.county_profile_panel import render_county_profile_panel, render_county_profile_body, percentage_legend, percentage_color_js, percentage_patterns, profile_time, research_summary, PERCENT_COLORS, NO_DATA_COLOR
 from clearparcel.datawatch.county_profile_exports import county_profiles_csv, parcel_sources_csv
 from clearparcel.datawatch.county_profiles import FreshnessPolicy, compose_county_profiles, county_profile_counts
 from clearparcel.datawatch.gac_standards import gac_defaults, load_gac_standard, normalize_standard_key, standard_keys
@@ -243,10 +243,14 @@ def _mngac_map_svg(width: int = 620, height: int = 700) -> str:
             continue
         paths.append(
             f'<path class="mngac-county" data-county="{_esc(name)}" data-slug="{_esc(slugs.get(name, ""))}" '
-            f'tabindex="0" role="button" aria-pressed="false" fill-rule="evenodd" aria-label="{_esc(name)} County" d="{" ".join(d_parts)}">'
+            f'tabindex="0" role="button" fill-rule="evenodd" aria-label="{_esc(name)} County" d="{" ".join(d_parts)}">'
             f'<title>{_esc(name)} County</title></path>'
         )
-    return f'<svg id="mngac-map" class="mngac-map" viewBox="0 0 {width} {height}" role="group" aria-label="Interactive Minnesota county map">{"".join(paths)}</svg>'
+    # 87 counties are 87 tab stops: offer a way past them, and share the
+    # "no data" hatch pattern with every percentage map.
+    return ('<a class="skip-link map-skip" href="#mngac-map-end">Skip county map</a>'
+            f'<svg id="mngac-map" class="mngac-map" viewBox="0 0 {width} {height}" role="group" aria-label="Interactive Minnesota county map">'
+            f'{percentage_patterns()}{"".join(paths)}</svg><span id="mngac-map-end" class="map-end" tabindex="-1"></span>')
 
 
 def _mngac_county_record(state: dict, county_name: str) -> tuple[dict | None, dict | None]:
