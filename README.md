@@ -8,10 +8,10 @@
 
 **[Explore the live public dashboard](https://gis-watchtower.clear-parcel.com/)** · **[User guide](docs/user-guide.md)** · **[Documentation index](docs/README.md)**
 
-The current production release is **v0.2.3**. See [STATUS.md](STATUS.md) for what is
-deployed and what is in review, and the [v0.2.3 release record](docs/release-v0.2.3.md)
-for verification and rollback evidence. **v0.3.0** is merged to `main`
-([release record](docs/release-v0.3.0.md)) but not yet deployed.
+The current production release is **v0.3.0**, deployed October 14, 2026. See
+[STATUS.md](STATUS.md) for what is deployed and what is in review, and the
+[v0.3.0 release record](docs/release-v0.3.0.md) for verification and rollback
+evidence. v0.2.3 is the rollback baseline.
 
 ![Live Watchtower overview with source health, county coverage, and a Minnesota county map](docs/images/watchtower-overview.png)
 
@@ -92,13 +92,17 @@ Developers can use the [documentation index](docs/README.md), [contribution guid
 
 ## Releases and project status
 
-**GIS Data Watchtower v0.2.3 is live**, deployed October 13, 2026,
-from merged source `f95d931`. The supplied Watchtower logo now appears
-beside the public header title, and the supplied favicon is used throughout.
+**GIS Data Watchtower v0.3.0 is live**, deployed October 14, 2026, from
+merged source `4e4dbec`. It ships the 2026-10-13 review stack: provider
+compliance at run time, shared-state guards, public accuracy, mobile and
+accessibility work, engine hardening, and a script-hash Content-Security-Policy.
+The previous v0.2.3 release added the supplied Watchtower logo beside the
+public header title and the supplied favicon.
 The footer displays only the version number; the About section explains
 the open-source ClearParcel mission, disclaimer, and GitHub link.
 
-- **[Current production release and rollback evidence](docs/release-v0.2.3.md)** — v0.2.3 images, revisions, and acceptance
+- **[Current production release and rollback evidence](docs/release-v0.3.0.md)** — v0.3.0 images, revisions, and acceptance
+- **[v0.2.3 release](docs/release-v0.2.3.md)** — rollback baseline
 - **[Validated operational status](STATUS.md)** — current monitoring and remaining gates
 - **[GitHub releases](https://github.com/clearparcel/GIS-Data-Watchtower/releases)** — versioned summaries
 - **[Documentation index](docs/README.md)** — user guides, methodology, engineering references and dated history
@@ -110,7 +114,7 @@ the v0.2.2 application image. The coordinated v0.2.2 release updated both
 dashboard services and the existing provider/publisher job images without
 changing source registries, security settings, or schedules.
 
-The v0.2.3 rollout updated only the public/private dashboard services; the existing GIS-provider and public-publisher jobs, their v0.2.2 images, monitoring schedules, and security boundaries were preserved. The [v0.2.2 release](docs/release-v0.2.2.md) remains the immediate rollback baseline.
+The v0.3.0 rollout updated both dashboard services and the provider and public-publisher job images. Monitoring schedules, source registries and security boundaries were preserved. The v0.2.3 rollout had updated only the dashboard services, so v0.2.2 is the job rollback baseline.
 
 This is a **pre-1.0** project. Open issues may represent documented
 provider-policy, privacy, and observation gates rather than defects.

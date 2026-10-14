@@ -1,6 +1,20 @@
 # Google Cloud deployment
 
-The current production dashboard application is **v0.2.3**, deployed
+The current production release is **v0.3.0**, deployed October 14, 2026 from
+merged source `4e4dbec082dbd966e7af1e18a12f03d0557295c2` by Cloud Build
+`a8848745-3460-496a-bb42-123b9e088022`.
+- **Services:** public revision `00031-ciw` and private revision `00033-qor`
+  serve 100% of traffic.
+- **Jobs:** the provider and public-publisher jobs run the v0.3.0 `watchtower`
+  image.
+- **Unchanged:** ingress, IAP, IAM, secrets, source registries and both
+  schedules.
+- **Preview:** the isolated preview runs the same SHA as revision `00023-ptp`.
+
+See the [v0.3.0 release record](release-v0.3.0.md) for evidence and rollback
+targets. The v0.2.3 record below is the rollback baseline.
+
+The previous production dashboard application was **v0.2.3**, deployed
 October 13 from merged source `f95d9315510497ae25cfd058f9a175b240b6debd`.
 Cloud Build `78969f3e-021f-41f6-8704-8c7133f21e3a` built verified
 immutable images. Public revision `00019-4zl` and private revision
