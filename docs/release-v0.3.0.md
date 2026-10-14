@@ -21,7 +21,8 @@ review. Each one targets the PR below it:
 | [#84](https://github.com/clearparcel/GIS-Data-Watchtower/pull/84) | 6 CI and build | CI triggers, base-image single source, required build revision |
 | [#85](https://github.com/clearparcel/GIS-Data-Watchtower/pull/85) | 7 Engine hardening | Exit codes, strict JSON numbers, redirects, field names, `last_available_at`, HEAD, storage |
 | [#86](https://github.com/clearparcel/GIS-Data-Watchtower/pull/86) | 8 Tests and dead code | Dead code removed, topic test modules, less brittle UI tests |
-| This PR | Release prep | `pyproject.toml` version 0.3.0 and this record |
+| [#87](https://github.com/clearparcel/GIS-Data-Watchtower/pull/87) | Release prep | `pyproject.toml` version 0.3.0 and this record |
+| Follow-up | Codex review fixes | Retry-After honoured in full, redirect backoff, runtime hold-for-terms, empty and shrunken reports, check-time freshness, overdue counts |
 
 See [STATUS.md](../STATUS.md) for the per-package detail.
 
@@ -52,6 +53,15 @@ See [STATUS.md](../STATUS.md) for the per-package detail.
   stack removed or moved still resolves through
   `clearparcel.datawatch._compat` (pinned by `tests/test_compat.py`), so code
   built against v0.2.3 keeps importing. New code should not use those names.
+- **Rate-limit holds.** A `Retry-After` longer than a week is now honoured
+  in full, up to a year, and flagged `operator_review` in private state. It
+  is no longer cut to 7 days.
+- **Hold-for-terms at run time.** Enabled county-direct parcel sources for
+  hold-for-terms counties are skipped (`skipped_sources: hold-for-terms`).
+  If the private registry still enables any of them, they stop being polled.
+- **Freshness.** Source freshness follows provider-check time, so sources
+  deferred by a backoff now show as overdue once their last real check ages
+  out.
 - **No provider-cadence change.** Scheduling, execution-profile assignments
   and request volume are unchanged. Hold-for-terms counties stay unpolled
   county-direct.

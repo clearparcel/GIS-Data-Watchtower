@@ -1,4 +1,9 @@
-"""Visible-text helpers so UI tests survive markup and line-wrapping changes."""
+"""Markup-text helpers so UI tests survive markup and line-wrapping changes.
+
+These read the text in the HTML, not what a browser finally shows: content in
+`hidden` elements or hidden by CSS still counts. Visibility itself is checked
+in the browser (axe/Playwright) during UI work, not by these unit tests.
+"""
 import html
 import re
 
@@ -7,7 +12,7 @@ _TAG = re.compile(r"<[^>]*>")
 
 
 def page_text(markup: str) -> str:
-    """Return the page's visible text with tags removed and whitespace collapsed."""
+    """Return the page's text (scripts, styles and templates removed), whitespace collapsed."""
     text = _TAG.sub(" ", _HIDDEN.sub(" ", markup))
     return " ".join(html.unescape(text).split())
 

@@ -111,9 +111,15 @@ source that received it. Watchtower:
 3. persists a per-host `not_before` time in the worker's private `state.json`
    (`rate_limits`) and skips the host on later runs until that time passes.
 
-`not_before` honors `Retry-After` (delta-seconds or HTTP-date), bounded to
-between 60 seconds and 7 days. When the header is absent or unparseable the
+`not_before` honors `Retry-After` (delta-seconds or HTTP-date) in full, with a
+60-second minimum and a one-year maximum (an effectively indefinite hold); a
+requested backoff is never shortened. Backoffs longer than a week are marked
+`"operator_review": true` in the private `rate_limits` entry so an operator can
+confirm the provider's intent; clearing one early is a deliberate, manual
+change to private state. When the header is absent or unparseable the
 top-level `rate_limit_default_backoff_seconds` applies (default `3600`).
+During a run, redirects to a host under backoff are refused before any
+lookup or request, whichever source would follow them.
 Backoff timing and hostnames are private worker state; they are not included
 in worker reports, the shared aggregate, or the public projection. Runs with
 `--no-save` do not write state and therefore do not record a backoff; avoid
@@ -404,6 +410,17 @@ or viewer-only findings; free statewide access does not override a direct fee.
 
 - Each source's `checked_at` (and `provenance.observed_at`) is when that
   source's check began; the run's `generated_at` is when the run began.
+- An enabled county-direct parcel source (one with a `county_slug` and a
+  `Parcels` category) for a county whose `monitoring.decision` is
+  `hold-for-terms` in `minnesota_county_parcel_access.json` is never polled;
+  the run reports it under `skipped_sources` as `hold-for-terms`. The data file
+  is read on every run, so a changed decision takes effect without a code
+  change.
+- A run whose source filter matches nothing is an empty run (exit 2), and the
+  shared aggregate refuses any report with no source observations except an
+  explicit fleet drain. A fleet report whose inventory shrink is refused
+  keeps the worker's fleet-level health from its last complete report.
+- `last_available_at` is the source's own check time.
 - Aggregate source records carry `last_success_at` (last check with status
   `ok`) and `last_available_at` (last check where the provider answered,
   status `ok` or `warn`; rate-limit deferrals do not count).
