@@ -1,9 +1,9 @@
 # Versioning and release policy
 
-The current validated production application release is **v0.2.2**, deployed
-October 12 from source `aba3d23`. See the [current release and rollback
-record](release-v0.2.2.md). The earlier [v0.2.1 release](release-v0.2.1.md)
-remains available as historical evidence and a rollback baseline.
+The current validated production application release is **v0.2.3**, deployed
+October 13 (see the [current release and rollback record](release-v0.2.3.md)).
+The [v0.2.2 release](release-v0.2.2.md) is the immediate rollback baseline;
+older release records are in the [archive](README.md#historical-engineering-and-release-records).
 Daily cloud provider polling was
 separately approved and activated on October 10; application publication does
 not reschedule it. The multi-day observation study remains incomplete. Future
@@ -50,7 +50,7 @@ Public page footers display **only the semantic application version** (for examp
 
 The source commit and build environment **remain inside immutable `build_info.json` and release/provenance records**, and may continue to inform optional analytics. They are intentionally not shown in the public footer. Container builds still require `WATCHTOWER_BUILD_REVISION` (full commit SHA) and `WATCHTOWER_BUILD_ENVIRONMENT` (`preview` or `production`). The production source package and visible version must agree. Build only from a clean, committed checkout; do not infer revision identity from the runtime Git state.
 
-**v0.2.2 was deployed and verified on October 12, 2026.** The release preflight now correctly blocks redeployment of an unchanged v0.2.2 candidate. The next coordinated application-code release must use a strictly newer semantic version.
+**v0.2.3 was deployed and verified on October 13, 2026.** The release preflight blocks redeployment of an unchanged v0.2.3 candidate; the next coordinated application-code release must use a strictly newer semantic version. The owner set **v0.3.0** as the next release; its [candidate record](release-v0.3.0.md) lists the contents and the release gate.
 
 ## Security fixes
 

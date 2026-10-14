@@ -130,6 +130,14 @@ class CloudActivationTests(unittest.TestCase):
                 '--output', str(paths / 'receipt.json')], cwd=root, capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             self.assertTrue(json.loads((paths / 'receipt.json').read_text(encoding='utf-8'))['passed'])
+            # Snapshots saved by Windows PowerShell/editors may begin with a UTF-8 byte-order mark.
+            for name in ('cloud.json', 'aggregate.json', 'public.json'):
+                (paths / name).write_bytes(b'\xef\xbb\xbf' + (paths / name).read_bytes())
+            result = subprocess.run([sys.executable, 'scripts/validate_hybrid_observations.py',
+                '--config', str(config_path), '--cloud', str(paths / 'cloud.json'),
+                '--aggregate', str(paths / 'aggregate.json'), '--public', str(paths / 'public.json'),
+                '--output', str(paths / 'receipt.json')], cwd=root, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
 
 if __name__ == '__main__':

@@ -10,7 +10,7 @@ from urllib.parse import urlsplit
 
 from .parcel_access import INVENTORY_CATEGORIES
 from .direct_gac_schema import direct_schema_assessment
-from .public_values import (public_access_classification, safe_public_url, provider_edit_timestamp,
+from .public_values import (public_access_classification, safe_public_url, provider_edit_date,
                             sanitize_source_metadata, safe_geometry_type, safe_file_type)
 
 
@@ -49,7 +49,9 @@ def _health(source, state, now, policy):
     checked = _timestamp(source.get('checked_at'))
     success = _timestamp(source.get('last_success_at'))
     health = source.get('status') if checked and source.get('status') in {'ok', 'warn', 'error'} else 'unknown'
-    observed = _timestamp(source.get('last_report_at')) or checked or success
+    # Provider-check time decides freshness; a deferred record's report time
+    # does not, because no request was made (legacy records fall back).
+    observed = checked if (checked or source.get('deferred')) else (_timestamp(source.get('last_report_at')) or success)
     reporting = 'unknown' if observed is None else 'overdue' if now - observed > dt.timedelta(minutes=policy.source_stale_minutes) else 'current'
     worker = (state.get('workers') or {}).get(source.get('worker'))
     if isinstance(worker, dict):
@@ -82,8 +84,9 @@ def _source(item, observed, sid, state, now, policy, *, count=None, basis=None, 
         'approved_public_links': _links(item.get('approved_public_links') or []),
         'geometry_type': metadata.get('geometry_type') or safe_geometry_type(item.get('geometry_type')), 'feature_count': count, 'feature_count_basis': basis,
         'provider_updated_at': metadata.get('provider_updated_at'),
-        'county_acquired_at': provider_edit_timestamp(catalog.get('acqdate')),
-        'catalog_refreshed_at': provider_edit_timestamp(catalog.get('rundate')),
+        # Catalog acquisition/refresh values are calendar dates, not instants.
+        'county_acquired_at': provider_edit_date(catalog.get('acqdate')),
+        'catalog_refreshed_at': provider_edit_date(catalog.get('rundate')),
         'checked_at': observed.get('checked_at') if _timestamp(observed.get('checked_at')) else None,
         'last_success_at': observed.get('last_success_at') if _timestamp(observed.get('last_success_at')) else None,
         'health': health, 'reporting': reporting, 'execution_profile': observed.get('worker'),
@@ -207,3 +210,9 @@ def county_profile_counts(profiles: dict[str, dict]) -> dict[str, int]:
             'county_direct': sum('county-direct' in m['paths'] for m in monitoring),
             'mngeo_open': sum('mngeo-open' in m['paths'] for m in monitoring),
             'both': sum(set(m['paths']) == {'county-direct', 'mngeo-open'} for m in monitoring)}
+
+
+def __getattr__(name: str):
+    """Resolve names that v0.2.3 exposed here (see clearparcel.datawatch._compat)."""
+    from clearparcel.datawatch import _compat
+    return _compat.resolve(__name__, name)

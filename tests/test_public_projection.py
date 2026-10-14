@@ -40,7 +40,7 @@ class PublicProjectionTests(unittest.TestCase):
         source = public['sources']['parcels']
         self.assertNotIn('feature_count', source)
         self.assertEqual(source['status'], 'unknown')
-        self.assertEqual(source['change_count'], 0)
+        self.assertIsNone(source['change_count'])  # malformed change data is unknown, not zero
         self.assertEqual(source['completeness_profiles'], {
             'parcel_id': {'field': 'PIN', 'missing': 0, 'populated': 42, 'complete_percent': 100.0},
             'owner': {'status': 'unsupported'}})

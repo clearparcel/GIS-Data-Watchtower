@@ -22,7 +22,7 @@ Task 1 ran the full ResourceWarning-strict suite: 219 tests passed before its fo
 
 Combined final local validation on 2026-10-06: `python -W error::ResourceWarning -m unittest discover -s tests -q` passed **230 tests in 8.753s**. `python -m compileall -q clearparcel tests` passed. Local Markdown validation checked **86 references across 22 files**, including local target files and anchors, with no failures. `git diff --check` passed after whitespace cleanup. The staged diff was inspected for private material before the documentation commit.
 
-The offline research JSON semantic screen checked structure and invariants; it is not independent verification of every research assertion. Dated deployment/browser and provider-policy evidence is retained in [status history](status-history-2026-10-06.md), [detailed status history](current-status-history-2026-10-06.md), [deployment history](google-cloud-deployment.md) and [access audit](county-parcel-data-access-audit.md).
+The offline research JSON semantic screen checked structure and invariants; it is not independent verification of every research assertion. Dated deployment/browser and provider-policy evidence is retained in [status history](status-history-2026-10-06.md), [alternate status snapshot](status-history-2026-10-06-alt.md), [deployment history](../google-cloud-deployment.md) and [access audit](../county-parcel-data-access-audit.md).
 
 ## GitHub maintenance recorded by the root review
 

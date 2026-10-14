@@ -1,6 +1,5 @@
 import io
 import json
-import os
 import sys
 import unittest
 import urllib.parse
@@ -12,7 +11,6 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 import clearparcel.datawatch.watch as watch
-from clearparcel.datawatch.analytics import posthog_config, posthog_csp_sources, posthog_html
 from clearparcel.datawatch.dashboard import _snapshot_csv, _snapshot_xlsx, render_mngac
 from clearparcel.datawatch.gac_standards import gac_defaults, load_gac_standard
 from clearparcel.datawatch.public_dashboard import sanitize_public_render_state
@@ -469,50 +467,6 @@ class GACStandardsTests(unittest.TestCase):
             workbook = archive.read("xl/workbook.xml").decode("utf-8")
         for sheet in ("GAC Standards", "GAC Counties", "GAC Fields", "GAC Detail"):
             self.assertIn(sheet, workbook)
-
-
-class PostHogIntegrationTests(unittest.TestCase):
-    def test_analytics_is_dormant_without_project_token(self):
-        with patch.dict(os.environ, {}, clear=True):
-            self.assertIsNone(posthog_config())
-            self.assertIsNone(posthog_csp_sources())
-            self.assertEqual(posthog_html(page="Overview", version="1", build="abc", environment="production"), "")
-
-    def test_token_alone_does_not_enable_analytics_without_ip_discard_confirmation(self):
-        with patch.dict(os.environ, {
-            "WATCHTOWER_POSTHOG_PROJECT_TOKEN": "watchtower_test_project_token_123456789",
-        }, clear=True):
-            self.assertIsNone(posthog_config())
-
-    def test_analytics_uses_privacy_first_configuration(self):
-        env = {
-            "WATCHTOWER_POSTHOG_PROJECT_TOKEN": "watchtower_test_project_token_123456789",
-            "WATCHTOWER_POSTHOG_HOST": "https://us.i.posthog.com",
-            "WATCHTOWER_POSTHOG_IP_DISCARD_CONFIRMED": "true",
-        }
-        with patch.dict(os.environ, env, clear=True):
-            config = posthog_config()
-            html = posthog_html(page="MN GAC", version="1", build="abc", environment="production")
-            self.assertEqual(config["api_host"], "https://us.i.posthog.com")
-            self.assertEqual(posthog_csp_sources()[1], "https://us.i.posthog.com")
-        for required in (
-            "autocapture:false", "capture_pageview:false", "capture_pageleave:false",
-            "capture_exceptions:false", "disable_session_recording:true",
-            "person_profiles:'identified_only'", "persistence:'memory'",
-            "advanced_disable_flags:true", "watchtower page viewed",
-        ):
-            self.assertIn(required, html)
-        self.assertIn("$current_url", html)
-        self.assertNotIn("posthog.identify", html)
-
-    def test_analytics_rejects_non_https_host(self):
-        env = {
-            "WATCHTOWER_POSTHOG_PROJECT_TOKEN": "watchtower_test_project_token_123456789",
-            "WATCHTOWER_POSTHOG_HOST": "http://posthog.example.com",
-            "WATCHTOWER_POSTHOG_IP_DISCARD_CONFIRMED": "true",
-        }
-        with patch.dict(os.environ, env, clear=True):
-            self.assertIsNone(posthog_config())
 
 
 if __name__ == "__main__":

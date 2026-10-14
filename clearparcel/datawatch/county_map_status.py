@@ -31,7 +31,7 @@ def county_map_status(profile: dict) -> str:
 
 
 def status_legend() -> str:
-    return '<div class="mngac-legend" aria-label="Parcel data and schema legend">' + ''.join(
+    return '<div class="mngac-legend" role="group" aria-label="Parcel data and schema legend">' + ''.join(
         f'<span><i class="mngac-swatch status-{key}" style="background-color:{color}"></i>{html.escape(label)}</span>'
         for key, (label, color, _) in MAP_STATUSES.items()) + '</div>'
 

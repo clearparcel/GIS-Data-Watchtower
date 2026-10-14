@@ -7,7 +7,7 @@ repository. A private pilot has subsequently been published and preparation
 checks passed. The restoration retry subsequently passed at the original
 published pin `9f70876`; current-main cloud acceptance and normal CCE attachment
 remain pending.
-See the [October 8 readiness review](codex-cloud-readiness-review-2026-10-08.md)
+See the [October 8 readiness review](archive/codex-cloud-readiness-review-2026-10-08.md)
 for exact evidence and remaining gates. Provider assignment to Google Cloud
 Run does not supply this development environment with operational authority.
 

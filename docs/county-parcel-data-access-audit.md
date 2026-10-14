@@ -1,6 +1,6 @@
 # Minnesota county parcel-data access audit
 
-Last updated: **2026-10-06**
+Last updated: **2026-10-13** (monitoring-count wording). Research findings carry their own dates.
 
 ## Purpose
 
@@ -327,7 +327,7 @@ legacy county-direct classification or authorize polling. An October 8 rendered
 review of the current full-details page instead shows public access, direct
 API links and CSV/Shapefile/GeoJSON/KML download options. The earlier warning
 was not reproduced; its cause remains unknown and it is not a confirmed current
-restriction. No export was downloaded. See [the reassessment](cloud-provider-access-reassessment-2026-10-08.md#what-remains-ambiguous-for-rice-and-beltrami).
+restriction. No export was downloaded. See [the reassessment](archive/cloud-provider-access-reassessment-2026-10-08.md#what-remains-ambiguous-for-rice-and-beltrami).
 
 All nine scoped Commons catalogs were rendered. Rice's current county-owned item is a
 distinct repository product. Subsequent review of the already-fetched official metropolitan
@@ -360,19 +360,24 @@ product-policy correction, **12** retain a usable direct-source research assessm
 reachability only; it does not add those candidate sources to the deployment registry or enable
 additional provider polling.
 
-## Current Watchtower monitoring interpretation
+## Watchtower monitoring interpretation
 
-The earlier production observation documented before the staging expansion contained:
+Current monitoring counts are derived from the live aggregate and shown on the
+dashboard overview and counties pages; this document does not restate them.
+The observation below is kept as a dated example (production, before the
+2026-10-06 staging expansion):
 
 - **59 counties** represented in MnGeo Plan Parcels Open;
 - **15 counties** with county-specific monitored sources;
 - **13 counties** monitored through both paths;
 - therefore **61 of 87 counties actively checked** after de-duplicating overlap.
 
-A county is considered **actively checked** when Watchtower is observing its parcel data through
-at least one active monitoring path. Being represented in the single statewide MnGeo parcel check
-therefore counts as active county monitoring without creating a separate provider request for
-each county.
+A county has a **monitoring path** when Watchtower observes its parcel data through a
+county-direct source, the single statewide MnGeo parcel check, or both; representation in the
+statewide check counts without a separate provider request for each county. Since the owner's
+2026-10-13 decision, a county is **actively checked** only when it has a monitoring path *and* its
+latest check is within the freshness window; otherwise it is shown as **check overdue**. The
+61-of-87 example above used the earlier meaning (any monitoring path).
 
 This definition is intentionally different from county-direct source count, which remains a
 separate metric.

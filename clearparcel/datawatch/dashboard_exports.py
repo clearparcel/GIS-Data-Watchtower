@@ -4,12 +4,11 @@ import csv
 import html
 import io
 import json
-import re
 import zipfile
 
 from clearparcel.datawatch.county_profile_exports import SUMMARY_FIELDS, county_profile_summary, county_profile_xlsx_sheets
 from clearparcel.datawatch.gac_standards import load_gac_standard, normalize_standard_key, standard_keys
-from clearparcel.datawatch.public_values import spreadsheet_cell
+from clearparcel.datawatch.public_values import spreadsheet_cell, spreadsheet_text
 
 
 def _load_mngac_schema() -> dict:
@@ -148,7 +147,7 @@ def _xlsx_sheet_xml(rows: list[list]) -> str:
             elif isinstance(value, (int, float)) and not isinstance(value, bool):
                 cells.append(f'<c r="{ref}"><v>{value}</v></c>')
             else:
-                text = html.escape(re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", "", spreadsheet_cell(value)), quote=False)
+                text = html.escape(spreadsheet_text(value), quote=False)
                 cells.append(f'<c r="{ref}" t="inlineStr"><is><t xml:space="preserve">{text}</t></is></c>')
         xml_rows.append(f'<row r="{r_idx}">{"".join(cells)}</row>')
     return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>' + "".join(xml_rows) + '</sheetData></worksheet>'
@@ -212,6 +211,19 @@ def _mngac_xlsx_sheets(snapshot: dict) -> list[tuple[str, list[list]]]:
             ])
         sheets.append(("MNGAC Fields", field_rows))
     return sheets
+
+
+def _population_scanned(county_stats: dict, statewide_stats, present_for_county: bool) -> bool | None:
+    """Whether a field's population was scanned for a county row.
+
+    Per-county field entries exist only for scanned fields and normally carry
+    no flag of their own, so prefer an explicit flag, then the statewide
+    summary's flag, then presence of the county entry.
+    """
+    for candidate in (county_stats, statewide_stats):
+        if isinstance(candidate, dict) and isinstance(candidate.get("population_scanned"), bool):
+            return candidate["population_scanned"]
+    return present_for_county
 
 
 def _gac_xlsx_sheets(snapshot: dict) -> list[tuple[str, list[list]]]:
@@ -296,7 +308,10 @@ def _gac_xlsx_sheets(snapshot: dict) -> list[tuple[str, list[list]]]:
                 stats = fields.get(field) or {}
                 detail_rows.append([
                     standard_key, county_name, field, spec.get("label"), spec.get("inclusion"),
-                    field in fields, stats.get("populated"), stats.get("record_count"),
+                    # A county with no data of its own has no scan result.
+                    (_population_scanned(stats, summaries.get(field), field in fields)
+                     if fields or county.get("record_count") is not None else None),
+                    stats.get("populated"), stats.get("record_count"),
                     stats.get("percent"),
                 ])
 
@@ -346,3 +361,9 @@ def _snapshot_xlsx(snapshot: dict) -> bytes:
         zf.writestr("xl/_rels/workbook.xml.rels",'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+''.join(f'<Relationship Id="rId{i}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet{i}.xml"/>' for i in range(1,len(sheets)+1))+'</Relationships>')
         for i,(_,data) in enumerate(sheets,1): zf.writestr(f"xl/worksheets/sheet{i}.xml",_xlsx_sheet_xml(data))
     return out.getvalue()
+
+
+def __getattr__(name: str):
+    """Resolve names that v0.2.3 exposed here (see clearparcel.datawatch._compat)."""
+    from clearparcel.datawatch import _compat
+    return _compat.resolve(__name__, name)

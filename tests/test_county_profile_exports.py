@@ -5,7 +5,7 @@ import zipfile
 import xml.etree.ElementTree as ET
 from unittest.mock import patch
 from clearparcel.datawatch import dashboard
-from clearparcel.datawatch.county_profile_exports import county_profiles_csv, parcel_sources_csv, county_profile_xlsx_sheets
+from clearparcel.datawatch.county_profile_exports import county_profiles_csv, parcel_sources_csv
 
 def workbook_rows(raw, sheet_name):
     """Decode workbook cells by their headers rather than matching XML fragments."""

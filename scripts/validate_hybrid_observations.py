@@ -24,7 +24,9 @@ def main():
         required = active + ['aggregate', 'public']
         if any(getattr(args, name) is None for name in required):
             parser.error("validation requires captured snapshots: " + ', '.join('--' + name for name in required))
-        read = lambda path: json.loads(path.read_text(encoding="utf-8"))
+        # Some editors and PowerShell 7's UTF8BOM encoding write a UTF-8 byte-order mark
+        # (PowerShell 5.1 `>` writes UTF-16, which is still rejected).
+        read = lambda path: json.loads(path.read_text(encoding="utf-8-sig"))
         result = validation_receipt(manifest, {p: read(getattr(args, p)) for p in ("cloud", "local") if getattr(args, p)},
                                     read(args.aggregate), read(args.public))
     args.output.parent.mkdir(parents=True, exist_ok=True)
