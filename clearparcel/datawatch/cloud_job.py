@@ -53,8 +53,9 @@ def publish_worker_result(config: dict, result: dict, profile: str, *, workdir: 
     if not aggregate_name:
         return None
     require_publishable_profile(config, profile)
-    if (result.get("scope") or {}).get("type") == "empty" or (
-            not result.get("sources") and result.get("allow_inventory_shrink") is not True):
+    scope_type = (result.get("scope") or {}).get("type")
+    explicit_drain = scope_type == "fleet" and result.get("allow_inventory_shrink") is True
+    if scope_type == "empty" or (not result.get("sources") and not explicit_drain):
         return None  # Never publish a report that checked nothing (an explicit drain excepted).
     root = config.get("_root_dir") or Path(config.get("state_file", ".")).parent
     storage = backend_from_env(root)

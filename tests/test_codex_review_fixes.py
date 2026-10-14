@@ -180,6 +180,20 @@ class EmptyReportTests(RunConfig):
         self.assertFalse((self.root / "state.json").exists())
 
 
+class PublisherGuardTests(unittest.TestCase):
+    def test_only_an_explicit_fleet_drain_may_publish_with_no_sources(self):
+        from clearparcel.datawatch import cloud_job
+        with patch.dict(os.environ, {"WATCHTOWER_AGGREGATE_OBJECT": "aggregate.json"}), \
+                patch.object(cloud_job, "publish_partial", return_value={"published": True}) as publish, \
+                patch.object(cloud_job, "backend_from_env"):
+            for result in (report(0, []), report(0, [], scope="source", allow_inventory_shrink=True),
+                           report(0, [], scope="empty", allow_inventory_shrink=True)):
+                self.assertIsNone(cloud_job.publish_worker_result({}, result, "cloud", workdir=Path(".")))
+            publish.assert_not_called()
+            cloud_job.publish_worker_result({}, report(0, [], allow_inventory_shrink=True), "cloud", workdir=Path("."))
+            publish.assert_called_once()
+
+
 class RefusedShrinkTests(unittest.TestCase):
     def test_a_refused_shrink_keeps_fleet_level_worker_health(self):
         base = aggregate.merge_states({}, report(0, [f"s{i}" for i in range(10)]), "cloud", now=NOW)
