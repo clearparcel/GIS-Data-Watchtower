@@ -1,4 +1,5 @@
 from __future__ import annotations
+from clearparcel.datawatch.csp import SCRIPT_TAG
 
 from clearparcel.datawatch import dashboard as _dashboard
 
@@ -144,9 +145,9 @@ def render_dashboard(config: dict) -> str:
     body += '<div class="section-head"><div><h2>Parcel-source quality</h2><p>Comparative quality indicators for directly monitored county parcel layers.</p></div></div>'
     body += f'<div class="grid"><div class="card">{county_counts_chart}</div><div class="card">{county_fields_chart}</div></div><div class="grid"><div class="card">{quality_chart}</div><div class="card">{duplicate_chart}</div><div class="card">{geometry_chart}</div></div><div class="grid"><div class="card">{owner_chart}</div><div class="card">{site_address_chart}</div><div class="card">{mailing_address_chart}</div></div><div class="grid"><div class="card">{multipart_chart}</div><div class="card">{complexity_chart}</div></div>'
     body += f"""<div class="card"><h2>Data being watched</h2>
-<div class="filters"><input id="q" aria-label="Filter data sources" placeholder="Filter datasets…" oninput="filterRows()"><select id="cat" aria-label="Filter by source category" onchange="filterRows()"><option value="">All categories</option>{options}</select><select id="health" aria-label="Filter by source health" onchange="filterRows()"><option value="">All statuses</option><option>ok</option><option>warn</option><option>error</option></select></div>
+<div class="filters"><input id="q" aria-label="Filter data sources" placeholder="Filter datasets…"><select id="cat" aria-label="Filter by source category"><option value="">All categories</option>{options}</select><select id="health" aria-label="Filter by source health"><option value="">All statuses</option><option>ok</option><option>warn</option><option>error</option></select></div>
 <table id="datasets"><thead><tr><th>Data source</th><th>Provided by / type</th><th>Status</th><th>Records / change<br><span class="subtext">Current count and change from the prior comparable check</span></th><th>Days since data changed<br><span class="subtext">Days since Watchtower last detected a source-data change</span></th><th>Recent reliability<br><span class="subtext">Successful checks across retained recent history</span></th><th>Response time<br><span class="subtext">Elapsed time for the source request/check</span></th><th>Last successful check<br><span class="subtext">Most recent successful observation, not merely last attempt</span></th></tr></thead><tbody>{"".join(rows)}</tbody></table></div>
-<script>function filterRows(){{const q=document.getElementById('q').value.toLowerCase(),c=document.getElementById('cat').value,h=document.getElementById('health').value;document.querySelectorAll('#datasets tbody tr').forEach(r=>{{r.style.display=(!q||r.dataset.name.includes(q))&&(!c||r.dataset.category===c)&&(!h||r.dataset.status===h)?'':'none'}})}};</script>"""
+{SCRIPT_TAG}function filterRows(){{const q=document.getElementById('q').value.toLowerCase(),c=document.getElementById('cat').value,h=document.getElementById('health').value;document.querySelectorAll('#datasets tbody tr').forEach(r=>{{r.style.display=(!q||r.dataset.name.includes(q))&&(!c||r.dataset.category===c)&&(!h||r.dataset.status===h)?'':'none'}})}};document.getElementById('q').addEventListener('input',filterRows);for(const id of ['cat','health'])document.getElementById(id).addEventListener('change',filterRows);</script>"""
     return _dashboard._layout("GIS Data Watchtower", body, csrf_token=str(config.get("_csrf_token") or ""))
 
 
