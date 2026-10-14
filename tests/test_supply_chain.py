@@ -1,6 +1,7 @@
 import json
 import io
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -17,7 +18,7 @@ class SupplyChainTests(unittest.TestCase):
         stderr = io.StringIO()
         with patch.dict(os.environ, {}, clear=True), patch.object(Path, "is_file", return_value=False), \
              patch("sys.argv", ["watchtower", "status"]), patch("sys.stderr", stderr):
-            self.assertEqual(main(), 2)
+            self.assertEqual(main(), 3)  # tool failure, not a source error
         self.assertIn("Pass --config PATH or set CLEARPARCEL_WATCHTOWER_CONFIG", stderr.getvalue())
 
     def test_runtime_dependencies_are_exactly_constrained(self):
@@ -41,17 +42,73 @@ class SupplyChainTests(unittest.TestCase):
         self.assertIn("generate_supply_chain.py", workflow)
         self.assertIn("watchtower-sbom.cdx.json", workflow)
         self.assertIn("watchtower-provenance.json", workflow)
-        self.assertIn("actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02", workflow)
-        self.assertIn("aquasecurity/trivy-action@", workflow)
-        self.assertIn("pypa/gh-action-pip-audit@1220774d901786e6f652ae159f7b6bc8fea6d266", workflow)
-        self.assertIn("github/codeql-action/init@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2", workflow)
-        self.assertIn("github/codeql-action/analyze@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2", workflow)
+        # Assert the actions and that they are SHA-pinned, not which SHA, so
+        # Dependabot updates do not break the suite.
+        for action in ("actions/upload-artifact", "aquasecurity/trivy-action", "pypa/gh-action-pip-audit",
+                       "github/codeql-action/init", "github/codeql-action/analyze"):
+            self.assertRegex(workflow, rf"uses: {re.escape(action)}@[0-9a-f]{{40}}\b", action)
+
+    def test_every_workflow_action_is_pinned_to_a_full_commit_sha(self):
+        for path in (ROOT / ".github" / "workflows").glob("*.yml"):
+            for line in path.read_text(encoding="utf-8").splitlines():
+                match = re.search(r"\buses:\s*([^\s#]+)", line)
+                if match and not match.group(1).startswith("./"):
+                    self.assertRegex(match.group(1), r"@[0-9a-f]{40}$", f"{path.name}: {match.group(1)}")
+
+    def test_base_image_has_a_single_source_of_truth(self):
+        workflow = (ROOT / ".github" / "workflows" / "watchtower-ci.yml").read_text(encoding="utf-8")
+        self.assertNotIn("sha256:", workflow)
+        self.assertIn("sed -n 's/^FROM //p' Dockerfile", workflow)
+        dependabot = (ROOT / ".github" / "dependabot.yml").read_text(encoding="utf-8")
+        self.assertIn('package-ecosystem: "docker"', dependabot)
+
+    def test_production_builds_require_a_source_revision(self):
+        dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
+        guard = re.search(r'^RUN python -c "(.*build_info\.json.*)"$', dockerfile, re.M)
+        self.assertIsNotNone(guard)
+        cases = {("", "development"): 0, ("a" * 40, "production"): 0, ("b" * 64, "preview"): 0,
+                 ("", "production"): 1, ("", "preview"): 1, ("not-a-sha", "development"): 1, ("a" * 40, "staging"): 1}
+        with tempfile.TemporaryDirectory() as td:
+            (Path(td) / "clearparcel" / "datawatch").mkdir(parents=True)
+            for (revision, environment), expected in cases.items():
+                env = {**os.environ, "WATCHTOWER_BUILD_REVISION": revision, "WATCHTOWER_BUILD_ENVIRONMENT": environment}
+                result = subprocess.run([sys.executable, "-c", guard.group(1)], cwd=td, env=env, capture_output=True)
+                self.assertEqual(result.returncode != 0, bool(expected), (revision, environment, result.stderr))
 
     def test_current_status_is_generated_from_authoritative_status(self):
         subprocess.run(
             [sys.executable, str(ROOT / "scripts" / "sync_current_status.py"), "--check"],
             check=True,
         )
+
+    def run_generator(self, root, *, base_image="python:3.13-slim@sha256:" + "b" * 64, os_lines="ca-certificates\t2025.1\ncurl\t8.1\n"):
+        runtime = root / "runtime.json"
+        os_inventory = root / "os.tsv"
+        runtime.write_text(json.dumps({"python": "3.13.11", "components": []}), encoding="utf-8")
+        os_inventory.write_text(os_lines, encoding="utf-8")
+        return subprocess.run(
+            [sys.executable, str(ROOT / "scripts" / "generate_supply_chain.py"),
+             "--constraints", str(ROOT / "constraints.txt"), "--revision", "a" * 40,
+             "--base-image", base_image, "--image-digest", "sha256:" + "c" * 64,
+             "--runtime-inventory", str(runtime), "--os-inventory", str(os_inventory),
+             "--sbom", str(root / "sbom.json"), "--provenance", str(root / "provenance.json")],
+            cwd=ROOT, capture_output=True, text=True,
+        )
+
+    def test_supply_chain_generator_rejects_unpinned_base_image_and_malformed_inventory(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            self.assertEqual(self.run_generator(root).returncode, 0)
+            for base_image in ("", "python:3.13-slim", "python@sha256:" + "b" * 63):
+                with self.subTest(base_image=base_image):
+                    result = self.run_generator(root, base_image=base_image)
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn("digest-pinned", result.stderr)
+            for line in ("curl 8.1\n", "\t8.1\n", "curl\t \n", ":amd64\t1.0\n"):
+                with self.subTest(line=line):
+                    result = self.run_generator(root, os_lines=line)
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn("Malformed OS inventory line", result.stderr)
 
     def test_supply_chain_generator_emits_cyclonedx_and_provenance(self):
         with tempfile.TemporaryDirectory() as td:

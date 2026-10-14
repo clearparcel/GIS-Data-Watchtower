@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools>=75"]
+requires = ["setuptools>=77"]  # PEP 639 license expressions
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "clearparcel-gis-data-watchtower"
-version = "0.2.3"
+version = "0.3.0"
 description = "Provider-friendly monitoring and QA for public GIS data services"
 readme = "README.md"
 license = "MIT"

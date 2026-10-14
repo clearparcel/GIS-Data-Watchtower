@@ -19,19 +19,19 @@ the existing provider/publisher job image evidence.
 
 The prior October 11 v0.2.0 deployment remains a historical rollback baseline:
 public `00015-cjp`, private `00022-pts`, preview `00020-qds`.
-See [its historical release record](release-county-percentage-fix-2026-10-11.md).
+See [its historical release record](archive/release-county-percentage-fix-2026-10-11.md).
 
 The prior v0.2.0 rollout from `308e3a7` remains an immutable rollback baseline:
 public `00014-jsr`, private `00021-hr8`, and preview `00019-x5b`. The
-[initial v0.2.0 record](release-v0.2.0.md) preserves its acceptance evidence.
+[initial v0.2.0 record](archive/release-v0.2.0.md) preserves its acceptance evidence.
 The earlier v0.1.2 public revision `00013-s7q` from `8999081` (PR #62)
 is retained as additional history; its
-[historical publication record](mngac-county-publication-2026-10-10.md) is preserved.
+[historical publication record](archive/mngac-county-publication-2026-10-10.md) is preserved.
 The initial v0.1.2 rollout used
 `a3899f6`: public `00012-c5j`, private dashboard `00020-lqc`, and isolated preview
 `00018-rkt`. These initial rollout and rollback details are historical. Exact immutable digests,
 acceptance evidence and rollback targets are in the
-[v0.1.2 release record](release-v0.1.2.md). The private service retains its audited
+[v0.1.2 release record](archive/release-v0.1.2.md). The private service retains its audited
 IAP wrapper, and all non-image runtime settings were verified unchanged.
 
 The registry migration assigned all 35 sources to cloud. The October 10 daily
@@ -40,8 +40,8 @@ publisher delivered them to the live public dashboard at 22:35 CDT. Cloud
 Scheduler now contains the daily provider job and the separate ten-minute
 sanitized publisher. The application rollout itself did not change provider
 scheduling or retire worker history. The multi-day observation study remains
-incomplete. See [USDA connection evidence](usda-cloud-connection-2026-10-08.md)
-and [county migration](county-cloud-migration-2026-10-08.md). PostHog remains
+incomplete. See [USDA connection evidence](archive/usda-cloud-connection-2026-10-08.md)
+and [county migration](archive/county-cloud-migration-2026-10-08.md). PostHog remains
 dormant pending Issue #50.
 
 On October 10 at 22:20 CDT, explicit user approval retired the legacy
@@ -54,7 +54,7 @@ history; cloud activation was separately approved afterward as recorded below.
 The user subsequently explicitly requested daily cloud activation. Scheduler
 `gis-watchtower-daily-providers` now launches the existing provider worker at
 05:00 America/Chicago daily, starting October 11. See the
-[daily provider polling record](daily-cloud-provider-polling-2026-10-10.md) for
+[daily provider polling record](archive/daily-cloud-provider-polling-2026-10-10.md) for
 identity scope, retry settings, validation and rollback. The prior five-day
 study remains incomplete; enabling the schedule does not certify that study.
 
@@ -71,7 +71,7 @@ The job downloads the last saved state/history into ephemeral `/tmp`, performs o
 - `WATCHTOWER_STORAGE=gcs`
 - `WATCHTOWER_GCS_BUCKET=<bucket>`
 - optional `WATCHTOWER_GCS_PREFIX=<prefix>`
-- optional `WATCHTOWER_WORKDIR=/tmp/watchtower`
+- optional `WATCHTOWER_WORKDIR=<dir>` (default: a per-run temporary directory)
 
 Use the Cloud Run Job's service account and IAM instead of JSON service-account keys. The service account needs object read/write access only to the Watchtower bucket/prefix.
 
@@ -87,6 +87,14 @@ The default container command runs:
 ```text
 watchtower --config config/example_sources.json cloud-job
 ```
+
+`cloud-job` refuses to run when every configured source points at a reserved
+example host (the repository example), so a container started without the
+deployment registry exits with code 3 (a Watchtower failure) before contacting
+any provider or storage.
+Set `WATCHTOWER_ALLOW_EXAMPLE_CONFIG=1` only for a deliberate synthetic test.
+A run whose execution profile matches no configured sources also exits 2 and
+uploads and publishes nothing; see [hybrid aggregation](hybrid-aggregation.md).
 
 ## Cloud Run Job
 
@@ -142,7 +150,7 @@ Run cloud and local processing in parallel before changing production. Compare s
 
 As of 2026-10-05, a private Cloud Run Job deployment in `us-central1` has been validated with Google Cloud Storage persistence and Secret Manager-provided deployment configuration.
 
-The historical October 5 cloud profile processed 22 deployment sources with exact status/count/schema parity against the same local observations. Four provider-specific sources were retained locally after earlier Google Cloud failures. The [October 8 reassessment](cloud-provider-access-reassessment-2026-10-08.md) obtained valid bounded responses from all four in Google Cloud Build, so those failures do not establish permanent cloud restrictions. Their subsequent actual Cloud Run adapter validation and scoped profile changes are recorded in the USDA/county connection records linked above. The project intentionally does not bypass provider controls.
+The historical October 5 cloud profile processed 22 deployment sources with exact status/count/schema parity against the same local observations. Four provider-specific sources were retained locally after earlier Google Cloud failures. The [October 8 reassessment](archive/cloud-provider-access-reassessment-2026-10-08.md) obtained valid bounded responses from all four in Google Cloud Build, so those failures do not establish permanent cloud restrictions. Their subsequent actual Cloud Run adapter validation and scoped profile changes are recorded in the USDA/county connection records linked above. The project intentionally does not bypass provider controls.
 
 Hybrid aggregation was initially validated with 22 cloud observations plus 4 local observations, producing a 26-source staging aggregate while preserving worker provenance. The hardened post-security-review build completed 22/22 cloud checks and 4/4 local checks with a 26/26 OK aggregate and complete JSON/CSV/Excel exports.
 
@@ -175,9 +183,9 @@ Its immutable image digest is
 The explicit command is `public-dashboard --host 0.0.0.0 --port 8080`.
 
 The preview uses a dedicated private bucket
-`clearparcel-watchtower-preview-dark-bit-503017-j7`, object
+`<preview-bucket>`, object
 `preview/aggregate-state.json`, and dedicated identity
-`gis-watchtower-preview@dark-bit-503017-j7.iam.gserviceaccount.com`.
+`<preview-service-account-email>`.
 Uniform bucket access and public-access prevention are enabled. The identity has
 object-reader access conditioned on exactly that sanitized object; no production
 bucket/identity bindings or raw aggregate permissions were added. No new scheduler
@@ -393,4 +401,4 @@ this cleanup-record update. No legacy CCE workflow is claimed by selector alone.
 
 ## October 7 remediation preparation
 
-[Repository remediation and candidate validation tooling](watchtower-remediation-2026-10-07.md) are prepared without deploying an image, executing provider jobs, changing schedules, or writing production configuration/data. The scoped scheduler inventory still contains only the sanitized publisher. Stage/production rollout and hybrid scheduling activation remain separate approval-gated actions.
+[Repository remediation and candidate validation tooling](archive/watchtower-remediation-2026-10-07.md) are prepared without deploying an image, executing provider jobs, changing schedules, or writing production configuration/data. The scoped scheduler inventory still contains only the sanitized publisher. Stage/production rollout and hybrid scheduling activation remain separate approval-gated actions.

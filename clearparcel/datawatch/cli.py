@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 from clearparcel.datawatch.dashboard import build_static_site, serve
-from clearparcel.datawatch.watch import _resolve_execution_profile, _safe_diagnostic, check_sources, load_config, load_history, load_state
+from clearparcel.datawatch.watch import _EXECUTION_PROFILES, _resolve_execution_profile, _safe_diagnostic, check_sources, load_config, load_history, load_state
 
 
 def _default_config() -> Path | None:
@@ -24,6 +24,8 @@ def _render(report: dict) -> str:
         f'GIS Data Watchtower - {str(report.get("overall", "unknown")).upper()}',
         f'Checks: ok={counts.get("ok", 0)}, warn={counts.get("warn", 0)}, error={counts.get("error", 0)}',
     ]
+    if report.get("error"):
+        lines.append(f'Run error: {_safe_diagnostic(report["error"])}')
     for source in (report.get("sources") or {}).values():
         line = f'[{str(source.get("status", "unknown")).upper()}] {source.get("name") or source.get("id")}'
         if source.get("feature_count") is not None:
@@ -50,7 +52,7 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("history", help="Show bounded check history")
     p.add_argument("--source"); p.add_argument("--limit", type=int, default=50); p.add_argument("--json", action="store_true")
     p = sub.add_parser("aggregate", help="Merge a partial worker result into an authoritative state")
-    p.add_argument("--base", type=Path, required=True); p.add_argument("--partial", type=Path, required=True); p.add_argument("--worker", required=True); p.add_argument("--output", type=Path, required=True)
+    p.add_argument("--base", type=Path, required=True); p.add_argument("--partial", type=Path, required=True); p.add_argument("--worker", required=True, choices=sorted(_EXECUTION_PROFILES)); p.add_argument("--output", type=Path, required=True)
     p = sub.add_parser('worker-retire', help='Prepare an offline inactive-worker retirement snapshot')
     p.add_argument('--base', type=Path, required=True)
     p.add_argument('--worker', required=True)
@@ -67,6 +69,17 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("dashboard-build", help="Build a sanitized static dashboard")
     p.add_argument("--output", type=Path, required=True); p.add_argument("--json", action="store_true")
     return parser
+
+
+# Exit codes: 0 ok, 1 warnings, 2 a source (or the run's scope) reported an
+# error, 3 Watchtower itself failed (bad config, storage or an unexpected
+# exception). Warnings are an expected non-zero exit for scheduled runs.
+EXIT_OK, EXIT_WARN, EXIT_SOURCE_ERROR, EXIT_TOOL_FAILURE = 0, 1, 2, 3
+
+
+def _exit_code(result: dict) -> int:
+    overall = result.get("overall")
+    return EXIT_SOURCE_ERROR if overall == "error" else EXIT_WARN if overall == "warn" else EXIT_OK
 
 
 def main() -> int:
@@ -97,6 +110,9 @@ def main() -> int:
         if args.command == "check":
             # Resolve once so the polled profile and the published worker agree.
             profile = _resolve_execution_profile(args.execution_profile)
+            if profile and not args.no_save:
+                from clearparcel.datawatch.cloud_job import require_publishable_profile
+                require_publishable_profile(config, profile)
             result = check_sources(config, source_filter=args.source, save=not args.no_save, execution_profile=profile)
             if profile and not args.no_save:
                 from clearparcel.datawatch.cloud_job import publish_worker_result
@@ -104,11 +120,11 @@ def main() -> int:
             if args.source and args.json:
                 result["scope"] = {"type": "source_filter", "filter": args.source, "note": "counts and active_alerts in this response cover only the checked source(s); saved state retains fleet-wide status"}
             print(json.dumps(result, indent=2) if args.json else _render(result), end="" if not args.json else "\n")
-            return 2 if result.get("overall") == "error" else 1 if result.get("overall") == "warn" else 0
+            return _exit_code(result)
         if args.command == "status":
             result = load_state(config.get("aggregate_state_file") or config["state_file"])
             print(json.dumps(result, indent=2) if args.json else _render(result), end="" if not args.json else "\n")
-            return 2 if result.get("overall") == "error" else 1 if result.get("overall") == "warn" else 0
+            return _exit_code(result)
         if args.command == "history":
             result = load_history(config, source_filter=args.source, limit=args.limit)
             if args.json: print(json.dumps(result, indent=2))
@@ -126,15 +142,15 @@ def main() -> int:
             from clearparcel.datawatch.cloud_job import run_cloud_job
             result = run_cloud_job(args.config)
             print(json.dumps(result, indent=2) if args.json else _render(result), end="" if not args.json else "\n")
-            return 2 if result.get("overall") == "error" else 1 if result.get("overall") == "warn" else 0
+            return _exit_code(result)
         if args.command == "dashboard-build":
             result = build_static_site(config, args.output)
             print(json.dumps(result, indent=2) if args.json else f'Watchtower static dashboard: {result["output_dir"]}'); return 0
-        return 2
+        return EXIT_TOOL_FAILURE
     except KeyboardInterrupt:
         return 130
     except Exception as exc:
-        print(f"ERROR: {_safe_diagnostic(type(exc).__name__ + ': ' + str(exc))}", file=sys.stderr); return 2
+        print(f"ERROR: {_safe_diagnostic(type(exc).__name__ + ': ' + str(exc))}", file=sys.stderr); return EXIT_TOOL_FAILURE
 
 
 if __name__ == "__main__":

@@ -1,16 +1,17 @@
 from __future__ import annotations
 
+import contextvars
 import datetime as dt
 import email.utils
 import hashlib
 import ipaddress
 import json
+import math
 import os
 import re
 import shutil
-import socket
+import socket  # noqa: F401 - tests patch watch.socket.getaddrinfo
 import subprocess
-import sys
 import tempfile
 import tracemalloc
 import time
@@ -21,7 +22,8 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from clearparcel.datawatch.public_values import provider_edit_timestamp
 from clearparcel.datawatch.transport import RequestDeadline, PinnedURL, resolve_addresses, effective_proxy, guarded_opener
-from clearparcel.datawatch.file_lock import FileLock
+from clearparcel.datawatch.file_lock import FileLock, atomic_write
+from clearparcel.datawatch import strict_json
 from clearparcel.datawatch.gac_standards import canonical_minnesota_county, gac_defaults, load_gac_standard, normalize_standard_key
 
 class ProviderRateLimitError(RuntimeError):
@@ -43,13 +45,24 @@ class PermanentProviderError(RuntimeError):
         super().__init__(message or f"provider returned HTTP {status}")
 
 
+class BackedOffHostError(PermanentProviderError):
+    """A redirect led to a host under HTTP 429 backoff; stop this source without retries or fallback."""
+
+    def __init__(self, host: str):
+        self.host = host
+        super().__init__(429, f"redirect rejected: {host} is under an HTTP 429 backoff")
+
+
 _PERMANENT_HTTP_STATUSES = {401, 403, 404, 410}
 
 # HTTP 429 backoff bounds. A provider's Retry-After is honored within these
 # limits; an absent or unparseable value uses the default.
 _RATE_LIMIT_DEFAULT_SECONDS = 3600
 _RATE_LIMIT_MIN_SECONDS = 60
-_RATE_LIMIT_MAX_SECONDS = 7 * 24 * 3600
+# Retry-After is honoured in full up to a year (an effectively indefinite hold);
+# backoffs longer than a week are flagged for operator review rather than shortened.
+_RATE_LIMIT_MAX_SECONDS = 365 * 24 * 3600
+_RATE_LIMIT_REVIEW_SECONDS = 7 * 24 * 3600
 _EXECUTION_PROFILES = {"cloud", "local"}
 
 
@@ -70,6 +83,8 @@ def _retry_after_seconds(value: str | None, now: dt.datetime, default: int = _RA
         seconds = None
     if seconds is None:
         seconds = default
+    # Requests beyond the maximum come back as the maximum; the caller marks
+    # them hold-until-cleared, so they are never resumed automatically.
     return max(_RATE_LIMIT_MIN_SECONDS, min(_RATE_LIMIT_MAX_SECONDS, seconds))
 
 
@@ -109,9 +124,14 @@ def _active_rate_limits(previous: object, now: dt.datetime) -> dict:
             continue
         if not_before.tzinfo is None:
             continue
+        if entry.get("hold_until_cleared") is True:
+            # The provider asked for longer than the maximum: stay blocked until
+            # an operator clears the entry, however much time passes.
+            active[host] = dict(entry)
+            continue
         if not_before > now:
-            # Re-bound stored values so a skewed clock or edited file cannot
-            # block a host for longer than the maximum backoff.
+            # Re-bound stored values only to the (year-long) maximum; a provider's
+            # requested backoff is never shortened.
             ceiling = now + dt.timedelta(seconds=_RATE_LIMIT_MAX_SECONDS)
             active[host] = {**entry, "not_before": min(not_before, ceiling).isoformat()}
     return active
@@ -140,11 +160,27 @@ def _profile_skip_reason(source: dict, execution_profile: str | None) -> str | N
     return None
 
 
+def _held_county_slugs() -> frozenset[str]:
+    """Counties whose research decision is hold-for-terms, read from the data file each run."""
+    from clearparcel.datawatch.parcel_access import load_parcel_access
+    counties = json.loads(Path(__file__).with_name("minnesota_counties.json").read_text(encoding="utf-8"))["counties"]
+    slug_by_name = {str(c.get("name")): str(c.get("slug")) for c in counties}
+    return frozenset(slug_by_name[name] for name, record in load_parcel_access().items()
+                     if (record.get("monitoring") or {}).get("decision") == "hold-for-terms" and name in slug_by_name)
+
+
+def _hold_skip_reason(source: dict, held_counties: frozenset[str]) -> str | None:
+    """County-direct parcel sources for hold-for-terms counties are never polled (AGENTS.md)."""
+    slug = str(source.get("county_slug") or "").strip().lower()
+    if slug and slug in held_counties and str(source.get("category") or "").strip().lower().startswith("parcel"):
+        return "hold-for-terms"
+    return None
+
+
 USER_AGENT = "GIS-Data-Watchtower/0.1 (+https://github.com/clearparcel/GIS-Data-Watchtower)"
 _REDIRECT_CODES = {301, 302, 303, 307, 308}
 _ANSI_ESCAPE_RE = re.compile(r"\x1b(?:\[[0-?]*[ -/]*[@-~]|\][^\x07]*(?:\x07|\x1b\\))")
 _MAX_DIAGNOSTIC_CHARS = 1024
-MNGAC_FIELDS_FILE = Path(__file__).with_name("mngac_parcel_fields.json")
 _MNGAC_NUMERIC_NO_VALUE_FIELDS = {"EMV_LAND","EMV_BLDG","EMV_TOTAL","TAX_YEAR","MKT_YEAR","TAX_CAPAC","TOTAL_TAX","SPEC_ASSES"}
 
 
@@ -219,39 +255,28 @@ def _url_host(url: str) -> str:
     return parsed.hostname.lower().rstrip(".")
 
 
-def _destination_publicity(url: str, *, deadline: RequestDeadline | None = None) -> bool | None:
-    """Return True for globally routable, False for local/reserved, None if unresolved."""
-    if deadline is None:
-        with RequestDeadline(20) as bounded:
-            return _destination_publicity(url, deadline=bounded)
-    parsed = urllib.parse.urlparse(url)
-    host = _url_host(url)
-    if host in {"localhost", "metadata.google.internal"} or host.endswith(".localhost") or host.endswith(".internal"):
-        return False
-    try:
-        addresses = [ipaddress.ip_address(host)]
-    except ValueError:
-        port = parsed.port or (443 if parsed.scheme.lower() == "https" else 80)
-        try:
-            infos = resolve_addresses(host, port, deadline)
-        except socket.gaierror:
-            return None
-        addresses = []
-        for info in infos:
-            try:
-                addresses.append(ipaddress.ip_address(info[4][0]))
-            except ValueError:
-                continue
-        if not addresses:
-            return None
-    return all(address.is_global for address in addresses)
+# Hosts under an HTTP 429 backoff during the current check run. Redirects to
+# them are refused so a different source cannot reach a host that asked to stop.
+_RUN_BLOCKED_HOSTS: contextvars.ContextVar[set] = contextvars.ContextVar("watchtower_blocked_hosts")
+
+
+def _block_hosts(hosts) -> None:
+    blocked = _RUN_BLOCKED_HOSTS.get(None)
+    if blocked is not None:
+        blocked.update(hosts)
 
 
 def _validated_redirect(current_url: str, location: str, initial_url: str, *, deadline: RequestDeadline | None = None) -> str:
     target = urllib.parse.urljoin(current_url, location)
     target_host = _url_host(target)
+    if target_host in _RUN_BLOCKED_HOSTS.get(()):
+        raise BackedOffHostError(target_host)
     _url_host(initial_url)
     _url_host(current_url)
+    if urllib.parse.urlsplit(target).scheme.lower() == "http" and "https" in {
+        urllib.parse.urlsplit(current_url).scheme.lower(), urllib.parse.urlsplit(initial_url).scheme.lower()
+    }:
+        raise RuntimeError("redirect rejected: HTTPS request redirected to plain HTTP")
     if deadline is None:
         with RequestDeadline(20) as bounded:
             return _validated_redirect(current_url, location, initial_url, deadline=bounded)
@@ -366,33 +391,36 @@ def load_state(path: str | Path) -> dict:
     if not p.exists():
         return {"schema_version": 1, "sources": {}}
     try:
-        return json.loads(p.read_text(encoding="utf-8-sig"))
-    except (OSError, json.JSONDecodeError) as primary:
+        return strict_json.loads(p.read_text(encoding="utf-8-sig"))
+    except (OSError, ValueError) as primary:  # JSONDecodeError and UnicodeDecodeError
         backup = p.with_suffix(p.suffix + ".bak")
         if backup.is_file():
             try:
-                recovered = json.loads(backup.read_text(encoding="utf-8-sig"))
+                recovered = strict_json.loads(backup.read_text(encoding="utf-8-sig"))
                 if isinstance(recovered, dict):
                     recovered["_state_recovered_from_backup"] = True
                     return recovered
-            except (OSError, json.JSONDecodeError):
+            except (OSError, ValueError):
                 pass
         raise RuntimeError(f"Watchtower state is unreadable: {p}") from primary
 
 def _save_json(path: Path, value: dict) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(path.suffix + ".tmp")
-    tmp.write_text(json.dumps(value, indent=2), encoding="utf-8")
+    # Serialize first so a bad value cannot leave a partial file behind.
+    raw = json.dumps(value, indent=2, allow_nan=False).encode("utf-8")
     if path.is_file():
-        backup = path.with_suffix(path.suffix + ".bak")
+        # Keep the last good file as .bak, itself written atomically, so a
+        # crash mid-write never leaves both the primary and backup truncated.
+        # Never replace a good backup with an unreadable primary.
         try:
-            backup.write_bytes(path.read_bytes())
-        except OSError:
+            current = path.read_bytes()
+            json.loads(current.decode("utf-8-sig"))
+            atomic_write(path.with_suffix(path.suffix + ".bak"), current, mode=path.stat().st_mode & 0o777)
+        except (OSError, ValueError):
             pass
-    tmp.replace(path)
+    atomic_write(path, raw)
 
 def _hash_json(value) -> str:
-    raw = json.dumps(value, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    raw = json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8")
     return hashlib.sha256(raw).hexdigest()
 
 def _curl_response_metadata(output: bytes | str | None, headers_path: Path) -> tuple[int | None, str | None, str | None]:
@@ -642,9 +670,14 @@ def _http_file(source: dict, timeout: int) -> dict:
     }
 
 
+def _provider_json(body: bytes):
+    """Parse provider JSON; NaN/Infinity values are read as missing (None)."""
+    return strict_json.loads(body.decode("utf-8-sig"))
+
+
 def _json_request(url: str, timeout: int, *, prefer_curl: bool = False) -> tuple[dict, dict]:
     body, meta = _request(url, timeout, prefer_curl=prefer_curl)
-    data = json.loads(body.decode("utf-8-sig"))
+    data = _provider_json(body)
     if isinstance(data, dict) and "error" in data:
         error = data["error"]
         code = error.get("code") if isinstance(error, dict) else None
@@ -688,7 +721,7 @@ def _post_json(url: str, payload: dict, timeout: int, *, deadline: RequestDeadli
                     content_type="application/json",
                 )
                 meta["primary_error"] = _safe_diagnostic(f"{type(primary).__name__}: {primary}")
-                data_obj = json.loads(raw.decode("utf-8-sig"))
+                data_obj = _provider_json(raw)
                 return data_obj, meta
             except (ProviderRateLimitError, PermanentProviderError):
                 raise
@@ -712,7 +745,7 @@ def _post_json(url: str, payload: dict, timeout: int, *, deadline: RequestDeadli
             raise PermanentProviderError(status)
         if status < 200 or status >= 300:
             raise RuntimeError(f"provider returned HTTP {status}")
-        data_obj = json.loads(raw.decode("utf-8-sig"))
+        data_obj = _provider_json(raw)
         return data_obj, meta
     raise RuntimeError(f"provider redirect limit exceeded ({max_redirects})")
 
@@ -744,6 +777,8 @@ def _parcel_id_candidate(field_names: list[str]) -> tuple[str | None, str]:
         ("taxparcelid", "high"), ("tax_parcel_id", "high"),
         ("parcel", "medium"), ("taxid", "medium"), ("tax_id", "medium"),
     ]
+    # Provider-supplied names are later placed in query clauses; skip anything unusual.
+    field_names = [str(x) for x in field_names if _SQL_IDENTIFIER.fullmatch(str(x))]
     by_lower = {str(x).lower(): str(x) for x in field_names}
     for candidate, confidence in ranked:
         if candidate in by_lower:
@@ -763,6 +798,16 @@ def _validated_provider_count(value, *, label: str = "count", maximum: int = 2_1
     return value
 
 
+_SQL_IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+
+
+def _sql_identifier(field: str) -> str:
+    """Return a provider field name only if it is safe to place in a where/having clause."""
+    if not isinstance(field, str) or not _SQL_IDENTIFIER.fullmatch(field):
+        raise ValueError(f"unsupported field name for an ArcGIS query: {_safe_diagnostic(str(field))}")
+    return field
+
+
 def _arcgis_count_query(url: str, where: str, timeout: int, *, prefer_curl: bool = False) -> int:
     query_url = url.rstrip("/") + "/query?" + urllib.parse.urlencode({
         "where": where, "returnCountOnly": "true", "f": "json",
@@ -772,6 +817,7 @@ def _arcgis_count_query(url: str, where: str, timeout: int, *, prefer_curl: bool
 
 
 def _arcgis_statistics_query(url: str, field: str, timeout: int, *, prefer_curl: bool = False) -> dict:
+    field = _sql_identifier(field)
     stats = [
         {"statisticType": "count", "onStatisticField": field, "outStatisticFieldName": "nonnull_count"},
         {"statisticType": "count", "onStatisticField": field, "outStatisticFieldName": "row_count"},
@@ -785,6 +831,7 @@ def _arcgis_statistics_query(url: str, field: str, timeout: int, *, prefer_curl:
 
 
 def _arcgis_duplicate_id_summary(url: str, field: str, timeout: int, *, prefer_curl: bool = False) -> dict:
+    field = _sql_identifier(field)
     query_url = url.rstrip("/") + "/query?" + urllib.parse.urlencode({
         "where": f"{field} IS NOT NULL",
         "outFields": field,
@@ -801,6 +848,8 @@ def _arcgis_duplicate_id_summary(url: str, field: str, timeout: int, *, prefer_c
 
 
 def _field_candidate(field_names: list[str], exact: list[str], contains: list[str] | None = None) -> str | None:
+    # Provider-supplied names are later placed in query clauses; skip anything unusual.
+    field_names = [str(x) for x in field_names if _SQL_IDENTIFIER.fullmatch(str(x))]
     by_lower = {str(x).lower(): str(x) for x in field_names}
     for name in exact:
         if name.lower() in by_lower:
@@ -831,15 +880,11 @@ def _extent_change(previous: dict | None, current: dict | None) -> dict | None:
 
 
 def _field_completeness(url: str, field: str, total: int | None, timeout: int, *, prefer_curl: bool = False) -> dict:
+    field = _sql_identifier(field)
     missing = _arcgis_count_query(url, f"{field} IS NULL OR {field} = ''", timeout, prefer_curl=prefer_curl)
     populated = None if total is None or missing is None else max(0, total - missing)
     pct = None if total in (None, 0) or populated is None else round((populated / total) * 100.0, 2)
     return {"field": field, "missing": missing, "populated": populated, "complete_percent": pct}
-
-
-def _load_mngac_schema() -> dict:
-    """Backward-compatible parcel-standard loader."""
-    return load_gac_standard("parcel")
 
 
 def _gac_population_expression(field_spec: dict, actual_field: str, *, standard_key: str = "parcel") -> str:
@@ -936,6 +981,8 @@ def _arcgis_gac_completeness(
     county_field = by_lower.get(str(configured_county).lower())
     code_field = by_lower.get(str(configured_code).lower()) if configured_code else None
     oid_field = object_id_field or by_lower.get("objectid")
+    if oid_field and not _SQL_IDENTIFIER.fullmatch(str(oid_field)):
+        raise ValueError("GAC object-id field name is not a plain identifier")
     if not county_field or not oid_field or (configured_code and not code_field):
         required = f"{configured_county}"
         if configured_code:
@@ -1188,7 +1235,8 @@ def _arcgis_gac_completeness(
         ),
         "counties": counties,
         "fields": field_summaries,
-        "observation_status": "complete",
+        # "none": the schema was checked but no field population was scanned.
+        "observation_status": "complete" if scanned_fields else "none",
     }
 
 
@@ -1464,7 +1512,15 @@ def _arcgis_layer(source: dict, timeout: int) -> dict:
             result["null_geometry_check"] = "unsupported"
             result["null_geometry_check_error"] = _safe_diagnostic(exc)
         if id_field and confidence == "high":
-            null_count = _arcgis_count_query(source["url"], f"{id_field} IS NULL OR {id_field} = ''", timeout, prefer_curl=bool(source.get("prefer_curl")))
+            try:
+                null_count = _arcgis_count_query(source["url"], f"{_sql_identifier(id_field)} IS NULL OR {_sql_identifier(id_field)} = ''", timeout, prefer_curl=bool(source.get("prefer_curl")))
+            except (ProviderRateLimitError, PermanentProviderError):
+                raise
+            except Exception as exc:
+                # Optional quality metric: record it as unsupported, not as a source failure.
+                null_count = None
+                result["parcel_id_null_check"] = "unsupported"
+                result["parcel_id_null_check_error"] = _safe_diagnostic(exc)
             result["parcel_id_null_count"] = null_count
             profiles = {}
             owner_field = _field_candidate(result["field_names"], ["owner_name","owner","tax_name","ownername"], ["owner"])
@@ -1660,17 +1716,24 @@ def _wfs(source: dict, timeout: int) -> dict:
         "problems": problems,
     }
 
+_PLAIN_NUMBER = re.compile(r"-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?")
+
+
 def _coerce_scalar(value):
+    """Convert plain decimal strings to numbers; keep everything else as text.
+
+    Leading-zero codes (FIPS, ZIP) stay strings, and nan/inf/1e5/"1_000"
+    are never treated as numbers.
+    """
     if not isinstance(value, str):
         return value
     stripped = value.strip()
-    try:
-        return int(stripped)
-    except ValueError:
-        try:
-            return float(stripped)
-        except ValueError:
-            return value
+    if not _PLAIN_NUMBER.fullmatch(stripped):
+        return value
+    if "." not in stripped:
+        return int(stripped) if len(stripped) <= 4000 else value  # int() refuses huge digit strings
+    number = float(stripped)
+    return number if math.isfinite(number) else None
 
 def _sda_query(source: dict, timeout: int) -> dict:
     payload = {
@@ -1764,8 +1827,15 @@ def _observation_fingerprint(details: dict) -> str:
         "http_status", "transport", "problems", "elapsed_ms", "attempts",
         "checked_at", "changes", "error", "observation_fingerprint",
         "gac_check_status", "gac_check_error",
+        # Optional-metric diagnostics can flap without any dataset change.
+        "null_geometry_check_error", "parcel_id_null_check_error",
     }
     stable = {k: v for k, v in details.items() if k not in volatile}
+    # Nested metric blocks (e.g. gac_completeness) carry their own observation
+    # time; it changes every run and must not register as a dataset change.
+    for key, value in list(stable.items()):
+        if isinstance(value, dict) and "observed_at" in value:
+            stable[key] = {k: v for k, v in value.items() if k != "observed_at"}
     return _hash_json(stable)
 
 
@@ -2035,11 +2105,13 @@ def _check_sources_unlocked(
     # Per-host HTTP 429 backoffs persist across runs; expired entries drop out.
     rate_limits = _active_rate_limits(previous_state.get("rate_limits"), run_started)
     default_backoff = int(config.get("rate_limit_default_backoff_seconds", _RATE_LIMIT_DEFAULT_SECONDS))
+    _block_hosts(rate_limits)
+    held_counties = _held_county_slugs()
 
     for source in config.get("sources", []):
         if filtered and filtered not in source["id"].lower() and filtered not in source["name"].lower():
             continue
-        skip_reason = _profile_skip_reason(source, execution_profile)
+        skip_reason = _profile_skip_reason(source, execution_profile) or _hold_skip_reason(source, held_counties)
         if skip_reason:
             skipped_sources[str(source.get("id") or "<missing-id>")] = skip_reason
             continue
@@ -2050,6 +2122,8 @@ def _check_sources_unlocked(
             continue
         rate_limited = False
         started = dt.datetime.now(dt.timezone.utc)
+        # When this source's check began; long runs no longer stamp every source with the run start.
+        source_checked_at = started.isoformat()
         source_timeout = int(source.get("timeout_seconds", timeout))
         retries = int(source.get("retries", config.get("retries", 1)))
         details = None
@@ -2073,6 +2147,11 @@ def _check_sources_unlocked(
                         rate_limits[limited_host] = {
                             "not_before": (observed + dt.timedelta(seconds=wait)).isoformat(),
                             "recorded_at": observed.isoformat(), "source_id": source["id"]}
+                        if wait > _RATE_LIMIT_REVIEW_SECONDS:
+                            rate_limits[limited_host]["operator_review"] = True
+                        if wait >= _RATE_LIMIT_MAX_SECONDS:
+                            rate_limits[limited_host]["hold_until_cleared"] = True
+                    _block_hosts(rate_limits)
                     rate_limited = True
                     break
                 if isinstance(exc, PermanentProviderError):
@@ -2090,7 +2169,7 @@ def _check_sources_unlocked(
                             details[quality_key] = previous[quality_key]
                 details["observation_fingerprint"] = _observation_fingerprint(details)
                 if source["id"] == "mn-parcel-county-catalog" and isinstance(details.get("county_records"), dict):
-                    details["catalog_observed_at"] = now
+                    details["catalog_observed_at"] = source_checked_at
                     details["catalog_retained"] = False
                     details["catalog_time_inferred"] = False
                 changes = _compare(previous_sources.get(source["id"]), details, source)
@@ -2110,11 +2189,11 @@ def _check_sources_unlocked(
                     "provenance": {
                         "source_url": source["url"],
                         "adapter": _adapter_name(source),
-                        "observed_at": now,
+                        "observed_at": source_checked_at,
                         "publisher_modified": details.get("last_modified") or details.get("modified") or details.get("editing_info"),
                     },
                     "status": status,
-                    "checked_at": now,
+                    "checked_at": source_checked_at,
                     "elapsed_ms": elapsed_ms,
                     "attempts": attempts,
                     **details,
@@ -2140,11 +2219,11 @@ def _check_sources_unlocked(
                 "provenance": {
                     "source_url": source["url"],
                     "adapter": _adapter_name(source),
-                    "observed_at": now,
+                    "observed_at": source_checked_at,
                     "publisher_modified": None,
                 },
                 "status": "error",
-                "checked_at": now,
+                "checked_at": source_checked_at,
                 "elapsed_ms": elapsed_ms,
                 "attempts": attempts,
                 "error": _safe_diagnostic(f"{type(last_error).__name__}: {last_error}"),
@@ -2210,19 +2289,40 @@ def _check_sources_unlocked(
     }
     from .hybrid_validation import runtime_identity
     identity = runtime_identity(config)
+    # An operator may deliberately drain a worker's inventory (worker
+    # migration/retirement); otherwise an empty run is an error.
+    allow_shrink = os.environ.get("WATCHTOWER_ALLOW_INVENTORY_SHRINK") == "1"
+    # A filter that matched nothing is an empty run too; only an explicit
+    # fleet drain may report no sources.
+    empty_run = not records and not (allow_shrink and not source_filter)
+    if empty_run:
+        scope = {"type": "empty"}
+    elif source_filter:
+        scope = {"type": "source", "source_id": source_filter}
+    else:
+        scope = {"type": "fleet"}
     result = {
         "schema_version": 2,
         "runtime_identity": identity,
         "generated_at": now,
-        "scope": {"type": "source", "source_id": source_filter} if source_filter else {"type": "fleet"},
+        "scope": scope,
         "telemetry": telemetry,
-        "overall": "error" if counts["error"] else "warn" if counts["warn"] else "ok",
+        "overall": "error" if counts["error"] or empty_run else "warn" if counts["warn"] else "ok",
         "counts": counts,
         "sources": records,
         "skipped_sources": skipped_sources,
         "active_alerts": active_alerts,
         "events": events,
     }
+    if empty_run:
+        # Nothing was checked (for example a profile typo or no assigned
+        # sources). Report an error and leave saved state untouched.
+        result["error"] = (f"no configured sources matched source filter {source_filter!r}" if source_filter
+                           else f"no configured sources matched execution profile {execution_profile!r}"
+                           if execution_profile else "no configured sources were eligible to run")
+        return result
+    if allow_shrink:
+        result["allow_inventory_shrink"] = True
     if save:
         state_records = dict(previous_sources) if filtered else {}
         if not filtered:
@@ -2318,6 +2418,21 @@ def check_sources(
     save: bool = True,
     execution_profile: str | None = None,
 ) -> dict:
+    # A fresh set of 429-blocked hosts for this run only.
+    token = _RUN_BLOCKED_HOSTS.set(set())
+    try:
+        return _check_sources(config, source_filter=source_filter, save=save, execution_profile=execution_profile)
+    finally:
+        _RUN_BLOCKED_HOSTS.reset(token)
+
+
+def _check_sources(
+    config: dict,
+    *,
+    source_filter: str | None,
+    save: bool,
+    execution_profile: str | None,
+) -> dict:
     if not save:
         try:
             return _check_sources_unlocked(
@@ -2358,7 +2473,7 @@ def load_history(
                 if not line:
                     continue
                 try:
-                    item = json.loads(line)
+                    item = strict_json.loads(line)
                 except json.JSONDecodeError:
                     continue
                 if isinstance(item, dict):
@@ -2397,3 +2512,9 @@ def load_history(
         "entry_count": len(rows),
         "entries": rows,
     }
+
+
+def __getattr__(name: str):
+    """Resolve names that v0.2.3 exposed here (see clearparcel.datawatch._compat)."""
+    from clearparcel.datawatch import _compat
+    return _compat.resolve(__name__, name)

@@ -391,8 +391,9 @@ class CountyProfilesTests(unittest.TestCase):
         self.assertEqual(source['reporting'], 'current')
         self.assertEqual(source['feature_count'], 42)
         self.assertEqual(source['last_success_at'], '2026-10-01T00:00:00+00:00')
+        # A fresh report without a fresh provider check does not make the check current.
         state['sources']['parcel'].update(checked_at='2026-10-01T00:00:00+00:00', last_report_at=STAMP)
-        self.assertEqual(compose(state)['anoka']['monitoring']['reporting'], 'current')
+        self.assertEqual(compose(state)['anoka']['monitoring']['reporting'], 'overdue')
         state['sources']['parcel']['last_report_at'] = '2026-10-01T00:00:00+00:00'
         self.assertEqual(compose(state)['anoka']['monitoring']['reporting'], 'overdue')
         self.assertEqual(p['becker']['monitoring']['health'], 'unknown')
@@ -492,8 +493,8 @@ class CountyProfilesTests(unittest.TestCase):
             'county_records': {'Aitkin': {'data_url': product, 'acqdate': 1735689600000, 'rundate': 1735776000000}}}
         profile = compose(state, research)['aitkin']
         matched, unmatched = profile['mngeo_public_repository']['sources']
-        self.assertEqual(matched['county_acquired_at'], '2025-01-01T00:00:00+00:00')
-        self.assertEqual(matched['catalog_refreshed_at'], '2025-01-02T00:00:00+00:00')
+        self.assertEqual(matched['county_acquired_at'], '2025-01-01')
+        self.assertEqual(matched['catalog_refreshed_at'], '2025-01-02')
         self.assertIsNone(unmatched['county_acquired_at'])
         self.assertIsNone(unmatched['catalog_refreshed_at'])
         for source in (matched, unmatched):
@@ -547,13 +548,13 @@ class CountyProfilesTests(unittest.TestCase):
                     catalog['data_url'] = url
                     profile = compose(state, research)[name.lower()]
                     projected = profile['mngeo_public_repository']['sources'][0]
-                    self.assertEqual(projected['county_acquired_at'], '2025-01-01T00:00:00+00:00' if qualifies else None)
-                    self.assertEqual(projected['catalog_refreshed_at'], '2025-01-02T00:00:00+00:00' if qualifies else None)
+                    self.assertEqual(projected['county_acquired_at'], '2025-01-01' if qualifies else None)
+                    self.assertEqual(projected['catalog_refreshed_at'], '2025-01-02' if qualifies else None)
                     self.assertIsNone(projected['feature_count'])
                     self.assertEqual(projected['health'], 'unknown')
                     statewide = next(s for s in profile['mngac_public_parcels']['sources'] if s['monitored_source_id'] == 'statewide')
-                    self.assertEqual(statewide['county_acquired_at'], '2025-01-01T00:00:00+00:00')
-                    self.assertEqual(statewide['catalog_refreshed_at'], '2025-01-02T00:00:00+00:00')
+                    self.assertEqual(statewide['county_acquired_at'], '2025-01-01')
+                    self.assertEqual(statewide['catalog_refreshed_at'], '2025-01-02')
         # A product without a selected layer still supports exact file/dataset matches.
         source['layer_id'] = None
         for url in ('https://county.example/data/scott-parcels.zip',
@@ -561,7 +562,7 @@ class CountyProfilesTests(unittest.TestCase):
             source.update(evidence=[url], approved_public_links=[{'label': 'Product', 'href': url}])
             catalog['data_url'] = url
             self.assertEqual(compose(state, research)['scott']['mngeo_public_repository']['sources'][0]['county_acquired_at'],
-                             '2025-01-01T00:00:00+00:00')
+                             '2025-01-01')
 
     def test_seven_metro_county_repository_layers_remain_distinct_from_native(self):
         research = load_parcel_access()

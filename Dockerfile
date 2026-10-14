@@ -8,7 +8,8 @@ COPY clearparcel ./clearparcel
 COPY config ./config
 ARG WATCHTOWER_BUILD_REVISION=""
 ARG WATCHTOWER_BUILD_ENVIRONMENT="development"
-RUN python -c "import json,os,re,pathlib; r=os.environ['WATCHTOWER_BUILD_REVISION']; e=os.environ['WATCHTOWER_BUILD_ENVIRONMENT']; assert not r or re.fullmatch(r'[0-9a-f]{40}|[0-9a-f]{64}',r), 'Invalid source revision'; assert e in ('preview','production','development'), 'Invalid build environment'; pathlib.Path('clearparcel/datawatch/build_info.json').write_text(json.dumps({'revision':r,'environment':e}),encoding='utf-8')"
+# Preview and production images must carry the full source revision.
+RUN python -c "import json,os,re,pathlib; r=os.environ['WATCHTOWER_BUILD_REVISION']; e=os.environ['WATCHTOWER_BUILD_ENVIRONMENT']; assert not r or re.fullmatch(r'[0-9a-f]{40}|[0-9a-f]{64}',r), 'Invalid source revision'; assert e in ('preview','production','development'), 'Invalid build environment'; assert r or e == 'development', 'Preview and production builds require WATCHTOWER_BUILD_REVISION'; pathlib.Path('clearparcel/datawatch/build_info.json').write_text(json.dumps({'revision':r,'environment':e}),encoding='utf-8')"
 RUN pip install --no-cache-dir --constraint constraints.txt ".[gcs]" \
     && python -m pip uninstall -y pip setuptools
 USER 65532:65532

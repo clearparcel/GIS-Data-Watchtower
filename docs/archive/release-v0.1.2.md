@@ -5,7 +5,7 @@
 This section records the initial v0.1.2 rollout. The later public-only PR #62
 rollout at `8999081`, revision `00013-s7q`, superseded public revision `00012-c5j`.
 The later v0.2.0 rollout supersedes both public revisions. See
-[current status](current-status.md) and the preserved
+[current status](../current-status.md) and the preserved
 [MN GAC publication record](mngac-county-publication-2026-10-10.md), originally
 proposed in the now-superseded documentation PR #63.
 

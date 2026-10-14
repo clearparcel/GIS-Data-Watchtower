@@ -3,10 +3,9 @@ from __future__ import annotations
 
 import csv
 import io
-import re
 
 from .parcel_access import INVENTORY_CATEGORIES
-from .public_values import safe_public_url, spreadsheet_cell
+from .public_values import safe_public_url, spreadsheet_cell, spreadsheet_text
 
 SUMMARY_FIELDS = ('county', 'county_slug', 'county_fips', 'active', 'paths', 'health', 'reporting',
     'active_parcel_source_count', 'last_checked_at', 'last_success_at', 'aggregate_generated_at',
@@ -91,6 +90,12 @@ def county_profile_xlsx_sheets(profiles: dict[str, dict]) -> list[tuple[str, lis
     def cell(value: object) -> object:
         if value is None or isinstance(value, (int, float, bool)):
             return value
-        return re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', '', spreadsheet_cell(value))
+        return spreadsheet_text(value)
     return [(name, [list(fields)] + [[cell(row.get(k)) for k in fields] for row in rows])
             for name, fields, rows in [('County Access', SUMMARY_FIELDS, summaries), ('Parcel Sources', SOURCE_FIELDS, sources)]]
+
+
+def __getattr__(name: str):
+    """Resolve names that v0.2.3 exposed here (see clearparcel.datawatch._compat)."""
+    from clearparcel.datawatch import _compat
+    return _compat.resolve(__name__, name)

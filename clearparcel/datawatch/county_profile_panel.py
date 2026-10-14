@@ -9,8 +9,11 @@ from urllib.parse import urlsplit
 from .public_values import safe_public_url
 
 GROUPS = (("mngac_public_parcels", "MN GAC Public Parcels"), ("mngeo_public_repository", "MnGeo Public County Repository"), ("county_arcgis_rest", "County ArcGIS REST"), ("county_download", "County Website Download"))
-PERCENT_COLORS = ["#1b2b40", "#315373", "#3c708f", "#4c9b7b"]
+# Sequential bins with about 2:1 luminance contrast between neighbours; "no data"
+# is a hatch pattern so it never depends on telling two dark colours apart.
+PERCENT_COLORS = ["#30506f", "#4583b3", "#7cbedf", "#c9edf5"]
 NO_DATA_COLOR = "#151d2b"
+NO_DATA_FILL = "url(#pct-no-data)"
 # Fixed classes shared by map fills and legends. Exact 30 and 50 start the next class;
 # exact 70 stays in 50-70. Rates outside 0-100 are unavailable, not low or high.
 PERCENT_BINS = (("<30%", 30, False), ("30% - 50%", 50, False),
@@ -123,17 +126,15 @@ def render_direct_schema_findings(assessments: list[dict]) -> str:
               'MN GAC is a transfer standard; counties may use another internal schema or offer a separate standardized export. '
               'Names alone do not establish full compliance.</p></div>')
 
-def _json(value: object) -> str:
-    return json.dumps(value, ensure_ascii=False).replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
 
 def percentage_color(value: object) -> str:
     """Classify a measured 0-100 rate without turning missing values into zero."""
     if type(value) not in (int, float) or not math.isfinite(value) or not 0 <= value <= 100:
-        return NO_DATA_COLOR
+        return NO_DATA_FILL
     for color, (_, upper, inclusive) in zip(PERCENT_COLORS, PERCENT_BINS):
         if upper is None or value < upper or (inclusive and value == upper):
             return color
-    return NO_DATA_COLOR
+    return NO_DATA_FILL
 
 
 def percentage_color_js() -> str:
@@ -141,7 +142,7 @@ def percentage_color_js() -> str:
     classes = [{"upper": upper, "inclusive": inclusive, "color": color}
                for color, (_, upper, inclusive) in zip(PERCENT_COLORS, PERCENT_BINS)]
     return ("function percentageColor(value){if(typeof value!=='number'||!Number.isFinite(value)"
-            "||value<0||value>100)return " + json.dumps(NO_DATA_COLOR)
+            "||value<0||value>100)return " + json.dumps(NO_DATA_FILL)
             + ";const classes=" + json.dumps(classes)
             + ";return classes.find(bin=>bin.upper===null||value<bin.upper||"
               "(bin.inclusive&&value===bin.upper)).color}")
@@ -149,8 +150,19 @@ def percentage_color_js() -> str:
 
 def percentage_legend() -> str:
     """Use the same fixed breaks and colors as both maps."""
-    values = [(NO_DATA_COLOR, "N/A"), *zip(PERCENT_COLORS, [label for label, _, _ in PERCENT_BINS])]
-    return '<div class="mngac-legend" aria-label="Map legend">' + ''.join(f'<span><i class="mngac-swatch" style="background:{color}"></i>{html.escape(label)}</span>' for color, label in values) + '</div>'
+    values = [("pct-no-data-swatch", NO_DATA_COLOR, "No data"),
+              *(("", color, label) for color, (label, _, _) in zip(PERCENT_COLORS, PERCENT_BINS))]
+    return ('<div class="mngac-legend" role="group" aria-label="Map legend">' + ''.join(
+        f'<span><i class="mngac-swatch {cls}" style="background-color:{color}" aria-hidden="true"></i>{html.escape(label)}</span>'
+        for cls, color, label in values) + '</div>')
+
+
+def percentage_patterns() -> str:
+    """SVG pattern for counties without a measured rate (shared by every map)."""
+    return ('<defs><pattern id="pct-no-data" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">'
+            '<rect width="7" height="7" fill="#151d2b"/><line x1="0" y1="0" x2="0" y2="7" stroke="#8593a6" stroke-width="1.4"/>'
+            '</pattern></defs>')
+
 
 def render_inline_county_panel(*, revision: str) -> str:
     """Load the existing escaped public fragment into the overview's county pane."""
@@ -279,10 +291,16 @@ def render_county_profile_panel(profiles: dict[str, dict], *, revision: str | No
   dialog.addEventListener('close',()=>{request++;opener?.focus({preventScroll:true});window.scrollTo(0,scroll);window.watchtowerRefresh?.release('county-dialog')});
   dialog.addEventListener('keydown',event=>{
     if(event.key!=='Tab')return;
-    const targets=[...dialog.querySelectorAll('button,a[href]')],first=targets[0],last=targets[targets.length-1];
+    const targets=[...dialog.querySelectorAll('button,a[href],summary,input,select,textarea,[tabindex]:not([tabindex="-1"])')].filter(el=>!el.disabled&&(el.checkVisibility?el.checkVisibility():el.getClientRects().length>0)),first=targets[0],last=targets[targets.length-1];if(!targets.length)return;
     if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus()}
     else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus()}
   });
 })();
 </script>
 '''
+
+
+def __getattr__(name: str):
+    """Resolve names that v0.2.3 exposed here (see clearparcel.datawatch._compat)."""
+    from clearparcel.datawatch import _compat
+    return _compat.resolve(__name__, name)

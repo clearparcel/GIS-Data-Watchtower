@@ -49,7 +49,9 @@ The Overview **Map view** selector includes **MN GAC / open-data status**, **Mon
 - **Monitoring paths:** Is the county represented through a statewide source, a county-direct source, both, or neither in the current observations?
 - **MN GAC all-field population:** How extensively are standardized parcel fields populated in the recorded statewide observation?
 
-Map colors and patterns must be read with their legend. They are **not** rankings of county GIS quality.
+Map colors and patterns must be read with their legend. They are **not** rankings of county GIS quality. On percentage maps, counties without a measured rate are hatched and labelled **No data**; that is never the same as a low percentage.
+
+**Keyboard and screen readers:** the first Tab on every page offers **Skip to content**, and each county map starts with **Skip county map** so you can move past its 87 county targets. Every county on a map has a text label, data tables are captioned with their section heading, and automatic refresh can be paused with the **Pause refresh** button in the header.
 
 ## 3. Compare standard fields under MN GAC
 
@@ -96,6 +98,8 @@ Choose **Data Sources** to review monitored dataset/service entries, recorded he
 | **Provider observation / last check** | When Watchtower last checked the external service |
 | **Public publication time** | When the collected sanitized snapshot was published to this website |
 | **Current / overdue public publication** | Whether the public snapshot meets its freshness threshold; independent of provider health |
+| **Check overdue (county coverage)** | The county's last result was healthy or unknown, but a monitoring path (or the worker reporting it) has not reported within the freshness window (26 hours by default). The county still has a monitoring path and is counted in "Counties with a monitoring path", but its coverage shows "Check overdue" instead of "Actively checked" until a new check arrives |
+| **County acquisition / catalog refresh date** | Calendar dates reported by the MnGeo parcel catalog, shown as dates (no time of day); not a Watchtower check time |
 
 **Timing:** The approved cloud provider job currently runs daily at **5:00 a.m. America/Chicago**. The sanitized public site is published on a separate **10-minute** cadence. A recently refreshed page can therefore show an older provider observation.
 
@@ -107,7 +111,8 @@ Use **Export** or available county/standard export controls. The public app supp
 
 Summary products can include county profiles, parcel-source categories, monitored-source status, and MN GAC field statistics. Exports are **derived/public monitoring facts**, not bulk parcel downloads.
 
-- An unknown/blank date or percentage is **not** a measured zero.
+- An unknown/blank date, count, or percentage is **not** a measured zero; the site and exports show "—" or leave the cell blank.
+- Excel text cells are written as plain text. CSV text that begins with `=`, `+`, `-` or `@` is prefixed with an apostrophe so spreadsheets do not run it as a formula.
 - Counts and denominators can differ between standards and datasets.
 - A county appearing in both direct and statewide inventories counts **once** in unique coverage.
 - Record observation/export times in reports and cite the underlying county or MnGeo source.

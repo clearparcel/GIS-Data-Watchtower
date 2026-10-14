@@ -14,7 +14,6 @@ from pathlib import Path
 from clearparcel.datawatch.dashboard import (
     _BoundedThreadingHTTPServer,
     _county_snapshot,
-    _county_monitoring_counts,
     _county_profiles,
     _dashboard_state,
     _health_status,
@@ -27,7 +26,7 @@ from clearparcel.datawatch.dashboard import (
     render_county,
     render_mngac,
 )
-from clearparcel.datawatch.dashboard_exports import _mngac_csv, _snapshot_csv, _snapshot_xlsx
+from clearparcel.datawatch.dashboard_exports import _mngac_csv, _snapshot_xlsx
 from clearparcel.datawatch.dashboard_templates import _esc, _layout
 from clearparcel.datawatch.dashboard_routes import dispatch_snapshot_exports
 from clearparcel.datawatch.parcel_access import load_parcel_access
@@ -36,6 +35,7 @@ from clearparcel.datawatch.county_profiles import county_profile_counts, _latest
 from clearparcel.datawatch.county_profile_panel import render_inline_county_panel, percentage_legend, percentage_color_js, research_summary, render_direct_schema_findings
 from clearparcel.datawatch.direct_gac_schema import direct_schema_assessment
 from clearparcel.datawatch.county_map_status import MAP_STATUSES, county_map_status, status_legend, status_patterns
+from clearparcel.datawatch import strict_json
 from clearparcel.datawatch.storage import backend_from_env
 from clearparcel.datawatch.public_values import sanitize_source_metadata
 from clearparcel.datawatch.build_info import application_identity
@@ -45,21 +45,7 @@ from clearparcel.datawatch.dashboard_summary import summary_for, render_diagnost
 from clearparcel.datawatch.public_details import dispatch_public_details, encode_response
 
 
-from clearparcel.datawatch.public_projection import (
-    _approval,
-    _catalog_date,
-    _project,
-    _public_count,
-    _public_date,
-    _public_number,
-    _public_status,
-    _records,
-    _sanitize_catalog_records,
-    _sanitize_completeness,
-    _sanitize_gac,
-    _sanitize_mngac,
-    sanitize_public_render_state,
-)
+from clearparcel.datawatch.public_projection import sanitize_public_render_state
 
 
 def _publication_max_age_seconds() -> int:
@@ -160,7 +146,7 @@ def render_public_dashboard(config: dict) -> str:
             f'<td>{_esc(source.get("provider") or "—")}</td>'
             f'<td><span class="pill {_status_class(status)}">{_esc(_health_status(status))}</span></td>'
             f'<td>{_esc(f"{source.get("feature_count"):,}" if isinstance(source.get("feature_count"), int) else source.get("feature_count") or "—")}</td>'
-            f'<td>{_esc(source.get("change_count") or 0)}</td>'
+            f'<td>{_esc(source.get("change_count") if source.get("change_count") is not None else "—")}</td>'
             f'<td>{_esc(_public_time(source.get("last_success_at")))}</td>'
             '</tr>'
         )
@@ -209,8 +195,8 @@ def render_public_dashboard(config: dict) -> str:
 <div class="summary-v2">
   <div class="card"><div class="muted">Dataset/service entries monitored</div><div class="metric">{len(sources)}</div><span class="subtext">All data types · entries, not counties or unique providers</span></div>
   <div class="card"><div class="muted">Entries healthy at last check</div><div class="metric ok">{healthy}</div><span class="subtext">{issues} had issues at their last check</span></div>
-  <div class="card"><div class="muted">Minnesota counties</div><div class="metric">87</div><span class="subtext">Statewide county profile index</span></div>
-  <div class="card"><div class="muted">Counties with parcel observations</div><div class="metric">{monitoring["active"]}/87</div><span class="subtext">{monitoring["mngeo_open"]} via MnGeo open parcels · {monitoring["county_direct"]} via county-direct sources · each county counted once</span></div>
+  <div class="card"><div class="muted">Minnesota counties</div><div class="metric">{monitoring["total"]}</div><span class="subtext">Statewide county profile index</span></div>
+  <div class="card"><div class="muted">Counties with parcel observations</div><div class="metric">{monitoring["active"]}/{monitoring["total"]}</div><span class="subtext">{monitoring["mngeo_open"]} via MnGeo open parcels · {monitoring["county_direct"]} via county-direct sources · {monitoring["both"]} via both · each county counted once</span></div>
   <div class="card"><div class="muted">Parcel all-field population</div><div class="metric">{_esc(f"{all_field:.2f}%" if isinstance(all_field,(int,float)) else "—")}</div><span class="subtext">Across all 91 standard fields</span></div>
   <div class="card"><div class="muted">Parcel mandatory-field population</div><div class="metric">{_esc(f"{mandatory:.2f}%" if isinstance(mandatory,(int,float)) else "—")}</div><span class="subtext">Record-weighted statewide rate</span></div>
 </div>
@@ -292,6 +278,7 @@ def render_public_dashboard(config: dict) -> str:
   const monitoringPaths={monitoring_json};
   const countyStatuses={status_json},statusStyles={status_styles_json};
   const selector=root.getElementById("overview-metric");
+  root.querySelectorAll('.mngac-county').forEach(p=>p.setAttribute('aria-pressed','false'));
   let selectedPath=null;
   function monitoringLabel(paths){{
     return paths.length===2?'Both county-direct and MnGeo open parcel monitoring paths':paths.includes('county-direct')?'County-direct parcel monitoring path':paths.includes('mngeo-open')?'MnGeo open parcel monitoring path':'No active parcel monitoring path';
@@ -312,12 +299,12 @@ def render_public_dashboard(config: dict) -> str:
     const schema=selector.value==='schema';
     root.querySelectorAll(".mngac-county").forEach(p=>{{
       const paths=monitoringPaths[p.dataset.slug]||[],d=countyData[p.dataset.county];
-      p.style.fill=schema?statusStyles[countyStatuses[p.dataset.slug]].fill:monitoring?(paths.length===2?"#4c9b7b":paths.includes("county-direct")?"#3c708f":paths.includes("mngeo-open")?"#315373":"#151d2b"):fill(d&&d.all_pct);
+      p.style.fill=schema?statusStyles[countyStatuses[p.dataset.slug]].fill:monitoring?(paths.length===2?"#4c9b7b":paths.includes("county-direct")?"#3c708f":paths.includes("mngeo-open")?"#315373":"#3a4556"):fill(d&&d.all_pct);
       const label=schema?statusStyles[countyStatuses[p.dataset.slug]].label:monitoring?monitoringLabel(paths):d&&d.all_pct!=null?Number(d.all_pct).toFixed(2)+'% MN GAC all-field population':'Statewide completeness is unavailable';
       p.setAttribute('aria-label',p.dataset.county+' County, '+label);
     }});
     updateDescription();
-    root.getElementById("overview-legend").innerHTML=schema?{json.dumps(status_legend())}:monitoring?'<div class="mngac-legend"><span><i class="mngac-swatch" style="background:#4c9b7b"></i>Both paths</span><span><i class="mngac-swatch" style="background:#3c708f"></i>County-direct</span><span><i class="mngac-swatch" style="background:#315373"></i>MnGeo open</span><span><i class="mngac-swatch" style="background:#151d2b"></i>No active parcel path</span></div>':{json.dumps(percentage_legend())};
+    root.getElementById("overview-legend").innerHTML=schema?{json.dumps(status_legend())}:monitoring?'<div class="mngac-legend" role="group" aria-label="Monitoring path legend"><span><i class="mngac-swatch" style="background:#4c9b7b"></i>Both paths</span><span><i class="mngac-swatch" style="background:#3c708f"></i>County-direct</span><span><i class="mngac-swatch" style="background:#315373"></i>MnGeo open</span><span><i class="mngac-swatch" style="background:#3a4556"></i>No active parcel path</span></div>':{json.dumps(percentage_legend())};
     root.getElementById('overview-map-note').textContent=schema?'MN GAC availability uses MnGeo county observations or checked standard field names. A differing direct feed does not rule out a separate standardized export. No confirmed open data means current research found no open product; unresolved cases remain separate.':monitoring?'Monitoring paths describe saved observations, not all available parcel products.':'Percentages describe statewide population across all 91 MN GAC fields, including conditional and optional fields; they are not compliance grades. Unavailable is not 0% and does not establish a different direct schema.';
   }}
   selector.addEventListener("change",updateOverview);
@@ -392,7 +379,7 @@ def render_public_source(config: dict, source_id: str) -> str:
         f'<dt>Data type</dt><dd>{_esc(source.get("category") or "—")}</dd>'
         f'<dt>Latest successful check</dt><dd>{_esc(_public_time(source.get("last_success_at")))}</dd>'
         f'<dt>Reporting</dt><dd>{_esc(source.get("reporting") or "current")}</dd>'
-        f'<dt>Changes found</dt><dd>{_esc(source.get("change_count") or 0)}</dd>'
+        f'<dt>Changes found</dt><dd>{_esc(source.get("change_count") if source.get("change_count") is not None else "Not recorded")}</dd>'
         f'<dt>Information fields</dt><dd>{_esc(source.get("field_count") if source.get("field_count") is not None else "—")}</dd>'
         f'<dt>Missing parcel IDs</dt><dd>{_esc(source.get("parcel_id_null_count") if source.get("parcel_id_null_count") is not None else "Not checked")}</dd>'
         f'<dt>Duplicate-ID extra rows</dt><dd>{_esc(source.get("duplicate_id_extra_rows") if source.get("duplicate_id_extra_rows") is not None else "Not checked")}</dd>'
@@ -407,6 +394,17 @@ def render_public_source(config: dict, source_id: str) -> str:
         refresh_seconds=30,
         static=True,
     )
+
+
+
+# Health and reporting labels depend on the current time as well as the
+# stored state: rebuild cached profiles/exports at least this often so
+# "current" turns "overdue" even when publication has stalled.
+FRESHNESS_RECOMPUTE_SECONDS = 600
+
+
+def _freshness_bucket() -> bytes:
+    return str(int(time.time() // FRESHNESS_RECOMPUTE_SECONDS)).encode()
 
 
 class _PublicStateCache:
@@ -427,6 +425,10 @@ class _PublicStateCache:
         self._snapshot_key = None
         self._snapshot_value = None
         self._xlsx_value = None
+        self._county_lock = threading.Lock()
+        self._county_key = None
+        self._county_inputs: dict | None = None
+        self._county_values: dict[str, dict] = {}
         self._view_key = None
         self._view_value = None
         self.last_refresh_error = False
@@ -465,7 +467,7 @@ class _PublicStateCache:
             self._last_attempt = now
             if not self.storage.download(self.object_name, self.raw_path):
                 raise FileNotFoundError(f"aggregate object not found: {self.object_name}")
-            raw = json.loads(self.raw_path.read_text(encoding="utf-8"))
+            raw = strict_json.loads(self.raw_path.read_text(encoding="utf-8"))
             public = sanitize_public_render_state(raw)
             tmp = self.public_path.with_suffix(".tmp")
             tmp.write_text(json.dumps(public, ensure_ascii=False), encoding="utf-8")
@@ -479,12 +481,16 @@ class _PublicStateCache:
         finally:
             self._refresh_lock.release()
 
-    def _ensure_snapshot(self) -> dict:
-        state_bytes = self.public_path.read_bytes()
+    @staticmethod
+    def _state_key(state_bytes: bytes) -> str:
         identity = application_identity()
-        key = hashlib.sha256(
+        return hashlib.sha256(
             state_bytes + str(identity.get("revision")).encode() + str(identity.get("version")).encode()
+            + _freshness_bucket()
         ).hexdigest()
+
+    def _ensure_snapshot(self) -> dict:
+        key = self._state_key(self.public_path.read_bytes())
         if key != self._snapshot_key:
             self._snapshot_value = _statewide_snapshot(self.config)
             self._xlsx_value = None
@@ -495,6 +501,33 @@ class _PublicStateCache:
         with self._export_lock:
             return self._ensure_snapshot()
 
+    def county_snapshot(self, slug: str) -> dict | None:
+        """County export, computed once per published state.
+
+        The statewide state and county profiles are built once per state key
+        and reused for every county; only real county slugs are cached. A
+        separate lock keeps page views from waiting behind county exports.
+        """
+        with self._county_lock:
+            state_bytes = self.public_path.read_bytes()
+            key = self._state_key(state_bytes)
+            if key != self._county_key:
+                config = {**self.config, "_render_state": strict_json.loads(state_bytes.decode("utf-8-sig"))}
+                state = _dashboard_state(config)
+                research = load_parcel_access()
+                self._county_inputs = {"config": config, "state": state, "research": research,
+                                       "profiles": _county_profiles(config, state, research)}
+                self._county_values = {}
+                self._county_key = key
+            if slug not in self._county_values:
+                inputs = self._county_inputs
+                value = _county_snapshot(inputs["config"], slug, state=inputs["state"],
+                                         profiles=inputs["profiles"], research=inputs["research"])
+                if value is None:
+                    return None
+                self._county_values[slug] = value
+            return self._county_values[slug]
+
     def view(self) -> dict:
         """Capture an immutable state/profile/summary bundle for one request."""
         with self._export_lock:
@@ -502,9 +535,10 @@ class _PublicStateCache:
             research = load_parcel_access()
             key = hashlib.sha256(state_bytes + json.dumps(research, sort_keys=True).encode()
                                  + json.dumps(application_identity(), sort_keys=True).encode()
-                                 + json.dumps(self.config, sort_keys=True).encode()).hexdigest()
+                                 + json.dumps(self.config, sort_keys=True).encode()
+                                 + _freshness_bucket()).hexdigest()
             if key != self._view_key:
-                state = sanitize_public_render_state(json.loads(state_bytes))
+                state = sanitize_public_render_state(strict_json.loads(state_bytes.decode("utf-8-sig")))
                 profiles = _county_profiles(self.config, state, research)
                 summary = summary_for(self.config, state, profiles=profiles, research=research)
                 self._view_value = {"state": state, "profiles": profiles, "summary": summary}
@@ -577,7 +611,8 @@ def serve_public(host: str = "0.0.0.0", port: int = 8080) -> None:
                 + "; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'",
             )
             self.end_headers()
-            self.wfile.write(raw)
+            if self.command != "HEAD":
+                self.wfile.write(raw)
 
         def _send_bytes(self, status: int, raw: bytes, content_type: str, filename: str):
             self.send_response(status)
@@ -588,14 +623,19 @@ def serve_public(host: str = "0.0.0.0", port: int = 8080) -> None:
             self.send_header("X-Content-Type-Options", "nosniff")
             self.send_header("X-Robots-Tag", "noindex, nofollow")
             self.end_headers()
-            self.wfile.write(raw)
+            if self.command != "HEAD":
+                self.wfile.write(raw)
+
+        def do_HEAD(self):
+            # Same status and headers as GET (uptime checks often use HEAD); no body.
+            return self.do_GET()
 
         def do_GET(self):
             parsed = urllib.parse.urlparse(self.path)
             if parsed.path == "/healthz":
                 try:
                     cache.refresh()
-                    state = json.loads(cache.public_path.read_text(encoding="utf-8"))
+                    state = strict_json.loads(cache.public_path.read_text(encoding="utf-8"))
                     healthy, payload = _publication_health(state, max_age_seconds=max_publication_age_seconds)
                     if cache.stale:
                         healthy = False
@@ -621,7 +661,7 @@ def serve_public(host: str = "0.0.0.0", port: int = 8080) -> None:
                 parsed.path,
                 parsed.query,
                 statewide_snapshot=cache.snapshot,
-                county_snapshot=lambda slug: _county_snapshot(config, slug),
+                county_snapshot=cache.county_snapshot,
                 statewide_xlsx=cache.snapshot_xlsx,
             ):
                 return
@@ -693,3 +733,9 @@ def serve_public(host: str = "0.0.0.0", port: int = 8080) -> None:
         pass
     finally:
         server.server_close()
+
+
+def __getattr__(name: str):
+    """Resolve names that v0.2.3 exposed here (see clearparcel.datawatch._compat)."""
+    from clearparcel.datawatch import _compat
+    return _compat.resolve(__name__, name)

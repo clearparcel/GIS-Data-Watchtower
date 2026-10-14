@@ -308,15 +308,7 @@
     },
     {
       "county": "Fillmore",
-      "contacts": [
-        {
-          "name": "TBD",
-          "title": "GIS Coordinator",
-          "department": "GIS",
-          "phone": "",
-          "email": ""
-        }
-      ]
+      "contacts": []
     },
     {
       "county": "Freeborn",

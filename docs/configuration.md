@@ -81,6 +81,18 @@ Optional common controls include:
   reason `execution-profile-unresolved`.
 - `thresholds`
 
+## Run-safety environment variables
+
+State, backup, alert, and local aggregate files are replaced atomically and keep
+the permissions of the file they replace. A file created for the first time is
+owner-only (0600 on POSIX); grant read access explicitly (permissions or ACLs)
+if a dashboard or publisher runs as a different user.
+
+| Variable | Effect |
+| --- | --- |
+| `WATCHTOWER_ALLOW_INVENTORY_SHRINK=1` | Marks the run's fleet report as a deliberate inventory drain so it may retire most or all of the worker's sources. Without it, an empty run is an error and a report covering under half of the worker's sources retires nothing. |
+| `WATCHTOWER_ALLOW_EXAMPLE_CONFIG=1` | Lets `cloud-job` run against a configuration whose sources all use reserved example hosts. For synthetic tests only. |
+
 ## Provider rate limits (HTTP 429)
 
 A 429 response is a stop signal for the provider's **host**, not only for the
@@ -99,9 +111,17 @@ source that received it. Watchtower:
 3. persists a per-host `not_before` time in the worker's private `state.json`
    (`rate_limits`) and skips the host on later runs until that time passes.
 
-`not_before` honors `Retry-After` (delta-seconds or HTTP-date), bounded to
-between 60 seconds and 7 days. When the header is absent or unparseable the
+`not_before` honors `Retry-After` (delta-seconds or HTTP-date) in full, with a
+60-second minimum and a one-year maximum (an effectively indefinite hold); a
+requested backoff is never shortened. Backoffs longer than a week are marked
+`"operator_review": true` in the private `rate_limits` entry so an operator can
+confirm the provider's intent. A request at or beyond the maximum is also
+marked `"hold_until_cleared": true` and is never resumed automatically.
+Clearing either early is a deliberate, manual change to private state. When the header is absent or unparseable the
 top-level `rate_limit_default_backoff_seconds` applies (default `3600`).
+During a run, redirects to a host under backoff are refused before any
+lookup or request, whichever source would follow them; that source stops at
+once, without retries or a fallback transport.
 Backoff timing and hostnames are private worker state; they are not included
 in worker reports, the shared aggregate, or the public projection. Runs with
 `--no-save` do not write state and therefore do not record a backoff; avoid
@@ -202,6 +222,24 @@ the built image ID as a workflow artifact.
 The lock and base-image digest are deliberate release inputs. Refresh them in a
 reviewed dependency-update change rather than allowing an ordinary rebuild to
 silently select different Python packages or a different base image.
+Dependabot proposes monthly updates for GitHub Actions, Python packages and the
+Docker base image; the Dockerfile is the only place the base-image digest is
+written (CI reads it from there for the provenance record). Every workflow
+action is pinned to a full commit SHA, and a test enforces that.
+
+Container builds with `WATCHTOWER_BUILD_ENVIRONMENT=preview` or `production`
+fail unless `WATCHTOWER_BUILD_REVISION` is the full source commit SHA, so a
+deployable image always carries its provenance. Development builds may omit it.
+The OS `curl` package (the fallback transport) comes from the pinned base
+image's Debian release and is not version-pinned separately, because Debian
+removes superseded package versions from its archive; Trivy fails CI on fixable
+High/Critical findings instead.
+
+CI runs on pushes to `main`, on every pull request (whatever its base branch),
+and on manual dispatch. A newer push to a pull request cancels the older run.
+CodeQL runs for branches in this repository; pull requests from forks get a
+read-only token, so they skip the CodeQL upload but still run tests and the
+dependency audit.
 
 ## Path environment overrides
 
@@ -228,11 +266,70 @@ A wildcard/public bind fails closed without a password. For Internet exposure, p
 - `WATCHTOWER_STORAGE_ROOT`
 - `WATCHTOWER_GCS_BUCKET`
 - `WATCHTOWER_GCS_PREFIX`
-- `WATCHTOWER_WORKDIR`
+- `WATCHTOWER_WORKDIR` (optional; when unset, each `cloud-job` run uses its
+  own temporary directory, removed when the run ends)
 - `WATCHTOWER_EXECUTION_PROFILE`
 - `WATCHTOWER_AGGREGATE_OBJECT`
 
 GCS support requires the `gcs` package extra.
+
+Every shared object write is version-conditional (`upload_if_version`); the
+storage backends deliberately have no unconditional upload. A GCS read that
+races a writer backs off briefly (with jitter) before retrying, up to three
+attempts.
+
+## Exit codes
+
+`check`, `status` and `cloud-job` exit with:
+
+| Code | Meaning |
+| --- | --- |
+| 0 | Every checked source is OK. |
+| 1 | At least one warning (an expected non-zero exit for scheduled runs). |
+| 2 | A source reported an error, or the run checked no sources (`scope.type=empty`). |
+| 3 | Watchtower itself failed: bad configuration, a storage conflict, a refused aggregate merge or an unexpected exception. |
+
+Command-line usage errors (an unknown option or an invalid `--worker`) are
+rejected by the argument parser with its conventional exit code 2 before any
+work starts. A run that would publish to the shared aggregate must use the
+`cloud` or `local` execution profile; any other profile (including `any`) is
+refused with exit 3 before any provider request.
+
+Keep the Cloud Run Job at `--max-retries=0` so a non-zero exit never repeats
+provider requests.
+
+## Public publisher and public server
+
+The sanitized publisher (`watchtower public-publish`) reads the private
+aggregate, projects it through the public allowlist, validates it, and
+publishes it to public storage with compare-and-swap protection against
+rollback; it never contacts GIS providers.
+
+| Variable | Purpose | Default |
+| --- | --- | --- |
+| `WATCHTOWER_PUBLIC_SOURCE_BUCKET` | Bucket holding the private aggregate (required) | — |
+| `WATCHTOWER_PUBLIC_SOURCE_PREFIX` | Object prefix in the source bucket | empty |
+| `WATCHTOWER_PUBLIC_SOURCE_OBJECT` | Private aggregate object name | `aggregate-state.json` |
+| `WATCHTOWER_PUBLIC_DEST_BUCKET` | Bucket that receives the sanitized snapshot (required) | — |
+| `WATCHTOWER_PUBLIC_DEST_PREFIX` | Object prefix in the destination bucket | empty |
+| `WATCHTOWER_PUBLIC_DEST_OBJECT` | Sanitized snapshot object name | `aggregate-state.json` |
+| `WATCHTOWER_PUBLIC_PUBLISH_WORKDIR` | Parent of the unique temporary directory each publication uses | `/tmp/watchtower-public-publish` |
+
+The anonymous public server (`watchtower public-dashboard`) reads the sanitized
+snapshot through the ordinary storage settings (`WATCHTOWER_STORAGE`,
+`WATCHTOWER_AGGREGATE_OBJECT`, GCS bucket/prefix) and also reads:
+
+| Variable | Purpose | Default (bounds) |
+| --- | --- | --- |
+| `WATCHTOWER_PUBLIC_WORKDIR` | Local cache directory for the downloaded snapshot | `/tmp/watchtower-public` |
+| `WATCHTOWER_PUBLIC_REFRESH_SECONDS` | How often the server re-downloads the snapshot | `30` (5–300) |
+| `WATCHTOWER_PUBLIC_MAX_PUBLICATION_AGE_SECONDS` | Age after which publication reporting shows "Overdue" and `/healthz` returns 503 | `1800` (60–86400) |
+| `WATCHTOWER_PUBLIC_MAX_CONNECTIONS` | Concurrent request handler bound | `64` (1–256) |
+| `WATCHTOWER_PUBLIC_REQUEST_TIMEOUT_SECONDS` | See [network hardening](#network-hardening) | `10` (2–60) |
+
+Values are clamped to the bounds shown. A non-integer value for the refresh,
+connection, or publication-age setting stops the server at startup; only the
+request timeout falls back to its default.
 
 ## Network hardening
 
@@ -242,6 +339,16 @@ GCS support requires the `gcs` package extra.
 - `WATCHTOWER_PUBLIC_REQUEST_TIMEOUT_SECONDS` — anonymous public server idle socket timeout and absolute accepted-connection socket deadline; 10 seconds default, bounded to 2–60; malformed values use the default.
 
 Enabled redirects bind urllib/curl connections to captured validated addresses and preserve Host/TLS hostname checks. Effective proxies reject redirected requests before dispatch because the proxy cannot enforce the binding. Initial operator URLs/proxy use remain supported; non-allowlisted redirect destinations must resolve exclusively public. All curl requests ignore local curl configuration (`--disable` first); curlrc options are unsupported, including automatic redirect/TLS overrides. Initial environment proxy behavior remains supported. Provider request deadlines also bound DNS caller waits; native DNS calls may continue in up to eight daemon workers, retaining capacity until completion. Resolver saturation fails closed. An observed final HTTP 429 stops remaining optional checks and retries for that source even when curl reports a failed/truncated/oversized transfer or a timeout with a usable final 429 marker.
+
+Redirects from HTTPS to plain HTTP are always refused, including for
+allowlisted hosts. `NaN`, `Infinity` and out-of-range numbers in provider
+JSON (and in older state files) are read as missing values (`null`), and state
+is always written as standard JSON. Provider field names are used in
+ArcGIS `where`/`having` clauses only when they are plain identifiers
+(`[A-Za-z_][A-Za-z0-9_]*`). The curl fallback is bounded by the response
+budget (`--max-filesize` plus a size check before reading), `--max-time` and
+the request's shared deadline; Watchtower adds no extra retry layer on top of
+the per-source `retries` setting.
 
 Do not use the redirect allowlist to bypass provider access controls or to authorize cloud metadata, loopback, link-local, private, or other privileged endpoints without a deliberate network-boundary review.
 
@@ -303,4 +410,28 @@ or viewer-only findings; free statewide access does not override a direct fee.
 
 ## Observation and dashboard contracts
 
-Catalog retention timestamps/flags, public GAC observation time, compact read-only summary and revision-bound county routes, and private worker identity/receipt semantics are documented in [October 7 remediation](watchtower-remediation-2026-10-07.md). These additions do not change provider cadence or execution-profile assignments.
+- Each source's `checked_at` (and `provenance.observed_at`) is when that
+  source's check began; the run's `generated_at` is when the run began.
+- An enabled county-direct parcel source (one with a `county_slug` and a
+  `Parcels` category) for a county whose `monitoring.decision` is
+  `hold-for-terms` in `minnesota_county_parcel_access.json` is never polled;
+  the run reports it under `skipped_sources` as `hold-for-terms`. The data file
+  is read on every run, so a changed decision takes effect without a code
+  change.
+- A run whose source filter matches nothing is an empty run (exit 2), and the
+  shared aggregate refuses any report with no source observations except an
+  explicit fleet drain. A fleet report whose inventory shrink is refused
+  keeps the worker's fleet-level health from its last complete report and
+  cannot take sources over from another worker.
+- `last_available_at` is the source's own check time.
+- Aggregate source records carry `last_success_at` (last check with status
+  `ok`) and `last_available_at` (last check where the provider answered,
+  status `ok` or `warn`; rate-limit deferrals do not count).
+- A GAC quality observation reports `observation_status` `none` when the
+  schema was checked but no field population was scanned.
+- The public state lists only the `cloud` and `local` workers; other worker
+  names are dropped, since they may be host names. `aggregate --worker`
+  accepts only those two.
+- The public server answers `HEAD` with the same status and headers as `GET`.
+
+Catalog retention timestamps/flags, public GAC observation time, compact read-only summary and revision-bound county routes, and private worker identity/receipt semantics are documented in [October 7 remediation](archive/watchtower-remediation-2026-10-07.md). These additions do not change provider cadence or execution-profile assignments.
