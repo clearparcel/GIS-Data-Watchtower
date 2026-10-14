@@ -5,6 +5,16 @@
 Releasing it follows the gate in [docs/release-v0.3.0.md](docs/release-v0.3.0.md).
 Wait until MnGeo is reachable again before staging validation.
 
+
+## Cass County research update — in review on `data/cass-free-parcel-data`
+
+The owner asked on 2026-10-14 to update Cass. The county GIS/Map Services page
+states that shapefile datasets are free to the public, so Cass's county-direct
+access is now **free parcel data**. The county-direct review is complete;
+the county profile stays incomplete because the statewide-repository and
+county REST inventory categories are still unresolved. Monitoring
+stays **not assessed**; no source was added or enabled. Research totals are now
+83 complete (59 free, 13 fee-based, 11 viewer-only) with 4 unresolved.
 ## Codex review fixes — merged to `main` 2026-10-14 (#79–#88), not deployed
 
 An independent Codex review of the whole v0.3.0 stack (`adf3c38`...`a1cb2c7`)

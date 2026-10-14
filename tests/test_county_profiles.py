@@ -251,9 +251,17 @@ class CountyProfilesTests(unittest.TestCase):
             self.assertEqual(source['layer_id'], layer)
             self.assertTrue(any('arcgis.metc.state.mn.us' in link['href'] for link in source['approved_public_links']))
             self.assertNotIn('monitored_source_id', source)
-        for name in ('Aitkin', 'Big Stone', 'Cass'):
+        for name in ('Aitkin', 'Big Stone'):
             self.assertIsNone(research[name]['county_direct_classification'])
             self.assertFalse(profiles[name.lower().replace(' ', '-')]['research']['complete'])
+        # Owner-approved 2026-10-14 update: the county page states shapefiles are free.
+        cass = research['Cass']
+        self.assertEqual(cass['county_direct_classification'], 'free-parcel-data')
+        self.assertTrue(cass['research_complete'])
+        self.assertIsNone(cass['parcel_dataset_fee'])
+        self.assertEqual(cass['monitoring']['decision'], 'not-assessed')
+        # The profile stays incomplete: two inventory categories are still blocked.
+        self.assertFalse(profiles['cass']['research']['complete'])
 
     def test_aitkin_beltrami_exact_dataset_joins_share_observation(self):
         for name, layer in (('Aitkin', 0), ('Beltrami', 2)):

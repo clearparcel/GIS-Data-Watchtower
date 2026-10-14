@@ -2572,21 +2572,21 @@
     },
     {
       "county": "Cass",
-      "review_date": "2026-10-06",
-      "research_complete": false,
+      "review_date": "2026-10-14",
+      "research_complete": true,
       "official_county_url": "https://www.casscountymn.gov/",
       "parcel_page_url": "https://www.casscountymn.gov/1316/GISMap-Services",
       "download_or_service_url": "https://cassweb.casscountymn.gov/PublicFolders/Public/GISData/CASS_PARCELS_20260921.zip",
       "viewer_url": null,
-      "fee_policy_url": null,
+      "fee_policy_url": "https://www.casscountymn.gov/1316/GISMap-Services",
       "parcel_dataset_fee": null,
       "fee_product": null,
-      "evidence_note": "County landing page returned 403; no denial bypass. MnGeo official source table links county GISData directory, which was read and advertises CASS_PARCELS_20260921.zip; HEAD returned 200. Discovery carried an older 2025 file, replaced with the actual current directory entry. County service directory and two related service metadata reads did not establish an authorized parcel polygon REST resource. County-direct pricing/permission review remains unresolved because the county policy landing read was blocked; no dataset fee or viewer-only absence conclusion is inferred.",
+      "evidence_note": "Re-read 2026-10-14: the county GIS/Map Services page states that commonly requested GIS shapefile datasets (ZIP) are available to the public at no cost and updated regularly; other datasets are by request. Its disclaimer provides data as is, for reference only. The county GISData directory advertises CASS_PARCELS_20260921.zip (HEAD 200, no data body downloaded). No parcel dataset fee or license requirement was found. No authorized parcel polygon REST resource was established. Publication of a free download does not authorize unattended monitoring; monitoring remains not assessed.",
       "source_authority": "county-authorized-provider",
-      "usable_direct_machine_readable_source": false,
+      "usable_direct_machine_readable_source": true,
       "monitoring": {
         "decision": "not-assessed",
-        "reason": "Published product discovery does not authorize unattended monitoring; provider policy and delivery constraints must be assessed before activation. ",
+        "reason": "A free published download does not by itself authorize unattended monitoring; provider cadence and delivery constraints must be assessed before activation.",
         "terms_urls": [
           "https://www.casscountymn.gov/1316/GISMap-Services",
           "https://cassweb.casscountymn.gov/PublicFolders/Public/GISData/"
@@ -2596,7 +2596,7 @@
         {
           "url": "https://www.casscountymn.gov/1316/GISMap-Services",
           "authority": "county",
-          "finding": "County landing page returned 403; no denial bypass. MnGeo official source table links county GISData directory, which was read and advertises CASS_PARCELS_20260921.zip; HEAD returned 200. Discovery carried an older 2025 file, replaced with the actual current directory entry. County service directory and two related service metadata reads did not establish an authorized parcel polygon REST resource. County-direct pricing/permission review remains unresolved because the county policy landing read was blocked; no dataset fee or viewer-only absence conclusion is inferred."
+          "finding": "Re-read 2026-10-14: the county GIS/Map Services page states that commonly requested GIS shapefile datasets (ZIP) are available to the public at no cost and updated regularly; other datasets are by request. Its disclaimer provides data as is, for reference only. The county GISData directory advertises CASS_PARCELS_20260921.zip (HEAD 200, no data body downloaded). No parcel dataset fee or license requirement was found. No authorized parcel polygon REST resource was established. Publication of a free download does not authorize unattended monitoring; monitoring remains not assessed."
         },
         {
           "url": "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson",
@@ -2636,22 +2636,22 @@
       ],
       "review_log": {
         "county_site": {
-          "status": "blocked",
-          "note": "County-direct distribution/product pricing scope remains unresolved. County landing page returned 403; no denial bypass. MnGeo official source table links county GISData directory, which was read and advertises CASS_PARCELS_20260921.zip; HEAD returned 200. Discovery carried an older 2025 file, replaced with the actual current directory entry. County service directory and two related service metadata reads did not establish an authorized parcel polygon REST resource. County-direct pricing/permission review remains unresolved because the county policy landing read was blocked; no dataset fee or viewer-only absence conclusion is inferred.",
+          "status": "reviewed",
+          "note": "Re-read 2026-10-14: the county GIS/Map Services page states that commonly requested GIS shapefile datasets (ZIP) are available to the public at no cost and updated regularly; other datasets are by request. Its disclaimer provides data as is, for reference only. The county GISData directory advertises CASS_PARCELS_20260921.zip (HEAD 200, no data body downloaded). No parcel dataset fee or license requirement was found. No authorized parcel polygon REST resource was established. Publication of a free download does not authorize unattended monitoring; monitoring remains not assessed.",
           "urls": [
             "https://www.casscountymn.gov/1316/GISMap-Services"
           ]
         },
         "gis_assessor_land_records": {
           "status": "reviewed",
-          "note": "County landing page returned 403; no denial bypass. MnGeo official source table links county GISData directory, which was read and advertises CASS_PARCELS_20260921.zip; HEAD returned 200. Discovery carried an older 2025 file, replaced with the actual current directory entry. County service directory and two related service metadata reads did not establish an authorized parcel polygon REST resource. County-direct pricing/permission review remains unresolved because the county policy landing read was blocked; no dataset fee or viewer-only absence conclusion is inferred.",
+          "note": "Re-read 2026-10-14: the county GIS/Map Services page states that commonly requested GIS shapefile datasets (ZIP) are available to the public at no cost and updated regularly; other datasets are by request. Its disclaimer provides data as is, for reference only. The county GISData directory advertises CASS_PARCELS_20260921.zip (HEAD 200, no data body downloaded). No parcel dataset fee or license requirement was found. No authorized parcel polygon REST resource was established. Publication of a free download does not authorize unattended monitoring; monitoring remains not assessed.",
           "urls": [
             "https://www.casscountymn.gov/1316/GISMap-Services"
           ]
         },
         "downloads_open_data": {
           "status": "reviewed",
-          "note": "Official county-authorized parcel download product advertised; no data body downloaded. County landing page returned 403; no denial bypass. MnGeo official source table links county GISData directory, which was read and advertises CASS_PARCELS_20260921.zip; HEAD returned 200. Discovery carried an older 2025 file, replaced with the actual current directory entry. County service directory and two related service metadata reads did not establish an authorized parcel polygon REST resource. County-direct pricing/permission review remains unresolved because the county policy landing read was blocked; no dataset fee or viewer-only absence conclusion is inferred.",
+          "note": "Official county-authorized parcel download product advertised; no data body downloaded.",
           "urls": [
             "https://www.casscountymn.gov/1316/GISMap-Services",
             "https://cassweb.casscountymn.gov/PublicFolders/Public/GISData/CASS_PARCELS_20260921.zip",
@@ -2660,7 +2660,7 @@
         },
         "arcgis_services": {
           "status": "reviewed",
-          "note": "Authorized parcel REST source remains unresolved after bounded official landing/catalog follow-up. County landing page returned 403; no denial bypass. MnGeo official source table links county GISData directory, which was read and advertises CASS_PARCELS_20260921.zip; HEAD returned 200. Discovery carried an older 2025 file, replaced with the actual current directory entry. County service directory and two related service metadata reads did not establish an authorized parcel polygon REST resource. County-direct pricing/permission review remains unresolved because the county policy landing read was blocked; no dataset fee or viewer-only absence conclusion is inferred.",
+          "note": "Authorized parcel REST source remains unresolved after bounded official landing/catalog follow-up.",
           "urls": [
             "https://www.casscountymn.gov/1316/GISMap-Services",
             "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
@@ -2668,29 +2668,29 @@
           ]
         },
         "data_policy": {
-          "status": "blocked",
-          "note": "County-direct distribution/product pricing scope remains unresolved. County landing page returned 403; no denial bypass. MnGeo official source table links county GISData directory, which was read and advertises CASS_PARCELS_20260921.zip; HEAD returned 200. Discovery carried an older 2025 file, replaced with the actual current directory entry. County service directory and two related service metadata reads did not establish an authorized parcel polygon REST resource. County-direct pricing/permission review remains unresolved because the county policy landing read was blocked; no dataset fee or viewer-only absence conclusion is inferred.",
+          "status": "reviewed",
+          "note": "County page states shapefile datasets are free to the public, with an as-is, reference-only disclaimer; no license or terms of use beyond the disclaimer.",
           "urls": [
-            "https://cassweb.casscountymn.gov/PublicFolders/Public/GISData/"
+            "https://www.casscountymn.gov/1316/GISMap-Services"
           ]
         },
         "fee_schedule": {
-          "status": "blocked",
-          "note": "County-direct distribution/product pricing scope remains unresolved. County landing page returned 403; no denial bypass. MnGeo official source table links county GISData directory, which was read and advertises CASS_PARCELS_20260921.zip; HEAD returned 200. Discovery carried an older 2025 file, replaced with the actual current directory entry. County service directory and two related service metadata reads did not establish an authorized parcel polygon REST resource. County-direct pricing/permission review remains unresolved because the county policy landing read was blocked; no dataset fee or viewer-only absence conclusion is inferred.",
+          "status": "reviewed",
+          "note": "County page states commonly requested shapefile datasets are available at no cost; no parcel dataset fee found.",
           "urls": [
-            "https://cassweb.casscountymn.gov/PublicFolders/Public/GISData/"
+            "https://www.casscountymn.gov/1316/GISMap-Services"
           ]
         },
         "request_forms": {
-          "status": "blocked",
-          "note": "County-direct distribution/product pricing scope remains unresolved. County landing page returned 403; no denial bypass. MnGeo official source table links county GISData directory, which was read and advertises CASS_PARCELS_20260921.zip; HEAD returned 200. Discovery carried an older 2025 file, replaced with the actual current directory entry. County service directory and two related service metadata reads did not establish an authorized parcel polygon REST resource. County-direct pricing/permission review remains unresolved because the county policy landing read was blocked; no dataset fee or viewer-only absence conclusion is inferred.",
+          "status": "reviewed",
+          "note": "Additional datasets are by email or phone request; the published parcel ZIP needs no request.",
           "urls": [
-            "https://cassweb.casscountymn.gov/PublicFolders/Public/GISData/"
+            "https://www.casscountymn.gov/1316/GISMap-Services"
           ]
         },
         "resolutions_ordinances": {
           "status": "not-applicable",
-          "note": "No request/order/fee inference is required for the verified published parcel product; other delivery forms and ancillary fees are outside this positive product conclusion. County landing page returned 403; no denial bypass. MnGeo official source table links county GISData directory, which was read and advertises CASS_PARCELS_20260921.zip; HEAD returned 200. Discovery carried an older 2025 file, replaced with the actual current directory entry. County service directory and two related service metadata reads did not establish an authorized parcel polygon REST resource. County-direct pricing/permission review remains unresolved because the county policy landing read was blocked; no dataset fee or viewer-only absence conclusion is inferred.",
+          "note": "No request/order/fee inference is required for the verified published parcel product; other delivery forms and ancillary fees are outside this positive product conclusion.",
           "urls": [
             "https://cassweb.casscountymn.gov/PublicFolders/Public/GISData/"
           ]
@@ -2711,14 +2711,14 @@
           ]
         }
       },
-      "county_direct_classification": null,
+      "county_direct_classification": "free-parcel-data",
       "statewide_open_coverage": {
         "available": true,
         "source": "MnGeo Plan Parcels Open",
         "source_url": "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson",
         "verified_date": "2026-10-06"
       },
-      "comments": "County landing page returned 403; no denial bypass. MnGeo official source table links county GISData directory, which was read and advertises CASS_PARCELS_20260921.zip; HEAD returned 200. Discovery carried an older 2025 file, replaced with the actual current directory entry. County service directory and two related service metadata reads did not establish an authorized parcel polygon REST resource. County-direct pricing/permission review remains unresolved because the county policy landing read was blocked; no dataset fee or viewer-only absence conclusion is inferred.",
+      "comments": "Re-read 2026-10-14: the county GIS/Map Services page states that commonly requested GIS shapefile datasets (ZIP) are available to the public at no cost and updated regularly; other datasets are by request. Its disclaimer provides data as is, for reference only. The county GISData directory advertises CASS_PARCELS_20260921.zip (HEAD 200, no data body downloaded). No parcel dataset fee or license requirement was found. No authorized parcel polygon REST resource was established. Publication of a free download does not authorize unattended monitoring; monitoring remains not assessed.",
       "source_inventory": {
         "mngac_public_parcels": {
           "review_status": "reviewed",
@@ -2766,7 +2766,7 @@
           "review_status": "blocked",
           "availability": "unknown",
           "review_date": "2026-10-06",
-          "finding": "Authorized parcel REST source remains unresolved after bounded official landing/catalog follow-up. County landing page returned 403; no denial bypass. MnGeo official source table links county GISData directory, which was read and advertises CASS_PARCELS_20260921.zip; HEAD returned 200. Discovery carried an older 2025 file, replaced with the actual current directory entry. County service directory and two related service metadata reads did not establish an authorized parcel polygon REST resource. County-direct pricing/permission review remains unresolved because the county policy landing read was blocked; no dataset fee or viewer-only absence conclusion is inferred.",
+          "finding": "County service directory and related metadata did not establish an authorized parcel polygon REST resource.",
           "evidence": [
             "https://www.casscountymn.gov/1316/GISMap-Services",
             "https://mn.gov/mngeo/gis-data-and-maps/info-by-topic/land-ownership/property.jsp",
@@ -2778,7 +2778,7 @@
           "review_status": "reviewed",
           "availability": "yes",
           "review_date": "2026-10-06",
-          "finding": "Official county-authorized parcel download product advertised; no data body downloaded. County landing page returned 403; no denial bypass. MnGeo official source table links county GISData directory, which was read and advertises CASS_PARCELS_20260921.zip; HEAD returned 200. Discovery carried an older 2025 file, replaced with the actual current directory entry. County service directory and two related service metadata reads did not establish an authorized parcel polygon REST resource. County-direct pricing/permission review remains unresolved because the county policy landing read was blocked; no dataset fee or viewer-only absence conclusion is inferred.",
+          "finding": "County page states shapefile datasets are free to the public; the county GISData directory advertises CASS_PARCELS_20260921.zip (HEAD 200, no data body downloaded).",
           "evidence": [
             "https://www.casscountymn.gov/1316/GISMap-Services",
             "https://cassweb.casscountymn.gov/PublicFolders/Public/GISData/CASS_PARCELS_20260921.zip",
