@@ -1,5 +1,12 @@
 # Project status
 
+## v0.3.2 private GAC correction — preparation, 2026-10-20
+
+The owner authorized deployment of the reviewed selector fix. The required
+version increment is v0.3.2. Both v0.3.1 dashboard predecessors and their
+100% traffic allocations were reverified before preparation.
+See [the release plan](docs/release-v0.3.2.md). No v0.3.2 promotion has occurred.
+
 ## Private GAC selection — local candidate, 2026-10-20
 
 Investigation reproduced the private selection failure and found all 87 county
