@@ -125,13 +125,30 @@ class AlertDeliveryTests(unittest.TestCase):
         self.assertEqual(dry["mode"], "disabled_dry_run")
         self.assertEqual(self.ledger_path().read_bytes(), before)
         self.assertEqual(len(first.digests), 1)
-        # Re-enabled days later: the old queued failure is not sent as current.
+        # Re-enabled days later while the source still fails: the continuing
+        # incident is re-dated and delivered rather than silently expired.
         later = FakeTransport()
         receipt = self.deliver([err(20), err(21), err(23)], transport=later,
                                as_of="2026-10-23T12:00:00Z")
+        self.assertEqual(receipt["notification_delivery"], "handed_off")
+        self.assertEqual(self.states(), {"source_error": "sent"})
+        self.assertEqual(len(later.digests), 1)
+
+    def test_stale_condition_no_longer_current_expires_for_operator_attention(self):
+        gap = run(20)
+        gap.pop("report")
+        transport = FakeTransport(DeliveryRejected("unavailable", retryable=True))
+        self.deliver([run(19), gap], transport=transport)
+        self.assertEqual(self.states(), {"evidence_gap": "retry_wait"})
+        receipt = self.deliver([run(19), gap, run(23)], transport=transport,
+                               as_of="2026-10-23T12:00:00Z")
         self.assertEqual(receipt["notification_delivery"], "nothing_to_send")
-        self.assertEqual(self.states(), {"source_error": "expired"})
-        self.assertEqual(later.digests, [])
+        self.assertEqual(self.states(), {"evidence_gap": "expired"})
+        key = next(iter(self.ledger.read()[0]["events"]))
+        self.assertEqual(receipt["ledger"]["needs_operator_attention"], [key])
+        self.assertEqual(acknowledge(self.ledger, [key], by="operator",
+                                     at="2026-10-23T13:00:00Z")["acknowledged"], [key])
+        self.assertEqual(ledger_status(self.ledger)["needs_operator_attention"], [])
 
     # -- classifications ------------------------------------------------------
 
@@ -239,7 +256,7 @@ class AlertDeliveryTests(unittest.TestCase):
         record = next(iter(data["events"].values()))
         self.assertEqual(record["next_attempt_at"], "2026-10-20T14:00:00Z")
         early = self.deliver([err(20)], transport=transport, now="2026-10-20T13:59:00Z")
-        self.assertEqual(early["notification_delivery"], "nothing_to_send")
+        self.assertEqual(early["notification_delivery"], "blocked_transport_backoff")
         self.deliver([err(20)], transport=transport, now="2026-10-20T14:00:00Z")
         self.deliver([err(20)], transport=transport, now="2026-10-20T22:00:00Z")
         self.assertEqual(len(transport.digests), 3)
@@ -405,6 +422,11 @@ class AlertDeliveryTests(unittest.TestCase):
                             "event_key": "k", "state": "sending", "attempts": 1}}}),
                         json.dumps({"schema_version": 1, "events": {"k": {
                             "event_key": "k", "state": "retry_wait", "attempts": 1,
+                            "type": "source_error", "worker": "w", "source_id": "s",
+                            "subject": "x", "message": "x",
+                            "accepted_at": "2026-10-20T12:00:00Z"}}}),
+                        json.dumps({"schema_version": 1, "events": {"k": {
+                            "event_key": "k", "state": "queued", "attempts": 0,
                             "accepted_at": "2026-10-20T12:00:00Z"}}})):
             with self.subTest(content=content[:30]):
                 self.ledger_path().parent.mkdir(parents=True, exist_ok=True)
@@ -443,6 +465,128 @@ class AlertDeliveryTests(unittest.TestCase):
         self.deliver([err(20), err(21)], transport=transport, as_of="2026-10-21T12:00:00Z")
         self.assertEqual(len(transport.digests), 1)
 
+    def test_transport_retry_after_blocks_new_events_too(self):
+        transport = FakeTransport(DeliveryRejected("transport 429", retryable=True,
+                                                   retry_after_seconds=7200))
+        self.deliver([err(20)], transport=transport, now="2026-10-20T12:00:00Z")
+        both = [run(20, {"sample": ("error", {}), "other": ("warn", {})})]
+        sources = expected("sample", "other")
+        blocked = self.deliver(both, transport=transport, sources=sources,
+                               now="2026-10-20T12:30:00Z")
+        self.assertEqual(blocked["notification_delivery"], "blocked_transport_backoff")
+        self.assertEqual(blocked["ledger"]["transport_backoff_until"], "2026-10-20T14:00:00Z")
+        self.assertEqual(len(transport.digests), 1)
+        self.deliver(both, transport=transport, sources=sources, now="2026-10-20T14:00:00Z")
+        self.assertEqual(len(transport.digests), 2)
+        self.assertEqual(sorted(e["type"] for e in transport.digests[1]["events"]),
+                         ["source_error", "source_warning"])
+
+    def test_failure_waiting_to_retry_is_superseded_by_its_recovery(self):
+        transport = FakeTransport(DeliveryRejected("transport 429", retryable=True,
+                                                   retry_after_seconds=6 * 3600))
+        self.deliver([err(20)], transport=transport, now="2026-10-20T12:00:00Z")
+        rows = [err(20), run(20, hour=13)]
+        held = self.deliver(rows, transport=transport, as_of="2026-10-20T14:00:00Z")
+        self.assertEqual(held["notification_delivery"], "blocked_transport_backoff")
+        self.assertEqual(self.states(), {"source_error": "superseded", "recovered": "queued"})
+        self.deliver(rows, transport=transport, as_of="2026-10-20T18:00:00Z")
+        self.assertEqual([e["type"] for d in transport.digests for e in d["events"]],
+                         ["source_error", "recovered"])
+        self.assertEqual(self.states(), {"source_error": "superseded", "recovered": "sent"})
+        self.assertEqual(ledger_status(self.ledger)["needs_operator_attention"], [])
+
+    def test_enabled_delivery_refuses_replayed_or_future_evidence(self):
+        transport = FakeTransport()
+        for as_of, now in (("2026-10-11T12:00:00Z", "2026-10-20T12:00:00Z"),
+                           ("2026-10-20T12:00:00Z", "2026-10-20T11:59:00Z")):
+            with self.subTest(as_of=as_of, now=now), self.assertRaises(ValueError):
+                self.deliver([err(10), run(11)], transport=transport, as_of=as_of, now=now)
+        self.assertEqual(transport.digests, [])
+        self.assertFalse(self.ledger_path().exists())
+
+    def test_claim_write_that_landed_but_reported_conflict_is_recognized(self):
+        state = {"calls": 0}
+
+        class LostAck(LocalStorage):
+            def upload_if_version(self, name, source, version):
+                super().upload_if_version(name, source, version)
+                state["calls"] += 1
+                if state["calls"] == 1:
+                    raise StorageConflictError("acknowledgement lost after write")
+
+        transport = FakeTransport()
+        receipt = self.deliver([err(20)], transport=transport,
+                               ledger=AlertLedger(LostAck(self.root)))
+        self.assertEqual(receipt["notification_delivery"], "handed_off")
+        self.assertEqual(len(transport.digests), 1)
+        self.assertEqual(self.states(), {"source_error": "sent"})
+
+    def test_outcome_write_failure_after_send_is_held_not_resent(self):
+        state = {"calls": 0}
+
+        class FailsSecondWrite(LocalStorage):
+            def upload_if_version(self, name, source, version):
+                state["calls"] += 1
+                if state["calls"] == 2:
+                    raise OSError("synthetic storage outage")
+                return super().upload_if_version(name, source, version)
+
+        transport = FakeTransport()
+        with self.assertRaises(OSError):
+            self.deliver([err(20)], transport=transport,
+                         ledger=AlertLedger(FailsSecondWrite(self.root)))
+        self.assertEqual(self.states(), {"source_error": "sending"})
+        self.deliver([err(20)], transport=transport, now="2026-10-20T12:20:00Z")
+        self.assertEqual(self.states(), {"source_error": "ambiguous"})
+        self.assertEqual(len(transport.digests), 1)
+
+    def test_replay_safe_ambiguity_stops_at_max_attempts(self):
+        transport = FakeTransport(*[DeliveryAmbiguous("timeout")] * 3, replay_safe=True)
+        config = {**ENABLED, "max_attempts": 2}
+        self.deliver([err(20)], transport=transport, config=config)
+        self.deliver([err(20)], transport=transport, config=config, now="2026-10-20T12:30:00Z")
+        self.deliver([err(20)], transport=transport, config=config, now="2026-10-20T13:00:00Z")
+        self.assertEqual(len(transport.digests), 2)
+        self.assertEqual(self.states(), {"source_error": "ambiguous"})
+
+    def test_generation_token_storage_behaves_like_gcs(self):
+        class GenerationStorage:
+            """In-memory stand-in for GCS generation preconditions."""
+            def __init__(self):
+                self.objects = {}
+
+            def download_versioned(self, name, destination):
+                if name not in self.objects:
+                    return False, None
+                raw, generation = self.objects[name]
+                destination.write_bytes(raw)
+                return True, generation
+
+            def upload_if_version(self, name, source, version):
+                current = self.objects.get(name, (None, 0))[1]
+                if current != (0 if version is None else int(version)):
+                    raise StorageConflictError("generation mismatch")
+                self.objects[name] = (source.read_bytes(), current + 1)
+
+        storage = GenerationStorage()
+        ledger = AlertLedger(storage)
+        transport = FakeTransport()
+        self.deliver([err(20)], transport=transport, ledger=ledger)
+        self.deliver([err(20)], transport=transport, ledger=ledger, now="2026-10-20T13:00:00Z")
+        self.assertEqual(len(transport.digests), 1)
+        self.assertEqual(storage.objects[ledger.name][1], 2)
+        with self.assertRaises(StorageConflictError):
+            storage.upload_if_version(ledger.name, self.root / "missing", None)
+
+    def test_free_text_rejections_and_owner_labels_stay_out(self):
+        transport = FakeTransport(DeliveryRejected("bounced for someone@example.invalid",
+                                                   retryable=False))
+        receipt = self.deliver([err(20)], transport=transport)
+        self.assertEqual(receipt["digest"]["reason"], "transport_rejected")
+        stored = self.ledger_path().read_text() + json.dumps(transport.digests)
+        self.assertNotIn("someone@example.invalid", stored)
+        self.assertNotIn("Synthetic operator", stored)
+
     def test_provider_diagnostics_never_reach_ledger_or_digest(self):
         transport = FakeTransport()
         self.deliver([err(20, error="private-token-secret",
@@ -459,6 +603,7 @@ class DeliveryCommandTests(unittest.TestCase):
     def command(self, root, *args):
         env = {k: v for k, v in os.environ.items()
                if k not in ("WATCHTOWER_STORAGE", "CLOUD_RUN_JOB")}
+        env["WATCHTOWER_STORAGE_ROOT"] = str(Path(root) / "must-not-be-used")
         return subprocess.run([sys.executable, str(self.SCRIPT), "--ledger-root", str(root), *args],
                               capture_output=True, text=True, env=env)
 
@@ -476,6 +621,7 @@ class DeliveryCommandTests(unittest.TestCase):
             receipt = json.loads((root / "dry.json").read_text())
             self.assertEqual(receipt["mode"], "disabled_dry_run")
             self.assertFalse(ledger_root.exists())
+            self.assertFalse((ledger_root / "must-not-be-used").exists())
             config = root / "config.json"
             config.write_text(json.dumps({"enabled": True, "transport": "structured_log"}),
                               encoding="utf-8")

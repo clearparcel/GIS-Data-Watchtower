@@ -27,12 +27,13 @@ and ambiguous outcomes are held for operator reconciliation instead of resent.
 - `clearparcel/datawatch/alert_delivery.py`: ledger over the existing
   version-conditional storage backends (local file lock + hash CAS, or GCS
   generation preconditions); states `queued`, `sending`, `sent`,
-  `retry_wait`, `exhausted`, `ambiguous`, `expired`, `acknowledged`;
+  `retry_wait`, `exhausted`, `ambiguous`, `expired`, `superseded`,
+  `acknowledged`;
   `acknowledge`, `reconcile`, `ledger_status`; a `structured_log` transport
   that refuses to run outside a Cloud Run job and is not replay-safe.
 - `scripts/deliver_alerts.py`: `deliver` (dry run unless an enabled private
   configuration names a transport), `status`, `acknowledge`, `reconcile`.
-- `tests/test_alert_delivery.py`: 30 synthetic tests.
+- `tests/test_alert_delivery.py`: 39 synthetic tests.
 - Runbook, README and STATUS/current-status updates.
 
 The merged preview and triage logic are reused unchanged.
@@ -42,8 +43,8 @@ The merged preview and triage logic are reused unchanged.
 Python 3.12.10, Node v24.19.0, `WATCHTOWER_REQUIRE_NODE=1`:
 
 - `python -W error::ResourceWarning -m unittest discover -s tests -q`:
-  623 tests passed in 47.5 seconds; 3 skipped (two POSIX permission-bit tests
-  and one POSIX directory-fsync test).
+  632 tests passed; 3 skipped (two POSIX permission-bit tests and one POSIX
+  directory-fsync test). Exact timing is recorded in the PR.
 - `python -m compileall -q clearparcel tests scripts`: passed.
 - `python scripts/sync_current_status.py --check`: passed.
 - `git diff --check` (staged and unstaged): passed.
@@ -58,6 +59,27 @@ rejection; ambiguous outcomes, reconciliation and requeue; replay-safe
 transports; interrupted delivery and lease expiry; late outcomes after a sweep;
 digest size limits; acknowledgement; routing gaps; rollback and stale-queue
 expiry; CLI fail-closed behavior; diagnostic minimization.
+
+## Bounded review
+
+Claude (separate reviewer context, read-only, local synthetic checkout, no
+network) reviewed the pinned diff `1c3b3ed..0cca217` (tree `1d07b8f5`).
+Findings and fixes in the follow-up commit:
+
+- High: a queued alert for a still-failing source could expire silently.
+  Now re-dated while still current; stale expiry needs operator attention.
+- Medium: a failure waiting to retry could arrive after its recovery. Now
+  `superseded` when the recovery is accepted.
+- Medium: transport `Retry-After` applied per event. Now ledger-wide.
+- Medium: replayed old evidence could be delivered as current. Enabled
+  delivery now requires `as_of` within `max_age_hours` before the clock.
+- Low: a claim write that landed but reported a conflict stranded the claim.
+  The retry now recognizes its own claim.
+- Notes addressed: `--ledger-root` is used exactly; incomplete ledger records
+  fail closed; owner labels and free-text rejection reasons stay out of
+  digests and the ledger; runbook idempotency wording corrected for
+  per-execution evidence-gap keys. Added generation-token storage,
+  outcome-write failure and replay-safe attempt-limit tests.
 
 ## Not done
 

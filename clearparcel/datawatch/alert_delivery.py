@@ -10,7 +10,8 @@ Ledger record states::
                       -> retry_wait -> sending ...   (definitive non-delivery)
                       -> exhausted                   (attempts used up / rejected)
                       -> ambiguous                   (outcome unknown; held)
-    queued/retry_wait -> expired                     (too old to be current)
+    queued/retry_wait -> expired                     (stale and no longer current)
+    queued/retry_wait/ambiguous -> superseded         (a recovery was accepted first)
 
 ``accepted`` in the operations vocabulary is the durable ``queued`` record; a
 record is ``sent`` only after the transport returned a definitive hand-off; it
@@ -25,6 +26,7 @@ import hashlib
 import json
 import math
 import random
+import re
 from pathlib import Path
 import tempfile
 import time
@@ -37,7 +39,8 @@ from .storage import StorageBackend, StorageConflictError
 LEDGER_SCHEMA_VERSION = 1
 DEFAULT_LEDGER_NAME = "alerts/delivery-ledger.json"
 STATES = ("queued", "sending", "sent", "retry_wait", "exhausted", "ambiguous",
-          "expired", "acknowledged")
+          "expired", "superseded", "acknowledged")
+_REASON = re.compile(r"[A-Za-z0-9 _.:-]{1,60}")
 DEFAULTS = {
     "enabled": False,
     "transport": None,
@@ -91,6 +94,11 @@ def _iso(moment: datetime) -> str:
     return moment.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
+def _reason(text) -> str:
+    """Keep only short machine-style reasons; free text may quote an address."""
+    return text if isinstance(text, str) and _REASON.fullmatch(text) else "transport_rejected"
+
+
 def normalize_config(config: dict | None) -> dict:
     """Merge a private delivery configuration over safe defaults."""
     if config is None:
@@ -134,6 +142,9 @@ def validate_ledger(data) -> dict:
                 or record.get("state") not in STATES
                 or type(record.get("attempts")) is not int or record["attempts"] < 0):
             raise LedgerError("malformed alert ledger record")
+        for field in ("type", "worker", "source_id", "subject", "message"):
+            if not isinstance(record.get(field), str):
+                raise LedgerError(f"alert ledger record lacks {field}")
         required = ["accepted_at"]
         if record["state"] == "sending":
             required.append("claimed_at")
@@ -146,6 +157,11 @@ def validate_ledger(data) -> dict:
                 _utc(record.get(field))
             except ValueError as exc:
                 raise LedgerError(f"alert ledger record lacks a valid {field}") from exc
+    if "transport_backoff_until" in data:
+        try:
+            _utc(data["transport_backoff_until"])
+        except ValueError as exc:
+            raise LedgerError("alert ledger transport backoff is invalid") from exc
     return data
 
 
@@ -245,8 +261,13 @@ def _enqueue(data: dict, messages: list, at: datetime) -> tuple[list, list]:
     return new, known
 
 
-def _sweep(data: dict, at: datetime, settings: dict) -> None:
-    """Expire stale queue items and convert abandoned claims to ambiguous."""
+def _sweep(data: dict, at: datetime, settings: dict, current: set) -> None:
+    """Settle stale, superseded and abandoned records before claiming.
+
+    A queued item whose condition is still in the current preview is re-dated
+    rather than expired: its key cannot be queued again, so expiring it would
+    silence a continuing incident. Only conditions no longer current expire.
+    """
     lease = timedelta(minutes=settings["claim_lease_minutes"])
     max_queue = timedelta(hours=settings["max_queue_age_hours"])
     for record in data["events"].values():
@@ -254,9 +275,17 @@ def _sweep(data: dict, at: datetime, settings: dict) -> None:
             # The claimant may have handed the digest off before stopping.
             _note(record, at, "ambiguous", reason="claim_lease_expired",
                   claim_id=record.get("claim_id"))
+        elif (record["state"] in ("queued", "retry_wait", "ambiguous")
+              and record.get("resolved_by")):
+            # Never deliver a failure after the recovery that closed it.
+            _note(record, at, "superseded", resolved_by=record["resolved_by"])
         elif (record["state"] in ("queued", "retry_wait")
               and at - _utc(record["accepted_at"]) >= max_queue):
-            _note(record, at, "expired", reason="older_than_max_queue_age")
+            if record["event_key"] in current:
+                record["accepted_at"] = _iso(at)
+                _note(record, at, record["state"], reason="still_current_redated")
+            else:
+                _note(record, at, "expired", reason="older_than_max_queue_age")
 
 
 def _eligible(data: dict, at: datetime, replay_safe: bool, max_attempts: int) -> list:
@@ -287,8 +316,7 @@ def build_digest(records: list, *, routing: dict, digest_id: str, created_at: da
         lines.append(f"  event {r['event_key'][:16]}")
     if pending_after:
         lines.append(f"{pending_after} further alert(s) remain queued for the next digest.")
-    lines.append(f"Runbook: {routing.get('runbook_ref') or 'not set'}; "
-                 f"escalation: {routing.get('escalation_owner') or 'not set'}.")
+    lines.append(f"Runbook: {routing.get('runbook_ref') or 'not set'}.")
     lines.append("Acknowledge each event after review; acknowledgement is recorded separately.")
     return {
         "schema_version": 1, "digest_id": digest_id, "created_at": _iso(created_at),
@@ -303,10 +331,12 @@ def _summary(data: dict) -> dict:
     for record in data["events"].values():
         counts[record["state"]] += 1
     attention = sorted(k for k, r in data["events"].items()
-                       if r["state"] in ("ambiguous", "exhausted"))
+                       if r["state"] in ("ambiguous", "exhausted")
+                       or (r["state"] == "expired" and not r.get("abandoned_by")))
     unacknowledged = sorted(k for k, r in data["events"].items() if r["state"] == "sent")
     return {"state_counts": counts, "needs_operator_attention": attention,
-            "sent_unacknowledged": unacknowledged}
+            "sent_unacknowledged": unacknowledged,
+            "transport_backoff_until": data.get("transport_backoff_until")}
 
 
 def deliver_alerts(executions, *, expected_sources, routing, as_of, ledger: AlertLedger | None,
@@ -352,14 +382,29 @@ def deliver_alerts(executions, *, expected_sources, routing, as_of, ledger: Aler
         raise ValueError("enabled delivery requires a ledger and an explicit transport")
     if getattr(transport, "name", None) != settings["transport"]:
         raise ValueError("transport does not match the enabled configuration")
+    evidence_age = clock - _utc(as_of)
+    if (evidence_age < timedelta(0)
+            or evidence_age > timedelta(hours=settings["max_age_hours"])):
+        # Replaying old evidence would present historical conditions as current.
+        raise ValueError("delivery requires as_of within max_age_hours before now")
     replay_safe = bool(getattr(transport, "replay_safe", False))
     claim_id = uuid.uuid4().hex
+    current = {m["event_key"] for m in preview["messages"]}
+    blocked = {"transport": False}
 
     def accept_and_claim(data):
+        mine = [dict(r) for r in data["events"].values()
+                if r["state"] == "sending" and r.get("claim_id") == claim_id]
+        if mine:
+            # Our claim write landed although its acknowledgement was lost.
+            known = [m["event_key"] for m in preview["messages"]]
+            return [], known, mine, 0
         new, known = _enqueue(data, preview["messages"], clock)
-        _sweep(data, clock, settings)
+        _sweep(data, clock, settings, current)
         claimed = []
-        if not preview["routing_gaps"]:
+        backoff = data.get("transport_backoff_until")
+        blocked["transport"] = bool(backoff) and clock < _utc(backoff)
+        if not preview["routing_gaps"] and not blocked["transport"]:
             eligible = _eligible(data, clock, replay_safe, settings["max_attempts"])
             for record in eligible[:settings["max_messages_per_digest"]]:
                 record["attempts"] += 1
@@ -377,6 +422,8 @@ def deliver_alerts(executions, *, expected_sources, routing, as_of, ledger: Aler
     receipt["new_event_keys"], receipt["known_event_keys"] = new, known
     if preview["routing_gaps"]:
         receipt["notification_delivery"] = "blocked_routing_incomplete"
+    elif blocked["transport"]:
+        receipt["notification_delivery"] = "blocked_transport_backoff"
     if not claimed:
         if receipt["notification_delivery"] == "not_attempted":
             receipt["notification_delivery"] = "nothing_to_send"
@@ -394,13 +441,22 @@ def deliver_alerts(executions, *, expected_sources, routing, as_of, ledger: Aler
         provider_ref = result.get("provider_ref") if isinstance(result, dict) else None
     except DeliveryRejected as exc:
         outcome = "rejected"
-        detail = {"reason": exc.reason[:120], "retryable": exc.retryable,
-                  "retry_after_seconds": exc.retry_after_seconds}
+        retry_after = exc.retry_after_seconds
+        if type(retry_after) not in (int, float) or not math.isfinite(retry_after) or retry_after < 0:
+            retry_after = None
+        detail = {"reason": _reason(exc.reason), "retryable": exc.retryable,
+                  "retry_after_seconds": retry_after}
     except Exception as exc:  # noqa: BLE001 - any unknown failure is an unknown outcome
         outcome = "ambiguous"
         detail = {"reason": type(exc).__name__}
 
     def record_outcome(data):
+        if outcome == "rejected" and detail["retry_after_seconds"]:
+            # Transport backoff applies to every later event, not only these.
+            until = clock + timedelta(seconds=detail["retry_after_seconds"])
+            previous = data.get("transport_backoff_until")
+            if not previous or _utc(previous) < until:
+                data["transport_backoff_until"] = _iso(until)
         for key in (r["event_key"] for r in claimed):
             record = data["events"].get(key)
             if record is None or record.get("state") != "sending" or record.get("claim_id") != claim_id:
@@ -431,7 +487,7 @@ def deliver_alerts(executions, *, expected_sources, routing, as_of, ledger: Aler
 
 
 def acknowledge(ledger: AlertLedger, event_keys: list, *, by: str, at) -> dict:
-    """Record an operator acknowledgement for sent or ambiguous events."""
+    """Record an operator acknowledgement for sent, ambiguous or expired events."""
     if not event_keys or not isinstance(by, str) or not by.strip() or len(by) > 120:
         raise ValueError("acknowledgement requires event keys and an operator label")
     moment = _utc(at)
@@ -440,7 +496,7 @@ def acknowledge(ledger: AlertLedger, event_keys: list, *, by: str, at) -> dict:
         done, refused = [], []
         for key in event_keys:
             record = data["events"].get(key)
-            if record is None or record["state"] not in ("sent", "ambiguous"):
+            if record is None or record["state"] not in ("sent", "ambiguous", "expired"):
                 refused.append(key)
                 continue
             record["acknowledged_at"] = _iso(moment)
@@ -477,6 +533,7 @@ def reconcile(ledger: AlertLedger, event_key: str, *, resolution: str, by: str, 
             record["accepted_at"] = _iso(moment)
             _note(record, moment, "queued", reconciled_by=by, duplicate_risk_accepted=True)
         else:
+            record["abandoned_by"] = by
             _note(record, moment, "expired", reconciled_by=by, reason="operator_abandoned")
         return {"reconciled": True, "state": record["state"]}
 

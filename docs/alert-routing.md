@@ -108,16 +108,23 @@ invalid input, storage conflicts or a refused transport.
 | `retry_wait` | The transport definitively did not hand off; a later invocation may retry. |
 | `exhausted` | Rejected without retry, or retries used up. Operator attention required. |
 | `ambiguous` | Outcome unknown (timeout, partial write, or a claim whose lease expired). |
-| `expired` | Too old to be current (default 72 hours), or abandoned by an operator. |
-| `acknowledged` | An operator recorded review of a sent or ambiguous event. |
+| `expired` | Undelivered and no longer current after `max_queue_age_hours` (72), or abandoned by an operator. Unabandoned expiry needs operator attention. |
+| `superseded` | Not yet delivered when a recovery for the same worker/source was accepted; never sent. |
+| `acknowledged` | An operator recorded review of a sent, ambiguous or expired event. |
 
 ### Delivery rules
 
 - **Idempotency.** The preview `event_key` is the ledger key. A known key is
-  never queued again, so repeated runs of one unresolved incident, replays of
-  the same input, and an acknowledged but continuing incident send nothing new.
+  never queued again, so repeated runs of one unresolved source failure,
+  replays of the same input, and an acknowledged but continuing incident send
+  nothing new. Evidence-gap keys bind the latest execution, so a gap that
+  persists across runs produces one alert per affected run.
+- **Current evidence only.** Enabled delivery refuses an `--as-of` later than
+  the delivery clock or older than `max_age_hours`, so replayed history is
+  never presented as current.
 - **Concurrency.** Claims and outcomes are compare-and-swap writes. Only the
   invocation whose claim write succeeds sends; competing invocations reload.
+  A claim write that landed but reported a conflict is recognized on retry.
   Persistent conflicts stop the run without sending.
 - **One digest per invocation.** All claimed events go in one message, bounded
   by `max_messages_per_digest` (default 25); the remainder stays queued.
@@ -128,19 +135,25 @@ invalid input, storage conflicts or a refused transport.
   `sent`, `requeue` (accepting possible duplicate delivery), or `abandon`.
 - **Bounded retries.** Only definitive non-delivery is retried, on a later
   invocation, never in a sleep loop: `max_attempts` (default 3), exponential
-  backoff from `retry_base_minutes` (15) capped at `retry_cap_minutes` (360),
-  honoring a transport `Retry-After`. Retries never trigger a provider check.
-- **Incident reopening.** A delivered recovery marks earlier events for the same
-  worker/source `resolved_by`. A later failure has a new preview key and is
-  delivered as a new incident.
+  backoff from `retry_base_minutes` (15) capped at `retry_cap_minutes` (360).
+  A transport `Retry-After` is honored for the whole ledger: no event is sent
+  before it passes. Retries never trigger a provider check.
+- **Incident reopening.** Accepting a recovery marks earlier events for the
+  same worker/source `resolved_by`; any of them not yet delivered become
+  `superseded`, so a failure never arrives after its recovery. A later failure
+  has a new preview key and is delivered as a new incident.
 - **Repeat policy.** No automatic reminders. Unacknowledged sent events are
   listed by `status` for operator follow-up.
 - **Routing gaps block sending.** Events queue but are not sent while any route
   field is missing.
 - **Rollback.** Set `"enabled": false` (or omit the configuration). The ledger is
-  retained and nothing is sent; on re-enablement, queued events older than
-  `max_queue_age_hours` expire instead of arriving late. Provider controls,
-  evidence and schedules are untouched.
+  retained and nothing is sent. On re-enablement, a queued event whose
+  condition is still current is re-dated and delivered; one no longer current
+  after `max_queue_age_hours` expires and is listed for operator attention.
+  Provider controls, evidence and schedules are untouched.
+- **Minimal content.** Digests carry fixed message text, worker/source IDs,
+  times and the runbook reference, not recipients, owner names or provider
+  diagnostics. Only short machine-style transport rejection reasons are stored.
 
 ### Transport candidate
 

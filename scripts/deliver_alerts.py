@@ -11,7 +11,7 @@ from clearparcel.datawatch import strict_json
 from clearparcel.datawatch.alert_delivery import (
     DEFAULT_LEDGER_NAME, AlertLedger, LedgerError, StructuredLogTransport, acknowledge,
     deliver_alerts, ledger_status, normalize_config, reconcile)
-from clearparcel.datawatch.storage import StorageConflictError, backend_from_env
+from clearparcel.datawatch.storage import LocalStorage, StorageConflictError, backend_from_env
 
 
 TRANSPORTS = {"structured_log": StructuredLogTransport}
@@ -22,9 +22,12 @@ def _now():
 
 
 def _ledger(args):
-    if os.environ.get("WATCHTOWER_STORAGE", "local").strip().lower() == "local" and not args.ledger_root:
-        raise ValueError("--ledger-root is required for local ledger storage")
-    return AlertLedger(backend_from_env(args.ledger_root or "."), args.ledger_name)
+    if os.environ.get("WATCHTOWER_STORAGE", "local").strip().lower() == "local":
+        if not args.ledger_root:
+            raise ValueError("--ledger-root is required for local ledger storage")
+        # Use the named directory exactly; never fall back to another root.
+        return AlertLedger(LocalStorage(args.ledger_root), args.ledger_name)
+    return AlertLedger(backend_from_env("."), args.ledger_name)
 
 
 def _write(path, payload):
@@ -84,7 +87,8 @@ def main():
                   f"delivery {result['notification_delivery']}.", file=sys.stderr)
             attention = (result["routing_gaps"] or result["source_evidence_gaps"]
                          or result["notification_delivery"] in ("ambiguous", "rejected",
-                                                                "blocked_routing_incomplete")
+                                                                "blocked_routing_incomplete",
+                                                                "blocked_transport_backoff")
                          or result.get("ledger", {}).get("needs_operator_attention"))
             return 1 if attention else 0
         if args.command == "acknowledge":
