@@ -1,13 +1,15 @@
 # Project status
 
-## v0.3.6 coordinated release — prepared, deployment pending, 2026-10-20
+## v0.3.6 coordinated release — deployed, 2026-10-20
 
-Owner-approved release of the provider-run spacing guard (23-hour minimum)
-and county metadata dates (#125) to all four surfaces before the first
-observed daily run on October 21. See
-[the release record](docs/release-v0.3.6.md).
+All four surfaces run v0.3.6 (`77dd1e4`, Cloud Build `da835e18`) before the
+first observed daily run on October 21. The provider job enforces the
+owner-approved 23-hour minimum between provider runs, and the MnGeo county
+catalog reads each county's ArcGIS item metadata dates (never for
+hold-for-terms counties). Public and private acceptance passed; no provider
+was polled. See [the release record](docs/release-v0.3.6.md).
 
-## Provider-run spacing guard and county metadata dates — candidate, disabled by default, 2026-10-20
+## Provider-run spacing guard and county metadata dates — merged, 2026-10-20
 
 Two owner-requested changes, not deployed. `WATCHTOWER_MIN_DISPATCH_HOURS`
 makes the owner-approved 23-hour minimum between provider runs a technical
@@ -19,8 +21,7 @@ skipped. The MnGeo county catalog can also read each county's own
 ArcGIS item metadata (`item_metadata: true`, never for hold-for-terms
 counties), so dashboards show the county's
 metadata publication and content dates beside MnGeo's acquisition date, now
-labeled as such. Both are off until the provider job's environment and
-registry are changed in a separate approved release. See
+labeled as such. Both are enabled in production by v0.3.6. See
 [configuration](docs/configuration.md#provider-run-spacing).
 
 ## WT-15 sign-off — accepted with Todd open, 2026-10-20
