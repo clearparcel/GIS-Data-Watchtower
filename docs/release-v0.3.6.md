@@ -8,8 +8,12 @@ five runs use this version.** The owner approved releasing tonight.
 
 - Provider-run spacing guard
   ([#125](https://github.com/clearparcel/GIS-Data-Watchtower/pull/125)):
-  `WATCHTOWER_MIN_DISPATCH_HOURS=23` on the provider job, with the default
-  10-minute start-delay tolerance (effective floor 22 h 50 min). Every
+  `WATCHTOWER_MIN_DISPATCH_HOURS=23` on the provider job. It was deployed
+  with the default 10-minute start-delay tolerance (floor 22 h 50 min); the
+  same evening the owner chose `WATCHTOWER_DISPATCH_TOLERANCE_MINUTES=0`, so
+  spacing never falls below 23 hours and the spring daylight-saving day's
+  05:00 run is skipped whenever it would start less than 23 hours after the
+  previous run. Every
   `cloud-job` and `check` execution claims the `cloud` slot before any
   provider request; an early run exits 4 unless it records
   `--override-min-interval "reason"`. The hosted private dashboard is
@@ -45,7 +49,7 @@ CLI smoke. The build source upload was removed afterwards.
 | --- | --- | --- |
 | Public dashboard | `watchtower@sha256:72d1932c…2f2d422d` (revision `gis-data-watchtower-public-00039-vaw`, 100%) | `00037-yoy` (v0.3.5) |
 | Private dashboard | `dashboard@sha256:4db54bca…ffdd88471` (revision `gis-data-watchtower-dashboard-00041-cot`, 100%) | `00039-wif` (v0.3.5) |
-| Provider job | `watchtower@sha256:72d1932c…2f2d422d` + `WATCHTOWER_MIN_DISPATCH_HOURS=23` | v0.3.5 `e5200d8c…` |
+| Provider job | `watchtower@sha256:72d1932c…2f2d422d` + `WATCHTOWER_MIN_DISPATCH_HOURS=23`, `WATCHTOWER_DISPATCH_TOLERANCE_MINUTES=0` | v0.3.5 `e5200d8c…` |
 | Publisher job | `watchtower@sha256:72d1932c…2f2d422d` | v0.3.5 `e5200d8c…` |
 
 ## Rollout and acceptance
@@ -59,8 +63,9 @@ CLI smoke. The build source upload was removed afterwards.
   "MnGeo acquired county data" instead of "Last county update".
 - Private: signed-in check of the Wabasha county page on the normal URL
   showed the new label; the MN GAC route returned 200.
-- Jobs: only the images changed, plus the one guard variable on the provider
-  job; schedulers unchanged; no job was executed and no provider was polled.
+- Jobs: only the images changed, plus the two guard variables on the
+  provider job (the tolerance variable was added afterwards with a readback
+  confirming nothing else changed); schedulers unchanged; no job was executed and no provider was polled.
   The publisher's next scheduled run succeeded on v0.3.6.
 - Private registry: one new Secret Manager version adds `item_metadata` to
   the catalog source only; every other source definition hash is unchanged.
@@ -76,6 +81,7 @@ the next publish.
 
 Dashboards: restore traffic to `00037-yoy` (public) and `00039-wif`
 (private). Jobs: restore the v0.3.5 image and remove
-`WATCHTOWER_MIN_DISPATCH_HOURS` from the provider job. Registry: disable the
+`WATCHTOWER_MIN_DISPATCH_HOURS` and `WATCHTOWER_DISPATCH_TOLERANCE_MINUTES`
+from the provider job. Registry: disable the
 new version so `latest` returns to the previous one. Rollback was prepared,
 not exercised.
