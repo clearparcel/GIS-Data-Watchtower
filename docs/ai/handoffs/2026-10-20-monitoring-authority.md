@@ -1,4 +1,4 @@
-# WT-02 monitoring-authority reconciliation — local candidate
+# WT-02 monitoring-authority reconciliation — PR candidate
 
 Implementer: Codex, October 20, 2026. Branch:
 `codex/wt-monitoring-authority`. Base:
@@ -43,7 +43,9 @@ evidence returned exit 1, `missing_approval`, incomplete reconciliation and
 `activation_authorized: false`. Raw receipts/logs remain private.
 
 The accepted PR #103 merge and post-merge CI succeeded at the exact base above.
-This new candidate has not been published or hosted-tested.
+The owner authorized PR publication and hosted CI on October 20. The PR
+description and checks record the exact published head and hosted outcome.
+Publication preparation changes documentation only.
 
 ## Accepted independent review
 
@@ -79,8 +81,8 @@ Published CCE context `gis-data-watchtower`, revision
 updated October 13/review due October 14, remains historical `needs-review`
 context. Current source and owner decisions take precedence.
 
-Next: publish this candidate and run hosted CI when requested, then supply and
-review actual private authority/cadence evidence, prioritizing Aitkin/Morrison.
+Next: complete hosted CI, then supply and review actual private
+authority/cadence evidence, prioritizing Aitkin/Morrison.
 Historical log diagnosis requires restored operator cloud authentication.
 Notification delivery, isolated restore/CAS proof, IAM assessment and five
 ordinary cycles remain open. No merge authority for this candidate, deployment,

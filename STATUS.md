@@ -1,6 +1,6 @@
 # Project status
 
-## Monitoring-authority reconciliation — local candidate, 2026-10-20
+## Monitoring-authority reconciliation — PR candidate, 2026-10-20
 
 An offline evidence matcher binds county-direct parcel sources to dated
 approval/research/cadence records and flags missing, stale or conflicting
