@@ -21,6 +21,7 @@ Choose the path that matches what you want to do. For the live dashboard and a c
 | [Contributing](../CONTRIBUTING.md) | Pull requests, testing, provider-use guardrails, and reporting |
 | [Configuration reference](configuration.md) | Source definitions, storage, supported options, and environment overrides |
 | [Offline operations triage](operations-triage.md) | Correlate saved run evidence, distinguish status exits, and prepare source-failure/recovery review |
+| [Monitoring-authority reconciliation](monitoring-authority-reconciliation.md) | Match private source approvals and cadence evidence while preserving research holds |
 | [Processing architecture](data-watchtower-processing-architecture.md) | Data flow and separation of collector, saved observations, and dashboard |
 | [Cloud/offline development](codex-cloud-development.md) | Safe synthetic development without contacting production GIS providers |
 | [Hybrid execution](hybrid-execution.md) | Local and cloud execution profiles |
