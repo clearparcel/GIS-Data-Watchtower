@@ -1,5 +1,18 @@
 # Project status
 
+## Provider-run spacing guard and county metadata dates — candidate, disabled by default, 2026-10-20
+
+Two owner-requested changes, not deployed. `WATCHTOWER_MIN_DISPATCH_HOURS`
+makes the owner-approved 23-hour minimum between provider runs a technical
+control: every `cloud-job` and `check` run claims a compare-and-swap slot
+before any provider request and an early run exits 4 unless it records an
+override reason. The MnGeo county catalog can also read each county's own
+ArcGIS item metadata (`item_metadata: true`), so dashboards show the county's
+metadata publication and content dates beside MnGeo's acquisition date, now
+labeled as such. Both are off until the provider job's environment and
+registry are changed in a separate approved release. See
+[configuration](docs/configuration.md#provider-run-spacing).
+
 ## WT-15 sign-off — accepted with Todd open, 2026-10-20
 
 The owner accepted dispositions for the October 16–18 FEMA, Beltrami and

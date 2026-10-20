@@ -17,7 +17,8 @@ SUMMARY_FIELDS = ('county', 'county_slug', 'county_fips', 'active', 'paths', 'he
 SOURCE_FIELDS = ('county', 'county_slug', 'county_fips', 'category', 'availability', 'review_status',
     'inventory_id', 'monitored_source_id', 'name', 'authority', 'dataset_type', 'layer_id',
     'approved_public_links', 'geometry_type', 'feature_count', 'feature_count_basis',
-    'provider_updated_at', 'county_acquired_at', 'catalog_refreshed_at', 'checked_at',
+    'provider_updated_at', 'county_acquired_at', 'catalog_refreshed_at',
+    'county_metadata_published_at', 'county_metadata_content_at', 'checked_at',
     'last_success_at', 'health', 'reporting', 'execution_profile', 'monitoring_decision',
     'file_type', 'file_size_bytes', 'file_etag', 'file_last_modified')
 

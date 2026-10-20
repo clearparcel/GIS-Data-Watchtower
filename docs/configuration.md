@@ -81,6 +81,24 @@ Optional common controls include:
   reason `execution-profile-unresolved`.
 - `thresholds`
 
+The `arcgis_county_catalog` adapter (MnGeo's county catalog) also accepts:
+
+- `item_metadata`: `true` reads the county's own ArcGIS item metadata record
+  for each catalog county whose `data_url` links an arcgis.com item (hub,
+  opendata or arcgis.com dataset pages), from
+  `https://www.arcgis.com/sharing/rest/content/items/<id>/info/metadata/metadata.xml`.
+  Each item is read once per run. The publication, revision, content and
+  metadata dates (FGDC or ArcGIS format) are stored as `item_metadata` on the
+  county's catalog record and shown separately from MnGeo's acquisition date.
+  A failed read marks the county `unavailable` without failing the catalog
+  source; a host under an HTTP 429 backoff is not contacted (`deferred`); a new
+  429 stops the run's requests to that host through the normal backoff path.
+  The metadata never changes the catalog or observation hashes. Off by default.
+- `item_metadata_max_items` (default 100, at most 200),
+  `item_metadata_budget_seconds` (default 90, at most 300) and
+  `item_metadata_timeout_seconds` (default 10, never above the source timeout)
+  bound the reads; counties past a bound are marked `skipped`.
+
 ## Run-safety environment variables
 
 State, backup, alert, and local aggregate files are replaced atomically and keep
@@ -93,6 +111,7 @@ if a dashboard or publisher runs as a different user.
 | `WATCHTOWER_ALLOW_INVENTORY_SHRINK=1` | Marks the run's fleet report as a deliberate inventory drain so it may retire most or all of the worker's sources. Without it, an empty run is an error and a report covering under half of the worker's sources retires nothing. |
 | `WATCHTOWER_ALLOW_EXAMPLE_CONFIG=1` | Lets `cloud-job` run against a configuration whose sources all use reserved example hosts. For synthetic tests only. |
 | `WATCHTOWER_RUN_RECEIPTS=1` | After each `cloud-job` run, appends a private execution receipt (exit code, start/end, minimized original worker report) to `runs/receipts.json` in the job's storage. Off by default; never changes the exit code. See [alert routing](alert-routing.md). |
+| `WATCHTOWER_MIN_DISPATCH_HOURS` | Minimum hours (1–168) between provider-polling runs. When set, `cloud-job` and `check` claim a slot in the private `runs/dispatch-guard.json` object (compare-and-swap) before any provider request, and a run that starts sooner than the minimum after the previous run is refused with exit 4. Spacing is compared to the nearest minute (30-second tolerance), so scheduler jitter cannot skip the 05:00 America/Chicago run on the spring daylight-saving change, which is 23 elapsed hours. `--override-min-interval REASON` runs anyway and records the reason in the guard history (the reason is not logged). Off when unset. See [provider-run spacing](#provider-run-spacing). |
 | `WATCHTOWER_ALERT_DELIVERY_CONFIG` | Also supplies routing for `watchtower alert-test`. Private JSON (`{"delivery": {...}, "routing": {...}}`, from Secret Manager) for the alert stage that runs after a receipt is recorded. Requires `WATCHTOWER_RUN_RECEIPTS=1`; `delivery.enabled` still defaults to false. |
 
 ## Provider rate limits (HTTP 429)
@@ -306,6 +325,7 @@ attempts.
 | 1 | At least one warning (an expected non-zero exit for scheduled runs). |
 | 2 | A source reported an error, or the run checked no sources (`scope.type=empty`). |
 | 3 | Watchtower itself failed: bad configuration, a storage conflict, a refused aggregate merge or an unexpected exception. |
+| 4 | The run was refused by the minimum provider-run spacing (`WATCHTOWER_MIN_DISPATCH_HOURS`) before any provider request. No report or run receipt is written. |
 
 Command-line usage errors (an unknown option or an invalid `--worker`) are
 rejected by the argument parser with its conventional exit code 2 before any
@@ -315,6 +335,25 @@ refused with exit 3 before any provider request.
 
 Keep the Cloud Run Job at `--max-retries=0` so a non-zero exit never repeats
 provider requests.
+
+### Provider-run spacing
+
+`WATCHTOWER_MIN_DISPATCH_HOURS` makes the minimum spacing between
+provider-polling runs a technical control rather than a procedure. Every
+`cloud-job` and `check` run (including `check --source` and `--no-save`)
+claims the slot before polling, so a scheduled run, a manual execution and a
+single-source recheck all count toward the same spacing. The claim is a
+version-conditional write: of two runs started together, only one proceeds.
+The guard is per storage backend, so it covers every run that shares the
+deployment's storage (the provider job's Cloud Run executions), not a
+separate local installation with its own storage.
+
+A refused run exits 4 and logs one `watchtower_dispatch_refused` line. An
+override (`--override-min-interval "reason"`) is recorded with the run in
+`runs/dispatch-guard.json` (the newest 60 runs are kept, with each run's hours
+since the previous one) so cadence reviews can see it. A stored previous run
+more than two minutes in the future, or an unreadable guard record, refuses
+runs until an operator reviews it.
 
 ## Public publisher and public server
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime as dt
 import math
 
-from clearparcel.datawatch.public_values import safe_public_url, sanitize_source_metadata, _metadata_text, _display_text
+from clearparcel.datawatch.public_values import safe_public_url, sanitize_item_metadata, sanitize_source_metadata, _metadata_text, _display_text
 
 
 def _public_count(value: object) -> int | None:
@@ -96,7 +96,8 @@ def _sanitize_completeness(value: object) -> dict:
 
 def _sanitize_catalog_records(records: object) -> dict:
     schema = {'gac_open_approval': _approval, 'acqdate': _catalog_date, 'rundate': _catalog_date,
-              'data_url': safe_public_url, 'viewer_url': safe_public_url}
+              'data_url': safe_public_url, 'viewer_url': safe_public_url,
+              'item_metadata': sanitize_item_metadata}
     return {county: _project(record, schema) for county, record in _records(records).items()
             if _metadata_text(county) and isinstance(record, dict)}
 

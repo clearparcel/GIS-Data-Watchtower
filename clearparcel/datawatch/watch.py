@@ -1794,7 +1794,7 @@ def _arcgis_county_catalog(source: dict, timeout: int) -> dict:
     if expected is not None and len(records) != int(expected):
         problems.append(f"expected {expected} county records, got {len(records)}")
     stable = {name: records[name] for name in sorted(records)}
-    return {
+    result = {
         "http_status": meta.get("status"),
         "transport": meta.get("transport"),
         "county_record_count": len(records),
@@ -1803,6 +1803,116 @@ def _arcgis_county_catalog(source: dict, timeout: int) -> dict:
         "catalog_hash": _hash_json(stable),
         "problems": problems,
     }
+    if source.get("item_metadata") is True:
+        # Hashes above cover only MnGeo's catalog fields; item metadata is display context.
+        _attach_item_metadata(records, source, timeout)
+    return result
+
+
+# A county's own ArcGIS item, as linked from MnGeo's catalog (hub, opendata or
+# arcgis.com dataset pages). Its metadata record carries the county's stated
+# publication/content dates, which differ from MnGeo's acquisition date.
+_CATALOG_URL = re.compile(r"https?://[^\s\"'<>]+", re.IGNORECASE)
+_CATALOG_ITEM = re.compile(r"(?:/datasets/|/items/|[?&]id=)([0-9a-f]{32})(?:_\d+)?(?:[/?&#]|$)", re.IGNORECASE)
+ITEM_METADATA_URL = "https://www.arcgis.com/sharing/rest/content/items/{}/info/metadata/metadata.xml"
+_ITEM_METADATA_TEXT = 80
+
+
+def catalog_item_id(value: object) -> str | None:
+    """The ArcGIS item id behind a catalog data_url, only for arcgis.com hosts."""
+    if not isinstance(value, str):
+        return None
+    for match in _CATALOG_URL.finditer(value):
+        url = match.group(0)
+        host = _hostname(url)
+        if not host or not (host == "arcgis.com" or host.endswith(".arcgis.com")):
+            continue
+        item = _CATALOG_ITEM.search(urllib.parse.urlsplit(url)._replace(fragment="").geturl())
+        if item:
+            return item.group(1).lower()
+    return None
+
+
+def _metadata_day(value: object) -> str | None:
+    """YYYY-MM-DD from FGDC (YYYYMMDD) or ISO/ArcGIS (YYYY-MM-DD[Thh:mm:ss]) dates."""
+    if not isinstance(value, str):
+        return None
+    text = value.strip()
+    match = re.fullmatch(r"(\d{4})(\d{2})(\d{2})", text) or re.fullmatch(r"(\d{4})-(\d{2})-(\d{2})(?:[T ][0-9:.]+(?:Z|[+-]\d{2}:?\d{2})?)?", text)
+    if not match:
+        return None
+    try:
+        return dt.date(int(match.group(1)), int(match.group(2)), int(match.group(3))).isoformat()
+    except ValueError:
+        return None
+
+
+def item_metadata_dates(body: bytes) -> dict:
+    """Publication, content and metadata dates from an FGDC, ArcGIS or ISO metadata record."""
+    lowered = body[:262144].lower()
+    if b"<!doctype" in lowered or b"<!entity" in lowered:
+        raise ValueError("metadata XML declares a DTD")
+    root = ET.fromstring(body)
+
+    def first(*paths):
+        for path in paths:
+            nodes = [root]
+            for name in path:
+                nodes = [child for node in nodes for child in node.iter() if _local_name(child.tag).lower() == name]
+                if not nodes:
+                    break
+            for node in nodes:
+                text = "".join(node.itertext()).strip()
+                if text:
+                    return text
+        return None
+
+    found = {
+        "publication_date": _metadata_day(first(("idinfo", "citation", "citeinfo", "pubdate"),
+                                                ("dataidinfo", "idcitation", "date", "pubdate"))),
+        "revision_date": _metadata_day(first(("dataidinfo", "idcitation", "date", "revisedate"))),
+        "content_date": _metadata_day(first(("idinfo", "timeperd", "timeinfo", "sngdate", "caldate"),
+                                            ("idinfo", "timeperd", "timeinfo", "rngdates", "enddate"))),
+        "metadata_date": _metadata_day(first(("metainfo", "metd"), ("mddatest",), ("esri", "moddate"),
+                                             ("datestamp",))),
+    }
+    current = first(("idinfo", "timeperd", "current"))
+    update = first(("idinfo", "status", "update"), ("resmaint", "maintfreq", "maintfreqcd"))
+    if current:
+        found["currentness_reference"] = " ".join(current.split())[:_ITEM_METADATA_TEXT]
+    if update:
+        found["update_frequency"] = " ".join(update.split())[:_ITEM_METADATA_TEXT]
+    return {key: value for key, value in found.items() if value}
+
+
+def _attach_item_metadata(records: dict, source: dict, timeout: int) -> None:
+    """Bounded, read-only metadata reads for catalog counties hosted as ArcGIS items."""
+    limit = max(0, min(int(source.get("item_metadata_max_items", 100)), 200))
+    budget = max(1.0, min(float(source.get("item_metadata_budget_seconds", 90)), 300.0))
+    per_request = max(1, min(int(source.get("item_metadata_timeout_seconds", 10)), int(timeout)))
+    metadata_host = _hostname(ITEM_METADATA_URL)
+    started = time.monotonic()
+    fetched: dict[str, dict] = {}
+    for county in sorted(records):
+        record = records[county]
+        item = catalog_item_id(record.get("data_url"))
+        if not item:
+            continue
+        if item not in fetched:
+            if metadata_host in _RUN_BLOCKED_HOSTS.get(()):
+                entry = {"status": "deferred"}  # The metadata host asked us to back off.
+            elif len(fetched) >= limit or time.monotonic() - started > budget:
+                entry = {"status": "skipped"}
+            else:
+                try:
+                    body, _ = _request(ITEM_METADATA_URL.format(item), per_request)
+                    entry = {"status": "ok", **item_metadata_dates(body)}
+                except ProviderRateLimitError:
+                    raise  # Stop and persist the host backoff through the normal 429 path.
+                except Exception:  # noqa: BLE001 - optional display context, never a source failure
+                    entry = {"status": "unavailable"}
+            fetched[item] = {"item_id": item, "observed_at": dt.datetime.now(dt.timezone.utc).isoformat(), **entry}
+        record["item_metadata"] = dict(fetched[item])
 
 
 def _adapter_name(source: dict) -> str:
@@ -1831,6 +1941,12 @@ def _observation_fingerprint(details: dict) -> str:
         "null_geometry_check_error", "parcel_id_null_check_error",
     }
     stable = {k: v for k, v in details.items() if k not in volatile}
+    # County item metadata is display context read separately from MnGeo's
+    # catalog; a transient metadata read must not register as a catalog change.
+    if isinstance(stable.get("county_records"), dict):
+        stable["county_records"] = {
+            county: ({k: v for k, v in row.items() if k != "item_metadata"} if isinstance(row, dict) else row)
+            for county, row in stable["county_records"].items()}
     # Nested metric blocks (e.g. gac_completeness) carry their own observation
     # time; it changes every run and must not register as a dataset change.
     for key, value in list(stable.items()):

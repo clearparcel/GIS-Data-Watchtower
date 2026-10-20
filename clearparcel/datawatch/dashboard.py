@@ -30,6 +30,7 @@ from clearparcel.datawatch.county_profile_exports import county_profiles_csv, pa
 from clearparcel.datawatch.county_profiles import FreshnessPolicy, compose_county_profiles, county_profile_counts
 from clearparcel.datawatch.gac_standards import gac_defaults, load_gac_standard, normalize_standard_key, standard_keys
 from clearparcel.datawatch.gac_projection import project_gac
+from clearparcel.datawatch.public_values import county_metadata_dates
 
 COUNTIES_FILE = Path(__file__).with_name("minnesota_counties.json")
 COUNTY_CONTACTS_FILE = Path(__file__).with_name("minnesota_county_contacts.json")
@@ -563,6 +564,8 @@ def _county_snapshot(config: dict, slug: str, *, include_mngac: bool = True, sta
         "monitoring_path_label": _monitoring_path_label(info),
         "last_county_update": _format_arcgis_date(catalog.get("acqdate")),
         "catalog_refresh_date": _format_arcgis_date(catalog.get("rundate")),
+        "county_metadata_publication_date": county_metadata_dates(catalog)["publication_date"] or "",
+        "county_metadata_content_date": county_metadata_dates(catalog)["content_date"] or "",
         "public_data_approved": str(catalog.get("gac_open_approval") or "").lower() == "true",
         "parcel_data_url": _safe_url(catalog.get("data_url")) or "",
         "parcel_viewer_url": _safe_url(catalog.get("viewer_url")) or "",

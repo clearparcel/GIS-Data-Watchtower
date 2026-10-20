@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 from clearparcel.datawatch.dashboard import build_static_site, serve
+from clearparcel.datawatch.dispatch_guard import DispatchRefused
 from clearparcel.datawatch.watch import _EXECUTION_PROFILES, _resolve_execution_profile, _safe_diagnostic, check_sources, load_config, load_history, load_state
 
 
@@ -47,6 +48,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--json", action="store_true")
     p.add_argument("--no-save", action="store_true")
     p.add_argument("--execution-profile", choices=["cloud","local","any"])
+    p.add_argument("--override-min-interval", metavar="REASON",
+                   help="Run despite the minimum provider-run spacing; the reason is recorded")
     p = sub.add_parser("status", help="Show the latest saved state")
     p.add_argument("--json", action="store_true")
     p = sub.add_parser("history", help="Show bounded check history")
@@ -70,6 +73,8 @@ def build_parser() -> argparse.ArgumentParser:
                    help="Required: confirms the owner approved sending a real test message")
     p = sub.add_parser("cloud-job", help="Run one check using configured cloud storage")
     p.add_argument("--json", action="store_true")
+    p.add_argument("--override-min-interval", metavar="REASON",
+                   help="Run despite the minimum provider-run spacing; the reason is recorded")
     p = sub.add_parser("dashboard-build", help="Build a sanitized static dashboard")
     p.add_argument("--output", type=Path, required=True); p.add_argument("--json", action="store_true")
     return parser
@@ -77,8 +82,16 @@ def build_parser() -> argparse.ArgumentParser:
 
 # Exit codes: 0 ok, 1 warnings, 2 a source (or the run's scope) reported an
 # error, 3 Watchtower itself failed (bad config, storage or an unexpected
-# exception). Warnings are an expected non-zero exit for scheduled runs.
-EXIT_OK, EXIT_WARN, EXIT_SOURCE_ERROR, EXIT_TOOL_FAILURE = 0, 1, 2, 3
+# exception), 4 the run was refused by the minimum provider-run spacing before
+# any provider request. Warnings are an expected non-zero exit for scheduled runs.
+EXIT_OK, EXIT_WARN, EXIT_SOURCE_ERROR, EXIT_TOOL_FAILURE, EXIT_DISPATCH_REFUSED = 0, 1, 2, 3, 4
+
+
+def _guard(config: dict, config_path, command: str, override) -> None:
+    """Claim the provider-run slot (raises DispatchRefused) when spacing is configured."""
+    from clearparcel.datawatch.cloud_job import job_storage
+    from clearparcel.datawatch.dispatch_guard import guard_dispatch
+    guard_dispatch(lambda: job_storage(config, config_path), command=command, override=override)
 
 
 def _exit_code(result: dict) -> int:
@@ -149,6 +162,7 @@ def main() -> int:
             if profile and not args.no_save:
                 from clearparcel.datawatch.cloud_job import require_publishable_profile
                 require_publishable_profile(config, profile)
+            _guard(config, args.config, "check", args.override_min_interval)
             result = check_sources(config, source_filter=args.source, save=not args.no_save, execution_profile=profile)
             if profile and not args.no_save:
                 from clearparcel.datawatch.cloud_job import publish_worker_result
@@ -176,6 +190,7 @@ def main() -> int:
             serve(config, host=args.host, port=args.port); return 0
         if args.command == "cloud-job":
             from clearparcel.datawatch.cloud_job import run_cloud_job
+            _guard(config, args.config, "cloud-job", args.override_min_interval)
             started_at = _utc_now()
             try:
                 result = run_cloud_job(args.config)
@@ -192,6 +207,10 @@ def main() -> int:
         return EXIT_TOOL_FAILURE
     except KeyboardInterrupt:
         return 130
+    except DispatchRefused as exc:
+        print(json.dumps({"severity": "WARNING", "message": "Watchtower provider run refused before any provider request",
+                          "watchtower_dispatch_refused": _safe_diagnostic(str(exc))}), file=sys.stderr)
+        return EXIT_DISPATCH_REFUSED
     except Exception as exc:
         print(f"ERROR: {_safe_diagnostic(type(exc).__name__ + ': ' + str(exc))}", file=sys.stderr); return EXIT_TOOL_FAILURE
 
