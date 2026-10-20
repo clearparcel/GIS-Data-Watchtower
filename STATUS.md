@@ -1,6 +1,6 @@
 # Project status
 
-## WT-01 county scan labels — local candidate, 2026-10-20
+## WT-01 county scan labels — PR candidate, 2026-10-20
 
 A read-only projection now combines county measurements with shared schema/scan
 metadata from the same saved observation. The county profile and MN GAC county
@@ -8,7 +8,7 @@ view agree on completed scans, including zero-populated fields; explicit false,
 unknown, and unavailable results remain distinct. JSON and Excel county detail
 use the same projection; stored observations and provider behavior are unchanged.
 
-This is an undeployed local candidate based on `e6106cd`, not a production
+This is an undeployed PR candidate based on `e6106cd`, not a production
 verification. See [the WT-01 handoff](docs/ai/handoffs/2026-10-20-wt01.md)
 for validation, review status, and release gates.
 
