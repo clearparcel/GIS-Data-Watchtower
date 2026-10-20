@@ -1,6 +1,6 @@
 # Project status
 
-## Isolated aggregate restore — local candidate, 2026-10-20
+## Isolated aggregate restore — PR candidate, 2026-10-20
 
 A synthetic rehearsal exercises exact aggregate restoration, corrupt-backup
 rejection, occupied/stale-write refusal and concurrent publisher conflict/retry

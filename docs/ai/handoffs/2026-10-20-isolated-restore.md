@@ -1,4 +1,4 @@
-# Isolated aggregate restore — local candidate
+# Isolated aggregate restore — PR candidate
 
 Implementer: Codex, October 20, 2026. Branch `codex/wt-isolated-restore`.
 Base: `6a2f791d3fc1a7172ff7eef39f1ace3cc5f7fafe`, the owner-approved PR #104
@@ -62,9 +62,12 @@ artifacts, IAM, process termination, network filesystems or live services.
 No providers were polled; no cloud storage, notification destinations,
 credentials, runtime scheduling or production configuration were changed.
 
-PR #104 post-merge CI passed at the exact base above. This new candidate remains
-local and unmerged; publication, merge and deployment outcomes must be recorded
-separately. Next operational work needs actual evidence and applicable explicit
+PR #104 post-merge CI passed at the exact base above. The owner authorized
+publication of this candidate and hosted CI on October 20. Publication preparation
+changes documentation only; the application remains at the tested/reviewed head
+above. The PR description and hosted checks record the exact published head and
+CI outcome. Merge and deployment require separate approval.
+Next operational work needs actual evidence and applicable explicit
 approval: complete-backup/GCS rehearsal, alert delivery, IAM and five ordinary
 daily cycles. WT-01 display deployment also remains open.
 
