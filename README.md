@@ -33,10 +33,11 @@ It monitors selected public ArcGIS, WMS/WFS, and other supported GIS services, r
 | **Data Sources** | Which public GIS sources are checked, and what were their latest recorded statuses and observation times? |
 | **Exports** | How can I reuse published summary evidence as JSON, CSV, or Excel without downloading private operational data or raw parcel-owner records? |
 
-**Three distinctions matter:**
+**Four distinctions matter:**
 
 - **Field population is not a compliance grade.** A blank Conditional, If Available, or Optional field can be valid. Mandatory-field and all-field statistics answer different questions.
 - **No data does not mean zero.** A county absent from a particular statewide open layer is not automatically missing data at the county level or failing a standard.
+- **County scan labels use the saved observation.** Shared source-schema metadata accompanies county-specific measurements; a measured zero remains scanned, while an unscanned or unavailable result is not assigned a population percentage. See [county field interpretation](docs/mngac-completeness.md#county-schema-and-scan-labels).
 - **Access, monitoring, and publication are different.** A county may publish data directly, appear in MnGeo's opt-in statewide compilation, be observed through either or both paths, or await access-policy clarification.
 
 See the [illustrated public user guide](docs/user-guide.md) for step-by-step instructions and examples.

@@ -1,6 +1,7 @@
 # Minnesota GAC parcel-field completeness
 
-Last reviewed: **2026-10-11**
+County display semantics updated: **2026-10-20**. Source descriptions below were
+last reviewed October 11; this update performs no provider checks.
 
 GIS Data Watchtower can measure how extensively fields from the **Minnesota Geospatial Advisory Council (GAC) Parcel Data Standard** are populated in a standardized statewide parcel layer.
 
@@ -31,6 +32,32 @@ That distinction matters:
 - only the standard's Mandatory category is expected without those qualifications.
 
 The dashboard therefore displays the standard inclusion category beside every field and presents Mandatory-field population separately.
+
+## County schema and scan labels
+
+The county profile, MN GAC county table, maps and applicable JSON/Excel exports
+use the same read-only projection of a saved observation. County field entries
+usually store population counts, while the parent observation stores shared
+source-schema and scan flags. The projection joins those flags without copying
+statewide population counts or percentages into a county.
+
+- An explicit county flag takes precedence, including `false` or unknown.
+- Shared schema presence describes the statewide layer, not a county-direct feed.
+- A shared scan flag needs a county measurement before it can establish a county
+  scan. Older snapshots without flags may establish a scan through a valid,
+  nonnegative integer county record count.
+- A scanned field with zero populated values remains **Scanned / 0.00%** when
+  the denominator is positive. A measured empty group stays scanned, with no
+  percentage because its denominator is zero.
+- Explicitly unscanned population is **Not scanned**; unavailable/unknown
+  population is **No data**. Neither receives a population percentage. Counties
+  absent from an observation remain absent.
+
+The projection does not rewrite saved observations, poll providers, change
+coverage, or change percentage denominators. Existing CSV layouts remain
+unchanged. JSON county fields gain nullable schema/scan flags; explicit
+unscanned/unknown fields do not expose contradictory population measurements.
+Consumers must distinguish `false` from `null`.
 
 ## Current statewide source
 

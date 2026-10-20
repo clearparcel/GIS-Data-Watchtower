@@ -29,6 +29,7 @@ from clearparcel.datawatch.county_profile_panel import render_county_profile_bod
 from clearparcel.datawatch.county_profile_exports import county_profiles_csv, parcel_sources_csv
 from clearparcel.datawatch.county_profiles import FreshnessPolicy, compose_county_profiles, county_profile_counts
 from clearparcel.datawatch.gac_standards import gac_defaults, load_gac_standard, normalize_standard_key, standard_keys
+from clearparcel.datawatch.gac_projection import project_gac
 
 COUNTIES_FILE = Path(__file__).with_name("minnesota_counties.json")
 COUNTY_CONTACTS_FILE = Path(__file__).with_name("minnesota_county_contacts.json")
@@ -187,11 +188,11 @@ def _gac_data(state: dict, standard_key: str = "parcel") -> dict | None:
     if isinstance(data, dict):
         key = str(data.get("standard_key") or (data.get("standard") or {}).get("key") or "").lower()
         if key == standard_key and data.get("fields"):
-            return data
+            return project_gac(data)
     if standard_key == "parcel":
         legacy = source.get("mngac_completeness")
         if isinstance(legacy, dict) and legacy.get("fields"):
-            return legacy
+            return project_gac(legacy)
     return None
 
 
@@ -269,14 +270,14 @@ def _mngac_field_rows(county_stats: dict) -> str:
         total = stats.get("record_count")
         pct = stats.get("percent")
         present = stats.get("present_in_source_schema")
-        scanned = stats.get("population_scanned") is True
+        scanned = stats.get("population_scanned")
         rows.append(
             f'<tr data-name="{_esc((str(spec.get("label") or "") + " " + field).lower())}" '
             f'data-inclusion="{_esc(spec.get("inclusion") or "")}">'
             f'<td><strong>{_esc(spec.get("label"))}</strong><br><code>{_esc(field)}</code></td>'
             f'<td>{_esc(spec.get("section_name"))}</td><td>{_esc(spec.get("inclusion"))}</td>'
             f'<td>{"Present" if present is True else "Missing" if present is False else "Unknown"}</td>'
-            f'<td>{"Scanned" if scanned else "Not scanned"}</td>'
+            f'<td>{"Scanned" if scanned is True else "Not scanned" if scanned is False else "No data"}</td>'
             f'<td>{_esc(f"{populated:,}" if isinstance(populated, int) else "—")}</td>'
             f'<td>{_esc(f"{total:,}" if isinstance(total, int) else "—")}</td>'
             f'<td><strong>{_esc(f"{pct:.2f}%" if isinstance(pct, (int,float)) else "—")}</strong></td></tr>'

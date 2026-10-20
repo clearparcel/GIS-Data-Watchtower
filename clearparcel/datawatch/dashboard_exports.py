@@ -8,6 +8,7 @@ import zipfile
 
 from clearparcel.datawatch.county_profile_exports import SUMMARY_FIELDS, county_profile_summary, county_profile_xlsx_sheets
 from clearparcel.datawatch.gac_standards import load_gac_standard, normalize_standard_key, standard_keys
+from clearparcel.datawatch.gac_projection import county_field
 from clearparcel.datawatch.public_values import spreadsheet_cell, spreadsheet_text
 
 
@@ -213,19 +214,6 @@ def _mngac_xlsx_sheets(snapshot: dict) -> list[tuple[str, list[list]]]:
     return sheets
 
 
-def _population_scanned(county_stats: dict, statewide_stats, present_for_county: bool) -> bool | None:
-    """Whether a field's population was scanned for a county row.
-
-    Per-county field entries exist only for scanned fields and normally carry
-    no flag of their own, so prefer an explicit flag, then the statewide
-    summary's flag, then presence of the county entry.
-    """
-    for candidate in (county_stats, statewide_stats):
-        if isinstance(candidate, dict) and isinstance(candidate.get("population_scanned"), bool):
-            return candidate["population_scanned"]
-    return present_for_county
-
-
 def _gac_xlsx_sheets(snapshot: dict) -> list[tuple[str, list[list]]]:
     gac = snapshot.get("gac")
     if not isinstance(gac, dict) or not gac:
@@ -305,12 +293,14 @@ def _gac_xlsx_sheets(snapshot: dict) -> list[tuple[str, list[list]]]:
             fields = county.get("fields") or {}
             for spec in schema.get("fields") or []:
                 field = str(spec.get("field") or "")
-                stats = fields.get(field) or {}
+                stats = county_field(
+                    fields.get(field), summaries.get(field),
+                    observed=bool(fields) or (type(county.get("record_count")) is int
+                                             and county["record_count"] >= 0),
+                )
                 detail_rows.append([
                     standard_key, county_name, field, spec.get("label"), spec.get("inclusion"),
-                    # A county with no data of its own has no scan result.
-                    (_population_scanned(stats, summaries.get(field), field in fields)
-                     if fields or county.get("record_count") is not None else None),
+                    stats.get("population_scanned"),
                     stats.get("populated"), stats.get("record_count"),
                     stats.get("percent"),
                 ])
