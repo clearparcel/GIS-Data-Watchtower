@@ -10,7 +10,7 @@ from urllib.parse import urlsplit
 
 from .parcel_access import INVENTORY_CATEGORIES
 from .direct_gac_schema import direct_schema_assessment
-from .public_values import (public_access_classification, safe_public_url, provider_edit_date,
+from .public_values import (public_access_classification, safe_public_url, provider_edit_date, county_metadata_dates,
                             sanitize_source_metadata, safe_geometry_type, safe_file_type)
 
 
@@ -87,6 +87,8 @@ def _source(item, observed, sid, state, now, policy, *, count=None, basis=None, 
         # Catalog acquisition/refresh values are calendar dates, not instants.
         'county_acquired_at': provider_edit_date(catalog.get('acqdate')),
         'catalog_refreshed_at': provider_edit_date(catalog.get('rundate')),
+        'county_metadata_published_at': county_metadata_dates(catalog)['publication_date'],
+        'county_metadata_content_at': county_metadata_dates(catalog)['content_date'],
         'checked_at': observed.get('checked_at') if _timestamp(observed.get('checked_at')) else None,
         'last_success_at': observed.get('last_success_at') if _timestamp(observed.get('last_success_at')) else None,
         'health': health, 'reporting': reporting, 'execution_profile': observed.get('worker'),

@@ -83,7 +83,7 @@ def _snapshot_csv(snapshot: dict) -> str:
                 "checked_at": source.get("checked_at"),
             }.items()})
         return out.getvalue()
-    fields = ["county","status","actively_monitored","monitoring_path","county_direct_access","statewide_open_access","county_direct_source_count","parcel_dataset_fee","fee_product","last_county_update","catalog_refresh_date","public_data_approved","parcel_data_url","parcel_viewer_url","worker_provenance","stale_source_count","contact_names","contact_source","contact_source_url","contact_verified","mngac_record_count","mngac_fields_with_values","mngac_field_count","mngac_field_population_percent","mngac_mandatory_population_percent",
+    fields = ["county","status","actively_monitored","monitoring_path","county_direct_access","statewide_open_access","county_direct_source_count","parcel_dataset_fee","fee_product","last_county_update","catalog_refresh_date","county_metadata_publication_date","county_metadata_content_date","public_data_approved","parcel_data_url","parcel_viewer_url","worker_provenance","stale_source_count","contact_names","contact_source","contact_source_url","contact_verified","mngac_record_count","mngac_fields_with_values","mngac_field_count","mngac_field_population_percent","mngac_mandatory_population_percent",
               "address_record_count","address_mandatory_population_percent","address_ng911_participant","address_gac_public_opt_in","address_submitted_at",
               "road_record_count","road_mandatory_population_percent","road_ng911_participant","road_gac_public_opt_in","road_submitted_at"]
     fields += ["profile_" + key for key in SUMMARY_FIELDS]
@@ -102,6 +102,8 @@ def _snapshot_csv(snapshot: dict) -> str:
             "fee_product": (row.get("parcel_access") or {}).get("fee_product"),
             "last_county_update": row.get("last_county_update"),
             "catalog_refresh_date": row.get("catalog_refresh_date"),
+            "county_metadata_publication_date": row.get("county_metadata_publication_date"),
+            "county_metadata_content_date": row.get("county_metadata_content_date"),
             "public_data_approved": row.get("public_data_approved"),
             "parcel_data_url": row.get("parcel_data_url"),
             "parcel_viewer_url": row.get("parcel_viewer_url"),
@@ -314,7 +316,7 @@ def _gac_xlsx_sheets(snapshot: dict) -> list[tuple[str, list[list]]]:
 
 
 def _snapshot_xlsx(snapshot: dict) -> bytes:
-    county_rows = [["County","Status","Actively monitored","Monitoring path","County-direct access","Statewide open access","County-direct source count","Parcel dataset fee","Fee product","Last county update","Catalog refresh date","Public data approved","Parcel data URL","Parcel viewer URL","Contact names","Contact source","Contact source URL","Contact verified"]]
+    county_rows = [["County","Status","Actively monitored","Monitoring path","County-direct access","Statewide open access","County-direct source count","Parcel dataset fee","Fee product","MnGeo acquisition date","Catalog refresh date","County metadata publication date","County metadata content date","Public data approved","Parcel data URL","Parcel viewer URL","Contact names","Contact source","Contact source URL","Contact verified"]]
     source_rows = [["County","Source","Status","Record count","Worker","Reporting","Stale source","Stale worker","Last successful check","Last checked"]]
     contact_rows = [["County","Name","Title","Department","Phone","Email","Contact source","Contact source URL","Verified"]]
     rows = snapshot.get("counties") if "counties" in snapshot else [snapshot]
@@ -325,7 +327,7 @@ def _snapshot_xlsx(snapshot: dict) -> bytes:
             county,row.get("status"),bool(row.get("actively_monitored")),row.get("monitoring_path_label"),
             parcel_access.get("county_direct_label"),parcel_access.get("statewide_open_label"),
             len(row.get("direct_sources") or []),parcel_access.get("parcel_dataset_fee"),parcel_access.get("fee_product"),
-            row.get("last_county_update"),row.get("catalog_refresh_date"),bool(row.get("public_data_approved")),
+            row.get("last_county_update"),row.get("catalog_refresh_date"),row.get("county_metadata_publication_date"),row.get("county_metadata_content_date"),bool(row.get("public_data_approved")),
             row.get("parcel_data_url"),row.get("parcel_viewer_url"),
             "; ".join(x.get("name","") for x in row.get("contacts",[]) if x.get("name")),
             row.get("contact_source"),row.get("contact_source_url"),row.get("contact_verified"),

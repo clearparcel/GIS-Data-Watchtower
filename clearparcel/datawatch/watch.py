@@ -3,6 +3,7 @@ from __future__ import annotations
 import contextvars
 import datetime as dt
 import email.utils
+import functools
 import hashlib
 import ipaddress
 import json
@@ -19,6 +20,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
+import xml.parsers.expat
 from pathlib import Path
 from clearparcel.datawatch.public_values import provider_edit_timestamp
 from clearparcel.datawatch.transport import RequestDeadline, PinnedURL, resolve_addresses, effective_proxy, guarded_opener
@@ -167,6 +169,17 @@ def _held_county_slugs() -> frozenset[str]:
     slug_by_name = {str(c.get("name")): str(c.get("slug")) for c in counties}
     return frozenset(slug_by_name[name] for name, record in load_parcel_access().items()
                      if (record.get("monitoring") or {}).get("decision") == "hold-for-terms" and name in slug_by_name)
+
+
+@functools.lru_cache(maxsize=1)
+def _county_slugs() -> dict:
+    counties = json.loads(Path(__file__).with_name("minnesota_counties.json").read_text(encoding="utf-8"))["counties"]
+    return {str(c.get("name")): str(c.get("slug")) for c in counties}
+
+
+def _county_slug(name: str) -> str | None:
+    """Canonical county slug for a Minnesota county name from the bundled county list."""
+    return _county_slugs().get(name)
 
 
 def _hold_skip_reason(source: dict, held_counties: frozenset[str]) -> str | None:
@@ -1794,7 +1807,7 @@ def _arcgis_county_catalog(source: dict, timeout: int) -> dict:
     if expected is not None and len(records) != int(expected):
         problems.append(f"expected {expected} county records, got {len(records)}")
     stable = {name: records[name] for name in sorted(records)}
-    return {
+    result = {
         "http_status": meta.get("status"),
         "transport": meta.get("transport"),
         "county_record_count": len(records),
@@ -1803,6 +1816,142 @@ def _arcgis_county_catalog(source: dict, timeout: int) -> dict:
         "catalog_hash": _hash_json(stable),
         "problems": problems,
     }
+    if source.get("item_metadata") is True:
+        # Hashes above cover only MnGeo's catalog fields; item metadata is display context.
+        signal = _attach_item_metadata(records, source, timeout)
+        if signal:
+            result["_auxiliary_rate_limit"] = signal
+    return result
+
+
+# A county's own ArcGIS item, as linked from MnGeo's catalog (hub, opendata or
+# arcgis.com dataset pages). Its metadata record carries the county's stated
+# publication/content dates, which differ from MnGeo's acquisition date.
+_CATALOG_URL = re.compile(r"https?://[^\s\"'<>]+", re.IGNORECASE)
+# Hub/opendata dataset pages name a layer item; generic ?id= item links may be web apps.
+_CATALOG_ITEM = re.compile(r"/datasets/([0-9a-f]{32})(?:_\d+)?(?:[/?&#]|$)", re.IGNORECASE)
+ITEM_METADATA_URL = "https://www.arcgis.com/sharing/rest/content/items/{}/info/metadata/metadata.xml"
+_ITEM_METADATA_TEXT = 80
+
+
+def catalog_item_id(value: object) -> str | None:
+    """The ArcGIS item id behind a catalog data_url, only for arcgis.com hosts."""
+    if not isinstance(value, str):
+        return None
+    for match in _CATALOG_URL.finditer(value):
+        url = match.group(0)
+        host = _hostname(url)
+        if not host or not (host == "arcgis.com" or host.endswith(".arcgis.com")):
+            continue
+        item = _CATALOG_ITEM.search(urllib.parse.urlsplit(url)._replace(fragment="").geturl())
+        if item:
+            return item.group(1).lower()
+    return None
+
+
+def _metadata_day(value: object) -> str | None:
+    """YYYY-MM-DD from FGDC (YYYYMMDD) or ISO/ArcGIS (YYYY-MM-DD[Thh:mm:ss]) dates."""
+    if not isinstance(value, str):
+        return None
+    text = value.strip()
+    match = re.fullmatch(r"(\d{4})(\d{2})(\d{2})", text) or re.fullmatch(r"(\d{4})-(\d{2})-(\d{2})(?:[T ][0-9:.]+(?:Z|[+-]\d{2}:?\d{2})?)?", text)
+    if not match:
+        return None
+    try:
+        return dt.date(int(match.group(1)), int(match.group(2)), int(match.group(3))).isoformat()
+    except ValueError:
+        return None
+
+
+def _refuse_dtd(*_args):
+    raise ValueError("metadata XML declares a DTD or entity")
+
+
+def item_metadata_dates(body: bytes) -> dict:
+    """Publication, content and metadata dates from an FGDC, ArcGIS or ISO metadata record."""
+    # Refuse any DTD or entity declaration at the parser level, whatever the
+    # encoding or position, before building a tree.
+    scan = xml.parsers.expat.ParserCreate()
+    scan.StartDoctypeDeclHandler = _refuse_dtd
+    scan.EntityDeclHandler = _refuse_dtd
+    scan.UnparsedEntityDeclHandler = _refuse_dtd
+    scan.Parse(body, True)
+    root = ET.fromstring(body)
+
+    def first(*paths):
+        for path in paths:
+            nodes = [root]
+            for name in path:
+                nodes = [child for node in nodes for child in node.iter() if _local_name(child.tag).lower() == name]
+                if not nodes:
+                    break
+            for node in nodes:
+                text = "".join(node.itertext()).strip()
+                if text:
+                    return text
+        return None
+
+    found = {
+        "publication_date": _metadata_day(first(("idinfo", "citation", "citeinfo", "pubdate"),
+                                                ("dataidinfo", "idcitation", "date", "pubdate"))),
+        "revision_date": _metadata_day(first(("dataidinfo", "idcitation", "date", "revisedate"))),
+        "content_date": _metadata_day(first(("idinfo", "timeperd", "timeinfo", "sngdate", "caldate"),
+                                            ("idinfo", "timeperd", "timeinfo", "rngdates", "enddate"))),
+        "metadata_date": _metadata_day(first(("metainfo", "metd"), ("mddatest",), ("esri", "moddate"),
+                                             ("datestamp",))),
+    }
+    current = first(("idinfo", "timeperd", "current"))
+    update = first(("idinfo", "status", "update"), ("resmaint", "maintfreq", "maintfreqcd"))
+    if current:
+        found["currentness_reference"] = " ".join(current.split())[:_ITEM_METADATA_TEXT]
+    if update:
+        found["update_frequency"] = " ".join(update.split())[:_ITEM_METADATA_TEXT]
+    return {key: value for key, value in found.items() if value}
+
+
+def _attach_item_metadata(records: dict, source: dict, timeout: int) -> dict | None:
+    """Bounded, read-only metadata reads for catalog counties hosted as ArcGIS items.
+
+    Returns a rate-limit signal when the metadata host answered HTTP 429; the
+    caller persists that host's backoff while keeping the catalog observation.
+    """
+    limit = max(0, min(int(source.get("item_metadata_max_items", 100)), 200))
+    budget = max(1.0, min(float(source.get("item_metadata_budget_seconds", 90)), 300.0))
+    per_request = max(1, min(int(source.get("item_metadata_timeout_seconds", 10)), int(timeout)))
+    metadata_host = _hostname(ITEM_METADATA_URL)
+    started = time.monotonic()
+    fetched: dict[str, dict] = {}
+    signal = None
+    held = _held_county_slugs()
+    for county in sorted(records):
+        record = records[county]
+        item = catalog_item_id(record.get("data_url"))
+        if not item:
+            continue
+        canonical = canonical_minnesota_county(county) or county
+        if _county_slug(canonical) in held:
+            # Hold-for-terms counties get no unattended county-direct reads (AGENTS.md).
+            record["item_metadata"] = {"item_id": item, "status": "held"}
+            continue
+        if item not in fetched:
+            if signal or metadata_host in _RUN_BLOCKED_HOSTS.get(()):
+                entry = {"status": "deferred"}  # The metadata host asked us to back off.
+            elif len(fetched) >= limit or time.monotonic() - started > budget:
+                entry = {"status": "skipped"}
+            else:
+                try:
+                    body, _ = _request(ITEM_METADATA_URL.format(item), per_request)
+                    entry = {"status": "ok", **item_metadata_dates(body)}
+                except ProviderRateLimitError as exc:
+                    # Stop contacting the host; the caller persists its backoff.
+                    signal = {"host": exc.host or metadata_host, "retry_after": exc.retry_after}
+                    _block_hosts({signal["host"]})
+                    entry = {"status": "deferred"}
+                except Exception:  # noqa: BLE001 - optional display context, never a source failure
+                    entry = {"status": "unavailable"}
+            fetched[item] = {"item_id": item, "observed_at": dt.datetime.now(dt.timezone.utc).isoformat(), **entry}
+        record["item_metadata"] = dict(fetched[item])
+    return signal
 
 
 def _adapter_name(source: dict) -> str:
@@ -1831,12 +1980,60 @@ def _observation_fingerprint(details: dict) -> str:
         "null_geometry_check_error", "parcel_id_null_check_error",
     }
     stable = {k: v for k, v in details.items() if k not in volatile}
+    # County item metadata is display context read separately from MnGeo's
+    # catalog; a transient metadata read must not register as a catalog change.
+    if isinstance(stable.get("county_records"), dict):
+        stable["county_records"] = {
+            county: ({k: v for k, v in row.items() if k != "item_metadata"} if isinstance(row, dict) else row)
+            for county, row in stable["county_records"].items()}
     # Nested metric blocks (e.g. gac_completeness) carry their own observation
     # time; it changes every run and must not register as a dataset change.
     for key, value in list(stable.items()):
         if isinstance(value, dict) and "observed_at" in value:
             stable[key] = {k: v for k, v in value.items() if k != "observed_at"}
     return _hash_json(stable)
+
+
+def _record_rate_limit(rate_limits: dict, host, retry_after, source_id, default_backoff: int) -> None:
+    """Persist a per-host HTTP 429 backoff and block the host for the rest of the run."""
+    if host:
+        observed = dt.datetime.now(dt.timezone.utc)
+        wait = _retry_after_seconds(retry_after, observed, default_backoff)
+        rate_limits[host] = {"not_before": (observed + dt.timedelta(seconds=wait)).isoformat(),
+                             "recorded_at": observed.isoformat(), "source_id": source_id}
+        if wait > _RATE_LIMIT_REVIEW_SECONDS:
+            rate_limits[host]["operator_review"] = True
+        if wait >= _RATE_LIMIT_MAX_SECONDS:
+            rate_limits[host]["hold_until_cleared"] = True
+    _block_hosts(rate_limits)
+
+
+_RETAINABLE = frozenset({"unavailable", "deferred", "skipped"})  # never "held"
+_RETAIN_FOR = dt.timedelta(days=30)
+
+
+def _recent(value) -> bool:
+    try:
+        moment = dt.datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except ValueError:
+        return False
+    return moment.tzinfo is not None and dt.datetime.now(dt.timezone.utc) - moment <= _RETAIN_FOR
+
+
+def _retain_item_metadata(details: dict, previous: dict | None) -> None:
+    """Keep the last good county metadata dates when this run's read did not succeed."""
+    old = (previous or {}).get("county_records") if isinstance(previous, dict) else None
+    new = details.get("county_records")
+    if not isinstance(old, dict) or not isinstance(new, dict):
+        return
+    for county, record in new.items():
+        current = record.get("item_metadata") if isinstance(record, dict) else None
+        prior = (old.get(county) or {}).get("item_metadata") if isinstance(old.get(county), dict) else None
+        if (isinstance(current, dict) and current.get("status") in _RETAINABLE and isinstance(prior, dict)
+                and prior.get("status") == "ok" and prior.get("item_id") == current.get("item_id")
+                and _recent(prior.get("observed_at"))):
+            record["item_metadata"] = {**{k: v for k, v in prior.items() if k != "latest_attempt"},
+                                       "retained": True, "latest_attempt": current.get("status")}
 
 
 def _source_check(source: dict, timeout: int) -> dict:
@@ -2140,18 +2337,8 @@ def _check_sources_unlocked(
                 if isinstance(exc, ProviderRateLimitError):
                     # Treat 429 as a stop signal for the whole host, for this
                     # run and (persisted) for later runs until Retry-After.
-                    observed = dt.datetime.now(dt.timezone.utc)
-                    wait = _retry_after_seconds(exc.retry_after, observed, default_backoff)
-                    limited_host = exc.host or (hosts[0] if hosts else None)
-                    if limited_host:
-                        rate_limits[limited_host] = {
-                            "not_before": (observed + dt.timedelta(seconds=wait)).isoformat(),
-                            "recorded_at": observed.isoformat(), "source_id": source["id"]}
-                        if wait > _RATE_LIMIT_REVIEW_SECONDS:
-                            rate_limits[limited_host]["operator_review"] = True
-                        if wait >= _RATE_LIMIT_MAX_SECONDS:
-                            rate_limits[limited_host]["hold_until_cleared"] = True
-                    _block_hosts(rate_limits)
+                    _record_rate_limit(rate_limits, exc.host or (hosts[0] if hosts else None),
+                                       exc.retry_after, source["id"], default_backoff)
                     rate_limited = True
                     break
                 if isinstance(exc, PermanentProviderError):
@@ -2160,6 +2347,16 @@ def _check_sources_unlocked(
                     time.sleep(float(config.get("retry_delay_seconds", 1)))
 
         elapsed_ms = int((dt.datetime.now(dt.timezone.utc) - started).total_seconds() * 1000)
+        if details is not None and isinstance(details.get("_auxiliary_rate_limit"), dict):
+            # An optional auxiliary host (e.g. item metadata) asked us to stop; the
+            # source's own observation stands and that host's backoff is persisted.
+            signal = details.pop("_auxiliary_rate_limit")
+            _record_rate_limit(rate_limits, signal.get("host"), signal.get("retry_after"), source["id"], default_backoff)
+        if details is not None and source["id"] == "mn-parcel-county-catalog":
+            try:
+                _retain_item_metadata(details, previous_sources.get(source["id"]))
+            except Exception:  # noqa: BLE001 - display-only carry-forward never fails a source
+                pass
         if details is not None:
             try:
                 if details.get("gac_check_status"):

@@ -4,6 +4,7 @@ from clearparcel.datawatch.csp import SCRIPT_TAG
 from clearparcel.datawatch import dashboard as _dashboard
 from clearparcel.datawatch.dashboard_summary import catalog_summary
 from clearparcel.datawatch.county_profile_panel import profile_time
+from clearparcel.datawatch.public_values import county_metadata_dates
 
 
 def render_counties(config: dict) -> str:
@@ -133,10 +134,15 @@ def render_county(config: dict, slug: str) -> str:
         approval = str(catalog.get("gac_open_approval") or "—")
         data_url = _dashboard._safe_url(catalog.get("data_url"))
         viewer_url = _dashboard._safe_url(catalog.get("viewer_url"))
+        county_dates = county_metadata_dates(catalog)
+        metadata_lines = "".join(
+            f'<br><strong>{label}:</strong> {_dashboard._esc(value)}'
+            for label, value in (("County metadata publication date", county_dates["publication_date"]),
+                                 ("County metadata content date", county_dates["content_date"])) if value)
         source_links = (f'<a href="{_dashboard._esc(data_url)}" target="_blank" rel="noopener">Open parcel data</a>' if data_url else "No open data URL supplied")
         if viewer_url:
             source_links += f' · <a href="{_dashboard._esc(viewer_url)}" target="_blank" rel="noopener">Viewer</a>'
-        source_cards = f'<div class="card"><h3>County parcel update information</h3><p><strong>MnGeo public-data approval:</strong> {_dashboard._esc(approval)}<br><strong>Last county update:</strong> {_dashboard._esc(_dashboard._format_arcgis_date(catalog.get("acqdate")))}<br><strong>MnGeo listing refreshed:</strong> {_dashboard._esc(_dashboard._format_arcgis_date(catalog.get("rundate")))}<br><strong>Parcel links:</strong> {source_links}</p></div>'
+        source_cards = f'<div class="card"><h3>County parcel update information</h3><p><strong>MnGeo public-data approval:</strong> {_dashboard._esc(approval)}<br><strong>MnGeo acquired county data:</strong> {_dashboard._esc(_dashboard._format_arcgis_date(catalog.get("acqdate")))}{metadata_lines}<br><strong>MnGeo listing refreshed:</strong> {_dashboard._esc(_dashboard._format_arcgis_date(catalog.get("rundate")))}<br><strong>Parcel links:</strong> {source_links}</p></div>'
     elif not source_cards:
         source_cards = '<div class="card"><h3>No direct county parcel source currently monitored</h3><p>Monitoring coverage is separate from the parcel-data access research shown below.</p></div>'
     contact_record = _dashboard._load_county_contact_records().get(county["name"], {})

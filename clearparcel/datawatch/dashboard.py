@@ -7,6 +7,7 @@ import ipaddress
 import json
 import os
 import secrets
+import sys
 import threading
 import urllib.parse
 from zoneinfo import ZoneInfo
@@ -19,7 +20,7 @@ from clearparcel.datawatch.dashboard_templates import (
     _public_layout_v2,
 )
 
-from clearparcel.datawatch.watch import check_sources, load_history, load_state
+from clearparcel.datawatch.watch import _safe_diagnostic, check_sources, load_history, load_state
 from clearparcel.datawatch.transport import RequestDeadline
 from clearparcel.datawatch.aggregate import with_freshness
 from clearparcel.datawatch.parcel_access import access_label, load_parcel_access, statewide_access_label
@@ -30,6 +31,7 @@ from clearparcel.datawatch.county_profile_exports import county_profiles_csv, pa
 from clearparcel.datawatch.county_profiles import FreshnessPolicy, compose_county_profiles, county_profile_counts
 from clearparcel.datawatch.gac_standards import gac_defaults, load_gac_standard, normalize_standard_key, standard_keys
 from clearparcel.datawatch.gac_projection import project_gac
+from clearparcel.datawatch.public_values import county_metadata_dates
 
 COUNTIES_FILE = Path(__file__).with_name("minnesota_counties.json")
 COUNTY_CONTACTS_FILE = Path(__file__).with_name("minnesota_county_contacts.json")
@@ -563,6 +565,8 @@ def _county_snapshot(config: dict, slug: str, *, include_mngac: bool = True, sta
         "monitoring_path_label": _monitoring_path_label(info),
         "last_county_update": _format_arcgis_date(catalog.get("acqdate")),
         "catalog_refresh_date": _format_arcgis_date(catalog.get("rundate")),
+        "county_metadata_publication_date": county_metadata_dates(catalog)["publication_date"] or "",
+        "county_metadata_content_date": county_metadata_dates(catalog)["content_date"] or "",
         "public_data_approved": str(catalog.get("gac_open_approval") or "").lower() == "true",
         "parcel_data_url": _safe_url(catalog.get("data_url")) or "",
         "parcel_viewer_url": _safe_url(catalog.get("viewer_url")) or "",
@@ -861,6 +865,21 @@ def _dashboard_execution_profile(config: dict) -> str | None:
     return None
 
 
+def refresh_providers(config: dict, execution_profile) -> dict | None:
+    """A dashboard refresh polls providers, so it claims the same provider-run spacing slot first."""
+    from clearparcel.datawatch.dispatch_guard import DispatchGuardError, DispatchRefused, guard_dispatch
+    from clearparcel.datawatch.storage import backend_from_env
+    root = config.get("_root_dir") or Path(config.get("state_file", ".")).parent
+    try:
+        guard_dispatch(lambda: backend_from_env(root), command="dashboard-refresh", override=None,
+                       profile=execution_profile)
+    except (DispatchRefused, DispatchGuardError) as exc:
+        print(json.dumps({"severity": "WARNING", "message": "Dashboard refresh refused before any provider request",
+                          "watchtower_dispatch_refused": _safe_diagnostic(str(exc))}), file=sys.stderr)
+        return None
+    return check_sources(config, save=True, execution_profile=execution_profile)
+
+
 def serve(config: dict, host: str = "127.0.0.1", port: int = 8765) -> None:
     auth_password, auth_username = _dashboard_auth(config, host)
     execution_profile = _dashboard_execution_profile(config)
@@ -880,7 +899,7 @@ def serve(config: dict, host: str = "127.0.0.1", port: int = 8765) -> None:
             return
         try:
             refresh_state["last_started"] = now
-            check_sources(config, save=True, execution_profile=execution_profile)
+            refresh_providers(config, execution_profile)
         finally:
             refresh_lock.release()
 

@@ -87,7 +87,7 @@ const flush=()=>new Promise(resolve=>setImmediate(resolve));
         source={'name':'Two products', 'feature_count':0, 'provider_updated_at':'2026-01-02', 'county_acquired_at':'2026-02-03', 'catalog_refreshed_at':'2026-03-04', 'checked_at':'2026-04-05', 'last_success_at':'2026-05-06', 'approved_public_links':[{'href':'https://example.com/product','label':'Product'}, {'href':'javascript:alert(1)','label':'Unsafe'}]}
         profile={'county':{'name':'Test','slug':'test'}, 'county_download':{'sources':[source]}, 'research':{'review_date':'2026-06-07'}, 'comments':['A supported comment']}
         body=render_county_profile_body(profile)
-        for label in ('Provider update', 'County acquisition','Catalog refresh','Watchtower check','Successful observation','Research review','Feature count','Research notes'):
+        for label in ('Provider update', 'MnGeo acquisition','County metadata publication','Catalog refresh','Watchtower check','Successful observation','Research review','Feature count','Research notes'):
             self.assertIn(label, body)
         self.assertIn('<dd>0</dd>',body)
         self.assertIn('target="_blank" rel="noopener"',body)

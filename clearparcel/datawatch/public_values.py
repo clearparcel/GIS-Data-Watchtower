@@ -28,6 +28,40 @@ def provider_edit_date(value: object) -> str | None:
     return stamp[:10] if stamp else None
 
 
+_ITEM_METADATA_STATUSES = frozenset({"ok", "unavailable", "deferred", "skipped", "held"})
+_ISO_DAY = re.compile(r"\d{4}-\d{2}-\d{2}")
+
+
+def sanitize_item_metadata(value: object) -> dict | None:
+    """Typed public projection of a catalog county's ArcGIS item metadata dates."""
+    if not isinstance(value, dict) or value.get("status") not in _ITEM_METADATA_STATUSES:
+        return None
+    out = {"status": value["status"]}
+    item = value.get("item_id")
+    if isinstance(item, str) and re.fullmatch(r"[0-9a-f]{32}", item):
+        out["item_id"] = item
+    for key in ("publication_date", "revision_date", "content_date", "metadata_date"):
+        day = value.get(key)
+        if isinstance(day, str) and _ISO_DAY.fullmatch(day):
+            try:
+                dt.date.fromisoformat(day)
+            except ValueError:
+                continue
+            out[key] = day
+    if value.get("retained") is True:
+        out["retained"] = True
+    # Free text from county metadata and per-run read times stay private.
+    return out
+
+
+def county_metadata_dates(catalog: object) -> dict:
+    """The county's own metadata publication and content dates, when read successfully."""
+    meta = sanitize_item_metadata((catalog or {}).get("item_metadata") if isinstance(catalog, dict) else None)
+    if not meta or meta["status"] != "ok":
+        return {"publication_date": None, "content_date": None}
+    return {"publication_date": meta.get("publication_date"), "content_date": meta.get("content_date")}
+
+
 def spreadsheet_text(value: object) -> str:
     """Text for an XLSX inline-string cell.
 
