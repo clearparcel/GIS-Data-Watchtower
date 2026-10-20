@@ -43,9 +43,19 @@ evidence returned exit 1, `missing_approval`, incomplete reconciliation and
 `activation_authorized: false`. Raw receipts/logs remain private.
 
 The accepted PR #103 merge and post-merge CI succeeded at the exact base above.
-This new candidate has not been published, hosted-tested or independently
-model-reviewed. A bounded CCE review is recommended for evidence matching,
-hold precedence and cadence scope.
+This new candidate has not been published or hosted-tested.
+
+## Accepted independent review
+
+The owner accepted a bounded CCE review of the application/script/tests/runbook
+diff from base `464a767a303d45e5109820b92860dad5278dd17b` to tested application
+head `118de5b4c21e21a7c8862a27d8d0f42d11ad5b0f`. One `gpt-6-luna`
+medium worker returned no actionable findings in approval matching, hold
+precedence, cadence scope or receipt preservation. No lead, specialist or Astra
+review ran. The reviewer used supplied context only; it did not run tests,
+inspect production or review ancillary status/index/handoff changes.
+The following review-record commit changes documentation only.
+This review does not grant publication, merge, deployment or runtime authority.
 
 ## Evidence and limitations
 
@@ -69,8 +79,8 @@ Published CCE context `gis-data-watchtower`, revision
 updated October 13/review due October 14, remains historical `needs-review`
 context. Current source and owner decisions take precedence.
 
-Next: independently review this candidate if accepted, then supply and review
-the actual private authority/cadence evidence, prioritizing Aitkin/Morrison.
+Next: publish this candidate and run hosted CI when requested, then supply and
+review actual private authority/cadence evidence, prioritizing Aitkin/Morrison.
 Historical log diagnosis requires restored operator cloud authentication.
 Notification delivery, isolated restore/CAS proof, IAM assessment and five
 ordinary cycles remain open. No merge authority for this candidate, deployment,
