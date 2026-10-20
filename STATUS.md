@@ -1,5 +1,12 @@
 # Project status
 
+## v0.3.6 coordinated release — prepared, deployment pending, 2026-10-20
+
+Owner-approved release of the provider-run spacing guard (23-hour minimum)
+and county metadata dates (#125) to all four surfaces before the first
+observed daily run on October 21. See
+[the release record](docs/release-v0.3.6.md).
+
 ## Provider-run spacing guard and county metadata dates — candidate, disabled by default, 2026-10-20
 
 Two owner-requested changes, not deployed. `WATCHTOWER_MIN_DISPATCH_HOURS`
