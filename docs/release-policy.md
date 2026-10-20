@@ -1,17 +1,14 @@
 # Versioning and release policy
 
-The current recorded production dashboard release is **v0.3.2**, deployed
-October 20 (see the [current release and rollback record](release-v0.3.2.md)).
-Public and authenticated private GAC acceptance passed within the recorded
-scope. The provider job runs v0.3.4 ([release record](release-v0.3.4.md));
-the publisher job remains on v0.3.0; dashboard rollback targets are v0.3.1.
-The v0.3.0 record retains earlier service/job rollback references;
-older release records are in the [archive](README.md#historical-engineering-and-release-records).
-Daily cloud provider polling was
-separately approved and activated on October 10; application publication does
-not reschedule it. The multi-day observation study remains incomplete. Future
-runtime changes require CI and applicable staging validation, or a separately
-documented owner-authorized exception, followed by merge and deployment.
+The current recorded production release is **v0.3.5**, deployed October 20
+to both dashboards and both jobs (see the [release record](release-v0.3.5.md)).
+Dashboard rollback targets are the v0.3.2 revisions; job rollback targets are
+listed in the same record. Older release records are in the
+[archive](README.md#historical-engineering-and-release-records). Daily cloud
+provider polling was separately approved and activated on October 10;
+application publication does not reschedule it. Future runtime changes
+require CI and applicable staging validation, or a separately documented
+owner-authorized exception, followed by merge and deployment.
 
 ## Versioning
 
@@ -53,9 +50,9 @@ Public page footers display **only the semantic application version** (for examp
 
 The source commit and build environment **remain inside immutable `build_info.json` and release/provenance records**, and may continue to inform optional analytics. They are intentionally not shown in the public footer. Container builds still require `WATCHTOWER_BUILD_REVISION` (full commit SHA) and `WATCHTOWER_BUILD_ENVIRONMENT` (`preview` or `production`). The production source package and visible version must agree. Build only from a clean, committed checkout; do not infer revision identity from the runtime Git state.
 
-**The public site reports v0.3.2 as of October 20, 2026.** The next coordinated
+**The public site reports v0.3.5 as of October 20, 2026.** The next coordinated
 application-code release must be strictly newer. The
-[release record](release-v0.3.2.md) identifies the deployed artifact and
+[release record](release-v0.3.5.md) identifies the deployed artifact and
 verification limits. Always recheck live identity before promotion.
 
 ## Security fixes
