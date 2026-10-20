@@ -1,9 +1,9 @@
 # GIS Data Watchtower v0.3.1
 
-**Deployed October 20, 2026.** Both dashboard services receive 100% traffic
+**Historical release, deployed October 20, 2026; superseded by [v0.3.2](release-v0.3.2.md).** Both dashboard services received 100% traffic
 on verified v0.3.1 images. Public routes and authenticated private county
 flows passed bounded acceptance. The separate private GAC county selector
-remains an acceptance gap, described below.
+was an acceptance gap at this release, corrected and verified in v0.3.2.
 
 ## Changes and authority
 
@@ -91,8 +91,8 @@ Authenticated private acceptance used the existing operator login:
   unselected county input without detail. The initial accessibility inspection
   did not establish the datalist contents. Subsequent investigation found all
   87 suggestions present and reproduced the selection loss: the retained
-  wrapper discards query parameters. The [local fix](ai/handoffs/2026-10-20-private-gac-selector.md)
-  is not deployed. Full private GAC navigation remains **unverified** in production.
+  wrapper discards query parameters. The subsequent [fix](ai/handoffs/2026-10-20-private-gac-selector.md)
+  was deployed and verified within the [v0.3.2 acceptance scope](release-v0.3.2.md).
 
 A bounded query for ERROR-level logs from the two new revisions returned
 zero entries. This is not proof of every route or future request. The private

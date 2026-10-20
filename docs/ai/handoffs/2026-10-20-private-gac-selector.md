@@ -1,4 +1,9 @@
-# Private GAC county selection — local candidate
+# Private GAC county selection — implementation and review history
+
+**Deployment update:** The owner subsequently authorized deployment. PR #108
+merged and v0.3.2 passed bounded production acceptance; see the
+[release receipt](../../release-v0.3.2.md). The original candidate scope, checks
+and release gates below are retained as historical implementation evidence.
 
 Date: October 20, 2026. Implementer: Codex.
 Base: `ad1b7a2c698d420dac49e5f18cd67a830e38a0fc`.

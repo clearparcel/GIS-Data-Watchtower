@@ -8,15 +8,11 @@
 
 **[Explore the live public dashboard](https://gis-watchtower.clear-parcel.com/)** · **[User guide](docs/user-guide.md)** · **[Documentation index](docs/README.md)**
 
-The current production dashboard release is **v0.3.1**, deployed October 20, 2026. See
-[STATUS.md](STATUS.md) for what is deployed and what is in review, and the
-[v0.3.1 release record](docs/release-v0.3.1.md) for bounded verification,
-remaining acceptance gaps and rollback evidence. The dashboard rollback baseline
-is v0.3.0; provider and publisher jobs remain on v0.3.0.
-
-The private GAC selection fix is being prepared for the authorized
-[v0.3.2 release](docs/release-v0.3.2.md), including the migrated hosted wrapper;
-see the [implementation handoff](docs/ai/handoffs/2026-10-20-private-gac-selector.md).
+The current production dashboard release is **v0.3.2**, deployed October 20, 2026. See
+[STATUS.md](STATUS.md) and the [release record](docs/release-v0.3.2.md) for exact
+artifacts and bounded verification. Private GAC county selection, standard/scope
+navigation and standard-specific exports are corrected and verified. The dashboard
+rollback baseline is v0.3.1; provider and publisher jobs remain on v0.3.0.
 
 Operators can use the [offline triage runbook](docs/operations-triage.md) to
 review saved provider-run evidence without triggering new checks or notifications.
