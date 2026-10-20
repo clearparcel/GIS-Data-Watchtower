@@ -653,7 +653,7 @@ from clearparcel.datawatch.dashboard_exports import (
     _snapshot_csv,
     _snapshot_xlsx,
 )
-from clearparcel.datawatch.dashboard_routes import dispatch_snapshot_exports
+from clearparcel.datawatch.dashboard_routes import dispatch_gac_routes, dispatch_snapshot_exports
 
 def _coverage_status(value: str) -> str:
     return {

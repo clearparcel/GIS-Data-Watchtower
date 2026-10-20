@@ -16,6 +16,12 @@ See the [v0.3.1 release record](release-v0.3.1.md) for evidence, acceptance
 gaps and retained v0.3.0 rollback targets: public `00031-ciw`, private `00033-qor`.
 The records below describe historical deployments, not current traffic.
 
+The private GAC selection correction requires both the package dispatcher and
+a migrated hosted wrapper; copying the unchanged predecessor wrapper preserves
+the bug. Use the guarded migration and artifact acceptance steps in the
+[selector handoff](ai/handoffs/2026-10-20-private-gac-selector.md) for the next
+authorized release. This local candidate does not change current production.
+
 ## Earlier deployment history
 
 The previous production dashboard application was **v0.2.3**, deployed

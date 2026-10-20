@@ -1,5 +1,18 @@
 # Project status
 
+## Private GAC selection — local candidate, 2026-10-20
+
+Investigation reproduced the private selection failure and found all 87 county
+suggestions present. The retained hosted wrapper discards the county, standard
+and view query parameters, returning the default parcel landing page.
+A shared GAC dispatcher and hash-checked wrapper migration now preserve those
+parameters and the selected standard in JSON/CSV exports. The original and
+migrated wrapper handlers were exercised with synthetic state; browser form,
+standard-switch and statewide navigation passed on loopback.
+This candidate is not deployed. Updating package code alone is insufficient:
+the next private image must include the migrated wrapper.
+See [the fix and release handoff](docs/ai/handoffs/2026-10-20-private-gac-selector.md).
+
 ## v0.3.1 dashboard release — deployed, 2026-10-20
 
 Both dashboards receive 100% traffic from source `9ee6c5a`, following the
@@ -7,8 +20,8 @@ authorized merges of PR #105 and release preparation #106. All hosted checks
 and the immutable image build passed; local validation ran 575 tests with
 3 platform skips. Public routes/exports and signed-in private county pages,
 filters, JSON and the identical candidate workbook passed bounded acceptance.
-The separate private GAC county selector showed no options and remains an
-acceptance gap; its cause and pre-release behavior are unestablished.
+The separate private GAC county selector failed to retain selection and remains
+a production acceptance gap; the subsequent diagnosis is recorded above.
 An existing Todd source error remains. Provider/publisher jobs and schedules
 are unchanged at v0.3.0; no provider polling was triggered.
 See [the release receipt](docs/release-v0.3.1.md) for exact images, traffic,

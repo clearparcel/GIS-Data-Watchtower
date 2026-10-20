@@ -1,4 +1,4 @@
-"""Shared read-only snapshot export route dispatch for dashboard servers."""
+"""Read-only GAC and snapshot route dispatch for dashboard servers/adapters."""
 
 from __future__ import annotations
 
@@ -17,6 +17,57 @@ _SNAPSHOT_EXPORTS = {
     "/county-snapshot.xlsx",
 }
 _XLSX_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+
+def dispatch_gac_routes(
+    path: str,
+    query: str,
+    *,
+    config: dict,
+    send: Callable[[int, str, str], object],
+    render_html: Callable[[str], str] = lambda page: page,
+) -> bool:
+    """Route saved GAC results for hosted adapters without losing selection.
+
+    Authentication and response security remain the caller's responsibility.
+    No provider requests, state writes or operational refreshes occur here.
+    """
+    if path not in {"/mngac", "/mngac.json", "/mngac.csv"}:
+        return False
+    # Lazy import preserves dashboard's compatibility exports without a cycle.
+    from clearparcel.datawatch import dashboard
+    from clearparcel.datawatch.gac_standards import normalize_standard_key
+
+    selection = urllib.parse.parse_qs(query)
+    try:
+        standard = normalize_standard_key(selection.get("standard", ["parcel"])[0])
+    except ValueError:
+        send(400, "Unsupported GAC standard", "text/plain; charset=utf-8")
+        return True
+    if path == "/mngac":
+        try:
+            page = dashboard.render_mngac(
+                config, standard,
+                county=selection.get("county", [""])[0],
+                view=selection.get("view", ["county"])[0],
+            )
+        except ValueError:
+            send(400, "Invalid MN GAC county or view. Choose a Minnesota county and "
+                 "County results or Statewide overview.", "text/plain; charset=utf-8")
+        else:
+            send(200, render_html(page), "text/html; charset=utf-8")
+        return True
+
+    data = dashboard._gac_data(dashboard._dashboard_state(config), standard)
+    if path == "/mngac.json":
+        send(200 if data else 404,
+             json.dumps(data or {"error": "GAC completeness data unavailable"}, indent=2),
+             "application/json; charset=utf-8")
+    else:
+        send(200 if data else 404,
+             dashboard._mngac_csv(data) if data else "GAC completeness data unavailable",
+             "text/csv; charset=utf-8")
+    return True
 
 
 def dispatch_snapshot_exports(
