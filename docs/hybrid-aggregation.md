@@ -27,6 +27,11 @@ Set `WATCHTOWER_AGGREGATE_OBJECT` (or deployment-specific `aggregate_object`) to
 
 A normal profiled check can publish directly. For example, a deployment configured with shared aggregate storage can run the local execution profile through the standard `check` command; no copy/merge/upload wrapper is required. Provider-specific source assignment remains private deployment configuration.
 
+For a bounded local recovery check, run the
+[isolated aggregate restore rehearsal](isolated-restore-rehearsal.md).
+It exercises the existing conditional writes and publisher retry with synthetic
+data. It does not establish GCS or production recovery acceptance.
+
 ## Freshness
 
 Freshness is deliberately separate from source health. Source freshness follows the provider-check time, `checked_at`; `last_report_at` (then `last_success_at`) is only a fallback for legacy records without a check time, and never for deferred (rate-limit) records, whose report time advances without any request. A recent failed check remains current while its health is unhealthy and its historical source success timestamp remains unchanged. Worker freshness still follows the worker's last report. The worker `last_success_at` is a successful report-publication heartbeat, including reports of source failures; it is not evidence that all providers succeeded. A source can be healthy but stale because it has not been checked recently; a source can also be freshly checked and unhealthy. Deployments may set `worker_stale_minutes` and `source_stale_minutes` in configuration. The dashboard uses 1560 minutes (26 hours) for either threshold when no override is supplied, which allows for the project's documented daily check cadence plus a margin before flagging a source or worker as overdue. Deployments that check more frequently (for example, a tighter hybrid schedule) should set lower thresholds to get an earlier staleness signal.

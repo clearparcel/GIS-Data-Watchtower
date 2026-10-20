@@ -109,7 +109,8 @@ permission; missing approval is not proof of unlawful operation. Prepare holds
 for approval rather than editing the registry. Existing data-driven
 `hold-for-terms` exclusions remain authoritative.
 
-Isolated restore/CAS rehearsal, effective IAM assessment and any obsolete-binding
-removal are subsequent operations tasks. Restoration and notification delivery
-are not established by a triage receipt. Production changes need their own
-reviewable change and approval.
+The [isolated restore/CAS rehearsal](isolated-restore-rehearsal.md) covers the
+synthetic local aggregate only. Actual backup/GCS restoration, effective IAM
+assessment and any obsolete-binding removal remain operations tasks.
+Restoration and notification delivery are not established by a triage receipt.
+Production changes need their own reviewable change and approval.

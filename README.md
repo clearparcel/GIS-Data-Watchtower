@@ -17,6 +17,8 @@ Operators can use the [offline triage runbook](docs/operations-triage.md) to
 review saved provider-run evidence without triggering new checks or notifications.
 The [authority reconciliation runbook](docs/monitoring-authority-reconciliation.md)
 checks supplied monitoring-approval evidence without activating sources.
+The [isolated restore rehearsal](docs/isolated-restore-rehearsal.md) exercises
+synthetic aggregate recovery and concurrent publishing in temporary local storage.
 
 ![Live Watchtower overview with source health, county coverage, and a Minnesota county map](docs/images/watchtower-overview.png)
 
