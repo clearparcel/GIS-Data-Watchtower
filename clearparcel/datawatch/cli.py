@@ -64,6 +64,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--host", default="0.0.0.0"); p.add_argument("--port", type=int, default=8080)
     p = sub.add_parser("public-publish", help="Publish a sanitized public aggregate to production storage")
     p.add_argument("--json", action="store_true")
+    p = sub.add_parser("alert-test", help="Send one owner-approved synthetic alert digest (no provider checks)")
+    p.add_argument("--kind", choices=["failure", "recovery"], required=True)
+    p.add_argument("--confirm-test-send", action="store_true",
+                   help="Required: confirms the owner approved sending a real test message")
     p = sub.add_parser("cloud-job", help="Run one check using configured cloud storage")
     p.add_argument("--json", action="store_true")
     p = sub.add_parser("dashboard-build", help="Build a sanitized static dashboard")
@@ -123,6 +127,16 @@ def main() -> int:
             save_json(args.output, result)
             print(f'Prepared retirement snapshot for {args.worker}')
             return 0
+        if args.command == "alert-test":
+            if not args.confirm_test_send:
+                raise ValueError("alert-test sends a real message; pass --confirm-test-send")
+            from clearparcel.datawatch.alert_test import run_alert_test
+            from clearparcel.datawatch.storage import backend_from_env
+            result = run_alert_test(args.kind, storage=backend_from_env(Path.cwd()))
+            print(json.dumps({"kind": args.kind, "delivery": result["notification_delivery"],
+                              "events": len(result["new_event_keys"]),
+                              "routing_gaps": len(result["routing_gaps"])}))
+            return EXIT_OK if result["notification_delivery"] == "handed_off" else EXIT_SOURCE_ERROR
         if args.config is None:
             raise FileNotFoundError(
                 "No default Watchtower config is available in this installation. "
