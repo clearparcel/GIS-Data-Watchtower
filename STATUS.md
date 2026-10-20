@@ -6,11 +6,13 @@ A delivery module and CLI add a durable compare-and-swap ledger over the merged
 preview: accepted (`queued`), `sent`, and operator-`acknowledged` states, with
 key-based idempotency, held ambiguous outcomes, bounded retries, recovery
 resolution, incident reopening and rollback by disabling. A `structured_log`
-transport candidate runs only inside a Cloud Run job. Tests use injected fake
-transports and synthetic evidence. Hosted notification routing was inspected
+transport candidate runs only inside a Cloud Run job. An optional run-evidence
+stage (off by default) records each provider run's exit code and minimized
+original report, then runs delivery over that history with a registry-derived
+scope. Tests use injected fake transports and synthetic evidence. Hosted notification routing was inspected
 read-only; it covers infrastructure symptoms only. No message was sent and no
-route, policy, IAM, schedule or production configuration changed. Evidence
-wiring, approved delivery/acknowledgement and five ordinary cycles remain open.
+route, policy, IAM, schedule or production configuration changed. Activation,
+approved delivery/acknowledgement and five ordinary cycles remain open.
 See [the runbook](docs/alert-routing.md).
 
 ## Alert-routing rehearsal — local candidate, 2026-10-20

@@ -177,11 +177,47 @@ recovery. Wiring an automatic evidence source (original worker reports plus
 execution receipts) into a scheduled run is not part of this candidate.
 Activation details stay in the private owner draft.
 
+### Scheduled run evidence
+
+With `WATCHTOWER_RUN_RECEIPTS=1`, every `cloud-job` run (including one that
+fails with exit 3) appends an execution receipt to the private object
+`runs/receipts.json` using the same compare-and-swap storage as the job. A
+receipt holds the worker, the Cloud Run execution id, start and end times, the
+process exit code and a minimized copy of the original worker report: per
+source only status, check time, rate-limit and backoff flags. URLs,
+diagnostics, values and telemetry are dropped. The execution id includes the
+Cloud Run task index and attempt, so a retried attempt is its own receipt. The
+newest 30 receipts per worker are kept. An older receipt that opened a
+still-unresolved incident is kept too, reduced to just that incident's
+sources, so a long incident keeps one event key without stitching other
+sources' old states onto recent runs.
+
+Delivery uses a clean history that only moves forward in recording order:
+a receipt is used only if it starts after every receipt recorded before it
+ends. A run that overlaps, or was recorded after a newer run (a manual run, an
+extra task, a late append), is excluded permanently so incident keys never
+shift, and receipts with malformed times are excluded too; exclusions are
+counted in the log line. Receipts are refused at recording time, and ignored
+if already stored, when they end in the future, run longer than 12 hours, or
+end before they start, so one bad clock cannot hold delivery; keep the job's
+task timeout under 12 hours so a genuine run always gets a receipt. When the
+current run is out of order, delivery is held and a warning is logged instead
+of risking a duplicate. A worker with no expected sources skips delivery.
+
+If `WATCHTOWER_ALERT_DELIVERY_CONFIG` is also set, the delivery stage runs over
+those receipts. The expected scope is derived from the registry with the
+worker's own rules, so disabled, other-profile and hold-for-terms sources are
+excluded automatically. The stage writes one structured log line per run
+(`watchtower_alert_delivery` counts, or `watchtower_alert_pipeline_error` on a
+failure). Neither stage polls a provider, changes the job's exit code, or
+raises into the job; a failure is only logged.
+
 ### Remaining delivery gates
 
 Synthetic tests with injected transports do not prove delivery. Before
 activation: approve the exact digest and alert-policy text and destination,
-approve a test delivery, add the evidence-assembly step, deploy through the
-normal release process, verify receipt and operator acknowledgement for a
-failure and a recovery, then observe five ordinary daily cycles without
-increasing provider cadence.
+approve setting the two environment variables on the provider job (first with
+`delivery.enabled` false for a logged dry run), approve a test delivery, deploy
+through the normal release process, verify receipt and operator
+acknowledgement for a failure and a recovery, then observe five ordinary daily
+cycles without increasing provider cadence.

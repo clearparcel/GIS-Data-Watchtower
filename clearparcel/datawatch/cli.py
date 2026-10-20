@@ -82,6 +82,28 @@ def _exit_code(result: dict) -> int:
     return EXIT_SOURCE_ERROR if overall == "error" else EXIT_WARN if overall == "warn" else EXIT_OK
 
 
+def _utc_now() -> str:
+    from clearparcel.datawatch.run_evidence import utc_now
+    return utc_now()
+
+
+def _record_run_evidence(config: dict, config_path, started_at: str, exit_code: int, report) -> None:
+    """Optional private run receipt and alert stage; never changes the exit code."""
+    if os.environ.get("WATCHTOWER_RUN_RECEIPTS") != "1":
+        return
+    try:
+        from clearparcel.datawatch.cloud_job import job_profile, job_storage
+        from clearparcel.datawatch.run_evidence import record_run_evidence
+        record_run_evidence(config, storage=job_storage(config, config_path), profile=job_profile(),
+                            started_at=started_at, completed_at=_utc_now(),
+                            exit_code=exit_code, report=report)
+    except Exception as exc:  # noqa: BLE001 - evidence must not mask the run outcome
+        print(json.dumps({"severity": "ERROR", "message": "Watchtower run evidence stage failed",
+                          "watchtower_alert_pipeline_error": {"stage": "setup",
+                                                              "error": type(exc).__name__}}),
+              file=sys.stderr)
+
+
 def main() -> int:
     args = build_parser().parse_args()
     try:
@@ -140,9 +162,16 @@ def main() -> int:
             serve(config, host=args.host, port=args.port); return 0
         if args.command == "cloud-job":
             from clearparcel.datawatch.cloud_job import run_cloud_job
-            result = run_cloud_job(args.config)
+            started_at = _utc_now()
+            try:
+                result = run_cloud_job(args.config)
+            except Exception:
+                _record_run_evidence(config, args.config, started_at, EXIT_TOOL_FAILURE, None)
+                raise
+            code = _exit_code(result)
+            _record_run_evidence(config, args.config, started_at, code, result)
             print(json.dumps(result, indent=2) if args.json else _render(result), end="" if not args.json else "\n")
-            return _exit_code(result)
+            return code
         if args.command == "dashboard-build":
             result = build_static_site(config, args.output)
             print(json.dumps(result, indent=2) if args.json else f'Watchtower static dashboard: {result["output_dir"]}'); return 0

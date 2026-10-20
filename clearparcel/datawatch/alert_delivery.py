@@ -602,3 +602,7 @@ class StructuredLogTransport:
         except Exception as exc:
             raise DeliveryAmbiguous("structured log write interrupted") from exc
         return {"provider_ref": f"{self.job}:{digest['digest_id']}"}
+
+
+# Transports a private configuration may name. Each refuses unsafe contexts itself.
+TRANSPORTS = {StructuredLogTransport.name: StructuredLogTransport}

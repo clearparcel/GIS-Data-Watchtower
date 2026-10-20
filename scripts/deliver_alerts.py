@@ -9,12 +9,10 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from clearparcel.datawatch import strict_json
 from clearparcel.datawatch.alert_delivery import (
-    DEFAULT_LEDGER_NAME, AlertLedger, LedgerError, StructuredLogTransport, acknowledge,
+    DEFAULT_LEDGER_NAME, TRANSPORTS, AlertLedger, LedgerError, acknowledge,
     deliver_alerts, ledger_status, normalize_config, reconcile)
 from clearparcel.datawatch.storage import LocalStorage, StorageConflictError, backend_from_env
 
-
-TRANSPORTS = {"structured_log": StructuredLogTransport}
 
 
 def _now():
