@@ -13,6 +13,8 @@ The current production release is **v0.3.0**, deployed October 14, 2026. See
 [v0.3.0 release record](docs/release-v0.3.0.md) for verification and rollback
 evidence. v0.2.3 is the rollback baseline.
 
+[v0.3.1 is being prepared](docs/release-v0.3.1.md); it has not been deployed.
+
 Operators can use the [offline triage runbook](docs/operations-triage.md) to
 review saved provider-run evidence without triggering new checks or notifications.
 The [authority reconciliation runbook](docs/monitoring-authority-reconciliation.md)

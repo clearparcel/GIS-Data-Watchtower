@@ -1,6 +1,14 @@
 # Project status
 
-## Isolated aggregate restore — PR candidate, 2026-10-20
+## v0.3.1 dashboard release — preparation, 2026-10-20
+
+The owner requested merge and deployment after PR #105 passed CI.
+The public footer was verified as v0.3.0; the candidate version is v0.3.1.
+Cloud access was restored and both live dashboard rollback revisions verified.
+No deployment has occurred. See [the release preparation](docs/release-v0.3.1.md)
+for scope, acceptance and rollback requirements.
+
+## Isolated aggregate restore — merged, 2026-10-20 (#105)
 
 A synthetic rehearsal exercises exact aggregate restoration, corrupt-backup
 rejection, occupied/stale-write refusal and concurrent publisher conflict/retry
@@ -8,6 +16,7 @@ through the existing local storage backend. It preserves worker provenance,
 observation clocks and retirement tombstones. See
 [the rehearsal runbook](docs/isolated-restore-rehearsal.md).
 GCS, complete operational backups and production restore remain unverified.
+PR #105 merged as `cd2e071` after all eight hosted PR checks passed.
 
 ## Monitoring-authority reconciliation — merged, 2026-10-20 (#104)
 
