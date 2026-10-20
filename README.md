@@ -12,7 +12,7 @@ The current production dashboard release is **v0.3.2**, deployed October 20, 202
 [STATUS.md](STATUS.md) and the [release record](docs/release-v0.3.2.md) for exact
 artifacts and bounded verification. Private GAC county selection, standard/scope
 navigation and standard-specific exports are corrected and verified. The dashboard
-rollback baseline is v0.3.1. The provider job runs v0.3.3 with private run
+rollback baseline is v0.3.1. The provider job runs v0.3.4 with private run
 receipts on and alert delivery disabled; the publisher job remains on v0.3.0.
 
 Operators can use the [offline triage runbook](docs/operations-triage.md) to
