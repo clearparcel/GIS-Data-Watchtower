@@ -3,7 +3,8 @@
 The current recorded production dashboard release is **v0.3.2**, deployed
 October 20 (see the [current release and rollback record](release-v0.3.2.md)).
 Public and authenticated private GAC acceptance passed within the recorded
-scope. Jobs remain on v0.3.0; dashboard rollback targets are v0.3.1.
+scope. The provider job runs v0.3.3 ([release record](release-v0.3.3.md));
+the publisher job remains on v0.3.0; dashboard rollback targets are v0.3.1.
 The v0.3.0 record retains earlier service/job rollback references;
 older release records are in the [archive](README.md#historical-engineering-and-release-records).
 Daily cloud provider polling was
