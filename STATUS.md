@@ -1,5 +1,12 @@
 # Project status
 
+## v0.3.5 coordinated release — candidate, 2026-10-20
+
+The owner approved rebuilding all surfaces with certifi 2026.10.19, a
+synthetic delivery test (new `watchtower alert-test`, no provider polling),
+enabling alert delivery and observing five ordinary cycles. See
+[the release record](docs/release-v0.3.5.md).
+
 ## v0.3.4 provider-job security release — deployed, 2026-10-20
 
 The daily provider job now runs v0.3.4 (`64fd26b`, Cloud Build `b8ddb5e9`)

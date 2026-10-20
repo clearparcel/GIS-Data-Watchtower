@@ -212,6 +212,19 @@ excluded automatically. The stage writes one structured log line per run
 failure). Neither stage polls a provider, changes the job's exit code, or
 raises into the job; a failure is only logged.
 
+### Synthetic delivery test
+
+`watchtower alert-test --kind failure|recovery --confirm-test-send` sends one
+real, clearly labeled test digest (subject prefixed `TEST - `) through the
+configured transport for the reserved source `alert-delivery-test`. It never
+polls a provider, reads no source registry, and records only in its own
+`alerts/test-delivery-ledger.json`, leaving production receipts, ledger and
+incident keys untouched. Routing comes from `WATCHTOWER_ALERT_DELIVERY_CONFIG`;
+the transport is used even while `delivery.enabled` is false, which is why
+the explicit confirmation flag is required. On Cloud Run it is run as a
+one-off execution of the provider job with only the arguments overridden, so
+the log-based alert policy sees it as that job.
+
 ### Remaining delivery gates
 
 Synthetic tests with injected transports do not prove delivery. Before

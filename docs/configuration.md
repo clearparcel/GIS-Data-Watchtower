@@ -93,7 +93,7 @@ if a dashboard or publisher runs as a different user.
 | `WATCHTOWER_ALLOW_INVENTORY_SHRINK=1` | Marks the run's fleet report as a deliberate inventory drain so it may retire most or all of the worker's sources. Without it, an empty run is an error and a report covering under half of the worker's sources retires nothing. |
 | `WATCHTOWER_ALLOW_EXAMPLE_CONFIG=1` | Lets `cloud-job` run against a configuration whose sources all use reserved example hosts. For synthetic tests only. |
 | `WATCHTOWER_RUN_RECEIPTS=1` | After each `cloud-job` run, appends a private execution receipt (exit code, start/end, minimized original worker report) to `runs/receipts.json` in the job's storage. Off by default; never changes the exit code. See [alert routing](alert-routing.md). |
-| `WATCHTOWER_ALERT_DELIVERY_CONFIG` | Private JSON (`{"delivery": {...}, "routing": {...}}`, from Secret Manager) for the alert stage that runs after a receipt is recorded. Requires `WATCHTOWER_RUN_RECEIPTS=1`; `delivery.enabled` still defaults to false. |
+| `WATCHTOWER_ALERT_DELIVERY_CONFIG` | Also supplies routing for `watchtower alert-test`. Private JSON (`{"delivery": {...}, "routing": {...}}`, from Secret Manager) for the alert stage that runs after a receipt is recorded. Requires `WATCHTOWER_RUN_RECEIPTS=1`; `delivery.enabled` still defaults to false. |
 
 ## Provider rate limits (HTTP 429)
 
