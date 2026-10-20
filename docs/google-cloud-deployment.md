@@ -1,26 +1,23 @@
 # Google Cloud deployment
 
-The current production dashboard release is **v0.3.1**, deployed October 20, 2026 from
-merged source `9ee6c5a3caa7a1d118e7d9f27e32eb200126848b` by Cloud Build
-`e0c744d6-e783-41af-86db-f81bbfa88bfa`.
-- **Services:** public revision `00033-mak` and private revision `00035-vom`
+The current production dashboard release is **v0.3.2**, deployed October 20, 2026 from
+merged source `3c078d8963228c3bfa6239acf7cb2aaf008045c8` by Cloud Build
+`9d6fc776-b5f0-441f-94d6-47268856ca6e`.
+- **Services:** public revision `00035-gib` and private revision `00037-teh`
   serve 100% of traffic.
-- **Jobs:** the provider and public-publisher jobs run the v0.3.0 `watchtower`
-  image.
-- **Unchanged:** ingress, IAP, IAM, secrets, source registries and both
-  schedules.
-- **Preview:** not updated by this release; the prior v0.3.0 record identifies
-  revision `00023-ptp`. Preview behavior was not revalidated.
+- **Jobs:** provider and public-publisher job specifications are unchanged,
+  retaining the v0.3.0 image. Neither job was invoked by this deployment.
+- **Preserved:** non-image runtime settings, IAM, IAP/ingress, secrets,
+  registries and schedules.
+- **Preview:** not updated or revalidated by this release.
 
-See the [v0.3.1 release record](release-v0.3.1.md) for evidence, acceptance
-gaps and retained v0.3.0 rollback targets: public `00031-ciw`, private `00033-qor`.
+See the [v0.3.2 release record](release-v0.3.2.md) for exact evidence and
+retained v0.3.1 rollback targets: public `00033-mak`, private `00035-vom`.
+The private image includes the hash-verified migrated GAC wrapper; authenticated
+selection, standard/scope navigation and export checks passed in the recorded
+scope. The [selector handoff](ai/handoffs/2026-10-20-private-gac-selector.md)
+retains the original diagnosis and migration contract.
 The records below describe historical deployments, not current traffic.
-
-The private GAC selection correction requires both the package dispatcher and
-a migrated hosted wrapper; copying the unchanged predecessor wrapper preserves
-the bug. Use the guarded migration and artifact acceptance steps in the
-[selector handoff](ai/handoffs/2026-10-20-private-gac-selector.md) for the next
-authorized release. This local candidate does not change current production.
 
 ## Earlier deployment history
 
