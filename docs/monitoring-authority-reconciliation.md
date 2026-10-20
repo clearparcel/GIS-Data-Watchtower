@@ -6,6 +6,10 @@ provider permits access, edit research, enable monitoring, or contact providers.
 A receipt always has `activation_authorized: false` and
 `live_configuration_verified: false`.
 
+The [October 20 evidence assessment](monitoring-authority-evidence-2026-10-20.md)
+applies the matcher to the actual private inventory and distinguishes existing
+operating constraints from complete current approval/cadence records.
+
 ## Capture inputs
 
 Keep the original private registry and the operator's approval/cadence evidence

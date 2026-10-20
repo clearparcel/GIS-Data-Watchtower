@@ -1,5 +1,12 @@
 # WT-02 monitoring-authority reconciliation — merged PR #104
 
+Subsequent evidence update: the
+[actual inventory assessment](../../monitoring-authority-evidence-2026-10-20.md)
+records the real-registry reconciliation and Aitkin/Morrison evidence.
+Approval/cadence gaps remain open. Cloud login was restored, and historical
+source failures were diagnosed in merged PR #110; the original limitations
+below describe the earlier implementation stage.
+
 Implementer: Codex, October 20, 2026. Branch:
 `codex/wt-monitoring-authority`. Base:
 `464a767a303d45e5109820b92860dad5278dd17b` (owner-authorized PR #103 merge).

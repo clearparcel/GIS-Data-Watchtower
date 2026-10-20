@@ -1,5 +1,16 @@
 # Project status
 
+## WT-02 actual inventory reconciliation — local evidence, 2026-10-20
+
+The current 35-source registry was evaluated: 22 county-scoped parcel sources
+need complete approval records, 2 parcel rows require separate scope review,
+2 remain held by research, and 9 are outside this tool's parcel scope.
+Aitkin/Morrison published product identities and existing issue constraints
+were verified; no complete current approval/cadence ledger was supplied.
+Private disposition drafts remain pending, and combined dispatch spacing is
+unverified. No source, schedule, research decision or production configuration
+changed. See [the evidence assessment](docs/monitoring-authority-evidence-2026-10-20.md).
+
 ## WT-15 historical diagnosis — local evidence, 2026-10-20
 
 Execution-labelled logs and original persisted history explain October 16–18:
@@ -53,7 +64,8 @@ An offline evidence matcher binds county-direct parcel sources to dated
 approval/research/cadence records and flags missing, stale or conflicting
 evidence. Existing disabled sources and research holds are preserved. Receipts
 grant no activation authority. See [the reconciliation runbook](docs/monitoring-authority-reconciliation.md).
-Validation is synthetic; actual private authority records remain unreconciled.
+Initial tool validation was synthetic. The subsequent actual inventory
+assessment above preserves the remaining approval/cadence evidence gaps.
 PR #104 merged as `6a2f791` after all eight PR checks passed. No deployment
 or source/schedule changes occurred at that merge. Post-merge hosted CI also passed.
 
