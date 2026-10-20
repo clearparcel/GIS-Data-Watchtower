@@ -4,7 +4,9 @@
 
 All four surfaces run v0.3.6 (`77dd1e4`, Cloud Build `da835e18`) before the
 first observed daily run on October 21. The provider job enforces the
-owner-approved 23-hour minimum between provider runs, and the MnGeo county
+owner-approved 23-hour minimum between provider runs with no start-delay
+tolerance (the spring daylight-saving day's run is skipped if it would start
+under 23 hours after the previous one), and the MnGeo county
 catalog reads each county's ArcGIS item metadata dates (never for
 hold-for-terms counties). Public and private acceptance passed; no provider
 was polled. See [the release record](docs/release-v0.3.6.md).
