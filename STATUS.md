@@ -1,5 +1,15 @@
 # Project status
 
+## WT-15 sign-off — accepted with Todd open, 2026-10-20
+
+The owner accepted dispositions for the October 16–18 FEMA, Beltrami and
+Hennepin issues and closed the historical recovery-certification requirement
+as unachievable from retained evidence (original reports are not recoverable
+from logs), superseded by per-run receipts from October 21. A single October 20
+Todd direct-parcel timeout stays open until a receipt-backed ordinary run shows
+recovery. Shawn is the responsible operator. See
+[the sign-off record](docs/operations-wt15-signoff-2026-10-20.md).
+
 ## v0.3.5 coordinated release and live alert delivery — deployed, 2026-10-20
 
 All four surfaces run v0.3.5 (`48124dc`, Cloud Build `54708f9f`) with certifi
