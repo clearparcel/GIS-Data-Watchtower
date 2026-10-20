@@ -224,11 +224,11 @@ class ExportTests(unittest.TestCase):
         by_field = {r[2]: r[column] for r in rows if r[1] == "Douglas"}
         self.assertIs(by_field[scanned], True)
         self.assertIs(by_field[unscanned], False)
-        # Without any flags, presence of the county entry decides.
+        # Without flags, county measurements prove a scan; absence is unknown.
         snapshot["gac"]["address"]["fields"] = {}
         header, *rows = dict(_gac_xlsx_sheets(snapshot))["GAC Detail"]
         by_field = {r[2]: r[column] for r in rows if r[1] == "Douglas"}
-        self.assertEqual((by_field[scanned], by_field[unscanned]), (True, False))
+        self.assertEqual((by_field[scanned], by_field[unscanned]), (True, None))
         # A county listed only in metadata has no scan result at all.
         snapshot["gac"]["address"]["fields"] = {scanned: {"population_scanned": True}}
         snapshot["gac"]["address"]["county_metadata"] = {"Wabasha": {"gac_open": False}}

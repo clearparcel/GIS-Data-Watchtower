@@ -146,12 +146,11 @@ def render_county_results(config: dict, standard_key: str, county: dict | None) 
             rows = []
             for spec in schema['fields']:
                 field = spec['field']
-                meta = (data.get('fields') or {}).get(field) or {}
                 values = (stats.get('fields') or {}).get(field) or {}
-                not_scanned = meta.get('population_scanned') is False
-                scanned = not not_scanned and type(values.get('record_count')) is int
+                not_scanned = values.get('population_scanned') is False
+                scanned = values.get('population_scanned') is True
                 scan = 'Scanned' if scanned else 'Not scanned' if not_scanned else 'No data'
-                present = meta.get('present_in_source_schema')
+                present = values.get('present_in_source_schema')
                 shape = 'Present' if present is True else 'Missing' if present is False else 'Unknown'
                 populated = _count(values.get('populated')) if scanned else '—'
                 records = _count(values.get('record_count')) if scanned else '—'

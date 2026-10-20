@@ -133,8 +133,18 @@ def _sanitize_mngac(data: dict | None) -> dict | None:
     }
 
     def fields(records):
-        return {name: _project(record, field_schema) for name, record in _records(records).items()
-                if _metadata_text(name, 128) and isinstance(record, dict)}
+        result = {}
+        for name, record in _records(records).items():
+            if not _metadata_text(name, 128) or not isinstance(record, dict):
+                continue
+            projected = _project(record, field_schema)
+            # Explicit unknown is distinct from an absent flag: presentation
+            # must not replace it with the shared layer's true/false value.
+            for key in ("present_in_source_schema", "population_scanned"):
+                if key in record and record[key] is None:
+                    projected[key] = None
+            result[name] = projected
+        return result
 
     public = _project(data, {
         'method': _display_text,
