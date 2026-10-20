@@ -71,10 +71,12 @@ The owner then requested merge and deployment. PR #105 merged at
 `cd2e071672740bebc10955720d8bd00d5fa89899`; post-merge CI
 [39426148900](https://github.com/clearparcel/GIS-Data-Watchtower/actions/runs/39426148900)
 passed. The required versioned deployment is tracked in
-[v0.3.1 release preparation](../../release-v0.3.1.md).
+[v0.3.1 release receipt](../../release-v0.3.1.md): both dashboards were promoted
+from source `9ee6c5a3caa7a1d118e7d9f27e32eb200126848b`.
 Next operational work needs actual evidence and applicable explicit
 approval: complete-backup/GCS rehearsal, alert delivery, IAM and five ordinary
-daily cycles. WT-01 display deployment also remains open.
+daily cycles. WT-01 display deployment passed bounded public/private county
+acceptance; the separate private GAC selector remains an acceptance gap.
 
 Shared published CCE context: `gis-data-watchtower`, revision
 `34bb01ef001eb4950fd72b8806c20098950d2461`, SHA-256

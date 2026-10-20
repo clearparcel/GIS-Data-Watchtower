@@ -1,11 +1,10 @@
 # Versioning and release policy
 
-The current recorded production application release is **v0.3.0**, deployed
-October 14 (see the [current release and rollback record](release-v0.3.0.md)).
-Its public footer was reverified October 20; current private service identity
-still requires operational verification. The next candidate is
-[v0.3.1](release-v0.3.1.md), not yet deployed.
-The v0.3.0 record retains service/job rollback references;
+The current recorded production dashboard release is **v0.3.1**, deployed
+October 20 (see the [current release and rollback record](release-v0.3.1.md)).
+Public and authenticated private county acceptance passed within its recorded
+scope; the private GAC selector remains an acceptance gap. Jobs remain on v0.3.0.
+The v0.3.0 record retains earlier service/job rollback references;
 older release records are in the [archive](README.md#historical-engineering-and-release-records).
 Daily cloud provider polling was
 separately approved and activated on October 10; application publication does
@@ -53,10 +52,10 @@ Public page footers display **only the semantic application version** (for examp
 
 The source commit and build environment **remain inside immutable `build_info.json` and release/provenance records**, and may continue to inform optional analytics. They are intentionally not shown in the public footer. Container builds still require `WATCHTOWER_BUILD_REVISION` (full commit SHA) and `WATCHTOWER_BUILD_ENVIRONMENT` (`preview` or `production`). The production source package and visible version must agree. Build only from a clean, committed checkout; do not infer revision identity from the runtime Git state.
 
-**The public site reports v0.3.0 as of October 20, 2026.** The release preflight
-blocks an unchanged v0.3.0 candidate. The next coordinated application-code
-release is prepared as v0.3.1; its [candidate record](release-v0.3.1.md) lists
-the scope and release gate. Always recheck live identity before promotion.
+**The public site reports v0.3.1 as of October 20, 2026.** The next coordinated
+application-code release must be strictly newer. The
+[release record](release-v0.3.1.md) identifies the deployed artifact and
+verification limits. Always recheck live identity before promotion.
 
 ## Security fixes
 
