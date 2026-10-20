@@ -99,6 +99,9 @@ next ordinary scheduled check and subsequent recovery or continuing hold.
 Never shorten Retry-After or force exit zero to hide a failure.
 
 Synthetic failure/backoff/recovery tests validate receipt generation only.
+Use the [offline alert-routing rehearsal](alert-routing.md) to prepare private
+message candidates from the same original evidence and an explicit source
+scope. It does not send or enable notifications.
 Notification delivery remains `not_attempted`. Before activating routing, name
 the recipient and escalation owner, approve the exact destination/message,
 test delivery and recovery acknowledgement, and record a rollback procedure.
