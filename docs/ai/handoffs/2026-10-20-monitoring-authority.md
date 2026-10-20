@@ -1,4 +1,4 @@
-# WT-02 monitoring-authority reconciliation — PR candidate
+# WT-02 monitoring-authority reconciliation — merged PR #104
 
 Implementer: Codex, October 20, 2026. Branch:
 `codex/wt-monitoring-authority`. Base:
@@ -81,9 +81,17 @@ Published CCE context `gis-data-watchtower`, revision
 updated October 13/review due October 14, remains historical `needs-review`
 context. Current source and owner decisions take precedence.
 
-Next: complete hosted CI, then supply and review actual private
+PR #104 was published at `b9d5ac68e6bfbaecf04c40be9cbde2f2e972f336`; all eight
+PR checks passed. The owner then explicitly approved merge on October 20.
+Merge commit: `6a2f791d3fc1a7172ff7eef39f1ace3cc5f7fafe`.
+[Post-merge CI](https://github.com/clearparcel/GIS-Data-Watchtower/actions/runs/39422119419)
+passed all six platform/Python test jobs and security.
+
+Next: supply and review actual private
 authority/cadence evidence, prioritizing Aitkin/Morrison.
 Historical log diagnosis requires restored operator cloud authentication.
-Notification delivery, isolated restore/CAS proof, IAM assessment and five
-ordinary cycles remain open. No merge authority for this candidate, deployment,
-production writes, source changes, schedule changes or notifications are granted.
+Notification delivery, operational restore/CAS proof, IAM assessment and five
+ordinary cycles remain open. The next local slice implements a synthetic local
+aggregate restore rehearsal; it cannot establish live recovery acceptance.
+No deployment, production writes, source changes, schedule changes or
+notifications are granted by the merge approval.

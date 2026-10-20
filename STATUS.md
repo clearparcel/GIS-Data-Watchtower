@@ -1,12 +1,23 @@
 # Project status
 
-## Monitoring-authority reconciliation — PR candidate, 2026-10-20
+## Isolated aggregate restore — local candidate, 2026-10-20
+
+A synthetic rehearsal exercises exact aggregate restoration, corrupt-backup
+rejection, occupied/stale-write refusal and concurrent publisher conflict/retry
+through the existing local storage backend. It preserves worker provenance,
+observation clocks and retirement tombstones. See
+[the rehearsal runbook](docs/isolated-restore-rehearsal.md).
+GCS, complete operational backups and production restore remain unverified.
+
+## Monitoring-authority reconciliation — merged, 2026-10-20 (#104)
 
 An offline evidence matcher binds county-direct parcel sources to dated
 approval/research/cadence records and flags missing, stale or conflicting
 evidence. Existing disabled sources and research holds are preserved. Receipts
 grant no activation authority. See [the reconciliation runbook](docs/monitoring-authority-reconciliation.md).
 Validation is synthetic; actual private authority records remain unreconciled.
+PR #104 merged as `6a2f791` after all eight PR checks passed. No deployment
+or source/schedule changes occurred. Post-merge hosted CI also passed.
 
 ## Offline operations triage — merged, 2026-10-20 (#103)
 
