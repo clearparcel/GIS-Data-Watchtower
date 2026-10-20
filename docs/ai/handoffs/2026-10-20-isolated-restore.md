@@ -1,4 +1,4 @@
-# Isolated aggregate restore — PR candidate
+# Isolated aggregate restore — merged PR #105
 
 Implementer: Codex, October 20, 2026. Branch `codex/wt-isolated-restore`.
 Base: `6a2f791d3fc1a7172ff7eef39f1ace3cc5f7fafe`, the owner-approved PR #104
@@ -66,7 +66,12 @@ PR #104 post-merge CI passed at the exact base above. The owner authorized
 publication of this candidate and hosted CI on October 20. Publication preparation
 changes documentation only; the application remains at the tested/reviewed head
 above. The PR description and hosted checks record the exact published head and
-CI outcome. Merge and deployment require separate approval.
+CI outcome. All eight checks passed at `fb9ba642948b23401360d92d153ae3de8b9dc892`.
+The owner then requested merge and deployment. PR #105 merged at
+`cd2e071672740bebc10955720d8bd00d5fa89899`; post-merge CI
+[39426148900](https://github.com/clearparcel/GIS-Data-Watchtower/actions/runs/39426148900)
+passed. The required versioned deployment is tracked in
+[v0.3.1 release preparation](../../release-v0.3.1.md).
 Next operational work needs actual evidence and applicable explicit
 approval: complete-backup/GCS rehearsal, alert delivery, IAM and five ordinary
 daily cycles. WT-01 display deployment also remains open.
