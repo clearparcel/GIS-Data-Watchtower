@@ -13,6 +13,9 @@ The current production release is **v0.3.0**, deployed October 14, 2026. See
 [v0.3.0 release record](docs/release-v0.3.0.md) for verification and rollback
 evidence. v0.2.3 is the rollback baseline.
 
+Operators can use the [offline triage runbook](docs/operations-triage.md) to
+review saved provider-run evidence without triggering new checks or notifications.
+
 ![Live Watchtower overview with source health, county coverage, and a Minnesota county map](docs/images/watchtower-overview.png)
 
 *Actual public dashboard, captured October 12, 2026. Counts, check times, and field-population percentages change as new observations arrive.*

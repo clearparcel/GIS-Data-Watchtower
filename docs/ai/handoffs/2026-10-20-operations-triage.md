@@ -1,0 +1,65 @@
+# WT-15 offline operations triage — local candidate
+
+Implementer: Codex, October 20, 2026. Branch:
+`codex/wt-operations-triage`; base:
+`5af87ef0e234c29d987c5443310b8086bfb3bc6c` (merged WT-01 PR #102).
+This handoff is part of the candidate diff; use the branch commit as its head.
+
+## Scope and acceptance
+
+The owner authorized WT-01 merge and proceeding to the next implementation step.
+This first operations slice supplies offline execution/report triage and a
+runbook. It does not close the entire operations work package.
+
+- Preserve CLI source-warning/source-error/tool-failure distinctions.
+- Mark missing reports, mismatched counts/exits, wrong worker/time provenance
+  and contradictory backoff success as evidence gaps.
+- Keep source check age separate from report age. Retained observations and
+  another worker's success cannot clear a source issue.
+- Record synthetic failure/backoff/recovery evidence without sending messages.
+- Preserve original evidence and existing receipts; no network or operational
+  configuration dependency is introduced.
+
+Implementation: `operations_triage.py`, `scripts/triage_provider_runs.py`,
+12 synthetic/CLI tests, operations runbook and synchronized status/index docs.
+WT-01 documentation now records the authorized merge and successful main CI.
+
+## Validation
+
+Final local strict suite: **553 tests, 3 platform skips, 29.846 seconds, exit 0**,
+Python 3.14.6, Node 24.19.0, `WATCHTOWER_REQUIRE_NODE=1`.
+Compilation, status-sync check and `git diff --check` passed.
+The first focused run hit a Windows sandbox tempfile access error; the rerun
+with working filesystem permissions passed. Raw logs remain private.
+
+The synthetic sequence proves rate-limit failure, deferred backoff and supported
+recovery receipt generation. CLI tests prove existing evidence/receipts cannot
+be overwritten. Tests cover stale/future observations, mismatched exits/counts,
+missing sources/reports, worker isolation, ambiguous execution windows and
+omission of raw diagnostics/credentials/measurements.
+
+Existing historical October 15–19 execution receipts were read locally and
+normalized into a private receipt. Their process outcomes are 0/2/2/1/0.
+All five lack original per-source worker reports in the supplied evidence;
+the tool returns 1 and retains those gaps. No new provider check was run.
+These historical outcomes do not establish current production health.
+
+No independent model review of this new candidate has run. It is recommended
+for the fail-closed evidence/recovery rules and will run only if accepted.
+This candidate has not been published or run through hosted CI.
+
+## Shared context and remaining gates
+
+Published CCE record `gis-data-watchtower`, revision
+`34bb01ef001eb4950fd72b8806c20098950d2461`, SHA-256
+`ec82d16ee47381f92e65976bbe38a293cb4ad8d16c28506dfec7679c6f8b630a`,
+updated October 13, review due October 14: historical `needs-review` context.
+Current source and owner instructions take precedence.
+
+Next: correlate restricted source reports and log/image identity for the dated
+nonzero executions; record exact cause and owner disposition. Reconcile WT-02
+authority separately. Alert recipients/delivery, isolated restore/CAS rehearsal,
+inherited IAM assessment and five ordinary daily cycles remain open.
+No production changes, deployment, scheduling, provider polling, notifications,
+credential changes, CRM work or memory publication were performed or authorized.
+Merge authority applied only to WT-01 PR #102.

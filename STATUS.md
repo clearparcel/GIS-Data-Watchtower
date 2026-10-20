@@ -1,6 +1,16 @@
 # Project status
 
-## WT-01 county scan labels — PR candidate, 2026-10-20
+## Offline operations triage — local candidate, 2026-10-20
+
+An offline receipt tool classifies saved execution exits and worker reports,
+flags missing or contradictory evidence, and tracks source failure/backoff and
+supported recovery. It does not poll, send notifications, or change operations.
+See [the operations runbook](docs/operations-triage.md). Historical WT-15
+provider causes remain unresolved without their original source reports;
+WT-02 approval reconciliation, alert delivery, restore/IAM proof and five
+ordinary daily cycles remain open.
+
+## WT-01 county scan labels — merged, 2026-10-20 (#102)
 
 A read-only projection now combines county measurements with shared schema/scan
 metadata from the same saved observation. The county profile and MN GAC county
@@ -8,8 +18,8 @@ view agree on completed scans, including zero-populated fields; explicit false,
 unknown, and unavailable results remain distinct. JSON and Excel county detail
 use the same projection; stored observations and provider behavior are unchanged.
 
-This is an undeployed PR candidate based on `e6106cd`, not a production
-verification. See [the WT-01 handoff](docs/ai/handoffs/2026-10-20-wt01.md)
+Merged in `5af87ef`; PR and post-merge hosted CI passed. This remains undeployed,
+not a production verification. See [the WT-01 handoff](docs/ai/handoffs/2026-10-20-wt01.md)
 for validation, review status, and release gates.
 
 **2026-10-14: v0.3.0 is deployed to production** from `main` `4e4dbec`.
