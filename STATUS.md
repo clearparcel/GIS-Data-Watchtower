@@ -1,5 +1,14 @@
 # Project status
 
+## Backup check and access review — passed with recommendations, 2026-10-20
+
+A read-only check restored every operational object into isolated storage
+byte for byte, and the publisher replay reproduced the live public snapshot.
+Protection is only a 7-day soft delete, with no versioning or independent
+copy. The access review found least-privilege bucket roles and no service
+account keys, with seven recommended changes pending owner decision. See
+[the review](docs/backup-access-review-2026-10-20.md).
+
 ## v0.3.6 coordinated release — deployed, 2026-10-20
 
 All four surfaces run v0.3.6 (`77dd1e4`, Cloud Build `da835e18`) before the
