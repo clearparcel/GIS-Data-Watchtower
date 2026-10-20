@@ -92,8 +92,8 @@ The `arcgis_county_catalog` adapter (MnGeo's county catalog) also accepts:
   metadata dates (FGDC or ArcGIS format) are stored as `item_metadata` on the
   county's catalog record and shown separately from MnGeo's acquisition date.
   Hold-for-terms counties are never read (`held`). A failed read marks the
-  county `unavailable` and keeps the last good dates (`retained`) without
-  failing the catalog source. A host under an HTTP 429 backoff is not
+  county `unavailable` and keeps the last good dates (`retained`, for at most
+  30 days and never for a held county) without failing the catalog source. A host under an HTTP 429 backoff is not
   contacted (`deferred`); a new 429 stops the run's metadata reads, persists
   that host's backoff and keeps the catalog observation. XML declaring a DTD
   or entity is refused. The metadata never changes the catalog or observation
@@ -352,8 +352,9 @@ scheduled run, a manual execution and a single-source recheck all count
 toward the same spacing. The claim is a version-conditional write: of two runs
 started together, only one proceeds. Slots are kept per execution profile
 (`cloud`, `local`), because hybrid workers poll different sources while
-sharing one storage backend. A run with its own separate storage has its own
-guard.
+sharing one storage backend. While the guard is on, a run that declares no
+profile or `any` is refused (exit 4), because it can poll sources shared with
+every worker. A run with its own separate storage has its own guard.
 
 A refused run exits 4 and logs one `watchtower_dispatch_refused` line; a
 `cloud-job` that cannot poll (for example a placeholder configuration) is

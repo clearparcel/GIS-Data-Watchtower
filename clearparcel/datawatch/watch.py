@@ -2008,6 +2008,18 @@ def _record_rate_limit(rate_limits: dict, host, retry_after, source_id, default_
     _block_hosts(rate_limits)
 
 
+_RETAINABLE = frozenset({"unavailable", "deferred", "skipped"})  # never "held"
+_RETAIN_FOR = dt.timedelta(days=30)
+
+
+def _recent(value) -> bool:
+    try:
+        moment = dt.datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except ValueError:
+        return False
+    return moment.tzinfo is not None and dt.datetime.now(dt.timezone.utc) - moment <= _RETAIN_FOR
+
+
 def _retain_item_metadata(details: dict, previous: dict | None) -> None:
     """Keep the last good county metadata dates when this run's read did not succeed."""
     old = (previous or {}).get("county_records") if isinstance(previous, dict) else None
@@ -2017,8 +2029,9 @@ def _retain_item_metadata(details: dict, previous: dict | None) -> None:
     for county, record in new.items():
         current = record.get("item_metadata") if isinstance(record, dict) else None
         prior = (old.get(county) or {}).get("item_metadata") if isinstance(old.get(county), dict) else None
-        if (isinstance(current, dict) and current.get("status") != "ok" and isinstance(prior, dict)
-                and prior.get("status") == "ok" and prior.get("item_id") == current.get("item_id")):
+        if (isinstance(current, dict) and current.get("status") in _RETAINABLE and isinstance(prior, dict)
+                and prior.get("status") == "ok" and prior.get("item_id") == current.get("item_id")
+                and _recent(prior.get("observed_at"))):
             record["item_metadata"] = {**{k: v for k, v in prior.items() if k != "latest_attempt"},
                                        "retained": True, "latest_attempt": current.get("status")}
 
@@ -2340,7 +2353,10 @@ def _check_sources_unlocked(
             signal = details.pop("_auxiliary_rate_limit")
             _record_rate_limit(rate_limits, signal.get("host"), signal.get("retry_after"), source["id"], default_backoff)
         if details is not None and source["id"] == "mn-parcel-county-catalog":
-            _retain_item_metadata(details, previous_sources.get(source["id"]))
+            try:
+                _retain_item_metadata(details, previous_sources.get(source["id"]))
+            except Exception:  # noqa: BLE001 - display-only carry-forward never fails a source
+                pass
         if details is not None:
             try:
                 if details.get("gac_check_status"):

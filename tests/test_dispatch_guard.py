@@ -152,6 +152,12 @@ class GuardTests(unittest.TestCase):
         self.assertIsNone(guard_dispatch(lambda: self.storage, command="check", override=None, profile="cloud", environ={}))
         with self.assertRaises(DispatchGuardError):
             guard_dispatch(lambda: self.storage, command="check", override="early", profile="cloud", environ={})
+        with self.assertRaises(DispatchRefused):
+            guard_dispatch(lambda: self.storage, command="check", override=None, profile="any",
+                           environ={"WATCHTOWER_MIN_DISPATCH_HOURS": "23"})
+        with self.assertRaises(DispatchRefused):
+            guard_dispatch(lambda: self.storage, command="check", override="early", profile=None,
+                           environ={"WATCHTOWER_MIN_DISPATCH_HOURS": "23"})
         self.assertEqual(configured_tolerance({}), timedelta(minutes=10))
         self.assertEqual(configured_tolerance({"WATCHTOWER_DISPATCH_TOLERANCE_MINUTES": "0"}), timedelta(0))
         for bad in ("-1", "31", "nan", "x"):

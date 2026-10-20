@@ -182,15 +182,25 @@ class CheckLoopTests(unittest.TestCase):
             self.assertEqual(report["sources"]["mn-parcel-county-catalog"]["status"], "ok")
 
     def test_failed_read_retains_the_last_good_dates(self):
-        previous = {"county_records": {"Wabasha": {"item_metadata": {
-            "item_id": ITEM_A, "status": "ok", "publication_date": "2026-01-30"}}}}
+        import datetime as dt
+        fresh = dt.datetime.now(dt.timezone.utc).isoformat()
+        stale = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=31)).isoformat()
+        previous = {"county_records": {
+            "Wabasha": {"item_metadata": {"item_id": ITEM_A, "status": "ok", "publication_date": "2026-01-30",
+                                          "observed_at": fresh}},
+            "Brown": {"item_metadata": {"item_id": ITEM_HELD, "status": "ok", "observed_at": fresh}},
+            "Fillmore": {"item_metadata": {"item_id": ITEM_A, "status": "ok", "observed_at": stale}}}}
         details = {"county_records": {"Wabasha": {"item_metadata": {"item_id": ITEM_A, "status": "unavailable"}},
-                                      "Houston": {"item_metadata": {"item_id": ITEM_B, "status": "unavailable"}}}}
+                                      "Houston": {"item_metadata": {"item_id": ITEM_B, "status": "unavailable"}},
+                                      "Brown": {"item_metadata": {"item_id": ITEM_HELD, "status": "held"}},
+                                      "Fillmore": {"item_metadata": {"item_id": ITEM_A, "status": "deferred"}}}}
         watch._retain_item_metadata(details, previous)
         kept = details["county_records"]["Wabasha"]["item_metadata"]
         self.assertEqual((kept["status"], kept["publication_date"], kept["retained"], kept["latest_attempt"]),
                          ("ok", "2026-01-30", True, "unavailable"))
         self.assertEqual(details["county_records"]["Houston"]["item_metadata"]["status"], "unavailable")
+        self.assertEqual(details["county_records"]["Brown"]["item_metadata"]["status"], "held")
+        self.assertEqual(details["county_records"]["Fillmore"]["item_metadata"]["status"], "deferred")
 
 
 class PublicProjectionTests(unittest.TestCase):

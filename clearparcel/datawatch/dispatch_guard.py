@@ -42,6 +42,7 @@ SCHEMA_VERSION = 1
 ENV_MIN_HOURS = "WATCHTOWER_MIN_DISPATCH_HOURS"
 ENV_TOLERANCE = "WATCHTOWER_DISPATCH_TOLERANCE_MINUTES"
 DEFAULT_TOLERANCE_MINUTES = 10.0
+GUARDED_PROFILES = frozenset({"cloud", "local"})
 MAX_TOLERANCE_MINUTES = 30.0
 CLOCK_SKEW = timedelta(minutes=2)
 KEEP = 60
@@ -193,6 +194,11 @@ def guard_dispatch(storage_factory, *, command: str, override: str | None, profi
         if override is not None:
             raise DispatchGuardError("--override-min-interval was given but the dispatch guard is not configured")
         return None
+    if profile not in GUARDED_PROFILES:
+        # "any" and unassigned runs can poll sources shared with every worker, so
+        # no single slot can bound them: refuse them while the guard is on.
+        raise DispatchRefused("provider runs must declare the cloud or local execution profile while "
+                              "minimum provider-run spacing is configured")
     entry = claim_dispatch(storage_factory(), min_hours=min_hours, command=command, override=override,
                            profile=profile, tolerance=configured_tolerance(environ))
     logged = {k: v for k, v in entry.items() if k != "override_reason"}
