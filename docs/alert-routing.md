@@ -1,6 +1,6 @@
-# Offline alert-routing rehearsal
+# Alert routing: offline preview and disabled delivery candidate
 
-This tool prepares private email message candidates from saved,
+The preview tool prepares private email message candidates from saved,
 operator-correlated worker reports. It does not send email, configure a channel,
 run a provider, alter a schedule, or establish delivery acceptance.
 
@@ -53,10 +53,8 @@ complete relevant incident history: truncating it can change incident keys.
 Different conditions (for example failure and overdue) deliberately have
 different keys.
 
-These are candidate keys, not durable delivery deduplication. Before enabling
-delivery, an implementation must persist accepted/sent/acknowledged state,
-handle retries without duplicate sends, and define a repeat/reminder policy.
-There is no delivery transport or ledger in this candidate.
+The preview keys alone are not durable delivery deduplication; the disabled
+delivery candidate below adds the ledger.
 
 Before a delivery test:
 
@@ -77,3 +75,96 @@ this offline rehearsal. Source-age, provider attempts, public publication
 freshness and source data vintage remain separate. The receipt always retains
 `notification_delivery: "not_attempted"`, `activation_authorized: false` and
 `delivery_acceptance_complete: false`.
+
+## Delivery candidate — disabled by default
+
+`clearparcel/datawatch/alert_delivery.py` reuses the preview unchanged and adds
+a durable delivery ledger. Nothing is sent unless a private configuration sets
+`"enabled": true`, names a transport, and the caller supplies that transport.
+A missing or disabled configuration performs a read-only dry run: it reports
+which event keys are new and writes no ledger.
+
+```text
+python scripts/deliver_alerts.py --ledger-root PRIVATE_LEDGER_DIR deliver --input PRIVATE_REHEARSAL.json --output NEW_PRIVATE_RECEIPT.json --as-of 2026-10-20T12:00:00Z
+python scripts/deliver_alerts.py --ledger-root PRIVATE_LEDGER_DIR status
+python scripts/deliver_alerts.py --ledger-root PRIVATE_LEDGER_DIR acknowledge --event-key KEY --by OPERATOR
+python scripts/deliver_alerts.py --ledger-root PRIVATE_LEDGER_DIR reconcile --event-key KEY --resolution sent|requeue|abandon --by OPERATOR
+```
+
+With `WATCHTOWER_STORAGE=gcs` the ledger uses the existing generation-conditional
+storage backend (object `alerts/delivery-ledger.json` by default) instead of
+`--ledger-root`. The ledger is private evidence and is not part of the public
+publication allowlist. Deliver exits 0 when nothing needs attention, 1 for
+evidence/routing gaps or ambiguous, rejected or exhausted delivery, and 2 for
+invalid input, storage conflicts or a refused transport.
+
+### Ledger states
+
+| State | Meaning |
+| --- | --- |
+| `queued` | Accepted: the event key was recorded once from a current preview. |
+| `sending` | Claimed by one invocation through a compare-and-swap write. |
+| `sent` | The transport confirmed a hand-off. This is not mailbox receipt. |
+| `retry_wait` | The transport definitively did not hand off; a later invocation may retry. |
+| `exhausted` | Rejected without retry, or retries used up. Operator attention required. |
+| `ambiguous` | Outcome unknown (timeout, partial write, or a claim whose lease expired). |
+| `expired` | Too old to be current (default 72 hours), or abandoned by an operator. |
+| `acknowledged` | An operator recorded review of a sent or ambiguous event. |
+
+### Delivery rules
+
+- **Idempotency.** The preview `event_key` is the ledger key. A known key is
+  never queued again, so repeated runs of one unresolved incident, replays of
+  the same input, and an acknowledged but continuing incident send nothing new.
+- **Concurrency.** Claims and outcomes are compare-and-swap writes. Only the
+  invocation whose claim write succeeds sends; competing invocations reload.
+  Persistent conflicts stop the run without sending.
+- **One digest per invocation.** All claimed events go in one message, bounded
+  by `max_messages_per_digest` (default 25); the remainder stays queued.
+- **Ambiguous outcomes are held.** A timeout, unexpected error, interrupted
+  write, or claim older than `claim_lease_minutes` (default 15) becomes
+  `ambiguous` and is not resent, unless a transport declares provider-side
+  replay safety. An operator checks the destination and reconciles it as
+  `sent`, `requeue` (accepting possible duplicate delivery), or `abandon`.
+- **Bounded retries.** Only definitive non-delivery is retried, on a later
+  invocation, never in a sleep loop: `max_attempts` (default 3), exponential
+  backoff from `retry_base_minutes` (15) capped at `retry_cap_minutes` (360),
+  honoring a transport `Retry-After`. Retries never trigger a provider check.
+- **Incident reopening.** A delivered recovery marks earlier events for the same
+  worker/source `resolved_by`. A later failure has a new preview key and is
+  delivered as a new incident.
+- **Repeat policy.** No automatic reminders. Unacknowledged sent events are
+  listed by `status` for operator follow-up.
+- **Routing gaps block sending.** Events queue but are not sent while any route
+  field is missing.
+- **Rollback.** Set `"enabled": false` (or omit the configuration). The ledger is
+  retained and nothing is sent; on re-enablement, queued events older than
+  `max_queue_age_hours` expire instead of arriving late. Provider controls,
+  evidence and schedules are untouched.
+
+### Transport candidate
+
+`structured_log` writes one JSON log line per digest (`severity: ALERT`,
+`jsonPayload.watchtower_alert_digest`) and refuses to run outside a Cloud Run
+job. On Cloud Run the line becomes a Cloud Logging entry that a separately
+approved log-based alerting policy could route to an email channel. Its `sent`
+state means the line was handed to the platform log collector. Cloud Logging
+removes duplicate insert IDs only at query time, so the transport is not
+replay-safe. Log-based policies are rate-limited, which is why delivery sends
+one digest per invocation.
+
+Existing hosted notification routing was inspected read-only before choosing
+this candidate. It alerts on infrastructure symptoms and does not evaluate
+source-level failure, provider backoff, overdue checks, evidence gaps or
+recovery. Wiring an automatic evidence source (original worker reports plus
+execution receipts) into a scheduled run is not part of this candidate.
+Activation details stay in the private owner draft.
+
+### Remaining delivery gates
+
+Synthetic tests with injected transports do not prove delivery. Before
+activation: approve the exact digest and alert-policy text and destination,
+approve a test delivery, add the evidence-assembly step, deploy through the
+normal release process, verify receipt and operator acknowledgement for a
+failure and a recovery, then observe five ordinary daily cycles without
+increasing provider cadence.

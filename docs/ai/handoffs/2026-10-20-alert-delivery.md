@@ -1,0 +1,83 @@
+# Disabled alert delivery candidate
+
+Implementer: Claude, October 20, 2026, on GERTKEN-PC.
+Branch: `claude/alert-delivery-candidate-20261020`.
+Base: `1c3b3ed62389c36c3d2e61db60715509cb430076` (merged PR #112).
+PR #114 (status/handoff corrections) was still open and unmerged at start;
+this branch does not depend on it.
+
+Objective: turn the merged offline preview into a disabled-by-default delivery
+candidate with durable accepted/sent/acknowledged state, idempotency,
+ambiguous-outcome handling, bounded retries, incident reopening and rollback,
+tested only with injected transports and synthetic evidence.
+
+## Read-only inspection before choosing a transport
+
+The repository had no notification transport. Hosted notification routing was
+listed read-only (channel types, policy names and condition filters; no
+addresses copied into Git). It alerts on infrastructure symptoms only and
+does not evaluate source-level failure, provider backoff, overdue checks,
+evidence gaps or recovery. Cloud Logging documentation states that insert-ID
+duplicates are removed only at query time, and log-based alerting policies are
+rate-limited. Consequences adopted in the design: one digest per invocation,
+and ambiguous outcomes are held for operator reconciliation instead of resent.
+
+## Changes
+
+- `clearparcel/datawatch/alert_delivery.py`: ledger over the existing
+  version-conditional storage backends (local file lock + hash CAS, or GCS
+  generation preconditions); states `queued`, `sending`, `sent`,
+  `retry_wait`, `exhausted`, `ambiguous`, `expired`, `acknowledged`;
+  `acknowledge`, `reconcile`, `ledger_status`; a `structured_log` transport
+  that refuses to run outside a Cloud Run job and is not replay-safe.
+- `scripts/deliver_alerts.py`: `deliver` (dry run unless an enabled private
+  configuration names a transport), `status`, `acknowledge`, `reconcile`.
+- `tests/test_alert_delivery.py`: 30 synthetic tests.
+- Runbook, README and STATUS/current-status updates.
+
+The merged preview and triage logic are reused unchanged.
+
+## Validation on GERTKEN-PC
+
+Python 3.12.10, Node v24.19.0, `WATCHTOWER_REQUIRE_NODE=1`:
+
+- `python -W error::ResourceWarning -m unittest discover -s tests -q`:
+  623 tests passed in 47.5 seconds; 3 skipped (two POSIX permission-bit tests
+  and one POSIX directory-fsync test).
+- `python -m compileall -q clearparcel tests scripts`: passed.
+- `python scripts/sync_current_status.py --check`: passed.
+- `git diff --check` (staged and unstaged): passed.
+
+Synthetic coverage: source failure and warning; provider rate limit and
+backoff; overdue checks; missing, partial and malformed reports; stale versus
+fresh recovery; repeated incidents and replays; recovery resolution and
+reopening; four concurrent invocations; an injected competing writer;
+persistent storage conflicts; malformed ledgers; transport 429 with
+`Retry-After`, exponential backoff and attempt exhaustion; definitive
+rejection; ambiguous outcomes, reconciliation and requeue; replay-safe
+transports; interrupted delivery and lease expiry; late outcomes after a sweep;
+digest size limits; acknowledgement; routing gaps; rollback and stale-queue
+expiry; CLI fail-closed behavior; diagnostic minimization.
+
+## Not done
+
+No message was sent. No route, alert policy, IAM binding, schedule, job,
+secret or production configuration changed, and no provider was polled.
+Automatic evidence assembly for a scheduled run is not implemented. Live
+delivery, acknowledgement, and five ordinary daily cycles remain open.
+
+## Shared context
+
+Memory `gis-data-watchtower` read at published revision
+`34bb01ef001eb4950fd72b8806c20098950d2461`, SHA-256
+`ec82d16ee47381f92e65976bbe38a293cb4ad8d16c28506dfec7679c6f8b630a`; the
+published branch carried the same blob. It remains historical `needs-review`
+(updated October 13, review due October 14) and does not establish current
+state. No conflicts with current evidence.
+
+## Next gate
+
+Bounded independent review of the pinned diff, then publication as a PR.
+Activation needs separate owner approvals for the exact digest and policy
+text, a test delivery, the evidence-assembly change, deployment and the alert
+policy. The private activation draft is kept outside public Git.

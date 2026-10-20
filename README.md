@@ -17,7 +17,8 @@ rollback baseline is v0.3.1; provider and publisher jobs remain on v0.3.0.
 Operators can use the [offline triage runbook](docs/operations-triage.md) to
 review saved provider-run evidence without triggering new checks or notifications.
 The [alert-routing rehearsal](docs/alert-routing.md) prepares private failure,
-overdue-check and recovery message previews; delivery remains disabled.
+overdue-check and recovery message previews, plus a durable delivery ledger
+whose transport stays disabled by default.
 The [authority reconciliation runbook](docs/monitoring-authority-reconciliation.md)
 checks supplied monitoring-approval evidence without activating sources.
 The [isolated restore rehearsal](docs/isolated-restore-rehearsal.md) exercises
