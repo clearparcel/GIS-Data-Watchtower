@@ -1,5 +1,13 @@
 # Project status
 
+## v0.3.3 provider-job release — candidate, 2026-10-20
+
+The owner approved merging the alert delivery (#115) and run-evidence (#116)
+candidates and deploying them to the daily provider job with receipts enabled
+and delivery disabled (logged dry run). A provider-job failure alert policy
+now routes job failures to the existing email channel. Dashboards and the
+publisher job are unchanged. See [the release record](docs/release-v0.3.3.md).
+
 ## Alert delivery candidate — local, disabled by default, 2026-10-20
 
 A delivery module and CLI add a durable compare-and-swap ledger over the merged
