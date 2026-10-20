@@ -11,7 +11,9 @@ from zoneinfo import ZoneInfo
 
 from clearparcel.datawatch import cli
 from clearparcel.datawatch.dispatch_guard import (
-    GUARD_OBJECT, DispatchGuardError, DispatchRefused, claim_dispatch, configured_min_hours, guard_dispatch)
+    DispatchGuardError, DispatchRefused, claim_dispatch, configured_min_hours, configured_tolerance,
+    guard_dispatch, guard_object)
+GUARD_OBJECT = guard_object("cloud")
 from clearparcel.datawatch.storage import LocalStorage, StorageConflictError
 
 T0 = datetime(2026, 10, 21, 10, 0, 4, tzinfo=timezone.utc)
@@ -29,7 +31,8 @@ class GuardTests(unittest.TestCase):
 
     def claim(self, when, **kw):
         return claim_dispatch(self.storage, min_hours=kw.pop("min_hours", 23), command="cloud-job",
-                              execution_id=kw.pop("execution_id", "exec"), now=when, **kw)
+                              execution_id=kw.pop("execution_id", "exec"), now=when,
+                              profile=kw.pop("profile", "cloud"), **kw)
 
     def runs(self):
         return json.loads((self.root / GUARD_OBJECT).read_text(encoding="utf-8"))["runs"]
@@ -47,16 +50,20 @@ class GuardTests(unittest.TestCase):
         self.assertEqual(entry["hours_since_previous"], 23.0)
         self.assertEqual([r["execution_id"] for r in self.runs()], ["exec", "next"])
 
-    def test_spacing_has_a_thirty_second_tolerance_only(self):
+    def test_spacing_has_a_bounded_start_delay_tolerance(self):
         self.claim(T0)
-        second = T0 + timedelta(hours=23) - timedelta(seconds=30)
+        second = T0 + timedelta(hours=23) - timedelta(minutes=10)
         self.claim(second)
         with self.assertRaises(DispatchRefused):
-            self.claim(second + timedelta(hours=23) - timedelta(seconds=31))
+            self.claim(second + timedelta(hours=23) - timedelta(minutes=10, seconds=1))
+        third = second + timedelta(hours=23) - timedelta(minutes=1)
+        with self.assertRaises(DispatchRefused):
+            self.claim(third, tolerance=timedelta(0))
 
     def test_spring_daylight_saving_day_run_is_not_skipped_by_scheduler_jitter(self):
-        before = datetime(2027, 3, 13, 5, 0, 3, tzinfo=CENTRAL).astimezone(timezone.utc)
-        after = datetime(2027, 3, 14, 5, 0, 1, tzinfo=CENTRAL).astimezone(timezone.utc)
+        # A slow cold start the day before and a fast one on the change day.
+        before = datetime(2027, 3, 13, 5, 4, 15, tzinfo=CENTRAL).astimezone(timezone.utc)
+        after = datetime(2027, 3, 14, 5, 0, 5, tzinfo=CENTRAL).astimezone(timezone.utc)
         self.assertLess(after - before, timedelta(hours=23))
         self.claim(before)
         self.claim(after)
@@ -96,7 +103,7 @@ class GuardTests(unittest.TestCase):
             if not calls:
                 calls.append(1)
                 claim_dispatch(LocalStorage(self.root), min_hours=23, command="cloud-job",
-                               execution_id="winner", now=T0)
+                               execution_id="winner", now=T0, profile="cloud")
                 raise StorageConflictError("raced")
             return real(name, source, version)
 
@@ -104,6 +111,29 @@ class GuardTests(unittest.TestCase):
             with self.assertRaises(DispatchRefused):
                 self.claim(T0 + timedelta(seconds=5), execution_id="loser")
         self.assertEqual([r["execution_id"] for r in self.runs()], ["winner"])
+
+    def test_profiles_keep_separate_slots(self):
+        self.claim(T0, profile="cloud")
+        self.claim(T0 + timedelta(minutes=5), profile="local")
+        with self.assertRaises(DispatchRefused):
+            self.claim(T0 + timedelta(minutes=10), profile="local")
+        self.assertEqual(guard_object(None), "runs/dispatch-guard-unassigned.json")
+        self.assertEqual(guard_object("../x"), "runs/dispatch-guard-unassigned.json")
+        self.assertEqual(self.runs()[0]["profile"], "cloud")
+
+    def test_dashboard_refresh_claims_the_slot_before_polling(self):
+        from clearparcel.datawatch import dashboard
+        config = {"_root_dir": str(self.root), "state_file": str(self.root / "state.json")}
+        env = {"WATCHTOWER_STORAGE": "local", "WATCHTOWER_STORAGE_ROOT": str(self.root),
+               "WATCHTOWER_MIN_DISPATCH_HOURS": "23"}
+        stderr = io.StringIO()
+        with patch.dict(os.environ, env), patch.object(dashboard, "check_sources", return_value={}) as check, \
+                contextlib.redirect_stderr(stderr):
+            self.assertEqual(dashboard.refresh_providers(config, "cloud"), {})
+            self.assertIsNone(dashboard.refresh_providers(config, "cloud"))
+        self.assertEqual(check.call_count, 1)
+        self.assertIn("watchtower_dispatch_refused", stderr.getvalue())
+        self.assertEqual(self.runs()[0]["command"], "dashboard-refresh")
 
     def test_history_is_bounded(self):
         for day in range(70):
@@ -119,9 +149,14 @@ class GuardTests(unittest.TestCase):
         for bad in ("abc", "0.5", "200", "nan", "inf"):
             with self.assertRaises(DispatchGuardError):
                 configured_min_hours({"WATCHTOWER_MIN_DISPATCH_HOURS": bad})
-        self.assertIsNone(guard_dispatch(lambda: self.storage, command="check", override=None, environ={}))
+        self.assertIsNone(guard_dispatch(lambda: self.storage, command="check", override=None, profile="cloud", environ={}))
         with self.assertRaises(DispatchGuardError):
-            guard_dispatch(lambda: self.storage, command="check", override="early", environ={})
+            guard_dispatch(lambda: self.storage, command="check", override="early", profile="cloud", environ={})
+        self.assertEqual(configured_tolerance({}), timedelta(minutes=10))
+        self.assertEqual(configured_tolerance({"WATCHTOWER_DISPATCH_TOLERANCE_MINUTES": "0"}), timedelta(0))
+        for bad in ("-1", "31", "nan", "x"):
+            with self.assertRaises(DispatchGuardError):
+                configured_tolerance({"WATCHTOWER_DISPATCH_TOLERANCE_MINUTES": bad})
         self.assertFalse((self.root / GUARD_OBJECT).exists())
 
 
@@ -130,7 +165,8 @@ class CliGuardTests(unittest.TestCase):
 
     def run_cli(self, root, argv, env_extra=None):
         env = {"WATCHTOWER_STORAGE": "local", "WATCHTOWER_STORAGE_ROOT": str(root),
-               "WATCHTOWER_RUN_RECEIPTS": "0", **(env_extra or {})}
+               "WATCHTOWER_RUN_RECEIPTS": "0", "WATCHTOWER_ALLOW_EXAMPLE_CONFIG": "1",
+               "WATCHTOWER_EXECUTION_PROFILE": "cloud", **(env_extra or {})}
         stdout, stderr = io.StringIO(), io.StringIO()
         result = {"overall": "ok", "counts": {}, "sources": {}}
         with patch.dict(os.environ, env), \
@@ -152,7 +188,8 @@ class CliGuardTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             code, polled, _ = self.run_cli(Path(td), ["cloud-job"], env)
             self.assertEqual((code, polled), (cli.EXIT_OK, 1))
-            code, polled, stderr = self.run_cli(Path(td), ["check", "--source", "x", "--no-save"], env)
+            code, polled, stderr = self.run_cli(
+                Path(td), ["check", "--source", "x", "--no-save", "--execution-profile", "cloud"], env)
             self.assertEqual((code, polled), (cli.EXIT_DISPATCH_REFUSED, 0))
             self.assertIn("watchtower_dispatch_refused", stderr)
             code, polled, stderr = self.run_cli(
@@ -160,6 +197,22 @@ class CliGuardTests(unittest.TestCase):
             self.assertEqual((code, polled), (cli.EXIT_OK, 1))
             self.assertIn('"override": true', stderr)
             self.assertNotIn("owner-approved recheck", stderr)
+
+    def test_placeholder_refusal_does_not_use_the_slot(self):
+        env = {"WATCHTOWER_MIN_DISPATCH_HOURS": "23", "WATCHTOWER_ALLOW_EXAMPLE_CONFIG": "0"}
+        with tempfile.TemporaryDirectory() as td:
+            code, polled, _ = self.run_cli(Path(td), ["cloud-job"], env)
+            self.assertEqual((code, polled), (cli.EXIT_TOOL_FAILURE, 0))
+            self.assertFalse((Path(td) / GUARD_OBJECT).exists())
+
+    def test_unreadable_guard_record_exits_3(self):
+        env = {"WATCHTOWER_MIN_DISPATCH_HOURS": "23"}
+        with tempfile.TemporaryDirectory() as td:
+            (Path(td) / "runs").mkdir()
+            (Path(td) / GUARD_OBJECT).write_text("{", encoding="utf-8")
+            code, polled, stderr = self.run_cli(Path(td), ["cloud-job"], env)
+            self.assertEqual((code, polled), (cli.EXIT_TOOL_FAILURE, 0))
+            self.assertIn("dispatch guard", stderr)
 
 
 if __name__ == "__main__":

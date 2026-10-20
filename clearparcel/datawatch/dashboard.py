@@ -7,6 +7,7 @@ import ipaddress
 import json
 import os
 import secrets
+import sys
 import threading
 import urllib.parse
 from zoneinfo import ZoneInfo
@@ -19,7 +20,7 @@ from clearparcel.datawatch.dashboard_templates import (
     _public_layout_v2,
 )
 
-from clearparcel.datawatch.watch import check_sources, load_history, load_state
+from clearparcel.datawatch.watch import _safe_diagnostic, check_sources, load_history, load_state
 from clearparcel.datawatch.transport import RequestDeadline
 from clearparcel.datawatch.aggregate import with_freshness
 from clearparcel.datawatch.parcel_access import access_label, load_parcel_access, statewide_access_label
@@ -864,6 +865,21 @@ def _dashboard_execution_profile(config: dict) -> str | None:
     return None
 
 
+def refresh_providers(config: dict, execution_profile) -> dict | None:
+    """A dashboard refresh polls providers, so it claims the same provider-run spacing slot first."""
+    from clearparcel.datawatch.dispatch_guard import DispatchGuardError, DispatchRefused, guard_dispatch
+    from clearparcel.datawatch.storage import backend_from_env
+    root = config.get("_root_dir") or Path(config.get("state_file", ".")).parent
+    try:
+        guard_dispatch(lambda: backend_from_env(root), command="dashboard-refresh", override=None,
+                       profile=execution_profile)
+    except (DispatchRefused, DispatchGuardError) as exc:
+        print(json.dumps({"severity": "WARNING", "message": "Dashboard refresh refused before any provider request",
+                          "watchtower_dispatch_refused": _safe_diagnostic(str(exc))}), file=sys.stderr)
+        return None
+    return check_sources(config, save=True, execution_profile=execution_profile)
+
+
 def serve(config: dict, host: str = "127.0.0.1", port: int = 8765) -> None:
     auth_password, auth_username = _dashboard_auth(config, host)
     execution_profile = _dashboard_execution_profile(config)
@@ -883,7 +899,7 @@ def serve(config: dict, host: str = "127.0.0.1", port: int = 8765) -> None:
             return
         try:
             refresh_state["last_started"] = now
-            check_sources(config, save=True, execution_profile=execution_profile)
+            refresh_providers(config, execution_profile)
         finally:
             refresh_lock.release()
 

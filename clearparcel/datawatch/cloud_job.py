@@ -73,6 +73,15 @@ def job_profile() -> str | None:
     return _resolve_execution_profile(os.environ.get("WATCHTOWER_EXECUTION_PROFILE") or "cloud")
 
 
+def preflight_cloud_job(config: dict) -> None:
+    """The cloud job's own refusals, checked before any provider-run slot is claimed."""
+    if is_placeholder_config(config) and os.environ.get("WATCHTOWER_ALLOW_EXAMPLE_CONFIG") != "1":
+        # Fail closed: the container default points at the repository example.
+        raise RuntimeError("cloud-job refuses the placeholder example configuration; pass --config with the "
+                           "deployment registry (or set WATCHTOWER_ALLOW_EXAMPLE_CONFIG=1 for a synthetic test)")
+    require_publishable_profile(config, job_profile())
+
+
 def run_cloud_job(config_path: str | Path) -> dict:
     configured = os.environ.get("WATCHTOWER_WORKDIR")
     if configured:
@@ -84,10 +93,7 @@ def run_cloud_job(config_path: str | Path) -> dict:
 
 def _run_cloud_job(config_path: str | Path, workdir: Path) -> dict:
     config = load_config(config_path)
-    if is_placeholder_config(config) and os.environ.get("WATCHTOWER_ALLOW_EXAMPLE_CONFIG") != "1":
-        # Fail closed: the container default points at the repository example.
-        raise RuntimeError("cloud-job refuses the placeholder example configuration; pass --config with the "
-                           "deployment registry (or set WATCHTOWER_ALLOW_EXAMPLE_CONFIG=1 for a synthetic test)")
+    preflight_cloud_job(config)
     workdir.mkdir(parents=True, exist_ok=True)
     storage = job_storage(config, config_path)
 

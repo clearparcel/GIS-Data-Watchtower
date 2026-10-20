@@ -28,7 +28,7 @@ def provider_edit_date(value: object) -> str | None:
     return stamp[:10] if stamp else None
 
 
-_ITEM_METADATA_STATUSES = frozenset({"ok", "unavailable", "deferred", "skipped"})
+_ITEM_METADATA_STATUSES = frozenset({"ok", "unavailable", "deferred", "skipped", "held"})
 _ISO_DAY = re.compile(r"\d{4}-\d{2}-\d{2}")
 
 
@@ -48,17 +48,9 @@ def sanitize_item_metadata(value: object) -> dict | None:
             except ValueError:
                 continue
             out[key] = day
-    for key in ("currentness_reference", "update_frequency"):
-        text = _metadata_text(value.get(key), 80)
-        if text:
-            out[key] = text
-    observed = value.get("observed_at")
-    if isinstance(observed, str) and _metadata_text(observed, 40):
-        try:
-            dt.datetime.fromisoformat(observed.replace("Z", "+00:00"))
-            out["observed_at"] = observed
-        except ValueError:
-            pass
+    if value.get("retained") is True:
+        out["retained"] = True
+    # Free text from county metadata and per-run read times stay private.
     return out
 
 
@@ -67,8 +59,7 @@ def county_metadata_dates(catalog: object) -> dict:
     meta = sanitize_item_metadata((catalog or {}).get("item_metadata") if isinstance(catalog, dict) else None)
     if not meta or meta["status"] != "ok":
         return {"publication_date": None, "content_date": None}
-    return {"publication_date": meta.get("publication_date") or meta.get("revision_date"),
-            "content_date": meta.get("content_date")}
+    return {"publication_date": meta.get("publication_date"), "content_date": meta.get("content_date")}
 
 
 def spreadsheet_text(value: object) -> str:

@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 from clearparcel.datawatch.dashboard import build_static_site, serve
-from clearparcel.datawatch.dispatch_guard import DispatchRefused
+from clearparcel.datawatch.dispatch_guard import DispatchGuardError, DispatchRefused
 from clearparcel.datawatch.watch import _EXECUTION_PROFILES, _resolve_execution_profile, _safe_diagnostic, check_sources, load_config, load_history, load_state
 
 
@@ -87,11 +87,11 @@ def build_parser() -> argparse.ArgumentParser:
 EXIT_OK, EXIT_WARN, EXIT_SOURCE_ERROR, EXIT_TOOL_FAILURE, EXIT_DISPATCH_REFUSED = 0, 1, 2, 3, 4
 
 
-def _guard(config: dict, config_path, command: str, override) -> None:
+def _guard(config: dict, config_path, command: str, override, profile) -> None:
     """Claim the provider-run slot (raises DispatchRefused) when spacing is configured."""
     from clearparcel.datawatch.cloud_job import job_storage
     from clearparcel.datawatch.dispatch_guard import guard_dispatch
-    guard_dispatch(lambda: job_storage(config, config_path), command=command, override=override)
+    guard_dispatch(lambda: job_storage(config, config_path), command=command, override=override, profile=profile)
 
 
 def _exit_code(result: dict) -> int:
@@ -162,7 +162,7 @@ def main() -> int:
             if profile and not args.no_save:
                 from clearparcel.datawatch.cloud_job import require_publishable_profile
                 require_publishable_profile(config, profile)
-            _guard(config, args.config, "check", args.override_min_interval)
+            _guard(config, args.config, "check", args.override_min_interval, profile)
             result = check_sources(config, source_filter=args.source, save=not args.no_save, execution_profile=profile)
             if profile and not args.no_save:
                 from clearparcel.datawatch.cloud_job import publish_worker_result
@@ -189,11 +189,17 @@ def main() -> int:
         if args.command == "dashboard":
             serve(config, host=args.host, port=args.port); return 0
         if args.command == "cloud-job":
-            from clearparcel.datawatch.cloud_job import run_cloud_job
-            _guard(config, args.config, "cloud-job", args.override_min_interval)
+            from clearparcel.datawatch.cloud_job import job_profile, preflight_cloud_job, run_cloud_job
+            from clearparcel.datawatch.dispatch_guard import configured_min_hours
             started_at = _utc_now()
             try:
+                if configured_min_hours() is not None or args.override_min_interval is not None:
+                    # Refuse a run that cannot poll before it uses the day's provider-run slot.
+                    preflight_cloud_job(config)
+                    _guard(config, args.config, "cloud-job", args.override_min_interval, job_profile())
                 result = run_cloud_job(args.config)
+            except DispatchRefused:
+                raise  # Refused before any provider request: no run receipt.
             except Exception:
                 _record_run_evidence(config, args.config, started_at, EXIT_TOOL_FAILURE, None)
                 raise
@@ -207,6 +213,8 @@ def main() -> int:
         return EXIT_TOOL_FAILURE
     except KeyboardInterrupt:
         return 130
+    except DispatchGuardError as exc:
+        print(f"ERROR: dispatch guard: {_safe_diagnostic(str(exc))}", file=sys.stderr); return EXIT_TOOL_FAILURE
     except DispatchRefused as exc:
         print(json.dumps({"severity": "WARNING", "message": "Watchtower provider run refused before any provider request",
                           "watchtower_dispatch_refused": _safe_diagnostic(str(exc))}), file=sys.stderr)
