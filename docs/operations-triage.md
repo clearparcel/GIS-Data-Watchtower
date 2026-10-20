@@ -4,6 +4,10 @@ Use this runbook for WT-15 before proposing operational changes. The receipt
 tool reads saved evidence only. It cannot poll a provider, modify a registry,
 change scheduling, publish state, or deliver notifications.
 
+The [October 20 historical diagnosis](operations-diagnosis-2026-10-20.md)
+correlates execution logs and persisted history for October 15–19. It identifies
+the nonzero outcomes while preserving missing-report and recovery-proof gaps.
+
 ## Correlate private evidence
 
 For each execution, retain its original receipt, image/source identity, worker
