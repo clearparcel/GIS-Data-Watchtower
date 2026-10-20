@@ -63,6 +63,16 @@ def publish_worker_result(config: dict, result: dict, profile: str, *, workdir: 
     return publish_partial(storage, str(aggregate_name), result, profile, Path(workdir))
 
 
+def job_storage(config: dict, config_path: str | Path):
+    """The storage backend a cloud job reads and writes (shared with run evidence)."""
+    return backend_from_env(config.get("_root_dir") or Path(config_path).parent.parent)
+
+
+def job_profile() -> str | None:
+    """The worker profile a cloud job runs as."""
+    return _resolve_execution_profile(os.environ.get("WATCHTOWER_EXECUTION_PROFILE") or "cloud")
+
+
 def run_cloud_job(config_path: str | Path) -> dict:
     configured = os.environ.get("WATCHTOWER_WORKDIR")
     if configured:
@@ -79,7 +89,7 @@ def _run_cloud_job(config_path: str | Path, workdir: Path) -> dict:
         raise RuntimeError("cloud-job refuses the placeholder example configuration; pass --config with the "
                            "deployment registry (or set WATCHTOWER_ALLOW_EXAMPLE_CONFIG=1 for a synthetic test)")
     workdir.mkdir(parents=True, exist_ok=True)
-    storage = backend_from_env(config.get("_root_dir") or Path(config_path).parent.parent)
+    storage = job_storage(config, config_path)
 
     versions = {}
     for key, object_name in ARTIFACTS.items():
@@ -107,7 +117,7 @@ def _run_cloud_job(config_path: str | Path, workdir: Path) -> dict:
         except FileNotFoundError:
             pass
 
-    profile = _resolve_execution_profile(os.environ.get("WATCHTOWER_EXECUTION_PROFILE") or "cloud")
+    profile = job_profile()
     require_publishable_profile(config, profile)
     result = check_sources(config, save=True, execution_profile=profile)
     if (result.get("scope") or {}).get("type") == "empty":
