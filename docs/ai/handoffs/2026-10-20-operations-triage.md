@@ -1,4 +1,4 @@
-# WT-15 offline operations triage — local candidate
+# WT-15 offline operations triage — PR candidate
 
 Implementer: Codex, October 20, 2026. Branch:
 `codex/wt-operations-triage`; base:
@@ -63,7 +63,11 @@ The reviewers did not run tests, inspect production, or independently verify
 the runtime schema or ancillary documentation changes. The correction has
 root-run regression/full-suite validation; it has not received another
 independent model review. Review does not authorize merge or deployment.
-This candidate has not been published or run through hosted CI.
+The tested application/fix commit is
+`9c20701f62429207b2f2a3d788519299cd60e269`. The owner authorized PR
+publication and hosted CI on October 20. The PR description and checks record
+the exact published head and hosted outcome; the publication-preparation
+commit changes documentation only.
 
 ## Shared context and remaining gates
 

@@ -1,6 +1,6 @@
 # Project status
 
-## Offline operations triage — local candidate, 2026-10-20
+## Offline operations triage — PR candidate, 2026-10-20
 
 An offline receipt tool classifies saved execution exits and worker reports,
 flags missing or contradictory evidence, and tracks source failure/backoff and
