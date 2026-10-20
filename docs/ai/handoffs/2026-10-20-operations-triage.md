@@ -1,5 +1,12 @@
 # WT-15 offline operations triage — merged, undeployed
 
+Subsequent status: the tool is included in the deployed v0.3.2 application.
+The [October 20 diagnosis](../../operations-diagnosis-2026-10-20.md) correlates
+the original execution headers/audits with persisted history and identifies
+the dated source failures. Full reports and formal recovery remain unverified.
+The isolated synthetic restore rehearsal also merged subsequently in PR #105.
+The candidate record below retains its original scope and remaining gates.
+
 Merge update, October 20: the owner authorized merging
 [PR #103](https://github.com/clearparcel/GIS-Data-Watchtower/pull/103) after
 hosted CI passed. Merge commit:
