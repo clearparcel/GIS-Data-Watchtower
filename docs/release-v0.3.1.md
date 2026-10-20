@@ -49,7 +49,7 @@ Later documentation receipts do not change that artifact identity.
   `786cccc200f4e27996a6983c7c05e0d034a88db22ae041360789bd511fb5e72a`.
 
 Image repository prefix:
-`us-central1-docker.pkg.dev/dark-bit-503017-j7/gis-data-watchtower/`.
+`<region>-docker.pkg.dev/<project-id>/<artifact-repository>/`.
 
 | Service | Image and immutable digest | Promoted revision | Traffic |
 |---|---|---|---|
