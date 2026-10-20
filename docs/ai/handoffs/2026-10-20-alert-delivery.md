@@ -33,7 +33,7 @@ and ambiguous outcomes are held for operator reconciliation instead of resent.
   that refuses to run outside a Cloud Run job and is not replay-safe.
 - `scripts/deliver_alerts.py`: `deliver` (dry run unless an enabled private
   configuration names a transport), `status`, `acknowledge`, `reconcile`.
-- `tests/test_alert_delivery.py`: 39 synthetic tests.
+- `tests/test_alert_delivery.py`: 43 synthetic tests.
 - Runbook, README and STATUS/current-status updates.
 
 The merged preview and triage logic are reused unchanged.
@@ -43,7 +43,7 @@ The merged preview and triage logic are reused unchanged.
 Python 3.12.10, Node v24.19.0, `WATCHTOWER_REQUIRE_NODE=1`:
 
 - `python -W error::ResourceWarning -m unittest discover -s tests -q`:
-  632 tests passed; 3 skipped (two POSIX permission-bit tests and one POSIX
+  636 tests passed; 3 skipped (two POSIX permission-bit tests and one POSIX
   directory-fsync test). Exact timing is recorded in the PR.
 - `python -m compileall -q clearparcel tests scripts`: passed.
 - `python scripts/sync_current_status.py --check`: passed.
@@ -80,6 +80,14 @@ Findings and fixes in the follow-up commit:
   digests and the ledger; runbook idempotency wording corrected for
   per-execution evidence-gap keys. Added generation-token storage,
   outcome-write failure and replay-safe attempt-limit tests.
+
+A follow-up bounded review of the fix commit `ed8fee8` (tree `59e92489`)
+confirmed those fixes and found four more, addressed in a third commit:
+freshness is now judged at the delivery clock rather than `--as-of`; an
+oversized `Retry-After` is treated as a definitive rejection instead of
+overflowing or silencing delivery; `requeue` is refused once a recovery has
+closed the incident, and ambiguous records are no longer superseded; and
+`--as-of` may lead the clock by up to two minutes.
 
 ## Not done
 

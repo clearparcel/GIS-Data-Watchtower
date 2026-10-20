@@ -100,7 +100,8 @@ def main():
             result = ledger_status(ledger)
         print(json.dumps(result, indent=2))
         return 0
-    except (OSError, ValueError, TypeError, RuntimeError, StorageConflictError) as exc:
+    except (OSError, ValueError, TypeError, RuntimeError, ArithmeticError,
+            StorageConflictError) as exc:
         detail = str(exc) if isinstance(exc, (LedgerError, ValueError)) else type(exc).__name__
         print(f"Alert delivery failed: {detail}", file=sys.stderr)
         return 2

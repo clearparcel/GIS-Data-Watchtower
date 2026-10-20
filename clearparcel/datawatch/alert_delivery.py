@@ -11,7 +11,7 @@ Ledger record states::
                       -> exhausted                   (attempts used up / rejected)
                       -> ambiguous                   (outcome unknown; held)
     queued/retry_wait -> expired                     (stale and no longer current)
-    queued/retry_wait/ambiguous -> superseded         (a recovery was accepted first)
+    queued/retry_wait -> superseded                  (a recovery was accepted first)
 
 ``accepted`` in the operations vocabulary is the durable ``queued`` record; a
 record is ``sent`` only after the transport returned a definitive hand-off; it
@@ -41,6 +41,7 @@ DEFAULT_LEDGER_NAME = "alerts/delivery-ledger.json"
 STATES = ("queued", "sending", "sent", "retry_wait", "exhausted", "ambiguous",
           "expired", "superseded", "acknowledged")
 _REASON = re.compile(r"[A-Za-z0-9 _.:-]{1,60}")
+CLOCK_SKEW = timedelta(minutes=2)
 DEFAULTS = {
     "enabled": False,
     "transport": None,
@@ -275,9 +276,9 @@ def _sweep(data: dict, at: datetime, settings: dict, current: set) -> None:
             # The claimant may have handed the digest off before stopping.
             _note(record, at, "ambiguous", reason="claim_lease_expired",
                   claim_id=record.get("claim_id"))
-        elif (record["state"] in ("queued", "retry_wait", "ambiguous")
-              and record.get("resolved_by")):
-            # Never deliver a failure after the recovery that closed it.
+        elif record["state"] in ("queued", "retry_wait") and record.get("resolved_by"):
+            # Never deliver a failure after the recovery that closed it. An
+            # ambiguous record stays for operator reconciliation instead.
             _note(record, at, "superseded", resolved_by=record["resolved_by"])
         elif (record["state"] in ("queued", "retry_wait")
               and at - _utc(record["accepted_at"]) >= max_queue):
@@ -348,12 +349,22 @@ def deliver_alerts(executions, *, expected_sources, routing, as_of, ledger: Aler
     Disabled configurations perform a read-only dry run and write nothing.
     """
     settings = normalize_config(config)
-    preview = prepare_alert_preview(executions, expected_sources=expected_sources,
-                                    routing=routing, as_of=as_of,
-                                    max_age_hours=settings["max_age_hours"])
     clock = _utc(now if now is not None else as_of)
+    evaluated_at = as_of
+    if settings["enabled"]:
+        cutoff = _utc(as_of)
+        if (cutoff - clock > CLOCK_SKEW
+                or clock - cutoff > timedelta(hours=settings["max_age_hours"])):
+            # Replaying old evidence would present historical conditions as current.
+            raise ValueError("delivery requires as_of within max_age_hours before now")
+        # Freshness is judged at the delivery clock, never at an older cutoff.
+        evaluated_at = _iso(max(clock, cutoff))
+    preview = prepare_alert_preview(executions, expected_sources=expected_sources,
+                                    routing=routing, as_of=evaluated_at,
+                                    max_age_hours=settings["max_age_hours"])
     receipt = {
-        "schema_version": 1, "as_of": as_of, "delivery_time": _iso(clock),
+        "schema_version": 1, "as_of": as_of, "evaluated_at": evaluated_at,
+        "delivery_time": _iso(clock),
         "private_evidence": True, "enabled": settings["enabled"],
         "transport": settings["transport"],
         "preview_messages": len(preview["messages"]),
@@ -382,11 +393,6 @@ def deliver_alerts(executions, *, expected_sources, routing, as_of, ledger: Aler
         raise ValueError("enabled delivery requires a ledger and an explicit transport")
     if getattr(transport, "name", None) != settings["transport"]:
         raise ValueError("transport does not match the enabled configuration")
-    evidence_age = clock - _utc(as_of)
-    if (evidence_age < timedelta(0)
-            or evidence_age > timedelta(hours=settings["max_age_hours"])):
-        # Replaying old evidence would present historical conditions as current.
-        raise ValueError("delivery requires as_of within max_age_hours before now")
     replay_safe = bool(getattr(transport, "replay_safe", False))
     claim_id = uuid.uuid4().hex
     current = {m["event_key"] for m in preview["messages"]}
@@ -444,7 +450,11 @@ def deliver_alerts(executions, *, expected_sources, routing, as_of, ledger: Aler
         retry_after = exc.retry_after_seconds
         if type(retry_after) not in (int, float) or not math.isfinite(retry_after) or retry_after < 0:
             retry_after = None
-        detail = {"reason": _reason(exc.reason), "retryable": exc.retryable,
+        retryable = exc.retryable
+        if retry_after is not None and retry_after > settings["max_queue_age_hours"] * 3600:
+            # A wait longer than the queue lifetime cannot deliver current alerts.
+            retry_after, retryable = None, False
+        detail = {"reason": _reason(exc.reason), "retryable": retryable,
                   "retry_after_seconds": retry_after}
     except Exception as exc:  # noqa: BLE001 - any unknown failure is an unknown outcome
         outcome = "ambiguous"
@@ -525,6 +535,9 @@ def reconcile(ledger: AlertLedger, event_key: str, *, resolution: str, by: str, 
         record = data["events"].get(event_key)
         if record is None or record["state"] not in ("ambiguous", "exhausted"):
             return {"reconciled": False}
+        if resolution == "requeue" and record.get("resolved_by"):
+            # Its recovery was already accepted; a late failure would mislead.
+            return {"reconciled": False, "reason": "resolved_by_recovery"}
         if resolution == "sent":
             record["sent_at"] = _iso(moment)
             _note(record, moment, "sent", reconciled_by=by)

@@ -498,11 +498,59 @@ class AlertDeliveryTests(unittest.TestCase):
     def test_enabled_delivery_refuses_replayed_or_future_evidence(self):
         transport = FakeTransport()
         for as_of, now in (("2026-10-11T12:00:00Z", "2026-10-20T12:00:00Z"),
-                           ("2026-10-20T12:00:00Z", "2026-10-20T11:59:00Z")):
+                           ("2026-10-20T12:00:00Z", "2026-10-20T11:55:00Z")):
             with self.subTest(as_of=as_of, now=now), self.assertRaises(ValueError):
                 self.deliver([err(10), run(11)], transport=transport, as_of=as_of, now=now)
         self.assertEqual(transport.digests, [])
         self.assertFalse(self.ledger_path().exists())
+
+    def test_small_clock_skew_is_tolerated(self):
+        transport = FakeTransport()
+        receipt = self.deliver([err(20)], transport=transport, as_of="2026-10-20T12:00:00Z",
+                               now="2026-10-20T11:59:00Z")
+        self.assertEqual(receipt["notification_delivery"], "handed_off")
+        self.assertEqual(receipt["evaluated_at"], "2026-10-20T12:00:00Z")
+
+    def test_lagging_as_of_is_judged_at_the_delivery_clock(self):
+        transport = FakeTransport()
+        receipt = self.deliver([err(18), run(19)], transport=transport,
+                               as_of="2026-10-19T12:00:00Z", now="2026-10-20T23:00:00Z")
+        self.assertEqual(receipt["evaluated_at"], "2026-10-20T23:00:00Z")
+        self.assertEqual([e["type"] for e in transport.digests[0]["events"]], ["check_overdue"])
+
+    def test_oversized_retry_after_is_terminal_without_overflow(self):
+        for seconds in (1e13, 30 * 86400):
+            with self.subTest(seconds=seconds):
+                ledger = AlertLedger(LocalStorage(self.root / str(int(seconds))))
+                transport = FakeTransport(DeliveryRejected("transport 429", retryable=True,
+                                                           retry_after_seconds=seconds))
+                receipt = self.deliver([err(20)], transport=transport, ledger=ledger)
+                self.assertEqual(receipt["digest"]["retryable"], False)
+                self.assertIsNone(receipt["ledger"]["transport_backoff_until"])
+                self.assertEqual(len(receipt["ledger"]["needs_operator_attention"]), 1)
+                later = self.deliver([err(20), run(20, {"other": ("warn", {}),
+                                                        "sample": ("error", {})}, hour=11)],
+                                     transport=transport, ledger=ledger,
+                                     sources=expected("sample", "other"),
+                                     now="2026-10-20T12:05:00Z")
+                self.assertEqual(later["notification_delivery"], "handed_off")
+
+    def test_recovery_closed_record_cannot_be_requeued_and_ambiguity_stays(self):
+        transport = FakeTransport(DeliveryRejected("bad destination", retryable=False))
+        failed = self.deliver([err(19)], transport=transport, as_of="2026-10-19T12:00:00Z")
+        key = failed["digest"]["event_keys"][0]
+        self.deliver([err(19), run(20)], transport=transport)
+        self.assertEqual(self.states(), {"source_error": "exhausted", "recovered": "sent"})
+        refused = reconcile(self.ledger, key, resolution="requeue", by="operator",
+                            at="2026-10-20T13:00:00Z")
+        self.assertEqual(refused, {"reconciled": False, "reason": "resolved_by_recovery"})
+        ambiguous_ledger = AlertLedger(LocalStorage(self.root / "ambiguous"))
+        unsure = FakeTransport(DeliveryAmbiguous("timeout"))
+        self.deliver([err(19)], transport=unsure, ledger=ambiguous_ledger,
+                     as_of="2026-10-19T12:00:00Z")
+        self.deliver([err(19), run(20)], transport=unsure, ledger=ambiguous_ledger)
+        states = {r["type"]: r["state"] for r in ambiguous_ledger.read()[0]["events"].values()}
+        self.assertEqual(states, {"source_error": "ambiguous", "recovered": "sent"})
 
     def test_claim_write_that_landed_but_reported_conflict_is_recognized(self):
         state = {"calls": 0}

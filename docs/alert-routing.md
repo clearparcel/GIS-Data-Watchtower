@@ -109,7 +109,7 @@ invalid input, storage conflicts or a refused transport.
 | `exhausted` | Rejected without retry, or retries used up. Operator attention required. |
 | `ambiguous` | Outcome unknown (timeout, partial write, or a claim whose lease expired). |
 | `expired` | Undelivered and no longer current after `max_queue_age_hours` (72), or abandoned by an operator. Unabandoned expiry needs operator attention. |
-| `superseded` | Not yet delivered when a recovery for the same worker/source was accepted; never sent. |
+| `superseded` | Queued or retrying when a recovery for the same worker/source was accepted; never sent. |
 | `acknowledged` | An operator recorded review of a sent, ambiguous or expired event. |
 
 ### Delivery rules
@@ -119,9 +119,10 @@ invalid input, storage conflicts or a refused transport.
   replays of the same input, and an acknowledged but continuing incident send
   nothing new. Evidence-gap keys bind the latest execution, so a gap that
   persists across runs produces one alert per affected run.
-- **Current evidence only.** Enabled delivery refuses an `--as-of` later than
-  the delivery clock or older than `max_age_hours`, so replayed history is
-  never presented as current.
+- **Current evidence only.** Enabled delivery judges freshness at the delivery
+  clock, not at `--as-of`, and refuses an `--as-of` more than two minutes ahead
+  of the clock or older than `max_age_hours`. Old evidence therefore appears as
+  overdue, never as a fresh failure or recovery.
 - **Concurrency.** Claims and outcomes are compare-and-swap writes. Only the
   invocation whose claim write succeeds sends; competing invocations reload.
   A claim write that landed but reported a conflict is recognized on retry.
@@ -137,11 +138,14 @@ invalid input, storage conflicts or a refused transport.
   invocation, never in a sleep loop: `max_attempts` (default 3), exponential
   backoff from `retry_base_minutes` (15) capped at `retry_cap_minutes` (360).
   A transport `Retry-After` is honored for the whole ledger: no event is sent
-  before it passes. Retries never trigger a provider check.
+  before it passes. A `Retry-After` longer than `max_queue_age_hours` is
+  treated as a definitive rejection (`exhausted`, operator attention).
+  Retries never trigger a provider check.
 - **Incident reopening.** Accepting a recovery marks earlier events for the
-  same worker/source `resolved_by`; any of them not yet delivered become
-  `superseded`, so a failure never arrives after its recovery. A later failure
-  has a new preview key and is delivered as a new incident.
+  same worker/source `resolved_by`; queued or retrying ones become
+  `superseded`, so a failure never arrives after its recovery. Ambiguous ones
+  stay for reconciliation, and `requeue` is refused once a recovery closed the
+  incident. A later failure has a new preview key and is a new incident.
 - **Repeat policy.** No automatic reminders. Unacknowledged sent events are
   listed by `status` for operator follow-up.
 - **Routing gaps block sending.** Events queue but are not sent while any route
