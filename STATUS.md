@@ -1,5 +1,15 @@
 # Project status
 
+## Alert-routing rehearsal — local candidate, 2026-10-20
+
+An offline preview tool prepares private email message candidates for source
+failure/warning, rate limit/backoff, overdue checks, evidence gaps and verified
+recovery. It uses original correlated reports and an explicit expected scope.
+Deterministic incident keys support delivery design but do not implement a
+delivery ledger. No transport, channel activation, notification, provider check
+or schedule change occurs. Real delivery/acknowledgement and five ordinary
+cycles remain unverified. See [the runbook](docs/alert-routing.md).
+
 ## WT-02 actual inventory reconciliation — local evidence, 2026-10-20
 
 The current 35-source registry was evaluated: 22 county-scoped parcel sources
