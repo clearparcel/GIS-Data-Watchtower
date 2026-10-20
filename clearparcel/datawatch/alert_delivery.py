@@ -54,8 +54,10 @@ DEFAULTS = {
     "max_age_hours": 36,
 }
 _INTEGER_SETTINGS = ("max_attempts", "max_messages_per_digest")
-_DURATION_SETTINGS = ("retry_base_minutes", "retry_cap_minutes", "claim_lease_minutes",
-                      "max_queue_age_hours", "max_age_hours")
+# Upper bounds keep every computed delay representable (at most 30 days).
+_DURATION_SETTINGS = {"retry_base_minutes": 43200, "retry_cap_minutes": 43200,
+                      "claim_lease_minutes": 43200, "max_queue_age_hours": 720,
+                      "max_age_hours": 720}
 
 
 class LedgerError(ValueError):
@@ -119,10 +121,11 @@ def normalize_config(config: dict | None) -> dict:
     for key in _INTEGER_SETTINGS:
         if type(merged[key]) is not int or not 1 <= merged[key] <= 100:
             raise ValueError(f"{key} must be an integer from 1 to 100")
-    for key in _DURATION_SETTINGS:
+    for key, limit in _DURATION_SETTINGS.items():
         value = merged[key]
-        if type(value) not in (int, float) or not math.isfinite(value) or value <= 0:
-            raise ValueError(f"{key} must be finite and positive")
+        if (type(value) not in (int, float) or not math.isfinite(value)
+                or not 0 < value <= limit):
+            raise ValueError(f"{key} must be positive and at most {limit}")
     if merged["retry_cap_minutes"] < merged["retry_base_minutes"]:
         raise ValueError("retry_cap_minutes must not be below retry_base_minutes")
     return merged
@@ -297,7 +300,7 @@ def _eligible(data: dict, at: datetime, replay_safe: bool, max_attempts: int) ->
         elif record["state"] == "retry_wait" and _utc(record["next_attempt_at"]) <= at:
             rows.append(record)
         elif (record["state"] == "ambiguous" and replay_safe
-              and record["attempts"] < max_attempts):
+              and record["attempts"] < max_attempts and not record.get("resolved_by")):
             # Only a transport with provider-side duplicate suppression may
             # replay an unknown outcome; others wait for operator reconciliation.
             rows.append(record)

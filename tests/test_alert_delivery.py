@@ -104,7 +104,9 @@ class AlertDeliveryTests(unittest.TestCase):
     def test_configuration_fails_closed(self):
         for bad in ({"enabled": "yes"}, {"enabled": True}, {"surprise": 1},
                     {"max_attempts": 0}, {"retry_base_minutes": float("nan")},
-                    {"retry_base_minutes": 30, "retry_cap_minutes": 10}, []):
+                    {"retry_base_minutes": 30, "retry_cap_minutes": 10},
+                    {"retry_base_minutes": 1e12, "retry_cap_minutes": 1e12},
+                    {"max_queue_age_hours": 721}, []):
             with self.subTest(config=bad), self.assertRaises(ValueError):
                 normalize_config(bad)
         with self.assertRaises(ValueError):
@@ -551,6 +553,14 @@ class AlertDeliveryTests(unittest.TestCase):
         self.deliver([err(19), run(20)], transport=unsure, ledger=ambiguous_ledger)
         states = {r["type"]: r["state"] for r in ambiguous_ledger.read()[0]["events"].values()}
         self.assertEqual(states, {"source_error": "ambiguous", "recovered": "sent"})
+
+    def test_replay_safe_transport_does_not_replay_a_recovered_failure(self):
+        transport = FakeTransport(DeliveryAmbiguous("timeout"), replay_safe=True)
+        self.deliver([err(19)], transport=transport, as_of="2026-10-19T12:00:00Z")
+        self.deliver([err(19), run(20)], transport=transport)
+        self.assertEqual([[e["type"] for e in d["events"]] for d in transport.digests],
+                         [["source_error"], ["recovered"]])
+        self.assertEqual(self.states(), {"source_error": "ambiguous", "recovered": "sent"})
 
     def test_claim_write_that_landed_but_reported_conflict_is_recognized(self):
         state = {"calls": 0}

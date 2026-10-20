@@ -33,7 +33,7 @@ and ambiguous outcomes are held for operator reconciliation instead of resent.
   that refuses to run outside a Cloud Run job and is not replay-safe.
 - `scripts/deliver_alerts.py`: `deliver` (dry run unless an enabled private
   configuration names a transport), `status`, `acknowledge`, `reconcile`.
-- `tests/test_alert_delivery.py`: 43 synthetic tests.
+- `tests/test_alert_delivery.py`: 44 synthetic tests.
 - Runbook, README and STATUS/current-status updates.
 
 The merged preview and triage logic are reused unchanged.
@@ -43,7 +43,7 @@ The merged preview and triage logic are reused unchanged.
 Python 3.12.10, Node v24.19.0, `WATCHTOWER_REQUIRE_NODE=1`:
 
 - `python -W error::ResourceWarning -m unittest discover -s tests -q`:
-  636 tests passed; 3 skipped (two POSIX permission-bit tests and one POSIX
+  637 tests passed; 3 skipped (two POSIX permission-bit tests and one POSIX
   directory-fsync test). Exact timing is recorded in the PR.
 - `python -m compileall -q clearparcel tests scripts`: passed.
 - `python scripts/sync_current_status.py --check`: passed.
@@ -88,6 +88,12 @@ oversized `Retry-After` is treated as a definitive rejection instead of
 overflowing or silencing delivery; `requeue` is refused once a recovery has
 closed the incident, and ambiguous records are no longer superseded; and
 `--as-of` may lead the clock by up to two minutes.
+
+A final bounded verification of `e40453f` (tree `80e008e4`) confirmed those
+four fixes and found two low-severity edge cases, fixed in a fourth commit:
+a replay-safe transport no longer replays an ambiguous failure that a recovery
+closed, and duration settings are bounded to 30 days so no computed delay can
+overflow.
 
 ## Not done
 
