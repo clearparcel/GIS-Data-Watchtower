@@ -1,6 +1,14 @@
 # Project status
 
-## Offline operations triage — PR candidate, 2026-10-20
+## Monitoring-authority reconciliation — PR candidate, 2026-10-20
+
+An offline evidence matcher binds county-direct parcel sources to dated
+approval/research/cadence records and flags missing, stale or conflicting
+evidence. Existing disabled sources and research holds are preserved. Receipts
+grant no activation authority. See [the reconciliation runbook](docs/monitoring-authority-reconciliation.md).
+Validation is synthetic; actual private authority records remain unreconciled.
+
+## Offline operations triage — merged, 2026-10-20 (#103)
 
 An offline receipt tool classifies saved execution exits and worker reports,
 flags missing or contradictory evidence, and tracks source failure/backoff and
@@ -9,6 +17,7 @@ See [the operations runbook](docs/operations-triage.md). Historical WT-15
 provider causes remain unresolved without their original source reports;
 WT-02 approval reconciliation, alert delivery, restore/IAM proof and five
 ordinary daily cycles remain open.
+PR #103 merged in `464a767` after its hosted CI passed; no deployment occurred.
 
 ## WT-01 county scan labels — merged, 2026-10-20 (#102)
 

@@ -1,4 +1,12 @@
-# WT-15 offline operations triage — PR candidate
+# WT-15 offline operations triage — merged, undeployed
+
+Merge update, October 20: the owner authorized merging
+[PR #103](https://github.com/clearparcel/GIS-Data-Watchtower/pull/103) after
+hosted CI passed. Merge commit:
+`464a767a303d45e5109820b92860dad5278dd17b`. Deployment remains separately gated.
+[Post-merge hosted CI](https://github.com/clearparcel/GIS-Data-Watchtower/actions/runs/39419369427)
+also passed on that exact commit.
+The candidate record below preserves its original validation/review scope.
 
 Implementer: Codex, October 20, 2026. Branch:
 `codex/wt-operations-triage`; base:

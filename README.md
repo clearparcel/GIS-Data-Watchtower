@@ -15,6 +15,8 @@ evidence. v0.2.3 is the rollback baseline.
 
 Operators can use the [offline triage runbook](docs/operations-triage.md) to
 review saved provider-run evidence without triggering new checks or notifications.
+The [authority reconciliation runbook](docs/monitoring-authority-reconciliation.md)
+checks supplied monitoring-approval evidence without activating sources.
 
 ![Live Watchtower overview with source health, county coverage, and a Minnesota county map](docs/images/watchtower-overview.png)
 
