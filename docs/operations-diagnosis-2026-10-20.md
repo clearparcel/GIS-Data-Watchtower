@@ -106,8 +106,7 @@ next evidence-matching task.
 
 Implementer: Codex. Branch: `codex/wt15-historical-diagnosis`, based on
 `82845a74a9bda160102d0cdf0b021cf3eed984c4`. Changes are documentation only;
-private evidence and diagnostic helpers are untracked. No new model review
-has run for this diagnosis.
+private evidence and diagnostic helpers are untracked.
 
 - Five execution/header/history/exit/image correlations passed local assertions.
   The three relevant runtime source files match the deployed job source.
@@ -123,3 +122,18 @@ SHA-256 `ec82d16ee47381f92e65976bbe38a293cb4ad8d16c28506dfec7679c6f8b630a`.
 It is historical `needs-review` material, updated October 13 with review due
 October 14. Direct execution evidence and current owner instructions take
 precedence.
+
+## Accepted bounded review
+
+The owner accepted an independent CCE review of base
+`82845a74a9bda160102d0cdf0b021cf3eed984c4` through diagnosis commit
+`47f8a46aa37a439073fe0508ea4b7147cb2c5ffd`. One `gpt-6-luna` medium reviewer
+reported no actionable material findings. No lead synthesis, specialist or
+Astra review ran.
+
+The review covered the supplied documentation diff and a bounded diagnostic
+summary, focusing on execution correlation, source attribution and recovery
+qualification. The reviewer did not independently inspect private original
+records, run tests or verify production. Formal recovery remains unverified.
+This subsequent review-record update does not change the diagnosis or expand
+the reviewed evidence, and grants no publication, merge or deployment authority.
