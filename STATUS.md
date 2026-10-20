@@ -1,5 +1,13 @@
 # Project status
 
+## v0.3.4 provider-job security release — candidate, 2026-10-20
+
+The owner approved rebuilding the provider job with certifi 2026.10.19
+(#119, GHSA-6q48-6c7w-9gw2) as v0.3.4, keeping the v0.3.3 receipt and
+disabled-delivery settings. Dashboards (v0.3.2) and the publisher job (v0.3.0)
+still carry the old pin and need a separate coordinated rebuild. See
+[the release record](docs/release-v0.3.4.md).
+
 ## v0.3.3 provider-job release — deployed, 2026-10-20
 
 With owner approval, #115, #116 and #117 merged and the daily provider job now
