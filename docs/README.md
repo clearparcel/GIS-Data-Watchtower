@@ -21,6 +21,8 @@ Choose the path that matches what you want to do. For the live dashboard and a c
 | [Contributing](../CONTRIBUTING.md) | Pull requests, testing, provider-use guardrails, and reporting |
 | [Configuration reference](configuration.md) | Source definitions, storage, supported options, and environment overrides |
 | [Offline operations triage](operations-triage.md) | Correlate saved run evidence, distinguish status exits, and prepare source-failure/recovery review |
+| [Offline alert-routing rehearsal](alert-routing.md) | Prepare private message candidates without delivery or activation |
+| [October 20 continuation handoff](ai/handoffs/2026-10-20-continuation.md) | Verified merge checkpoint, remaining operations gates and continuation prompt |
 | [Monitoring-authority reconciliation](monitoring-authority-reconciliation.md) | Match private source approvals and cadence evidence while preserving research holds |
 | [Isolated restore rehearsal](isolated-restore-rehearsal.md) | Exercise synthetic local aggregate restoration and concurrent publishing without production access |
 | [Processing architecture](data-watchtower-processing-architecture.md) | Data flow and separation of collector, saved observations, and dashboard |
@@ -39,7 +41,7 @@ Choose the path that matches what you want to do. For the live dashboard and a c
 | [Release policy](release-policy.md) | Versioning, evidence, and rollback expectations |
 | [Current v0.3.2 dashboard release](release-v0.3.2.md) | Private GAC query-routing correction and guarded wrapper migration |
 | [Previous v0.3.1 dashboard release](release-v0.3.1.md) | Immutable images, live verification, acceptance gaps and rollback |
-| [v0.3.0 release](release-v0.3.0.md) | Current job images and dashboard rollback baseline |
+| [v0.3.0 release](release-v0.3.0.md) | Current recorded provider/publisher job images and historical dashboard deployment |
 | [v0.2.3 release](release-v0.2.3.md) | Rollback baseline for v0.3.0 services; branding update |
 | [v0.2.2 release](release-v0.2.2.md) | Rollback baseline for the v0.3.0 job images |
 | [Current status](current-status.md) | Generated companion to authoritative [STATUS.md](../STATUS.md); do not edit directly |

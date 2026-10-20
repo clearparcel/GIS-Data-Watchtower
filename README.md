@@ -103,17 +103,19 @@ Developers can use the [documentation index](docs/README.md), [contribution guid
 
 ## Releases and project status
 
-**GIS Data Watchtower v0.3.0 is live**, deployed October 14, 2026, from
-merged source `4e4dbec`. It ships the 2026-10-13 review stack: provider
-compliance at run time, shared-state guards, public accuracy, mobile and
-accessibility work, engine hardening, and a script-hash Content-Security-Policy.
-The previous v0.2.3 release added the supplied Watchtower logo beside the
-public header title and the supplied favicon.
+**The current recorded dashboard release is v0.3.2**, deployed October 20,
+2026, from merged source `3c078d8`. Provider/publisher jobs remain on v0.3.0
+from source `4e4dbec`; their monitoring cadence was not changed by the dashboard
+releases. Dashboard rollback is v0.3.1.
+Subsequent PRs #110–112 merged diagnosis, authority evidence and offline alert
+previews without deployment or notification activation.
 The footer displays only the version number; the About section explains
 the open-source ClearParcel mission, disclaimer, and GitHub link.
 
-- **[Current production release and rollback evidence](docs/release-v0.3.0.md)** — v0.3.0 images, revisions, and acceptance
-- **[v0.2.3 release](docs/release-v0.2.3.md)** — rollback baseline
+- **[Current dashboard release](docs/release-v0.3.2.md)** — v0.3.2 deployment and bounded acceptance
+- **[Dashboard rollback release](docs/release-v0.3.1.md)** — v0.3.1 evidence
+- **[Provider/publisher release](docs/release-v0.3.0.md)** — unchanged v0.3.0 job images and acceptance
+- **[Continuation handoff](docs/ai/handoffs/2026-10-20-continuation.md)** — completed work, remaining gates and next task
 - **[Validated operational status](STATUS.md)** — current monitoring and remaining gates
 - **[GitHub releases](https://github.com/clearparcel/GIS-Data-Watchtower/releases)** — versioned summaries
 - **[Documentation index](docs/README.md)** — user guides, methodology, engineering references and dated history

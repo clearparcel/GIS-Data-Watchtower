@@ -1,4 +1,10 @@
-# Offline alert-routing candidate
+# Offline alert routing — merged PR #112
+
+Published head `e433a9d9c50e7fa33d680afc8d93aa9fee067366` merged as
+`1c3b3ed62389c36c3d2e61db60715509cb430076`. All eight PR checks passed;
+[post-merge CI](https://github.com/clearparcel/GIS-Data-Watchtower/actions/runs/39461133624)
+also passed. The [bounded review](2026-10-20-alert-routing-review.md) found no
+actionable issues in `50afe77`. No deployment or notification activation followed.
 
 Implementer: Codex, October 20, 2026.
 Branch: `codex/wt-alert-routing-rehearsal`.
@@ -27,8 +33,9 @@ blocked by Windows sandbox temporary-folder permissions; it passed when rerun
 with normal temporary-directory access. No test deadline was changed.
 
 No provider calls, hosted routing inspection, notification delivery, production
-configuration changes or deployment occurred. The next gates are bounded review,
-publication/CI, and a separately approved transport/delivery acceptance change.
+configuration changes or deployment occurred. Review, publication, merge and
+CI are complete. The next work is transport/delivery acceptance with separate
+approval before notification tests or operational activation.
 Do not equate the local preview with delivered alerts or five-cycle acceptance.
 
 Shared memory `gis-data-watchtower` was read at published revision
