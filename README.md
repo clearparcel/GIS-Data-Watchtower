@@ -14,6 +14,10 @@ The current production dashboard release is **v0.3.1**, deployed October 20, 202
 remaining acceptance gaps and rollback evidence. The dashboard rollback baseline
 is v0.3.0; provider and publisher jobs remain on v0.3.0.
 
+The private GAC selection fix is being prepared for the authorized
+[v0.3.2 release](docs/release-v0.3.2.md), including the migrated hosted wrapper;
+see the [implementation handoff](docs/ai/handoffs/2026-10-20-private-gac-selector.md).
+
 Operators can use the [offline triage runbook](docs/operations-triage.md) to
 review saved provider-run evidence without triggering new checks or notifications.
 The [authority reconciliation runbook](docs/monitoring-authority-reconciliation.md)

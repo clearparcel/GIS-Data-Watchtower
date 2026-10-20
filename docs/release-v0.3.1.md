@@ -88,8 +88,11 @@ Authenticated private acceptance used the existing operator login:
   percentage verified. It came from the exact immutable image subsequently
   promoted; no second post-promotion workbook download is claimed.
 - The separate private `/mngac?standard=parcel&county=cass` page showed an
-  empty county selector without detail. Its cause and whether it predates this
-  release were not established. Full private GAC navigation is **unverified**.
+  unselected county input without detail. The initial accessibility inspection
+  did not establish the datalist contents. Subsequent investigation found all
+  87 suggestions present and reproduced the selection loss: the retained
+  wrapper discards query parameters. The [local fix](ai/handoffs/2026-10-20-private-gac-selector.md)
+  is not deployed. Full private GAC navigation remains **unverified** in production.
 
 A bounded query for ERROR-level logs from the two new revisions returned
 zero entries. This is not proof of every route or future request. The private

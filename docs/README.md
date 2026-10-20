@@ -37,6 +37,7 @@ Choose the path that matches what you want to do. For the live dashboard and a c
 | [Google Cloud deployment](google-cloud-deployment.md) | Optional Cloud Run and storage deployment |
 | [Public dashboard hosting](public-dashboard-hosting.md) | Anonymous sanitized service, access boundaries, publication, and freshness |
 | [Release policy](release-policy.md) | Versioning, evidence, and rollback expectations |
+| [v0.3.2 release preparation](release-v0.3.2.md) | Private GAC query-routing correction and guarded wrapper migration |
 | [Current v0.3.1 dashboard release](release-v0.3.1.md) | Immutable images, live verification, acceptance gaps and rollback |
 | [v0.3.0 release](release-v0.3.0.md) | Current job images and dashboard rollback baseline |
 | [v0.2.3 release](release-v0.2.3.md) | Rollback baseline for v0.3.0 services; branding update |
