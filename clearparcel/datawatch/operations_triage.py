@@ -94,12 +94,12 @@ def triage_executions(executions: list, *, as_of: str, max_age_hours: float = 36
             gaps.append("overall_disagrees_with_sources")
         if type(code) is not int or code != {"ok": 0, "warn": 1, "error": 2}[expected]:
             gaps.append("exit_disagrees_with_report")
-        valid_report = not gaps
         row["scope"] = scope_type
         row["report_freshness"] = (
             "unknown" if generated is None or generated > now else
             "overdue" if (now - generated).total_seconds() > max_age_hours * 3600 else "fresh"
         )
+        validated_sources = []
         for sid, source in sorted(sources.items()):
             checked = _time(source.get("checked_at"))
             deferred = bool(source.get("deferred"))
@@ -127,9 +127,13 @@ def triage_executions(executions: list, *, as_of: str, max_age_hours: float = 36
                       "source_error" if status == "error" else
                       "source_warning" if status == "warn" else status}
             row["sources"].append(detail)
+            validated_sources.append((sid, status, valid_check, rate_limited, detail))
+        # Validate the entire report before changing issue history. An invalid
+        # sibling must prevent recovery regardless of source iteration order.
+        if gaps:
+            continue
+        for sid, status, valid_check, rate_limited, detail in validated_sources:
             key = (worker, sid)
-            if not valid_report:
-                continue
             if status in ("warn", "error"):
                 unresolved[key] = {"worker": worker, "source_id": sid, "execution_id": run,
                                    "status": status, "reason": detail["reason"]}
@@ -138,7 +142,7 @@ def triage_executions(executions: list, *, as_of: str, max_age_hours: float = 36
                 previous = unresolved.pop(key)
                 events.append({"type": "recovered", "worker": worker, "source_id": sid,
                                "execution_id": run, "previous_execution_id": previous["execution_id"],
-                               "checked_at": source["checked_at"]})
+                               "checked_at": detail["checked_at"]})
     return {"schema_version": 1, "as_of": as_of, "private_evidence": True,
             "evidence_complete": bool(rows) and all(not r["evidence_gaps"] for r in rows),
             "executions": rows, "events": events,

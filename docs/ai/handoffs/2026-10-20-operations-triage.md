@@ -21,12 +21,12 @@ runbook. It does not close the entire operations work package.
   configuration dependency is introduced.
 
 Implementation: `operations_triage.py`, `scripts/triage_provider_runs.py`,
-12 synthetic/CLI tests, operations runbook and synchronized status/index docs.
+13 synthetic/CLI tests, operations runbook and synchronized status/index docs.
 WT-01 documentation now records the authorized merge and successful main CI.
 
 ## Validation
 
-Final local strict suite: **553 tests, 3 platform skips, 29.846 seconds, exit 0**,
+After review correction, local strict suite: **554 tests, 3 platform skips, 28.202 seconds, exit 0**,
 Python 3.14.6, Node 24.19.0, `WATCHTOWER_REQUIRE_NODE=1`.
 Compilation, status-sync check and `git diff --check` passed.
 The first focused run hit a Windows sandbox tempfile access error; the rerun
@@ -44,8 +44,25 @@ All five lack original per-source worker reports in the supplied evidence;
 the tool returns 1 and retains those gaps. No new provider check was run.
 These historical outcomes do not establish current production health.
 
-No independent model review of this new candidate has run. It is recommended
-for the fail-closed evidence/recovery rules and will run only if accepted.
+## Accepted independent review and correction
+
+The owner accepted a bounded CCE review of application/script/tests/runbook
+changes from `5af87ef0e234c29d987c5443310b8086bfb3bc6c` to
+`56a7b657209e4fb3d6f4f7cc2061baded8370bd7`. CCE ran a `gpt-6-luna`
+medium worker and `gpt-6.1-sol` medium lead synthesis. No specialist or Astra
+review ran. The worker reported uncertainty; the lead found one concrete P2.
+
+**Fixed:** report validity was captured before validating individual sources.
+An invalid sibling source could therefore coexist with a recovery event that
+cleared an earlier issue. Validation now completes for every source before any
+issue-history change. A regression reproduced four failures on the reviewed
+application (valid/invalid source order and success/error outcomes) and passes
+with the fix. Valid recovery remains covered by the existing sequence test.
+
+The reviewers did not run tests, inspect production, or independently verify
+the runtime schema or ancillary documentation changes. The correction has
+root-run regression/full-suite validation; it has not received another
+independent model review. Review does not authorize merge or deployment.
 This candidate has not been published or run through hosted CI.
 
 ## Shared context and remaining gates

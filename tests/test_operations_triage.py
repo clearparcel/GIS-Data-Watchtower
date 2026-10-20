@@ -94,6 +94,21 @@ class OperationsTriageTests(unittest.TestCase):
                 self.assertFalse(result["evidence_complete"])
                 self.assertEqual(len(result["unresolved_sources"]), 1)
 
+    def test_invalid_sibling_blocks_all_events_regardless_of_source_order(self):
+        for sibling in ("aaa", "zzz"):
+            for status in ("ok", "error"):
+                with self.subTest(sibling=sibling, status=status):
+                    later = execution(19, status)
+                    later["report"]["sources"][sibling] = {"status": status}
+                    later["report"]["counts"][status] = 2
+                    result = self.triage([execution(16, "error"), later])
+                    self.assertFalse(result["evidence_complete"])
+                    self.assertEqual([e["execution_id"] for e in result["events"]],
+                                     ["synthetic-16"])
+                    self.assertEqual(len(result["unresolved_sources"]), 1)
+                    self.assertEqual(result["unresolved_sources"][0]["execution_id"],
+                                     "synthetic-16")
+
     def test_fresh_report_does_not_refresh_deferred_source(self):
         result = self.triage([execution(20, "warn", checked_at="2026-10-15T10:00:00Z",
                                        deferred={"reason": "provider-rate-limit"})])
