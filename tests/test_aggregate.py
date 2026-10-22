@@ -53,5 +53,37 @@ class MergeTests(unittest.TestCase):
             merge(state, report(10, {"a": "ok"}), "local")
 
 
+class AggregateOverviewAlertTests(unittest.TestCase):
+    """The private overview must not report an all-clear from aggregate state."""
+
+    def render(self, state):
+        import tempfile
+        from pathlib import Path
+        from clearparcel.datawatch.dashboard_views import render_dashboard
+        with tempfile.TemporaryDirectory() as tmp:
+            return render_dashboard({"_render_state": state, "state_file": str(Path(tmp) / "state.json"),
+                                     "history_file": str(Path(tmp) / "history.jsonl")})
+
+    def test_aggregate_without_alert_data_is_unavailable_not_all_clear(self):
+        state = merge({}, report(0, {"a": "ok", "b": "warn", "c": "error"}), "cloud")
+        self.assertNotIn("active_alerts", state)
+        page = self.render(state)
+        self.assertIn("Alert status unavailable.", page)
+        self.assertNotIn("No active alerts.", page)
+        self.assertNotIn("No current Watchtower alert requires attention.", page)
+
+    def test_explicit_empty_alert_list_is_still_all_clear(self):
+        state = merge({}, report(0, {"a": "ok"}), "cloud")
+        page = self.render({**state, "active_alerts": []})
+        self.assertIn("No active alerts.", page)
+        self.assertNotIn("Alert status unavailable.", page)
+
+    def test_reported_alerts_are_listed(self):
+        state = merge({}, report(0, {"c": "error"}), "cloud")
+        page = self.render({**state, "active_alerts": [{"source": "c", "severity": "error", "message": "Check failed"}]})
+        self.assertIn("Check failed", page)
+        self.assertNotIn("Alert status unavailable.", page)
+
+
 if __name__ == "__main__":
     unittest.main()

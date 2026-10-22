@@ -18,7 +18,11 @@ def render_dashboard(config: dict) -> str:
     state = _dashboard._dashboard_state(config)
     sources = state.get("sources", {})
     counts = state.get("counts", {})
-    alerts = state.get("active_alerts", [])
+    # The hybrid aggregate carries no alert list, so a missing key means alert
+    # status is unknown; only an explicit empty list may be shown as all clear.
+    alerts = state.get("active_alerts")
+    if not isinstance(alerts, list):
+        alerts = None
     config_map = _dashboard._source_config_map(config)
     enriched = []
     changed_30 = 0
@@ -67,6 +71,8 @@ def render_dashboard(config: dict) -> str:
             f'<p class="{_dashboard._status_class(a.get("severity","warn"))}"><strong>{_dashboard._esc(a.get("name") or a.get("source"))}</strong> — {_dashboard._esc(a.get("message"))}</p>'
             for a in alerts
         ) + "</div><br>"
+    elif alerts is None:
+        body += '<div class="card" id="alerts"><h2>Active alerts</h2><p class="unknown"><strong>Alert status unavailable.</strong></p><span class="subtext">This dashboard data does not include alert status, so it cannot confirm that no alert needs attention. Review the source issues above.</span></div><br>'
     else:
         body += '<div class="card" id="alerts"><h2>Active alerts</h2><p class="ok"><strong>No active alerts.</strong></p><span class="subtext">No current Watchtower alert requires attention.</span></div><br>'
     rows = []
