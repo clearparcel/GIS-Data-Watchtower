@@ -20,15 +20,18 @@ catalog reads each county's ArcGIS item metadata dates (never for
 hold-for-terms counties). Public and private acceptance passed; no provider
 was polled. See [the release record](docs/release-v0.3.6.md).
 
-## Provider-run spacing guard and county metadata dates — merged, 2026-10-20
+## Provider-run spacing guard and county metadata dates — deployed in v0.3.6, 2026-10-20
 
-Two owner-requested changes, not deployed. `WATCHTOWER_MIN_DISPATCH_HOURS`
+Two owner-requested changes, merged and deployed October 20 in v0.3.6.
+`WATCHTOWER_MIN_DISPATCH_HOURS`
 makes the owner-approved 23-hour minimum between provider runs a technical
 control: every `cloud-job`, `check` and private-dashboard refresh claims a
 per-profile compare-and-swap slot before any provider request, and an early
-run exits 4 unless it records an override reason. A 10-minute start-delay
-tolerance keeps the spring daylight-saving run (23 elapsed hours) from being
-skipped. The MnGeo county catalog can also read each county's own
+run exits 4 unless it records an override reason. The start-delay
+tolerance defaults to 10 minutes, which keeps the spring daylight-saving run
+(23 elapsed hours) from being skipped; production sets it to zero, so that
+run is skipped (see the v0.3.6 entry above). The MnGeo county catalog can
+also read each county's own
 ArcGIS item metadata (`item_metadata: true`, never for hold-for-terms
 counties), so dashboards show the county's
 metadata publication and content dates beside MnGeo's acquisition date, now

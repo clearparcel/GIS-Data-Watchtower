@@ -1,9 +1,9 @@
 # Versioning and release policy
 
-The current recorded production release is **v0.3.5**, deployed October 20
-to both dashboards and both jobs (see the [release record](release-v0.3.5.md)).
-Dashboard rollback targets are the v0.3.2 revisions; job rollback targets are
-listed in the same record. Older release records are in the
+The current recorded production release is **v0.3.6**, deployed October 20
+to both dashboards and both jobs (see the [release record](release-v0.3.6.md)).
+Rollback targets are the v0.3.5 dashboard revisions and job image, listed in
+the same record. Older release records are in the
 [archive](README.md#historical-engineering-and-release-records). Daily cloud
 provider polling was separately approved and activated on October 10;
 application publication does not reschedule it. Future runtime changes
