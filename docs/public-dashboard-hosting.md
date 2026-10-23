@@ -89,6 +89,10 @@ The public dashboard refreshes its local aggregate cache on a bounded interval (
 - Preserve the sanitized-state regression tests before deployment.
 - Treat any addition to the public state schema as a security-sensitive change.
 
+## Brand assets
+
+Hosted public pages load the logo and favicon images from fixed, content-hashed URLs such as `/assets/watchtower-logo-<sha12>.webp` instead of embedding base64 copies in every HTML response (about 77 KB less per page). These responses are served before the snapshot refresh, carry `Cache-Control: public, max-age=31536000, immutable` and an `ETag`, and answer HEAD and `If-None-Match`. Only the packaged images in `brand_assets._ASSETS` are served; any other `/assets/` path, including an outdated hash, returns 404. Replacing an image changes its URL, so cached copies never go stale. Offline static exports (`build_static_site`) and the private dashboard still embed the images so they work without the hosted routes.
+
 ## Public request socket limits
 
 The public server limits concurrent handlers and gives each accepted connection an idle socket timeout plus an absolute socket deadline. `WATCHTOWER_PUBLIC_REQUEST_TIMEOUT_SECONDS` defaults to 10 seconds, is bounded to 2–60 seconds, and falls back to 10 for malformed values. The absolute deadline interrupts incomplete or trickling request headers and blocking response writes, releasing the connection slot after the handler unwinds. Timers are cancelled and joined on completion. This does not cancel application computation; keep load-balancer limits as well. These are repository implementation controls, not a claim that a production service has been redeployed.

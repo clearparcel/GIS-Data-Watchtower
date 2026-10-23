@@ -11,9 +11,9 @@ ASSETS = Path(__file__).resolve().parents[1] / "clearparcel" / "datawatch"
 
 
 class WatchtowerBrandingTests(unittest.TestCase):
-    def test_shared_favicon_assets_on_public_and_private_pages(self):
+    def test_embedded_favicon_assets_on_private_pages_and_offline_exports(self):
         for static in (False, True):
-            page = _layout("GIS Data Watchtower", "<p>test</p>", static=static, refresh_seconds=0)
+            page = _layout("GIS Data Watchtower", "<p>test</p>", static=static, static_bundle=static, refresh_seconds=0)
             for size in (16, 32):
                 with self.subTest(static=static, size=size):
                     pattern = r'<link rel="icon" type="image/png" sizes="' + str(size) + r'x' + str(size) + r'" href="data:image/png;base64,([^"]+)">'
@@ -25,9 +25,9 @@ class WatchtowerBrandingTests(unittest.TestCase):
                     self.assertEqual(struct.unpack(">II", decoded[16:24]), (size, size))
 
     def test_public_header_contains_accessible_home_link_and_logo(self):
-        page = _layout("GIS Data Watchtower", "<p>test</p>", static=True, refresh_seconds=0)
+        page = _layout("GIS Data Watchtower", "<p>test</p>", static=True, static_bundle=True, refresh_seconds=0)
         header = page.split('<header class="public-header">', 1)[1].split("</header>", 1)[0]
-        self.assertIn('<a class="public-brand" href="/" aria-label="GIS Data Watchtower overview">', header)
+        self.assertIn('<a class="public-brand" href="index.html" aria-label="GIS Data Watchtower overview">', header)
         self.assertIn('alt="GIS Data Watchtower logo"', header)
         self.assertIn('Minnesota Open Data Watchtower</h1>', header)
         self.assertLess(header.index('class="public-brand-logo"'), header.index("<h1>"))

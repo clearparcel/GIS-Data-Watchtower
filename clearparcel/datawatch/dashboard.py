@@ -26,6 +26,7 @@ from clearparcel.datawatch.aggregate import with_freshness
 from clearparcel.datawatch.parcel_access import access_label, load_parcel_access, statewide_access_label
 from clearparcel.datawatch.public_values import safe_public_url
 from clearparcel.datawatch.csp import secure_html, strip_markers
+from clearparcel.datawatch.brand_assets import dispatch_brand_asset
 from clearparcel.datawatch.county_profile_panel import render_county_profile_body, percentage_patterns, research_summary
 from clearparcel.datawatch.county_profile_exports import county_profiles_csv, parcel_sources_csv
 from clearparcel.datawatch.county_profiles import FreshnessPolicy, compose_county_profiles, county_profile_counts
@@ -963,6 +964,8 @@ def serve(config: dict, host: str = "127.0.0.1", port: int = 8765) -> None:
             if self._require_auth():
                 return
             parsed = urllib.parse.urlparse(self.path)
+            if dispatch_brand_asset(self, parsed.path):
+                return
             if parsed.path == "/":
                 return self._send(200, render_dashboard(config))
             if dispatch_snapshot_exports(

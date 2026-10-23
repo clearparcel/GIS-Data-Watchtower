@@ -1,27 +1,21 @@
 from __future__ import annotations
 from clearparcel.datawatch.csp import SCRIPT_TAG
 
-import base64
 import html
 import re
-from pathlib import Path
 
 from clearparcel.datawatch.build_info import application_identity
 from clearparcel.datawatch.analytics import posthog_html
+from clearparcel.datawatch.brand_assets import asset_src, favicon_html
 
 
 def _esc(value) -> str:
     return html.escape(str(value if value is not None else ""))
 
 
-def _favicon_html() -> str:
-    """Embed packaged icons so private pages and offline exports share the favicon."""
-    return "".join(
-        f'<link rel="icon" type="image/png" sizes="{size}x{size}" href="data:image/png;base64,'
-        + base64.b64encode(Path(__file__).with_name(f"favicon-{size}.png").read_bytes()).decode("ascii")
-        + '">'
-        for size in (16, 32)
-    )
+def _favicon_html(*, hosted: bool = False) -> str:
+    """Packaged icons: embedded for private pages and offline exports, hosted URLs for the public site."""
+    return favicon_html(hosted=hosted)
 
 
 _PUBLIC_V2_CSS = """
@@ -283,8 +277,10 @@ def _public_layout_v2(title: str, body: str, *, refresh_seconds: int = 30, publi
     identity = application_identity()
     build_label = identity["revision"][:7] or "unknown"
     release_label = f'v{identity["version"]}' if identity["version"] != "unknown" else "Version unavailable"
-    logo_src = "data:image/png;base64," + base64.b64encode(Path(__file__).with_name("clearparcel-logo-transparent.png").read_bytes()).decode("ascii")
-    watchtower_logo_src = "data:image/webp;base64," + base64.b64encode(Path(__file__).with_name("watchtower-logo.webp").read_bytes()).decode("ascii")
+    # Offline bundles must stand alone; the hosted site serves cacheable images instead.
+    hosted = not static_bundle
+    logo_src = asset_src("clearparcel-logo", hosted=hosted)
+    watchtower_logo_src = asset_src("watchtower-logo", hosted=hosted)
     brand_href = "index.html" if static_bundle else "/"
     lower = title.lower()
     active = "mngac" if "gac" in lower else "sources" if "source" in lower else "counties" if "county" in lower or "counties" in lower else "overview"
@@ -335,7 +331,7 @@ def _public_layout_v2(title: str, body: str, *, refresh_seconds: int = 30, publi
     )
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-{_favicon_html()}{refresh_meta}{analytics_script}<title>{_esc(title)}</title><style>{_PUBLIC_V2_CSS}{_TABLE_CSS}</style></head><body>
+{_favicon_html(hosted=hosted)}{refresh_meta}{analytics_script}<title>{_esc(title)}</title><style>{_PUBLIC_V2_CSS}{_TABLE_CSS}</style></head><body>
 <a class="skip-link" href="#main-content">Skip to content</a>
 <header class="public-header">
   <a class="public-brand" href="{brand_href}" aria-label="GIS Data Watchtower overview">
