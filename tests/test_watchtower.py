@@ -1,6 +1,7 @@
 import json
 import os
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -428,7 +429,8 @@ class DataWatchTests(unittest.TestCase):
             )
             files = {path.name for path in output.iterdir() if path.is_file()}
             encoded_filename = "source-" + quote(complex_id, safe="") + ".html"
-            self.assertEqual(files, {"index.html", encoded_filename, "state.json"})
+            self.assertEqual(files, {"index.html", encoded_filename, "state.json",
+                                     ".watchtower-static-manifest.json"})
             parsed_pages = {}
             for page in output.glob("*.html"):
                 parser = LinksAndIds()
@@ -872,6 +874,110 @@ class DataWatchTests(unittest.TestCase):
         self.assertNotIn('secret-old', json.dumps(public))
         self.assertEqual(datawatch_dashboard._status_class(state['overall']), 'unknown')
         self.assertEqual(datawatch_dashboard._status_class(state['sources']['a']['status']), 'unknown')
+
+    def _static_build(self, root: Path, sources: dict, output: Path) -> dict:
+        state = root / "state.json"
+        state.write_text(json.dumps({"schema_version": 2, "counts": {}, "sources": sources}), encoding="utf-8")
+        return datawatch_dashboard.build_static_site(
+            {"state_file": str(state), "history_file": str(root / "history.jsonl")}, output)
+
+    def test_static_export_applies_typed_public_projection_to_nested_values(self):
+        state = {
+            "schema_version": 2, "overall": "ok",
+            "counts": {"ok": {"private_registry": "SYNTHETIC_CANARY"}, "warn": 1},
+            "sources": {"safe": {"name": {"token": "SYNTHETIC_CANARY"}, "provider": ["SYNTHETIC_CANARY"],
+                                 "worker": "private-host-canary", "status": "ok",
+                                 "feature_count": {"n": "SYNTHETIC_CANARY"}, "health": {"x": "SYNTHETIC_CANARY"},
+                                 "reporting": "SYNTHETIC_CANARY", "stale": "SYNTHETIC_CANARY"},
+                        "known": {"name": "Known", "worker": "cloud", "status": "ok", "stale": False,
+                                  "health": "healthy", "reporting": "current", "changes": []}},
+        }
+        with tempfile.TemporaryDirectory() as td:
+            result = datawatch_dashboard.build_static_site({"_render_state": state}, td)
+            self.assertEqual(result["source_count"], 2)
+            for path in Path(td).iterdir():
+                text = path.read_text(encoding="utf-8")
+                self.assertNotIn("SYNTHETIC_CANARY", text, path.name)
+                self.assertNotIn("private-host-canary", text, path.name)
+            public = json.loads((Path(td) / "state.json").read_text(encoding="utf-8"))
+        self.assertEqual(public["counts"], {"warn": 1})
+        safe = public["sources"]["safe"]
+        for key in ("name", "provider", "worker", "feature_count"):
+            self.assertNotIn(key, safe)
+        self.assertIsNone(safe["change_count"])
+        self.assertIn(safe.get("reporting"), (None, "current", "stale"))
+        self.assertIn(safe.get("health"), (None, "healthy", "unhealthy", "unknown"))
+        self.assertEqual(public["sources"]["known"]["worker"], "cloud")
+        self.assertEqual(public["sources"]["known"]["change_count"], 0)
+        # Freshness flags are recomputed from check times; they stay typed.
+        self.assertIs(type(public["sources"]["known"]["stale"]), bool)
+        self.assertEqual(public["sources"]["known"]["health"], "healthy")
+        self.assertIn(public["sources"]["known"]["reporting"], ("current", "stale"))
+        api = datawatch_dashboard._sanitize_public_state(state)
+        self.assertNotIn("SYNTHETIC_CANARY", json.dumps(api))
+        self.assertNotIn("private-host-canary", json.dumps(api))
+
+    def test_static_export_unknown_change_count_is_not_zero(self):
+        with tempfile.TemporaryDirectory() as td:
+            datawatch_dashboard.build_static_site(
+                {"_render_state": {"sources": {"a": {"name": "A", "status": "ok"}}}}, td)
+            public = json.loads((Path(td) / "state.json").read_text(encoding="utf-8"))
+            detail = (Path(td) / "source-a.html").read_text(encoding="utf-8")
+        self.assertIsNone(public["sources"]["a"]["change_count"])
+        self.assertIn("Changes found this check:</strong> —", detail)
+
+    def test_static_rebuild_retires_removed_and_renamed_source_pages_only(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            output = root / "site"
+            self._static_build(root, {"retired": {"name": "R", "status": "ok"},
+                                      "old-id": {"name": "Renamed", "status": "ok"}}, output)
+            (output / "notes.txt").write_text("operator file", encoding="utf-8")
+            (output / "source-handmade.html").write_text("not generated", encoding="utf-8")
+            result = self._static_build(root, {"new-id": {"name": "Renamed", "status": "ok"}}, output)
+            names = {path.name for path in output.iterdir()}
+            self.assertEqual(result["retired_pages"], 2)
+            self.assertNotIn("source-retired.html", names)
+            self.assertNotIn("source-old-id.html", names)
+            self.assertIn("source-new-id.html", names)
+            self.assertIn("notes.txt", names)
+            self.assertIn("source-handmade.html", names)
+            self._static_build(root, {}, output)
+            self.assertNotIn("source-new-id.html", {path.name for path in output.iterdir()})
+
+    def test_static_rebuild_after_interrupted_build_still_retires_its_pages(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            output = root / "site"
+            self._static_build(root, {"kept": {"name": "K", "status": "ok"}}, output)
+            real_layout = datawatch_dashboard._layout
+            calls = []
+
+            def interrupted(*args, **kwargs):
+                calls.append(1)
+                if len(calls) == 2:
+                    raise OSError("synthetic interruption")
+                return real_layout(*args, **kwargs)
+
+            with patch.object(datawatch_dashboard, "_layout", interrupted):
+                with self.assertRaises(OSError):
+                    self._static_build(root, {"added": {"name": "A", "status": "ok"},
+                                              "kept": {"name": "K", "status": "ok"}}, output)
+            self.assertTrue((output / "source-added.html").exists())
+            self._static_build(root, {}, output)
+            self.assertEqual({path.name for path in output.glob("source-*.html")}, set())
+
+    def test_static_manifest_cannot_name_paths_outside_the_output(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            output = root / "site"
+            output.mkdir()
+            (root / "source-outside.html").write_text("keep", encoding="utf-8")
+            (output / ".watchtower-static-manifest.json").write_text(json.dumps(
+                {"source_pages": ["../source-outside.html", "/etc/passwd", "index.html", 7]}), encoding="utf-8")
+            self._static_build(root, {}, output)
+            self.assertTrue((root / "source-outside.html").exists())
+            self.assertTrue((output / "index.html").exists())
 
     def test_security_content_length_validation(self):
         self.assertEqual(datawatch_dashboard._validated_content_length('0'), 0)
