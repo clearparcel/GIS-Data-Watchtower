@@ -42,6 +42,7 @@ from clearparcel.datawatch.public_values import sanitize_source_metadata
 from clearparcel.datawatch.build_info import application_identity
 from clearparcel.datawatch.gac_standards import normalize_standard_key, standard_field_counts
 from clearparcel.datawatch.analytics import posthog_csp_sources
+from clearparcel.datawatch.brand_assets import dispatch_brand_asset
 from clearparcel.datawatch.csp import secure_html, strip_markers
 from clearparcel.datawatch.dashboard_summary import summary_for, render_diagnostics
 from clearparcel.datawatch.public_details import dispatch_public_details, encode_response
@@ -641,6 +642,9 @@ def serve_public(host: str = "0.0.0.0", port: int = 8080) -> None:
 
         def do_GET(self):
             parsed = urllib.parse.urlparse(self.path)
+            # Brand images are packaged with the app, so they never wait on storage.
+            if dispatch_brand_asset(self, parsed.path):
+                return
             if parsed.path == "/healthz":
                 try:
                     cache.refresh()

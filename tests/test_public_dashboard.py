@@ -80,7 +80,7 @@ class PublicDashboardTests(unittest.TestCase):
         self.assertIn('Open parcel data', index)
         self.assertNotIn('Free parcel data', index)
         self.assertIn('href="https://clear-parcel.com"', page)
-        self.assertIn('src="data:image/png;base64,', page)
+        self.assertIn('src="/assets/clearparcel-logo-', page)
         self.assertIn('<strong>Records:</strong> 42,996', county_page)
         self.assertIn('Official evidence and findings', county_page)
         self.assertIn('Read detailed research notes', county_page)

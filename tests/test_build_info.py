@@ -42,7 +42,9 @@ class BuildIdentityTests(unittest.TestCase):
 
     def test_footer_uses_transparent_png_logo(self):
         page = _public_layout_v2("Watchtower", "")
-        self.assertIn("data:image/png;base64,", page)
+        self.assertRegex(page, r'<img src="/assets/clearparcel-logo-[0-9a-f]{12}\.png" alt="ClearParcel"')
+        bundle = _public_layout_v2("Watchtower", "", static_bundle=True)
+        self.assertIn('<img src="data:image/png;base64,', bundle)
 
     def test_missing_or_invalid_metadata_does_not_invent_a_build(self):
         with tempfile.TemporaryDirectory() as folder:
