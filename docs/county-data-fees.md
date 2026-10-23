@@ -61,16 +61,18 @@ County responses so far:
 - **Aitkin (2026-10-23):** the county GIS coordinator said the county does
   not charge for GIS data. Recorded as no fee, including REST download, for
   all three layers; the reply was one statement, not layer by layer.
+- **Becker (2026-10-23):** the county confirmed all data on its GIS data
+  download page is free with no license terms. Recorded as no fee for all
+  three layers; the route is a file download page, not a REST service.
 - **Brown (2026-10-23):** the county GIS office said its parcel REST service
-  is no longer public or authoritative. Parcel data is available only by
-  signed request. The 2025-effective fee schedule (IT section) lists a
-  complete parcel dataset at $697, partial parcels at $0.04 each ($20
-  minimum) plus the service fee, street centerlines at $500, rural address
-  points at $300 (cities not included) and professional service at $75/hour.
-  These figures are being confirmed with the county. The parcel-access
-  research record and the private source registry still describe the
-  earlier REST service and need a separate owner-approved update.
-
+  is no longer public or authoritative; data comes only by signed data
+  request and disclosure form. The county confirmed its 2025-effective fee
+  schedule figures: complete parcel dataset $697, partial parcels $0.04 each
+  ($20 minimum) plus the service fee, street centerlines $500, rural address
+  points $300 (cities not included) and professional service $75/hour. It
+  expects fee changes in the new year. The parcel-access research record and
+  the private source registry still describe the earlier REST service and
+  need a separate owner-approved update.
 - **Carver (2026-10-23):** the county IT office said there are no fees for
   parcel, address point or road centerline REST services, and no license or
   attribution terms apply. Recorded as no fee, including REST download, for

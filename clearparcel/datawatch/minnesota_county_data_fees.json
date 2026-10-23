@@ -38,6 +38,41 @@
       }
     },
     {
+      "county": "Becker",
+      "layers": {
+        "parcels": {
+          "fee_status": "no-fee",
+          "rest_download": "no-fee",
+          "amount": null,
+          "product": null,
+          "source_kind": "county-response",
+          "source_url": "https://www.beckercountymn.gov/online_services/GIS_data.aspx",
+          "source_date": "2026-10-23",
+          "note": "The county confirmed that all data on its GIS data download page is free with no license terms. This is a file download page, not a REST service."
+        },
+        "address_points": {
+          "fee_status": "no-fee",
+          "rest_download": "no-fee",
+          "amount": null,
+          "product": null,
+          "source_kind": "county-response",
+          "source_url": "https://www.beckercountymn.gov/online_services/GIS_data.aspx",
+          "source_date": "2026-10-23",
+          "note": "The county confirmed that all data on its GIS data download page is free with no license terms. This is a file download page, not a REST service."
+        },
+        "road_centerlines": {
+          "fee_status": "no-fee",
+          "rest_download": "no-fee",
+          "amount": null,
+          "product": null,
+          "source_kind": "county-response",
+          "source_url": "https://www.beckercountymn.gov/online_services/GIS_data.aspx",
+          "source_date": "2026-10-23",
+          "note": "The county confirmed that all data on its GIS data download page is free with no license terms. This is a file download page, not a REST service."
+        }
+      }
+    },
+    {
       "county": "Blue Earth",
       "layers": {
         "parcels": {
@@ -73,27 +108,27 @@
           "source_kind": "county-response",
           "source_url": "https://www.browncountymn.gov/DocumentCenter/View/502/Fee-Schedule-PDF",
           "source_date": "2026-10-23",
-          "note": "The county GIS office said on 2026-10-23 that its parcel REST service is no longer public or authoritative and is not covered by the fee schedule; parcel data is available only by signed request, with time billed case by case. Amounts are from the IT section of the 2025-effective fee schedule and are being confirmed with the county."
+          "note": "The county GIS office said on 2026-10-23 that its parcel REST service is no longer public or authoritative and is not covered by the fee schedule; parcel data comes only by signed request. The county confirmed these figures on 2026-10-23 and expects fee schedule changes in the new year. Access is by signed data request and disclosure form only; the county supplies the form by email."
         },
         "road_centerlines": {
           "fee_status": "fee",
-          "rest_download": "unconfirmed",
+          "rest_download": "not-offered",
           "amount": "$500",
           "product": "Street centerline shapefile (signed data disclosure)",
-          "source_kind": "published-fee-schedule",
+          "source_kind": "county-response",
           "source_url": "https://www.browncountymn.gov/DocumentCenter/View/502/Fee-Schedule-PDF",
           "source_date": "2026-10-23",
-          "note": "Published in the IT section of the county's 2025-effective fee schedule: shapefile delivery with a signed data disclosure. Whether REST or direct download is available for this layer has not been confirmed; the county said parcel data comes only by request. Figures are being confirmed with the county."
+          "note": "Price from the IT section of the county's 2025-effective fee schedule, delivered as a shapefile. The county confirmed these figures on 2026-10-23 and expects fee schedule changes in the new year. Access is by signed data request and disclosure form only; the county supplies the form by email."
         },
         "address_points": {
           "fee_status": "fee",
-          "rest_download": "unconfirmed",
+          "rest_download": "not-offered",
           "amount": "$300",
           "product": "Rural address points shapefile; city addresses not included (signed data disclosure)",
-          "source_kind": "published-fee-schedule",
+          "source_kind": "county-response",
           "source_url": "https://www.browncountymn.gov/DocumentCenter/View/502/Fee-Schedule-PDF",
           "source_date": "2026-10-23",
-          "note": "Published in the IT section of the county's 2025-effective fee schedule: shapefile delivery with a signed data disclosure. Whether REST or direct download is available for this layer has not been confirmed; the county said parcel data comes only by request. Figures are being confirmed with the county."
+          "note": "Price from the IT section of the county's 2025-effective fee schedule, delivered as a shapefile. The county confirmed these figures on 2026-10-23 and expects fee schedule changes in the new year. Access is by signed data request and disclosure form only; the county supplies the form by email."
         }
       }
     },
