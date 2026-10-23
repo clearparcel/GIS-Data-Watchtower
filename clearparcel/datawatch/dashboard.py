@@ -20,7 +20,7 @@ from clearparcel.datawatch.dashboard_templates import (
     _public_layout_v2,
 )
 
-from clearparcel.datawatch.watch import _safe_diagnostic, check_sources, load_history, load_state
+from clearparcel.datawatch.watch import _safe_diagnostic, check_sources, load_history, load_history_index, load_state
 from clearparcel.datawatch.transport import RequestDeadline
 from clearparcel.datawatch.aggregate import with_freshness
 from clearparcel.datawatch.parcel_access import access_label, load_parcel_access, statewide_access_label
