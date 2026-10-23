@@ -29,7 +29,7 @@ from clearparcel.datawatch.dashboard import (
 )
 from clearparcel.datawatch.dashboard_exports import _mngac_csv, _snapshot_xlsx
 from clearparcel.datawatch.dashboard_templates import _esc, _layout
-from clearparcel.datawatch.dashboard_routes import dispatch_snapshot_exports
+from clearparcel.datawatch.dashboard_routes import dispatch_gac_routes, dispatch_snapshot_exports
 from clearparcel.datawatch.parcel_access import load_parcel_access
 from clearparcel.datawatch.county_profile_exports import county_profiles_csv, parcel_sources_csv
 from clearparcel.datawatch.county_profiles import county_profile_counts, _latest, _timestamp
@@ -672,20 +672,9 @@ def serve_public(host: str = "0.0.0.0", port: int = 8080) -> None:
                 slug = urllib.parse.parse_qs(parsed.query).get("slug", [""])[0]
                 status = 200 if slug in view["profiles"] else 404
                 return self._send(status, render_county(config, slug))
-            if parsed.path == "/mngac":
-                try:
-                    standard_key = normalize_standard_key(
-                        urllib.parse.parse_qs(parsed.query).get("standard", ["parcel"])[0]
-                    )
-                except ValueError:
-                    return self._send(400, "Unsupported GAC standard", "text/plain; charset=utf-8")
-                selection = urllib.parse.parse_qs(parsed.query)
-                try:
-                    page = render_mngac(config, standard_key, county=selection.get('county', [''])[0],
-                                        view=selection.get('view', ['county'])[0])
-                except ValueError:
-                    return self._send(400, 'Invalid MN GAC county or view. Choose a Minnesota county and County results or Statewide overview.', 'text/plain; charset=utf-8')
-                return self._send(200, page)
+            # /mngac uses the captured revision; JSON/CSV exports read the current cache, as before.
+            if dispatch_gac_routes(parsed.path, parsed.query, config=config, send=self._send):
+                return
             if parsed.path == "/source":
                 source_id = urllib.parse.parse_qs(parsed.query).get("id", [""])[0]
                 status = 200 if (view["state"].get("sources") or {}).get(source_id) else 404
@@ -697,25 +686,6 @@ def serve_public(host: str = "0.0.0.0", port: int = 8080) -> None:
                 profiles = {row["parcel_source_profile"]["county"]["slug"]: row["parcel_source_profile"] for row in snap["counties"]}
                 export = county_profiles_csv if parsed.path == "/county-profiles.csv" else parcel_sources_csv
                 return self._send(200, export(profiles), "text/csv; charset=utf-8")
-            if parsed.path in ("/mngac.json", "/mngac.csv"):
-                try:
-                    standard_key = normalize_standard_key(
-                        urllib.parse.parse_qs(parsed.query).get("standard", ["parcel"])[0]
-                    )
-                except ValueError:
-                    return self._send(400, "Unsupported GAC standard", "text/plain; charset=utf-8")
-                data = _gac_data(_dashboard_state(config), standard_key)
-                if parsed.path == "/mngac.json":
-                    return self._send(
-                        200 if data else 404,
-                        json.dumps(data or {"error": "GAC completeness data unavailable"}, indent=2),
-                        "application/json; charset=utf-8",
-                    )
-                return self._send(
-                    200 if data else 404,
-                    _mngac_csv(data) if data else "GAC completeness data unavailable",
-                    "text/csv; charset=utf-8",
-                )
             return self._send(404, "Not found", "text/plain; charset=utf-8")
 
         def do_POST(self):

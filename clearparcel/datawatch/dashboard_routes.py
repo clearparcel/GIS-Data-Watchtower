@@ -6,7 +6,7 @@ import json
 import urllib.parse
 from collections.abc import Callable
 
-from clearparcel.datawatch.dashboard_exports import _snapshot_csv, _snapshot_xlsx
+from clearparcel.datawatch.dashboard_exports import GacExportUnavailable, _mngac_csv, _snapshot_csv, _snapshot_xlsx
 
 _SNAPSHOT_EXPORTS = {
     "/snapshot.json",
@@ -63,10 +63,16 @@ def dispatch_gac_routes(
         send(200 if data else 404,
              json.dumps(data or {"error": "GAC completeness data unavailable"}, indent=2),
              "application/json; charset=utf-8")
+    elif not data:
+        send(404, "GAC completeness data unavailable", "text/csv; charset=utf-8")
     else:
-        send(200 if data else 404,
-             dashboard._mngac_csv(data) if data else "GAC completeness data unavailable",
-             "text/csv; charset=utf-8")
+        try:
+            body = _mngac_csv(data, standard_key=standard)
+        except GacExportUnavailable:
+            # Never substitute another standard's rows for the requested export.
+            send(503, "GAC export unavailable for this standard", "text/plain; charset=utf-8")
+        else:
+            send(200, body, "text/csv; charset=utf-8")
     return True
 
 

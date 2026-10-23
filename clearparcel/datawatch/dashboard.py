@@ -978,33 +978,8 @@ def serve(config: dict, host: str = "127.0.0.1", port: int = 8765) -> None:
                 profiles = {row["parcel_source_profile"]["county"]["slug"]: row["parcel_source_profile"] for row in snap["counties"]}
                 export = county_profiles_csv if parsed.path == "/county-profiles.csv" else parcel_sources_csv
                 return self._send(200, export(profiles), "text/csv; charset=utf-8")
-            if parsed.path in ("/mngac", "/mngac.json", "/mngac.csv"):
-                try:
-                    standard_key = normalize_standard_key(
-                        urllib.parse.parse_qs(parsed.query).get("standard", ["parcel"])[0]
-                    )
-                except ValueError:
-                    return self._send(400, "Unsupported GAC standard", "text/plain; charset=utf-8")
-                if parsed.path == "/mngac":
-                    selection = urllib.parse.parse_qs(parsed.query)
-                    try:
-                        page = render_mngac(config, standard_key, county=selection.get('county', [''])[0],
-                                            view=selection.get('view', ['county'])[0])
-                    except ValueError:
-                        return self._send(400, 'Invalid MN GAC county or view. Choose a Minnesota county and County results or Statewide overview.', 'text/plain; charset=utf-8')
-                    return self._send(200, page)
-                data = _gac_data(_dashboard_state(config), standard_key)
-                if parsed.path == "/mngac.json":
-                    return self._send(
-                        200 if data else 404,
-                        json.dumps(data or {"error": "GAC completeness data unavailable"}, indent=2),
-                        "application/json; charset=utf-8",
-                    )
-                return self._send(
-                    200 if data else 404,
-                    _mngac_csv(data) if data else "GAC completeness data unavailable",
-                    "text/csv; charset=utf-8",
-                )
+            if dispatch_gac_routes(parsed.path, parsed.query, config=config, send=self._send):
+                return
             if parsed.path == "/counties":
                 return self._send(200, render_counties(config))
             if parsed.path == "/county":
