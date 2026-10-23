@@ -21,7 +21,9 @@ const assert=require('node:assert/strict'),vm=require('node:vm');
 const content={nodes:[],attrs:{},replaceChildren(...nodes){this.nodes=nodes},setAttribute(k,v){this.attrs[k]=v}},status={textContent:''};
 const graphics=new Map(),graphic=id=>{if(!graphics.has(id))graphics.set(id,{attrs:{},textContent:'',style:{values:{},setProperty(k,v){this.values[k]=v}},classList:{values:{},toggle(k,v){this.values[k]=v}},setAttribute(k,v){this.attrs[k]=v}});return graphics.get(id)};
 let calls=[],pending=[];
-const context={AbortController,setTimeout,clearTimeout,Map,encodeURIComponent,window:{},
+const store=new Map(),sessionStorage={getItem:k=>store.has(k)?store.get(k):null,setItem:(k,v)=>store.set(k,String(v)),removeItem:k=>store.delete(k)};
+const location={pathname:'/',search:'',reloads:0,reload(){this.reloads++}};
+const context={AbortController,setTimeout,clearTimeout,Map,encodeURIComponent,window:{},location,sessionStorage,Date,Number,String,
  document:{getElementById:id=>id==='home-county-profile'?content:id==='home-county-profile-status'?status:graphic(id),querySelector:()=>({dataset:{contentRevision:'old'}})},
  DOMParser:class{parseFromString(id){const profile={id,children:[],cloneNode(){return{id,children:this.children}}};for(const tagName of ['H2','P','DIV','SECTION','SECTION','SECTION','SECTION','SECTION','SECTION','P']){const node={tagName,remove(){profile.children=profile.children.filter(n=>n!==this)}};profile.children.push(node)}return{querySelector:()=>profile}}},
  fetch:(url,options)=>{calls.push({url,options});return new Promise(resolve=>pending.push(resolve))}};
@@ -45,10 +47,23 @@ const flush=()=>new Promise(resolve=>setImmediate(resolve));
  assert.equal(content.nodes[0].id,'rice');assert.equal(content.attrs['aria-busy'],'false');
  assert.deepEqual(content.nodes[0].children.map(n=>n.tagName),['DIV']);
  const count=calls.length;await context.window.watchtowerCountyPane.load('rice');assert.equal(calls.length,count);
- const retry=context.window.watchtowerCountyPane.load('douglas');pending[2](response('',409));await flush();
- assert.equal(calls[3].url,'/api/summary');pending[3](response('summary'));await flush();
- assert.match(calls[4].url,/revision=new/);pending[4](response('douglas'));await retry;
- assert.equal(content.nodes[0].id,'douglas');
+ // The page's charts belong to revision old; a 409 means the county changed
+ // in a newer publication. Never show that fragment beside the old charts.
+ let saved=0;context.window.watchtowerRefresh={paused:()=>false,save(){saved++}};
+ const retry=context.window.watchtowerCountyPane.load('douglas',{pct:20,all_pct:20,fields:10,field_count:91});
+ pending[2](response('',409));await retry;
+ assert.equal(calls.length,3);assert.equal(location.reloads,1);assert.equal(saved,1);
+ assert.equal(content.nodes.length,0);assert.match(status.textContent,/Loading newer observations/);
+ assert.equal(graphic('county-coverage-all-value').textContent,'20.00%');
+ // A second 409 soon after cannot loop reloads; the reader is asked instead.
+ const again=context.window.watchtowerCountyPane.load('douglas',{pct:20,all_pct:20,fields:10,field_count:91});
+ pending[3](response('',409));await again;
+ assert.equal(location.reloads,1);assert.equal(content.nodes.length,0);
+ assert.match(status.textContent,/Newer observations were published/);
+ // Paused refresh is respected: no automatic reload.
+ store.clear();context.window.watchtowerRefresh={paused:()=>true,save(){saved++}};
+ const paused=context.window.watchtowerCountyPane.load('wright');pending[4](response('',409));await paused;
+ assert.equal(location.reloads,1);assert.match(status.textContent,/Reload the page/);
  const failure=context.window.watchtowerCountyPane.load('aitkin');assert.equal(content.nodes.length,0);
  pending[5](response('',503));await failure;assert.match(status.textContent,/temporarily unavailable/);
  assert.equal(content.nodes.length,0);assert.equal(content.attrs['aria-busy'],'false');
@@ -61,6 +76,67 @@ const flush=()=>new Promise(resolve=>setImmediate(resolve));
  assert.equal(graphic('home-county-infographics').hidden,true);
  pending[6](response('sibley'));await clearing;
  assert.equal(content.nodes.length,0);assert.equal(status.textContent,'');
+})().catch(error=>{console.error(error);process.exitCode=1});
+'''
+        result = subprocess.run(['node', '-e', harness.replace('SCRIPT', json.dumps(script))],
+                                capture_output=True, text=True, timeout=25)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    @unittest.skipUnless(NODE_AVAILABLE, 'Dialog async behavior requires Node.js')
+    def test_dialog_fetch_is_bounded_cancelled_and_single_revision(self):
+        script = re.search(r'<script[^>]*>(.*?)</script[^>]*>', render_county_profile_panel({}, revision='old'), re.S | re.I).group(1)
+        harness = r'''
+const assert=require('node:assert/strict'),vm=require('node:vm');
+const listeners=(target)=>{target.handlers={};target.addEventListener=(type,fn)=>{(target.handlers[type]||=[]).push(fn)};target.fire=(type,event={})=>(target.handlers[type]||[]).forEach(fn=>fn(event));return target};
+const dialog=listeners({open:false,scrollTop:0,showModal(){this.open=true},close(){this.open=false;this.fire('close')},querySelectorAll:()=>[]});
+const content={nodes:[],textContent:'',replaceChildren(...nodes){this.nodes=nodes;this.textContent=''},append(...nodes){this.nodes.push(...nodes)}};
+Object.defineProperty(content,'text',{get(){return this.textContent}});
+const close=listeners({focus(){}});
+const counties=['dakota','rice'].map(slug=>listeners({dataset:{slug},focus(){}}));
+const timers=[];let calls=[],pending=[];
+const store=new Map(),sessionStorage={getItem:k=>store.has(k)?store.get(k):null,setItem:(k,v)=>store.set(k,String(v)),removeItem:k=>store.delete(k)};
+const location={pathname:'/mngac',search:'',reloads:0,reload(){this.reloads++}};
+let holds=[];
+const context={AbortController,Map,encodeURIComponent,Date,Number,String,location,sessionStorage,
+ setTimeout:(fn,ms)=>{timers.push({fn,ms,live:true});return timers.length-1},clearTimeout:id=>{if(timers[id])timers[id].live=false},
+ window:{scrollY:0,scrollTo(){},watchtowerRefresh:{suspend:r=>holds.push(r),release:r=>{holds=holds.filter(x=>x!==r)},paused:()=>false,save(){}}},
+ document:{getElementById:id=>id==='county-profile-dialog'?dialog:id==='county-profile-content'?content:close,
+  querySelectorAll:sel=>sel==='.mngac-county'?counties:[],querySelector:()=>({dataset:{contentRevision:'old'}}),
+  createElement:()=>({href:'',textContent:''})},
+ DOMParser:class{parseFromString(id){return{querySelector:()=>({}),body:{childNodes:[{id,cloneNode(){return{id}}}]}}}},
+ fetch:(url,options)=>{calls.push({url,options});return new Promise((resolve,reject)=>{pending.push(resolve);options?.signal?.addEventListener('abort',()=>reject(new Error('aborted')))})}};
+vm.createContext(context);vm.runInContext(SCRIPT,context);
+const response=(id,status=200)=>({status,ok:status===200,text:async()=>id});
+const flush=()=>new Promise(resolve=>setImmediate(resolve));
+const open=i=>{counties[i].fire('click');return flush()};
+(async()=>{
+ // A request that never resolves hits the deadline and shows the unavailable state.
+ await open(0);assert.equal(dialog.open,true);assert.deepEqual(holds,['county-dialog']);
+ assert.match(calls[0].url,/revision=old/);assert.equal(content.textContent,'Loading county profile…');
+ timers.filter(t=>t.live&&t.ms===15000).forEach(t=>t.fn());await flush();await flush();
+ assert.equal(calls[0].options.signal.aborted,true);
+ assert.match(content.textContent,/temporarily unavailable/);
+ // Closing while loading aborts the request and releases refresh.
+ await open(1);dialog.close();await flush();
+ assert.equal(calls[1].options.signal.aborted,true);assert.deepEqual(holds,[]);
+ // Rapid reopen aborts the earlier request; its late answer is ignored.
+ await open(0);await open(1);
+ assert.equal(calls[2].options.signal.aborted,true);
+ pending[3](response('rice'));await flush();await flush();
+ assert.equal(content.nodes[0].id,'rice');
+ pending[2](response('dakota'));await flush();assert.equal(content.nodes[0].id,'rice');
+ // A 409 never fetches or shows a newer revision beside the old page; it reloads once
+ // and reopens this county afterwards.
+ dialog.close();await open(0);pending[4](response('',409));await flush();await flush();
+ assert.equal(calls.length,5);assert.equal(location.reloads,1);
+ assert.equal(store.get('watchtower-reopen-county:/mngac'),'dakota');
+ assert.equal(content.textContent,'Loading newer observations…');
+ dialog.close();await open(0);pending[5](response('',409));await flush();await flush();
+ assert.equal(location.reloads,1);assert.match(content.textContent,/Newer observations were published/);
+ // After the reload the stored county reopens once.
+ dialog.close();calls=[];vm.runInContext(SCRIPT,context);await flush();
+ assert.equal(dialog.open,true);assert.match(calls[0].url,/slug=dakota/);
+ assert.equal(store.has('watchtower-reopen-county:/mngac'),false);
 })().catch(error=>{console.error(error);process.exitCode=1});
 '''
         result = subprocess.run(['node', '-e', harness.replace('SCRIPT', json.dumps(script))],

@@ -20,7 +20,7 @@ from clearparcel.datawatch.dashboard_templates import (
     _public_layout_v2,
 )
 
-from clearparcel.datawatch.watch import _safe_diagnostic, check_sources, load_history, load_state
+from clearparcel.datawatch.watch import _safe_diagnostic, check_sources, load_history, load_history_index, load_state
 from clearparcel.datawatch.transport import RequestDeadline
 from clearparcel.datawatch.aggregate import with_freshness
 from clearparcel.datawatch.parcel_access import access_label, load_parcel_access, statewide_access_label
@@ -29,9 +29,11 @@ from clearparcel.datawatch.csp import secure_html, strip_markers
 from clearparcel.datawatch.county_profile_panel import render_county_profile_body, percentage_patterns, research_summary
 from clearparcel.datawatch.county_profile_exports import county_profiles_csv, parcel_sources_csv
 from clearparcel.datawatch.county_profiles import FreshnessPolicy, compose_county_profiles, county_profile_counts
-from clearparcel.datawatch.gac_standards import gac_defaults, load_gac_standard, normalize_standard_key, standard_keys
+from clearparcel.datawatch.gac_standards import load_gac_standard, normalize_standard_key, standard_keys
 from clearparcel.datawatch.gac_projection import project_gac
 from clearparcel.datawatch.public_values import county_metadata_dates
+from clearparcel.datawatch.public_projection import sanitize_public_render_state
+from clearparcel.datawatch import strict_json
 
 COUNTIES_FILE = Path(__file__).with_name("minnesota_counties.json")
 COUNTY_CONTACTS_FILE = Path(__file__).with_name("minnesota_county_contacts.json")
@@ -521,16 +523,29 @@ def render_county(config: dict, slug: str) -> str:
     return render(config, slug)
 
 
-def _gac_county_payload(state: dict, standard_key: str, county_name: str) -> dict | None:
+def _gac_county_payload(state: dict, standard_key: str, county_name: str, **kwargs) -> dict | None:
     from clearparcel.datawatch.dashboard_gac import _gac_county_payload as build
-    return build(state, standard_key, county_name)
+    return build(state, standard_key, county_name, **kwargs)
+
+
+def _snapshot_gac_view(state: dict, standard_key: str, views: dict | None) -> dict | None:
+    """Project one standard at most once per snapshot request.
+
+    ``views`` is owned by the caller for a single state (one export or one
+    cached state key); there is no module-level cache.
+    """
+    if views is None:
+        return _gac_data(state, standard_key)
+    if standard_key not in views:
+        views[standard_key] = _gac_data(state, standard_key)
+    return views[standard_key]
 
 
 
 
 def _county_snapshot(config: dict, slug: str, *, include_mngac: bool = True, state: dict | None = None,
                      profiles: dict | None = None, research: dict | None = None,
-                     contact_records: dict | None = None) -> dict | None:
+                     contact_records: dict | None = None, gac_views: dict | None = None) -> dict | None:
     state = _dashboard_state(config) if state is None else state
     county = next((x for x in _load_counties() if x.get("slug") == slug), None)
     if not county:
@@ -541,13 +556,15 @@ def _county_snapshot(config: dict, slug: str, *, include_mngac: bool = True, sta
     profiles = _county_profiles(config, state, research) if profiles is None else profiles
     info = _county_status(config, county, state, profiles=profiles, research=research)
     catalog = info.get("catalog") or {}
-    mngac_data, mngac_county = _mngac_county_record(state, county["name"])
+    mngac_data = _snapshot_gac_view(state, "parcel", gac_views)
+    mngac_county = (mngac_data.get("counties") or {}).get(county["name"]) if mngac_data else None
     mngac_payload = None
     gac_payload = {}
     if include_mngac:
         gac_payload = {
             key: payload for key in standard_keys()
-            if (payload := _gac_county_payload(state, key, county["name"])) is not None
+            if (payload := _gac_county_payload(state, key, county["name"],
+                                               data=_snapshot_gac_view(state, key, gac_views))) is not None
         }
     if include_mngac and mngac_data:
         mngac_payload = {
@@ -616,9 +633,11 @@ def _statewide_snapshot(config: dict) -> dict:
     profiles = _county_profiles(config, state, research)
     counties = []
     contact_records = _load_county_contact_records()
+    # Each standard is projected once for the whole snapshot, not once per county.
+    views: dict = {}
     for county in _load_counties():
         item = _county_snapshot(config, county["slug"], include_mngac=False, state=state, profiles=profiles,
-                                research=research, contact_records=contact_records)
+                                research=research, contact_records=contact_records, gac_views=views)
         if item:
             counties.append(item)
     aggregate_sources = []
@@ -647,8 +666,8 @@ def _statewide_snapshot(config: dict) -> dict:
         "sources": aggregate_sources,
         "workers": state.get("workers") or {},
         "counties": counties,
-        "mngac": _mngac_data(state),
-        "gac": {key: data for key in standard_keys() if (data := _gac_data(state, key)) is not None},
+        "mngac": _snapshot_gac_view(state, "parcel", views),
+        "gac": {key: data for key in standard_keys() if (data := _snapshot_gac_view(state, key, views)) is not None},
     }
 
 
@@ -700,29 +719,62 @@ def render_source(config: dict, source_id: str) -> str:
     return render(config, source_id)
 
 
+_STATIC_SOURCE_KEYS = ("id", "name", "provider", "category", "status", "feature_count", "checked_at",
+                       "worker", "last_success_at", "last_available_at", "last_report_at")
+_STATIC_FLAGS = {"stale": lambda value: value if type(value) is bool else None,
+                 "worker_stale": lambda value: value if type(value) is bool else None,
+                 "health": lambda value: value if value in ("healthy", "unhealthy", "unknown") else None,
+                 "reporting": lambda value: value if value in ("current", "stale") else None}
+
+
 def _sanitize_public_state(state: dict) -> dict:
-    """Return only user-facing monitoring facts safe for public/API use."""
+    """Return only user-facing monitoring facts safe for public/API use.
+
+    Values pass through the same typed projection as the hosted public
+    snapshot, so nested objects and non-profile worker names never survive.
+    """
+    canonical = sanitize_public_render_state(state if isinstance(state, dict) else {})
     public = {
-        "schema_version": state.get("schema_version"),
-        "generated_at": state.get("generated_at"),
-        "overall": _status_class(state.get("overall","unknown")),
-        "counts": state.get("counts", {}),
+        "schema_version": canonical.get("schema_version"),
+        "generated_at": canonical.get("generated_at"),
+        "overall": _status_class(canonical.get("overall") or "unknown"),
+        "counts": canonical.get("counts") or {},
         "sources": {},
     }
-    for sid, src in (state.get("sources") or {}).items():
-        summary = {
-            key: src.get(key)
-            for key in (
-                "id", "name", "provider", "category", "status", "feature_count",
-                "checked_at", "worker", "last_success_at", "last_available_at", "last_report_at",
-                "stale", "worker_stale", "health", "reporting",
-            )
-            if src.get(key) is not None
-        }
-        summary["status"] = _status_class(src.get("status","unknown"))
-        summary["change_count"] = len(src.get("changes") or [])
+    raw_sources = state.get("sources") if isinstance(state, dict) and isinstance(state.get("sources"), dict) else {}
+    for sid, projected in canonical["sources"].items():
+        summary = {key: projected[key] for key in _STATIC_SOURCE_KEYS if projected.get(key) is not None}
+        raw = raw_sources.get(sid) if isinstance(raw_sources.get(sid), dict) else {}
+        summary.update({key: value for key, validate in _STATIC_FLAGS.items()
+                        if (value := validate(raw.get(key))) is not None})
+        summary["status"] = _status_class(projected.get("status") or "unknown")
+        # Missing change evidence stays unknown (None), never a measured zero.
+        summary["change_count"] = projected.get("change_count")
         public["sources"][sid] = summary
     return public
+
+
+_STATIC_MANIFEST = ".watchtower-static-manifest.json"
+
+
+def _static_manifest(output: Path) -> set[str]:
+    """Generated source pages recorded by an earlier build; anything else is ignored."""
+    try:
+        names = strict_json.loads((output / _STATIC_MANIFEST).read_text(encoding="utf-8")).get("source_pages")
+    except (OSError, ValueError, AttributeError):
+        return set()
+    if not isinstance(names, list):
+        return set()
+    # Only flat generated page names; never a path that could leave the output directory.
+    return {name for name in names if isinstance(name, str) and name.startswith("source-")
+            and name.endswith(".html") and "/" not in name and "\\" not in name
+            and name not in (".", "..") and Path(name).name == name}
+
+
+def _write_static_manifest(output: Path, names: set[str]) -> None:
+    tmp = output / (_STATIC_MANIFEST + ".tmp")
+    tmp.write_text(json.dumps({"schema_version": 1, "source_pages": sorted(names)}, indent=2), encoding="utf-8")
+    tmp.replace(output / _STATIC_MANIFEST)
 
 
 def build_static_site(config: dict, output_dir: str | Path) -> dict:
@@ -732,6 +784,11 @@ def build_static_site(config: dict, output_dir: str | Path) -> dict:
     state = _dashboard_state(config)
     public = _sanitize_public_state(state)
     sources = public.get("sources", {})
+    current_pages = {"source-" + urllib.parse.quote(sid, safe="") + ".html" for sid in sources}
+    previous_pages = _static_manifest(output)
+    # Track old and new pages before writing, so an interrupted build still
+    # leaves every generated page recorded for the next build to retire.
+    _write_static_manifest(output, previous_pages | current_pages)
     raw_counts = public.get("counts") if isinstance(public.get("counts"), dict) else {}
     # Project to plain non-negative integers before the values reach markup;
     # a missing or malformed count is unavailable ("—"), never a measured zero.
@@ -748,7 +805,7 @@ def build_static_site(config: dict, output_dir: str | Path) -> dict:
             f'<td>{_esc(src.get("provider") or "—")}</td>'
             f'<td>{_esc(src.get("category") or "—")}</td>'
             f'<td>{_esc(f"{src.get("feature_count"):,}" if isinstance(src.get("feature_count"), int) else "—")}</td>'
-            f'<td>{_esc(src.get("change_count", 0))}</td><td>{_esc(src.get("checked_at","—"))}</td></tr>'
+            f'<td>{_esc(_static_change_count(src))}</td><td>{_esc(src.get("checked_at") or "—")}</td></tr>'
         )
         detail = f'<p><a href="index.html">← All data sources</a></p><div class="grid">' \
             f'<div class="card"><div class="muted">Data source</div><h2>{_esc(src.get("name") or sid)}</h2></div>' \
@@ -756,7 +813,7 @@ def build_static_site(config: dict, output_dir: str | Path) -> dict:
             f'<div class="card"><div class="muted">Record count</div><div class="metric">{_esc(f"{src.get("feature_count"):,}" if isinstance(src.get("feature_count"), int) else "—")}</div></div></div>' \
             f'<div class="card"><h2>About this data</h2><p><strong>Provided by:</strong> {_esc(src.get("provider") or "—")}<br>' \
             f'<strong>Data type:</strong> {_esc(src.get("category") or "—")}<br><strong>Last checked:</strong> {_esc(src.get("checked_at") or "—")}<br>' \
-            f'<strong>Changes found this check:</strong> {_esc(src.get("change_count", 0))}</p></div>'
+            f'<strong>Changes found this check:</strong> {_esc(_static_change_count(src))}</p></div>'
         (output / filename).write_text(strip_markers(
             _layout(f'Watchtower — {src.get("name") or sid}', detail, refresh_seconds=300,
                     static=True, public_summary=False, static_bundle=True)),
@@ -767,13 +824,26 @@ def build_static_site(config: dict, output_dir: str | Path) -> dict:
         f'<div class="card"><div class="muted">Data sources</div><div class="metric">{len(sources)}</div><span class="subtext">Total source observations currently represented in the unified Watchtower state.</span></div>' \
         f'<div class="card"><div class="muted">Working normally</div><div class="metric ok">{counts["ok"]}</div></div>' \
         f'<div class="card"><div class="muted">Warnings / errors</div><div class="metric">{counts["warn"]} / {counts["error"]}</div></div></div>' \
-        f'<div class="card"><div class="muted">Last checked</div><strong>{_esc(public.get("generated_at","No saved observation"))}</strong></div><br>' \
+        f'<div class="card"><div class="muted">Last checked</div><strong>{_esc(public.get("generated_at") or "No saved observation")}</strong></div><br>' \
         '<div class="card"><h2>Data being watched</h2><table><thead><tr><th>Data source</th><th>Status</th><th>Provided by</th><th>Type</th><th>Records</th><th>Changes found</th><th>Last checked</th></tr></thead><tbody>' + "".join(rows) + "</tbody></table></div>"
     page = _layout("GIS Data Watchtower", body, refresh_seconds=300, static=True,
                    public_summary=False, static_bundle=True)
     (output / "index.html").write_text(strip_markers(page), encoding="utf-8")
     (output / "state.json").write_text(json.dumps(public, indent=2), encoding="utf-8")
-    return {"output_dir": str(output), "source_count": len(sources), "files": len(sources) + 2}
+    # Retire pages for sources no longer present; only manifest-listed pages are removed.
+    for name in sorted(previous_pages - current_pages):
+        try:
+            (output / name).unlink()
+        except FileNotFoundError:
+            pass
+    _write_static_manifest(output, current_pages)
+    return {"output_dir": str(output), "source_count": len(sources), "files": len(sources) + 2,
+            "retired_pages": len(previous_pages - current_pages)}
+
+
+def _static_change_count(src: dict) -> object:
+    value = src.get("change_count")
+    return value if type(value) is int else "—"
 
 def _valid_refresh_request(token: str, expected_token: str, sec_fetch_site: str | None) -> bool:
     sec_fetch = (sec_fetch_site or "").lower()
