@@ -316,6 +316,12 @@ A wildcard/public bind fails closed without a password. For Internet exposure, p
 
 GCS support requires the `gcs` package extra.
 
+Local storage treats object names (for example `WATCHTOWER_AGGREGATE_OBJECT`)
+as GCS-style keys under `WATCHTOWER_STORAGE_ROOT`: relative, `/`-separated,
+with no absolute, drive, UNC, backslash, `.` or `..` segments. A name that
+would resolve outside the root, including through a symlink or junction, is
+rejected before any read or write.
+
 Every shared object write is version-conditional (`upload_if_version`); the
 storage backends deliberately have no unconditional upload. A GCS read that
 races a writer backs off briefly (with jitter) before retrying, up to three
