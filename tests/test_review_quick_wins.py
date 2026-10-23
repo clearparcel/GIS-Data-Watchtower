@@ -124,7 +124,7 @@ class FieldCountLabelTests(unittest.TestCase):
         self.assertNotIn("||91", expression.replace(" ", ""))
         script = ("const out=[];for(const d of [{fields:37,field_count:91},{fields:37},{fields:null,field_count:0},"
                   "{fields:5,field_count:'91'}]){out.push(" + expression + ")}console.log(JSON.stringify(out))")
-        result = subprocess.run(["node", "-e", script], capture_output=True, text=True, check=True)
+        result = subprocess.run(["node", "-e", script], capture_output=True, encoding="utf-8", check=True)
         self.assertEqual(result.stdout.strip(), '["37 / 91","37 / —","— / —","5 / —"]')
 
 
