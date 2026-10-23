@@ -9,6 +9,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 from .parcel_access import INVENTORY_CATEGORIES
+from .data_fees import county_fee_rows, load_data_fees
 from .direct_gac_schema import direct_schema_assessment
 from .public_values import (public_access_classification, safe_public_url, provider_edit_date, county_metadata_dates,
                             sanitize_source_metadata, safe_geometry_type, safe_file_type)
@@ -121,8 +122,9 @@ def _catalog_product_match(item: dict, catalog: dict) -> bool:
 
 
 def compose_county_profiles(state: dict, research: dict[str, dict], *, now: dt.datetime,
-                            freshness_policy: FreshnessPolicy) -> dict[str, dict]:
+                            freshness_policy: FreshnessPolicy, fees: dict[str, dict] | None = None) -> dict[str, dict]:
     """Join approved evidence and observations without activating discoveries."""
+    fees = load_data_fees() if fees is None else fees
     counties = json.loads(Path(__file__).with_name('minnesota_counties.json').read_text(encoding='utf-8'))['counties']
     boundaries = json.loads(Path(__file__).with_name('minnesota_county_boundaries.json').read_text(encoding='utf-8'))['counties']
     fips = {county['name']: '27' + county['fips'] for county in boundaries}
@@ -196,6 +198,7 @@ def compose_county_profiles(state: dict, research: dict[str, dict], *, now: dt.d
                 'detailed_classification': record.get('county_direct_classification'),
                 'dataset_fee': record.get('parcel_dataset_fee'), 'fee_product': record.get('fee_product'),
                 'monitoring_decision': decision, 'evidence_links': evidence},
+            'data_fees': county_fee_rows(fees.get(name)),
             'comments': [record['comments']] if record.get('comments') else [],
             'research': {'complete': record.get('research_complete') is True and all(
                 categories[key]['review_status'] in ('reviewed', 'not-found') for key in INVENTORY_CATEGORIES),

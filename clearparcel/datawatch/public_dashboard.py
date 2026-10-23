@@ -31,7 +31,7 @@ from clearparcel.datawatch.dashboard_exports import _mngac_csv, _snapshot_xlsx
 from clearparcel.datawatch.dashboard_templates import _esc, _layout
 from clearparcel.datawatch.dashboard_routes import dispatch_gac_routes, dispatch_snapshot_exports
 from clearparcel.datawatch.parcel_access import load_parcel_access
-from clearparcel.datawatch.county_profile_exports import county_profiles_csv, parcel_sources_csv
+from clearparcel.datawatch.county_profile_exports import county_data_fees_csv, county_profiles_csv, parcel_sources_csv
 from clearparcel.datawatch.county_profiles import county_profile_counts, _latest, _timestamp
 from clearparcel.datawatch.county_profile_panel import render_inline_county_panel, percentage_legend, percentage_color_js, research_summary, render_direct_schema_findings
 from clearparcel.datawatch.direct_gac_schema import direct_schema_assessment
@@ -695,10 +695,11 @@ def serve_public(host: str = "0.0.0.0", port: int = 8080) -> None:
                 return self._send(status, render_public_source(config, source_id))
             if parsed.path == "/api/state":
                 return self._send(200, cache.public_path.read_text(encoding="utf-8"), "application/json; charset=utf-8")
-            if parsed.path in ("/county-profiles.csv", "/parcel-sources.csv"):
+            if parsed.path in ("/county-profiles.csv", "/parcel-sources.csv", "/county-data-fees.csv"):
                 snap = cache.snapshot()
                 profiles = {row["parcel_source_profile"]["county"]["slug"]: row["parcel_source_profile"] for row in snap["counties"]}
-                export = county_profiles_csv if parsed.path == "/county-profiles.csv" else parcel_sources_csv
+                export = {"/county-profiles.csv": county_profiles_csv, "/parcel-sources.csv": parcel_sources_csv,
+                          "/county-data-fees.csv": county_data_fees_csv}[parsed.path]
                 return self._send(200, export(profiles), "text/csv; charset=utf-8")
             return self._send(404, "Not found", "text/plain; charset=utf-8")
 
