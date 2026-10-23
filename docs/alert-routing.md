@@ -146,6 +146,12 @@ invalid input, storage conflicts or a refused transport.
   `superseded`, so a failure never arrives after its recovery. Ambiguous ones
   stay for reconciliation, and `requeue` is refused once a recovery closed the
   incident. A later failure has a new preview key and is a new incident.
+  Incident order follows provider check times (`checked_at`), not arrival
+  order: a failure checked no later than an accepted recovery is recorded and
+  superseded (a delayed caller cannot reopen a closed incident), and a
+  recovery checked before an accepted failure is recorded and superseded
+  rather than sent after it. Events without a check time keep the
+  arrival-order behavior.
 - **Repeat policy.** No automatic reminders. Unacknowledged sent events are
   listed by `status` for operator follow-up.
 - **Routing gaps block sending.** Events queue but are not sent while any route

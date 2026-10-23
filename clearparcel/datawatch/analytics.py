@@ -9,13 +9,15 @@ import urllib.parse
 
 
 def _https_origin(value: str) -> str | None:
+    # urlsplit and .port both raise ValueError on malformed input (bad port,
+    # unbalanced IPv6 brackets); invalid optional analytics is simply disabled.
     try:
         parsed = urllib.parse.urlsplit(value)
+        if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password:
+            return None
+        port = f":{parsed.port}" if parsed.port and parsed.port != 443 else ""
     except ValueError:
         return None
-    if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password:
-        return None
-    port = f":{parsed.port}" if parsed.port and parsed.port != 443 else ""
     return f"https://{parsed.hostname}{port}"
 
 
@@ -36,9 +38,8 @@ def posthog_config() -> dict | None:
         return None
     script_url = os.environ.get("WATCHTOWER_POSTHOG_SCRIPT_URL", "").strip()
     if script_url:
-        parsed = urllib.parse.urlsplit(script_url)
         script_origin = _https_origin(script_url)
-        if not script_origin or not parsed.path.endswith("/array.js"):
+        if not script_origin or not urllib.parse.urlsplit(script_url).path.endswith("/array.js"):
             return None
     else:
         parsed_host = urllib.parse.urlsplit(api_host)
