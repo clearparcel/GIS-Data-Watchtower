@@ -71,6 +71,11 @@ County responses so far:
   research record and the private source registry still describe the
   earlier REST service and need a separate owner-approved update.
 
+- **Carver (2026-10-23):** the county IT office said there are no fees for
+  parcel, address point or road centerline REST services, and no license or
+  attribution terms apply. Recorded as no fee, including REST download, for
+  all three layers.
+
 The County Terms Outreach emails ask every county whether using its REST
 services or downloading parcel, address point and road centerline data
 carries a fee. Record each answer as a `county-response` entry, dated, and

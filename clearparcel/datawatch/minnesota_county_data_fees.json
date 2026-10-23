@@ -98,6 +98,41 @@
       }
     },
     {
+      "county": "Carver",
+      "layers": {
+        "parcels": {
+          "fee_status": "no-fee",
+          "rest_download": "no-fee",
+          "amount": null,
+          "product": null,
+          "source_kind": "county-response",
+          "source_url": null,
+          "source_date": "2026-10-23",
+          "note": "The county IT office answered the parcel, address point and road centerline REST download question with no fees for these services, and said no license or attribution terms apply. The county noted there is no official uptime guarantee."
+        },
+        "address_points": {
+          "fee_status": "no-fee",
+          "rest_download": "no-fee",
+          "amount": null,
+          "product": null,
+          "source_kind": "county-response",
+          "source_url": null,
+          "source_date": "2026-10-23",
+          "note": "The county IT office answered the parcel, address point and road centerline REST download question with no fees for these services, and said no license or attribution terms apply. The county noted there is no official uptime guarantee."
+        },
+        "road_centerlines": {
+          "fee_status": "no-fee",
+          "rest_download": "no-fee",
+          "amount": null,
+          "product": null,
+          "source_kind": "county-response",
+          "source_url": null,
+          "source_date": "2026-10-23",
+          "note": "The county IT office answered the parcel, address point and road centerline REST download question with no fees for these services, and said no license or attribution terms apply. The county noted there is no official uptime guarantee."
+        }
+      }
+    },
+    {
       "county": "Faribault",
       "layers": {
         "parcels": {
