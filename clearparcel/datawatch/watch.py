@@ -892,12 +892,31 @@ def _extent_change(previous: dict | None, current: dict | None) -> dict | None:
     return {"coordinate_deltas": deltas, "max_extent_shift_percent": normalized}
 
 
-def _field_completeness(url: str, field: str, total: int | None, timeout: int, *, prefer_curl: bool = False) -> dict:
+# Only text fields can hold a blank string. Numeric, date and ID fields must
+# not be compared with '' (some provider SQL dialects reject or coerce it).
+_TEXT_FIELD_TYPES = frozenset({"esriFieldTypeString"})
+
+
+def _missing_predicate(field: str, field_type: object = None) -> str:
+    """Null/blank predicate for one field, chosen from its layer metadata type."""
     field = _sql_identifier(field)
-    missing = _arcgis_count_query(url, f"{field} IS NULL OR {field} = ''", timeout, prefer_curl=prefer_curl)
+    if isinstance(field_type, str) and field_type.startswith("esriFieldType") and field_type not in _TEXT_FIELD_TYPES:
+        return f"{field} IS NULL"
+    # Text, or a type the layer did not report: keep the blank-string check.
+    return f"{field} IS NULL OR {field} = ''"
+
+
+def _completeness_from_missing(field: str, total: int | None, missing: int | None) -> dict:
     populated = None if total is None or missing is None else max(0, total - missing)
     pct = None if total in (None, 0) or populated is None else round((populated / total) * 100.0, 2)
     return {"field": field, "missing": missing, "populated": populated, "complete_percent": pct}
+
+
+def _field_completeness(url: str, field: str, total: int | None, timeout: int, *, prefer_curl: bool = False,
+                        field_type: object = None) -> dict:
+    field = _sql_identifier(field)
+    missing = _arcgis_count_query(url, _missing_predicate(field, field_type), timeout, prefer_curl=prefer_curl)
+    return _completeness_from_missing(field, total, missing)
 
 
 def _gac_population_expression(field_spec: dict, actual_field: str, *, standard_key: str = "parcel") -> str:
@@ -1277,7 +1296,12 @@ def _arcgis_mngac_completeness(
 def _gac_bool(value) -> bool | None:
     if type(value) is bool:
         return value
-    text = str(value or "").strip().lower()
+    if type(value) is int:
+        # Numeric flags: 0 is an explicit false, not missing data.
+        return {0: False, 1: True}.get(value)
+    if value is None or not isinstance(value, str):
+        return None
+    text = value.strip().lower()
     if text in {"true", "yes", "y", "1"}:
         return True
     if text in {"false", "no", "n", "0"}:
@@ -1525,24 +1549,33 @@ def _arcgis_layer(source: dict, timeout: int) -> dict:
             result["null_geometry_check"] = "unsupported"
             result["null_geometry_check_error"] = _safe_diagnostic(exc)
         if id_field and confidence == "high":
+            field_types = {f["name"]: f.get("type") for f in fields}
+            id_failed = None
             try:
-                null_count = _arcgis_count_query(source["url"], f"{_sql_identifier(id_field)} IS NULL OR {_sql_identifier(id_field)} = ''", timeout, prefer_curl=bool(source.get("prefer_curl")))
+                null_count = _arcgis_count_query(source["url"], _missing_predicate(id_field, field_types.get(id_field)), timeout, prefer_curl=bool(source.get("prefer_curl")))
             except (ProviderRateLimitError, PermanentProviderError):
                 raise
             except Exception as exc:
                 # Optional quality metric: record it as unsupported, not as a source failure.
                 null_count = None
+                id_failed = _safe_diagnostic(exc)
                 result["parcel_id_null_check"] = "unsupported"
-                result["parcel_id_null_check_error"] = _safe_diagnostic(exc)
+                result["parcel_id_null_check_error"] = id_failed
             result["parcel_id_null_count"] = null_count
             profiles = {}
             owner_field = _field_candidate(result["field_names"], ["owner_name","owner","tax_name","ownername"], ["owner"])
             site_address_field = _field_candidate(result["field_names"], ["site_address","property_address","prop_addr","site_addr","physical_address"], ["siteaddr","site_addr","propaddr","prop_addr"])
             mailing_address_field = _field_candidate(result["field_names"], ["ownraddr1","owner_address","mail_address","mail_addr","tax_add_l1"], ["ownraddr","owner_addr","mail_addr"])
-            for label, field in (("parcel_id", id_field), ("owner", owner_field), ("site_address", site_address_field), ("mailing_address", mailing_address_field)):
+            # The parcel-ID profile reuses the single count above: one query, one result.
+            profiles["parcel_id"] = (
+                {"field": id_field, "status": "unsupported", "error": id_failed}
+                if id_failed is not None else _completeness_from_missing(_sql_identifier(id_field), result.get("feature_count"), null_count)
+            )
+            for label, field in (("owner", owner_field), ("site_address", site_address_field), ("mailing_address", mailing_address_field)):
                 if field:
                     try:
-                        profiles[label] = _field_completeness(source["url"], field, result.get("feature_count"), timeout, prefer_curl=bool(source.get("prefer_curl")))
+                        profiles[label] = _field_completeness(source["url"], field, result.get("feature_count"), timeout,
+                                                              prefer_curl=bool(source.get("prefer_curl")), field_type=field_types.get(field))
                     except (ProviderRateLimitError, PermanentProviderError):
                         raise
                     except Exception as exc:
@@ -2649,12 +2682,8 @@ def _check_sources(
         _release_run_lock(run_lock)
 
 
-def load_history(
-    config: dict,
-    *,
-    source_filter: str | None = None,
-    limit: int = 50,
-) -> dict:
+def _history_rows(config: dict) -> list[dict]:
+    """Parse the rotated then active history files once, oldest first."""
     history_path = Path(config["history_file"])
     paths = [
         history_path.with_suffix(history_path.suffix + ".1"),
@@ -2675,40 +2704,85 @@ def load_history(
                     continue
                 if isinstance(item, dict):
                     rows.append(item)
-    needle = source_filter.lower() if source_filter else None
-    if needle:
+    return rows
+
+
+def _history_entry(item: dict, sid: str, rec) -> dict:
+    rec = rec if isinstance(rec, dict) else {}
+    return {
+        "generated_at": item.get("generated_at"),
+        "source": sid,
+        "name": rec.get("name"),
+        "status": rec.get("status"),
+        "elapsed_ms": rec.get("elapsed_ms"),
+        "attempts": rec.get("attempts"),
+        "feature_count": rec.get("feature_count"),
+        "tracked_values": rec.get("tracked_values", {}),
+        "schema_hash": rec.get("schema_hash"),
+        "error": rec.get("error"),
+        "changes": rec.get("changes", []),
+    }
+
+
+def _history_sources(item: dict) -> dict:
+    sources = item.get("sources")
+    return sources if isinstance(sources, dict) else {}
+
+
+def _history_limit(limit: int) -> int:
+    return max(1, min(int(limit), 1000))
+
+
+def load_history(
+    config: dict,
+    *,
+    source_filter: str | None = None,
+    limit: int = 50,
+    exact: bool = False,
+) -> dict:
+    """Return recent history; ``exact`` matches one source ID only.
+
+    Without ``exact`` the filter is the CLI's fuzzy search over IDs and names.
+    Dashboard per-source metrics must use ``exact=True`` (or
+    :func:`load_history_index`) so ``feed`` never includes ``feed-extra``.
+    """
+    history_path = Path(config["history_file"])
+    rows = _history_rows(config)
+    needle = source_filter.lower() if source_filter and not exact else None
+    if exact and source_filter is not None:
+        rows = [_history_entry(item, source_filter, _history_sources(item)[source_filter])
+                for item in rows if source_filter in _history_sources(item)]
+    elif needle:
         filtered = []
         for item in rows:
-            sources = item.get("sources") or {}
-            matches = [
-                (sid, rec)
-                for sid, rec in sources.items()
-                if needle in sid.lower()
-                or needle in str((rec or {}).get("name", "")).lower()
-            ]
-            for sid, rec in matches:
-                filtered.append({
-                    "generated_at": item.get("generated_at"),
-                    "source": sid,
-                    "name": (rec or {}).get("name"),
-                    "status": (rec or {}).get("status"),
-                    "elapsed_ms": (rec or {}).get("elapsed_ms"),
-                    "attempts": (rec or {}).get("attempts"),
-                    "feature_count": (rec or {}).get("feature_count"),
-                    "tracked_values": (rec or {}).get("tracked_values", {}),
-                    "schema_hash": (rec or {}).get("schema_hash"),
-                    "error": (rec or {}).get("error"),
-                    "changes": (rec or {}).get("changes", []),
-                })
+            for sid, rec in _history_sources(item).items():
+                if needle in sid.lower() or needle in str((rec or {}).get("name", "")).lower():
+                    filtered.append(_history_entry(item, sid, rec))
         rows = filtered
-    limit = max(1, min(int(limit), 1000))
-    rows = rows[-limit:]
+    rows = rows[-_history_limit(limit):]
     return {
         "history_file": str(history_path),
         "source_filter": source_filter,
         "entry_count": len(rows),
         "entries": rows,
     }
+
+
+def load_history_index(config: dict, source_ids, *, limit: int = 50) -> tuple[list[dict], dict[str, list[dict]]]:
+    """Read history once: recent run records plus exact-ID per-source entries.
+
+    Equivalent to ``load_history(config, limit=limit)["entries"]`` and
+    ``load_history(config, source_filter=sid, exact=True, limit=limit)["entries"]``
+    for every requested ID, without re-parsing the files per source.
+    """
+    limit = _history_limit(limit)
+    wanted = {sid: [] for sid in source_ids}
+    rows = _history_rows(config)
+    for item in rows:
+        for sid, rec in _history_sources(item).items():
+            if sid in wanted:
+                wanted[sid].append(_history_entry(item, sid, rec))
+    return rows[-limit:], {sid: entries[-limit:] for sid, entries in wanted.items()}
 
 
 def __getattr__(name: str):

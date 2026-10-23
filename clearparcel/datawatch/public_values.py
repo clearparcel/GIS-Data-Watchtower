@@ -34,7 +34,10 @@ _ISO_DAY = re.compile(r"\d{4}-\d{2}-\d{2}")
 
 def sanitize_item_metadata(value: object) -> dict | None:
     """Typed public projection of a catalog county's ArcGIS item metadata dates."""
-    if not isinstance(value, dict) or value.get("status") not in _ITEM_METADATA_STATUSES:
+    # Check the type first: a list or dict status is unhashable and must not
+    # abort the projection of otherwise usable source data.
+    status = value.get("status") if isinstance(value, dict) else None
+    if not isinstance(status, str) or status not in _ITEM_METADATA_STATUSES:
         return None
     out = {"status": value["status"]}
     item = value.get("item_id")
