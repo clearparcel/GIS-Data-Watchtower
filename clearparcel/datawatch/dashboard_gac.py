@@ -546,8 +546,13 @@ def _render_county_gac_summaries(state: dict, county: dict) -> str:
         '</div></div><div class="grid">' + "".join(cards) + '</div>'
     )
 
-def _gac_county_payload(state: dict, standard_key: str, county_name: str) -> dict | None:
-    data = _dashboard._gac_data(state, standard_key)
+_UNPROJECTED = object()
+
+
+def _gac_county_payload(state: dict, standard_key: str, county_name: str, *, data=_UNPROJECTED) -> dict | None:
+    """County slice of one standard; pass ``data`` to reuse an already projected view."""
+    if data is _UNPROJECTED:
+        data = _dashboard._gac_data(state, standard_key)
     if not isinstance(data, dict):
         return None
     metadata = (data.get("county_metadata") or {}).get(county_name)

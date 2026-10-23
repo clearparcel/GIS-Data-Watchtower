@@ -520,13 +520,15 @@ class _PublicStateCache:
                 state = _dashboard_state(config)
                 research = load_parcel_access()
                 self._county_inputs = {"config": config, "state": state, "research": research,
-                                       "profiles": _county_profiles(config, state, research)}
+                                       "profiles": _county_profiles(config, state, research),
+                                       "gac_views": {}}
                 self._county_values = {}
                 self._county_key = key
             if slug not in self._county_values:
                 inputs = self._county_inputs
                 value = _county_snapshot(inputs["config"], slug, state=inputs["state"],
-                                         profiles=inputs["profiles"], research=inputs["research"])
+                                         profiles=inputs["profiles"], research=inputs["research"],
+                                         gac_views=inputs["gac_views"])
                 if value is None:
                     return None
                 self._county_values[slug] = value

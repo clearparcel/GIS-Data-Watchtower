@@ -521,16 +521,29 @@ def render_county(config: dict, slug: str) -> str:
     return render(config, slug)
 
 
-def _gac_county_payload(state: dict, standard_key: str, county_name: str) -> dict | None:
+def _gac_county_payload(state: dict, standard_key: str, county_name: str, **kwargs) -> dict | None:
     from clearparcel.datawatch.dashboard_gac import _gac_county_payload as build
-    return build(state, standard_key, county_name)
+    return build(state, standard_key, county_name, **kwargs)
+
+
+def _snapshot_gac_view(state: dict, standard_key: str, views: dict | None) -> dict | None:
+    """Project one standard at most once per snapshot request.
+
+    ``views`` is owned by the caller for a single state (one export or one
+    cached state key); there is no module-level cache.
+    """
+    if views is None:
+        return _gac_data(state, standard_key)
+    if standard_key not in views:
+        views[standard_key] = _gac_data(state, standard_key)
+    return views[standard_key]
 
 
 
 
 def _county_snapshot(config: dict, slug: str, *, include_mngac: bool = True, state: dict | None = None,
                      profiles: dict | None = None, research: dict | None = None,
-                     contact_records: dict | None = None) -> dict | None:
+                     contact_records: dict | None = None, gac_views: dict | None = None) -> dict | None:
     state = _dashboard_state(config) if state is None else state
     county = next((x for x in _load_counties() if x.get("slug") == slug), None)
     if not county:
@@ -541,13 +554,15 @@ def _county_snapshot(config: dict, slug: str, *, include_mngac: bool = True, sta
     profiles = _county_profiles(config, state, research) if profiles is None else profiles
     info = _county_status(config, county, state, profiles=profiles, research=research)
     catalog = info.get("catalog") or {}
-    mngac_data, mngac_county = _mngac_county_record(state, county["name"])
+    mngac_data = _snapshot_gac_view(state, "parcel", gac_views)
+    mngac_county = (mngac_data.get("counties") or {}).get(county["name"]) if mngac_data else None
     mngac_payload = None
     gac_payload = {}
     if include_mngac:
         gac_payload = {
             key: payload for key in standard_keys()
-            if (payload := _gac_county_payload(state, key, county["name"])) is not None
+            if (payload := _gac_county_payload(state, key, county["name"],
+                                               data=_snapshot_gac_view(state, key, gac_views))) is not None
         }
     if include_mngac and mngac_data:
         mngac_payload = {
@@ -616,9 +631,11 @@ def _statewide_snapshot(config: dict) -> dict:
     profiles = _county_profiles(config, state, research)
     counties = []
     contact_records = _load_county_contact_records()
+    # Each standard is projected once for the whole snapshot, not once per county.
+    views: dict = {}
     for county in _load_counties():
         item = _county_snapshot(config, county["slug"], include_mngac=False, state=state, profiles=profiles,
-                                research=research, contact_records=contact_records)
+                                research=research, contact_records=contact_records, gac_views=views)
         if item:
             counties.append(item)
     aggregate_sources = []
@@ -647,8 +664,8 @@ def _statewide_snapshot(config: dict) -> dict:
         "sources": aggregate_sources,
         "workers": state.get("workers") or {},
         "counties": counties,
-        "mngac": _mngac_data(state),
-        "gac": {key: data for key in standard_keys() if (data := _gac_data(state, key)) is not None},
+        "mngac": _snapshot_gac_view(state, "parcel", views),
+        "gac": {key: data for key in standard_keys() if (data := _snapshot_gac_view(state, key, views)) is not None},
     }
 
 
