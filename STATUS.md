@@ -1,5 +1,14 @@
 # Project status
 
+## County data fees on the dashboard — in review, 2026-10-23
+
+County profiles, the Minnesota Counties page and the exports now show
+published or county-confirmed fees for parcel, address point and road
+centerline data, with source links and dates. Layers without information
+show *Not yet confirmed*, never free. Thirteen parcel fees are seeded from
+the verified research; county outreach replies will fill the rest. Not yet
+deployed. See [county data fees](docs/county-data-fees.md).
+
 ## v0.3.7 dashboard release — prepared, deployment pending, 2026-10-23
 
 Owner-approved release of the October 23 review fixes (#131–#141) to the
