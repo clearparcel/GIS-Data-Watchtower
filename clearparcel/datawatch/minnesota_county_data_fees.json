@@ -3,6 +3,41 @@
   "scope": "Published or county-confirmed fees for county-supplied parcel, address point and road centerline GIS data in Minnesota. A county or layer without a record is not yet confirmed; it is never treated as free.",
   "counties": [
     {
+      "county": "Aitkin",
+      "layers": {
+        "parcels": {
+          "fee_status": "no-fee",
+          "rest_download": "no-fee",
+          "amount": null,
+          "product": null,
+          "source_kind": "county-response",
+          "source_url": null,
+          "source_date": "2026-10-23",
+          "note": "The county GIS coordinator said the county does not charge for GIS data. The reply covers all county GIS data in one statement, not each layer separately."
+        },
+        "address_points": {
+          "fee_status": "no-fee",
+          "rest_download": "no-fee",
+          "amount": null,
+          "product": null,
+          "source_kind": "county-response",
+          "source_url": null,
+          "source_date": "2026-10-23",
+          "note": "The county GIS coordinator said the county does not charge for GIS data. The reply covers all county GIS data in one statement, not each layer separately."
+        },
+        "road_centerlines": {
+          "fee_status": "no-fee",
+          "rest_download": "no-fee",
+          "amount": null,
+          "product": null,
+          "source_kind": "county-response",
+          "source_url": null,
+          "source_date": "2026-10-23",
+          "note": "The county GIS coordinator said the county does not charge for GIS data. The reply covers all county GIS data in one statement, not each layer separately."
+        }
+      }
+    },
+    {
       "county": "Blue Earth",
       "layers": {
         "parcels": {

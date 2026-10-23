@@ -58,6 +58,9 @@ amount and policy URL.
 
 County responses so far:
 
+- **Aitkin (2026-10-23):** the county GIS coordinator said the county does
+  not charge for GIS data. Recorded as no fee, including REST download, for
+  all three layers; the reply was one statement, not layer by layer.
 - **Brown (2026-10-23):** the county GIS office said its parcel REST service
   is no longer public or authoritative. Parcel data is available only by
   signed request. The 2025-effective fee schedule (IT section) lists a
