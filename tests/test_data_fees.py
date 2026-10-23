@@ -134,8 +134,10 @@ class DataFeeProfileTests(unittest.TestCase):
         self.assertEqual(len(rows), 87 * 3)
         swift = next(r for r in rows if r['county'] == 'Swift' and r['layer'] == 'parcels')
         self.assertTrue(swift['amount'].startswith('$0.03'))
-        aitkin = next(r for r in rows if r['county'] == 'Aitkin' and r['layer'] == 'parcels')
-        self.assertEqual((aitkin['fee_status'], aitkin['amount']), ('unconfirmed', ''))
+        anoka = next(r for r in rows if r['county'] == 'Anoka' and r['layer'] == 'parcels')
+        self.assertEqual((anoka['fee_status'], anoka['amount']), ('unconfirmed', ''))
+        aitkin = next(r for r in rows if r['county'] == 'Aitkin' and r['layer'] == 'address_points')
+        self.assertEqual((aitkin['fee_status'], aitkin['rest_download'], aitkin['source_url']), ('no-fee', 'no-fee', ''))
         sheets = dict(county_profile_xlsx_sheets(profiles))
         self.assertEqual(len(sheets['Data Fees']), 87 * 3 + 1)
 
