@@ -892,12 +892,31 @@ def _extent_change(previous: dict | None, current: dict | None) -> dict | None:
     return {"coordinate_deltas": deltas, "max_extent_shift_percent": normalized}
 
 
-def _field_completeness(url: str, field: str, total: int | None, timeout: int, *, prefer_curl: bool = False) -> dict:
+# Only text fields can hold a blank string. Numeric, date and ID fields must
+# not be compared with '' (some provider SQL dialects reject or coerce it).
+_TEXT_FIELD_TYPES = frozenset({"esriFieldTypeString"})
+
+
+def _missing_predicate(field: str, field_type: object = None) -> str:
+    """Null/blank predicate for one field, chosen from its layer metadata type."""
     field = _sql_identifier(field)
-    missing = _arcgis_count_query(url, f"{field} IS NULL OR {field} = ''", timeout, prefer_curl=prefer_curl)
+    if isinstance(field_type, str) and field_type.startswith("esriFieldType") and field_type not in _TEXT_FIELD_TYPES:
+        return f"{field} IS NULL"
+    # Text, or a type the layer did not report: keep the blank-string check.
+    return f"{field} IS NULL OR {field} = ''"
+
+
+def _completeness_from_missing(field: str, total: int | None, missing: int | None) -> dict:
     populated = None if total is None or missing is None else max(0, total - missing)
     pct = None if total in (None, 0) or populated is None else round((populated / total) * 100.0, 2)
     return {"field": field, "missing": missing, "populated": populated, "complete_percent": pct}
+
+
+def _field_completeness(url: str, field: str, total: int | None, timeout: int, *, prefer_curl: bool = False,
+                        field_type: object = None) -> dict:
+    field = _sql_identifier(field)
+    missing = _arcgis_count_query(url, _missing_predicate(field, field_type), timeout, prefer_curl=prefer_curl)
+    return _completeness_from_missing(field, total, missing)
 
 
 def _gac_population_expression(field_spec: dict, actual_field: str, *, standard_key: str = "parcel") -> str:
@@ -1525,24 +1544,33 @@ def _arcgis_layer(source: dict, timeout: int) -> dict:
             result["null_geometry_check"] = "unsupported"
             result["null_geometry_check_error"] = _safe_diagnostic(exc)
         if id_field and confidence == "high":
+            field_types = {f["name"]: f.get("type") for f in fields}
+            id_failed = None
             try:
-                null_count = _arcgis_count_query(source["url"], f"{_sql_identifier(id_field)} IS NULL OR {_sql_identifier(id_field)} = ''", timeout, prefer_curl=bool(source.get("prefer_curl")))
+                null_count = _arcgis_count_query(source["url"], _missing_predicate(id_field, field_types.get(id_field)), timeout, prefer_curl=bool(source.get("prefer_curl")))
             except (ProviderRateLimitError, PermanentProviderError):
                 raise
             except Exception as exc:
                 # Optional quality metric: record it as unsupported, not as a source failure.
                 null_count = None
+                id_failed = _safe_diagnostic(exc)
                 result["parcel_id_null_check"] = "unsupported"
-                result["parcel_id_null_check_error"] = _safe_diagnostic(exc)
+                result["parcel_id_null_check_error"] = id_failed
             result["parcel_id_null_count"] = null_count
             profiles = {}
             owner_field = _field_candidate(result["field_names"], ["owner_name","owner","tax_name","ownername"], ["owner"])
             site_address_field = _field_candidate(result["field_names"], ["site_address","property_address","prop_addr","site_addr","physical_address"], ["siteaddr","site_addr","propaddr","prop_addr"])
             mailing_address_field = _field_candidate(result["field_names"], ["ownraddr1","owner_address","mail_address","mail_addr","tax_add_l1"], ["ownraddr","owner_addr","mail_addr"])
-            for label, field in (("parcel_id", id_field), ("owner", owner_field), ("site_address", site_address_field), ("mailing_address", mailing_address_field)):
+            # The parcel-ID profile reuses the single count above: one query, one result.
+            profiles["parcel_id"] = (
+                {"field": id_field, "status": "unsupported", "error": id_failed}
+                if id_failed is not None else _completeness_from_missing(_sql_identifier(id_field), result.get("feature_count"), null_count)
+            )
+            for label, field in (("owner", owner_field), ("site_address", site_address_field), ("mailing_address", mailing_address_field)):
                 if field:
                     try:
-                        profiles[label] = _field_completeness(source["url"], field, result.get("feature_count"), timeout, prefer_curl=bool(source.get("prefer_curl")))
+                        profiles[label] = _field_completeness(source["url"], field, result.get("feature_count"), timeout,
+                                                              prefer_curl=bool(source.get("prefer_curl")), field_type=field_types.get(field))
                     except (ProviderRateLimitError, PermanentProviderError):
                         raise
                     except Exception as exc:
