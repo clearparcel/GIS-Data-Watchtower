@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from clearparcel.datawatch import aggregate, dashboard, file_lock, watch
+from clearparcel.datawatch import aggregate, file_lock, watch
 from clearparcel.datawatch.county_profiles import FreshnessPolicy, compose_county_profiles
 from clearparcel.datawatch.dashboard_templates import _accessible_tables
 from clearparcel.datawatch.parcel_access import load_parcel_access

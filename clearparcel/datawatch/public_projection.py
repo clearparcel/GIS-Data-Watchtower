@@ -201,6 +201,34 @@ def _sanitize_mngac(data: dict | None) -> dict | None:
 _sanitize_gac = _sanitize_mngac
 
 
+class InvalidSnapshotError(ValueError):
+    """A snapshot that cannot be trusted as a whole; keep the last accepted one."""
+
+
+def validate_snapshot_structure(state: object) -> None:
+    """Reject documents that would sanitize into a misleading empty fleet.
+
+    Sanitizing leaves is not validation: an object holding only a fresh
+    ``public_published_at`` would otherwise become zero sources and pass
+    publication health. A valid empty fleet still declares its containers.
+    """
+    if not isinstance(state, dict):
+        raise InvalidSnapshotError("snapshot is not an object")
+    if _public_count(state.get("schema_version")) in (None, 0):
+        raise InvalidSnapshotError("snapshot schema_version is missing or invalid")
+    if _public_date(state.get("generated_at")) is None:
+        raise InvalidSnapshotError("snapshot generated_at is missing or invalid")
+    for key in ("counts", "sources", "workers"):
+        if not isinstance(state.get(key), dict):
+            raise InvalidSnapshotError(f"snapshot {key} is missing or not an object")
+    for key in ("sources", "workers"):
+        if not all(isinstance(record, dict) for record in state[key].values()):
+            raise InvalidSnapshotError(f"snapshot {key} contains a malformed record")
+    for key in ("ok", "warn", "error"):
+        if key in state["counts"] and _public_count(state["counts"][key]) is None:
+            raise InvalidSnapshotError(f"snapshot count {key} is invalid")
+
+
 def sanitize_public_render_state(state: dict) -> dict:
     """Reduce aggregate state to facts intentionally safe for anonymous display."""
     public = {key: validate(state.get(key)) for key, validate in {

@@ -182,6 +182,52 @@ class AlertDeliveryTests(unittest.TestCase):
         self.assertNotEqual(errors[0]["event_key"], errors[1]["event_key"])
         self.assertEqual(reopened["new_event_keys"], [errors[1]["event_key"]])
 
+    def test_late_failure_after_its_recovery_is_superseded_not_sent(self):
+        transport = FakeTransport()
+        self.deliver([err(19), run(20)], transport=transport, now="2026-10-20T12:00:00Z")
+        # A delayed caller (its own ledger handle on the same store) offers the
+        # older failure after the recovery was accepted and sent.
+        late = AlertLedger(LocalStorage(self.root))
+        receipt = self.deliver([err(19)], transport=transport, now="2026-10-20T12:01:00Z",
+                               ledger=late)
+        self.assertEqual(receipt["notification_delivery"], "nothing_to_send")
+        self.assertEqual([[e["type"] for e in d["events"]] for d in transport.digests],
+                         [["recovered"]])
+        data, _ = self.ledger.read()
+        failure = next(r for r in data["events"].values() if r["type"] == "source_error")
+        recovered = next(r for r in data["events"].values() if r["type"] == "recovered")
+        self.assertEqual(failure["state"], "superseded")
+        self.assertEqual(failure["resolved_by"], recovered["event_key"])
+        self.assertEqual([h["state"] for h in failure["history"]], ["queued", "superseded"])
+        self.assertEqual(ledger_status(self.ledger)["needs_operator_attention"], [])
+
+    def test_delayed_older_recovery_does_not_close_a_newer_failure(self):
+        transport = FakeTransport()
+        self.deliver([run(18), err(19)], transport=transport,
+                     as_of="2026-10-19T12:00:00Z")
+        # A recovery checked before that failure arrives late from another caller.
+        self.deliver([err(17), run(18)], transport=transport, as_of="2026-10-19T12:01:00Z",
+                     now="2026-10-19T12:01:00Z")
+        data, _ = self.ledger.read()
+        failure = next(r for r in data["events"].values() if r["type"] == "source_error")
+        recovered = next(r for r in data["events"].values() if r["type"] == "recovered")
+        self.assertNotIn("resolved_by", failure)
+        self.assertEqual(failure["state"], "sent")
+        # The stale recovery is kept for audit but never sent after that failure.
+        self.assertEqual(recovered["state"], "superseded")
+        self.assertEqual(recovered["resolved_by"], failure["event_key"])
+        self.assertEqual([[e["type"] for e in d["events"]] for d in transport.digests],
+                         [["source_error"]])
+
+    def test_failure_checked_after_recovery_opens_a_new_incident(self):
+        transport = FakeTransport()
+        self.deliver([err(19), run(20)], transport=transport, now="2026-10-20T12:00:00Z")
+        receipt = self.deliver([err(19), run(20), run(20, {"sample": ("error", {})}, hour=11)], transport=transport,
+                               now="2026-10-20T12:01:00Z")
+        self.assertEqual(receipt["notification_delivery"], "handed_off")
+        self.assertEqual([[e["type"] for e in d["events"]] for d in transport.digests],
+                         [["recovered"], ["source_error"]])
+
     def test_warning_rate_limit_backoff_and_overdue_share_one_digest(self):
         rows = [run(18, {"limited": ("error", {"rate_limited": True})}),
                 run(20, {"warned": ("warn", {}),

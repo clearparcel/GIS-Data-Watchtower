@@ -81,6 +81,17 @@ def load_gac_standard(key: str = "parcel") -> dict:
     return document
 
 
+_NUMBER_WORDS = ("zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten")
+
+
+def standard_field_counts(key: str = "parcel", *, schema: dict | None = None) -> dict:
+    """Field totals of the bundled standard, for labels; never an observation denominator."""
+    fields = (load_gac_standard(key) if schema is None else schema).get("fields") or []
+    mandatory = sum(1 for field in fields if field.get("inclusion") == "Mandatory")
+    return {"fields": len(fields), "mandatory": mandatory,
+            "mandatory_words": _NUMBER_WORDS[mandatory] if mandatory < len(_NUMBER_WORDS) else str(mandatory)}
+
+
 def gac_defaults(key: str = "parcel") -> dict:
     key = normalize_standard_key(key)
     return dict(_STANDARD_DEFAULTS[key])

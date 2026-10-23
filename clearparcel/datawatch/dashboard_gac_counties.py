@@ -9,7 +9,7 @@ from urllib.parse import urlencode
 from . import dashboard as dashboard
 from .county_profile_panel import percentage_color, percentage_legend, profile_time, render_direct_schema_findings
 from .direct_gac_schema import direct_schema_assessment
-from .gac_standards import gac_defaults, load_gac_standard, standard_keys
+from .gac_standards import gac_defaults, load_gac_standard, standard_field_counts, standard_keys
 
 LABELS = {'parcel': 'Parcels', 'address': 'Address Points', 'road': 'Road Centerlines'}
 
@@ -138,9 +138,10 @@ def render_county_results(config: dict, standard_key: str, county: dict | None) 
 <div class="card"><div class="muted">Standard fields</div><div class="metric">{len(schema['fields'])}</div></div></div>
 <p class="mngac-note">These percentages describe fields containing values in this county's records, not a compliance score. Conditional, If Available and Optional fields may legitimately be blank. Source schema describes the shared statewide layer; population figures below are county-specific.</p>'''
             if standard_key == 'parcel':
-                body += ('<p class="subtext">The seven mandatory fields can yield identical percentages across '
+                labels = standard_field_counts(schema=schema)
+                body += (f'<p class="subtext">The {labels["mandatory_words"]} mandatory fields can yield identical percentages across '
                          'counties even when all-field population differs. The parcel map compares all '
-                         '91 standard fields; conditional and optional fields may legitimately be blank.</p>')
+                         f'{labels["fields"]} standard fields; conditional and optional fields may legitimately be blank.</p>')
             if data.get('text_population_mode') == 'non_null':
                 body += '<p class="subtext">Text population is non-null based; empty strings may count as populated in this observation.</p>'
             rows = []
