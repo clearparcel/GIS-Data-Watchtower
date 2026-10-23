@@ -14,6 +14,7 @@ from clearparcel.datawatch.gac_standards import (
     gac_defaults,
     load_gac_standard,
     normalize_standard_key,
+    standard_field_counts,
 )
 from .dashboard_gac_counties import navigation, resolve_county, county_map, render_county_results
 
@@ -258,6 +259,7 @@ def render_mngac(config: dict, standard_key: str = "parcel", *, county: str = ''
     publication = f'<p>Public publication: {_dashboard._esc(profile_time(state.get("public_published_at")))}</p>'
     schema = _dashboard._load_mngac_schema()
     standard = schema.get("standard") or {}
+    labels = standard_field_counts(schema=schema)
     all_counties = _dashboard._load_counties()
     total_counties = len(all_counties)
     selector = _gac_standard_selector("parcel", selected_county)
@@ -294,7 +296,7 @@ def render_mngac(config: dict, standard_key: str = "parcel", *, county: str = ''
     )
 
     options = [
-        '<option value="__overall__" selected>All 91 fields — row population rate</option>',
+        f'<option value="__overall__" selected>All {labels["fields"]} fields — row population rate</option>',
         '<option value="__mandatory__">Mandatory fields — row population rate</option>',
         '<option value="__fields_with_values__">Fields with any values — share of standard fields</option>',
     ]
@@ -381,10 +383,10 @@ def render_mngac(config: dict, standard_key: str = "parcel", *, county: str = ''
   <div class="card"><div class="muted">Open parcel records</div><div class="metric">{record_count_label}</div><span class="subtext">Parcel records included in the current MnGeo statewide open layer.</span></div>
 </div>
 <div class="activity-strip">
-  <div class="card"><div class="muted">All-field population</div><div class="metric">{_dashboard._esc(f"{overall_pct:.2f}%" if isinstance(overall_pct,(int,float)) else "—")}</div><span class="subtext">Record-weighted populated cells across all 91 standard fields for represented counties. Descriptive only.</span></div>
+  <div class="card"><div class="muted">All-field population</div><div class="metric">{_dashboard._esc(f"{overall_pct:.2f}%" if isinstance(overall_pct,(int,float)) else "—")}</div><span class="subtext">Record-weighted populated cells across all {labels["fields"]} standard fields for represented counties. Descriptive only.</span></div>
   <div class="card"><div class="muted">Mandatory-field fill rate</div><div class="metric">{_dashboard._esc(f"{mandatory_pct:.2f}%" if isinstance(mandatory_pct,(int,float)) else "—")}</div><span class="subtext">Record-weighted population across fields the standard classifies as Mandatory.</span></div>
 </div>
-<div class="mngac-note"><strong>How to read these percentages:</strong> this page measures whether standardized MNGAC fields contain values. It is <strong>not a compliance score</strong>. Conditional fields may be correctly blank when their condition does not apply; “If Available” fields are only required when the provider has the data; Optional fields may be blank. Mandatory-field population is shown separately. The parcel map defaults to all 91 fields because the seven mandatory fields can produce tied percentages across counties; you can select the Mandatory metric separately. Neither percentage is a compliance grade. Source: {standard_link}. Observation: {_dashboard._format_time_pair(observed_at)}</div>
+<div class="mngac-note"><strong>How to read these percentages:</strong> this page measures whether standardized MNGAC fields contain values. It is <strong>not a compliance score</strong>. Conditional fields may be correctly blank when their condition does not apply; “If Available” fields are only required when the provider has the data; Optional fields may be blank. Mandatory-field population is shown separately. The parcel map defaults to all {labels["fields"]} fields because the {labels["mandatory_words"]} mandatory fields can produce tied percentages across counties; you can select the Mandatory metric separately. Neither percentage is a compliance grade. Source: {standard_link}. Observation: {_dashboard._format_time_pair(observed_at)}</div>
 {failure_notice}
 <div class="card">
   <div class="section-head"><div><h2>Interactive Minnesota county map</h2><p>Select an MN GAC field or summary statistic, then click or keyboard-select any county to inspect it.</p></div></div>
@@ -421,9 +423,9 @@ def render_mngac(config: dict, standard_key: str = "parcel", *, county: str = ''
   const paths=[...root.querySelectorAll('.mngac-county')];
   const q=root.getElementById('mngac-q'),inc=root.getElementById('mngac-inclusion');
   function metricMeta(key){{
-    if(key==='__overall__')return {{label:'All 91 fields — row population rate',inclusion:'Descriptive'}};
+    if(key==='__overall__')return {{label:'All {labels["fields"]} fields — row population rate',inclusion:'Descriptive'}};
     if(key==='__mandatory__')return {{label:'Mandatory fields — row population rate',inclusion:'Mandatory'}};
-    if(key==='__fields_with_values__')return {{label:'Fields with any values — share of 91 standard fields',inclusion:'Descriptive'}};
+    if(key==='__fields_with_values__')return {{label:'Fields with any values — share of {labels["fields"]} standard fields',inclusion:'Descriptive'}};
     return data.fields[key]||{{label:key,inclusion:''}};
   }}
   function valueFor(name,key){{
@@ -546,8 +548,13 @@ def _render_county_gac_summaries(state: dict, county: dict) -> str:
         '</div></div><div class="grid">' + "".join(cards) + '</div>'
     )
 
-def _gac_county_payload(state: dict, standard_key: str, county_name: str) -> dict | None:
-    data = _dashboard._gac_data(state, standard_key)
+_UNPROJECTED = object()
+
+
+def _gac_county_payload(state: dict, standard_key: str, county_name: str, *, data=_UNPROJECTED) -> dict | None:
+    """County slice of one standard; pass ``data`` to reuse an already projected view."""
+    if data is _UNPROJECTED:
+        data = _dashboard._gac_data(state, standard_key)
     if not isinstance(data, dict):
         return None
     metadata = (data.get("county_metadata") or {}).get(county_name)

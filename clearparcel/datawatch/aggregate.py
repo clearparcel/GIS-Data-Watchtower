@@ -26,14 +26,6 @@ def _normalized_status(value) -> str:
     return value if value in _ALLOWED_STATUS else "error"
 
 
-def stamp_worker(result: dict, worker: str) -> dict:
-    stamped = deepcopy(result)
-    for record in (stamped.get("sources") or {}).values():
-        record["worker"] = worker
-    stamped["worker"] = worker
-    return stamped
-
-
 def merge_states(base: dict | None, partial: dict, worker: str, *, now: dt.datetime | None = None) -> dict:
     """Merge one worker report without deleting observations from other workers.
 

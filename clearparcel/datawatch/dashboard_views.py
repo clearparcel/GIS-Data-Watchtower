@@ -26,8 +26,10 @@ def render_dashboard(config: dict) -> str:
     config_map = _dashboard._source_config_map(config)
     enriched = []
     changed_30 = 0
+    # One history read per render: run telemetry plus exact-ID source histories.
+    run_history, histories = _dashboard.load_history_index(config, sources.keys(), limit=60)
     for sid, src in sources.items():
-        hist = _dashboard.load_history(config, source_filter=sid, limit=60).get("entries", [])
+        hist = histories.get(sid, [])
         stats = _dashboard._history_stats(hist)
         if stats["change_age_days"] is not None and stats["change_age_days"] <= 30:
             changed_30 += 1
@@ -94,7 +96,6 @@ def render_dashboard(config: dict) -> str:
 <td>{_dashboard._esc(stats.get('success_rate') if stats.get('success_rate') is not None else '—')}%<br><span class="muted">{_dashboard._esc(stats.get('consecutive_ok'))} consecutive</span></td>
 <td>{_dashboard._esc(src.get('elapsed_ms','—'))} ms</td><td>{_dashboard._format_time_pair(src.get('last_success_at'))}</td></tr>""")
     options = "".join(f'<option value="{_dashboard._esc(x)}">{_dashboard._esc(x)}</option>' for x in categories)
-    run_history = _dashboard.load_history(config, limit=60).get("entries", [])
     run_wall = [((x.get("telemetry") or {}).get("wall_ms") or 0) / 1000.0 for x in run_history if (x.get("telemetry") or {}).get("wall_ms") is not None]
     run_cpu = [((x.get("telemetry") or {}).get("cpu_ms") or 0) / 1000.0 for x in run_history if (x.get("telemetry") or {}).get("cpu_ms") is not None]
     run_mem = [((x.get("telemetry") or {}).get("peak_python_memory_kb") or 0) / 1024.0 for x in run_history if (x.get("telemetry") or {}).get("peak_python_memory_kb") is not None]
@@ -162,7 +163,7 @@ def render_source(config: dict, source_id: str) -> str:
     src = (state.get("sources") or {}).get(source_id)
     if not src:
         return _dashboard._layout("Source not found", '<div class="card"><h2>Source not found</h2><p><a href="/">Return to dashboard</a></p></div>', csrf_token=str(config.get("_csrf_token") or ""))
-    hist = _dashboard.load_history(config, source_filter=source_id, limit=60).get("entries", [])
+    hist = _dashboard.load_history(config, source_filter=source_id, exact=True, limit=60).get("entries", [])
     stats = _dashboard._history_stats(hist)
     meta = _dashboard._source_config_map(config).get(source_id, {})
     provenance = src.get("provenance") or {}

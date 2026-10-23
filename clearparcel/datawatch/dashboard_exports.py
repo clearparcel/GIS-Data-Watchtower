@@ -20,7 +20,33 @@ def _load_mngac_schema() -> dict:
         return {"standard": {}, "fields": []}
 
 
-def _mngac_csv(data: dict | None) -> str:
+class GacExportUnavailable(ValueError):
+    """The requested standard's schema cannot produce a trustworthy export."""
+
+
+def _export_schema(data: dict, requested: str | None) -> dict:
+    """Schema for the payload's own standard; never another standard's fields.
+
+    Only an old parcel payload that carries no standard identity at all is
+    treated as parcel. An unknown identity, a mismatch with the requested
+    standard, or a missing/invalid schema file is an explicit error.
+    """
+    declared = data.get("standard_key") or (data.get("standard") or {}).get("key")
+    try:
+        key = normalize_standard_key(declared) if declared else "parcel"
+        if requested is not None and key != normalize_standard_key(requested):
+            raise GacExportUnavailable(f"export payload is for {key}, not {requested}")
+        schema = load_gac_standard(key)
+    except GacExportUnavailable:
+        raise
+    except (ValueError, OSError, json.JSONDecodeError) as exc:
+        raise GacExportUnavailable("GAC standard schema unavailable") from exc
+    if not isinstance(schema.get("fields"), list) or not schema["fields"]:
+        raise GacExportUnavailable("GAC standard schema has no fields")
+    return schema
+
+
+def _mngac_csv(data: dict | None, *, standard_key: str | None = None) -> str:
     out = io.StringIO()
     fields = [
         "element","field","section","inclusion","data_type","counties_with_values",
@@ -31,13 +57,7 @@ def _mngac_csv(data: dict | None) -> str:
     writer.writeheader()
     if not isinstance(data, dict):
         return out.getvalue()
-    try:
-        standard_key = normalize_standard_key(
-            data.get("standard_key") or (data.get("standard") or {}).get("key") or "parcel"
-        )
-        schema = load_gac_standard(standard_key)
-    except (ValueError, OSError, json.JSONDecodeError):
-        schema = _load_mngac_schema()
+    schema = _export_schema(data, standard_key)
     summaries = data.get("fields") or {}
     for spec in schema.get("fields") or []:
         field = str(spec.get("field") or "")
