@@ -59,12 +59,14 @@ amount and policy URL.
 County responses so far:
 
 - **Brown (2026-10-23):** the county GIS office said its parcel REST service
-  is no longer public or authoritative and is not covered by the fee
-  schedule. Parcel data is available only through a signed data request
-  form, billed hourly case by case. This supersedes the $697 schedule
-  price; the hourly rate is not yet published. The parcel-access research
-  record and the private source registry still describe the earlier REST
-  service and need a separate owner-approved update.
+  is no longer public or authoritative. Parcel data is available only by
+  signed request. The 2025-effective fee schedule (IT section) lists a
+  complete parcel dataset at $697, partial parcels at $0.04 each ($20
+  minimum) plus the service fee, street centerlines at $500, rural address
+  points at $300 (cities not included) and professional service at $75/hour.
+  These figures are being confirmed with the county. The parcel-access
+  research record and the private source registry still describe the
+  earlier REST service and need a separate owner-approved update.
 
 The County Terms Outreach emails ask every county whether using its REST
 services or downloading parcel, address point and road centerline data

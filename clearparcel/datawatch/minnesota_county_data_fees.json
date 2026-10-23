@@ -33,12 +33,32 @@
         "parcels": {
           "fee_status": "fee",
           "rest_download": "not-offered",
-          "amount": "Hourly rate, set case by case (rate not yet published)",
-          "product": "Parcel data provided through a signed data request form",
+          "amount": "$697 complete dataset; partial $0.04 per parcel ($20 minimum) plus service fee; professional service $75/hour (half-hour minimum)",
+          "product": "Parcel shapefile through a signed data request and disclosure",
           "source_kind": "county-response",
-          "source_url": "https://www.browncountymn.gov/463/Fee-Schedule",
+          "source_url": "https://www.browncountymn.gov/DocumentCenter/View/502/Fee-Schedule-PDF",
           "source_date": "2026-10-23",
-          "note": "The county GIS office said its parcel REST service is no longer public or authoritative and is not covered by the fee schedule. Parcel data is available only through a signed data request form, billed hourly case by case. This replaces the $697 complete-shapefile price in the 2025-effective schedule read on 2026-10-06. Address point and road centerline terms are not yet confirmed."
+          "note": "The county GIS office said on 2026-10-23 that its parcel REST service is no longer public or authoritative and is not covered by the fee schedule; parcel data is available only by signed request, with time billed case by case. Amounts are from the IT section of the 2025-effective fee schedule and are being confirmed with the county."
+        },
+        "road_centerlines": {
+          "fee_status": "fee",
+          "rest_download": "unconfirmed",
+          "amount": "$500",
+          "product": "Street centerline shapefile (signed data disclosure)",
+          "source_kind": "published-fee-schedule",
+          "source_url": "https://www.browncountymn.gov/DocumentCenter/View/502/Fee-Schedule-PDF",
+          "source_date": "2026-10-23",
+          "note": "Published in the IT section of the county's 2025-effective fee schedule: shapefile delivery with a signed data disclosure. Whether REST or direct download is available for this layer has not been confirmed; the county said parcel data comes only by request. Figures are being confirmed with the county."
+        },
+        "address_points": {
+          "fee_status": "fee",
+          "rest_download": "unconfirmed",
+          "amount": "$300",
+          "product": "Rural address points shapefile; city addresses not included (signed data disclosure)",
+          "source_kind": "published-fee-schedule",
+          "source_url": "https://www.browncountymn.gov/DocumentCenter/View/502/Fee-Schedule-PDF",
+          "source_date": "2026-10-23",
+          "note": "Published in the IT section of the county's 2025-effective fee schedule: shapefile delivery with a signed data disclosure. Whether REST or direct download is available for this layer has not been confirmed; the county said parcel data comes only by request. Figures are being confirmed with the county."
         }
       }
     },
