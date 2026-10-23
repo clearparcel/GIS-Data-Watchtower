@@ -56,7 +56,7 @@ index and detail views live in `dashboard_counties.py`, and the overview and
 source detail views live in `dashboard_views.py`. `dashboard.py` preserves their
 compatibility wrappers and shared county profile and state helpers.
 
-Both static-site publication and the hosted public renderer omit detailed change payloads, fingerprints, tracked values, operational provider URLs, provenance details, worker telemetry, and other private diagnostics.
+Both static-site publication and the hosted public renderer omit detailed change payloads, fingerprints, tracked values, operational provider URLs, provenance details, worker telemetry, and other private diagnostics. The static site, the private `/api/state` endpoint, and the hosted renderer share the typed projection in `public_projection.py`, so nested objects and non-profile worker names never reach public output, and missing change evidence is shown as unavailable rather than zero. A static build records its generated source pages in `.watchtower-static-manifest.json` and, when the output directory is reused, removes only pages listed there for sources that are no longer present; other files are left alone.
 
 ### Minnesota GAC completeness
 

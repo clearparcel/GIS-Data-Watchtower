@@ -47,7 +47,7 @@ from clearparcel.datawatch.dashboard_summary import summary_for, render_diagnost
 from clearparcel.datawatch.public_details import dispatch_public_details, encode_response
 
 
-from clearparcel.datawatch.public_projection import sanitize_public_render_state
+from clearparcel.datawatch.public_projection import sanitize_public_render_state, validate_snapshot_structure
 
 
 def _publication_max_age_seconds() -> int:
@@ -119,8 +119,11 @@ def render_public_dashboard(config: dict) -> str:
     workers = state.get("workers") or {}
     mngac = _mngac_data(state)
     parcel_counts = standard_field_counts("parcel")
-    healthy = int(counts.get("ok") or 0)
-    issues = int(counts.get("warn") or 0) + int(counts.get("error") or 0)
+    # A missing count is unavailable, never a measured zero.
+    known = {key: counts.get(key) for key in ("ok", "warn", "error")
+             if type(counts.get(key)) is int and counts.get(key) >= 0}
+    healthy = known.get("ok", "—")
+    issues = known["warn"] + known["error"] if "warn" in known and "error" in known else "—"
     published_at = state.get("public_published_at")
     publication_healthy, publication_health = _publication_health(state, max_age_seconds=_publication_max_age_seconds())
     publication_reporting = "Current" if publication_healthy else "Overdue" if publication_health.get("reason") == "publication_too_old" else "Unknown"
@@ -474,6 +477,9 @@ class _PublicStateCache:
             if not self.storage.download(self.object_name, self.raw_path):
                 raise FileNotFoundError(f"aggregate object not found: {self.object_name}")
             raw = strict_json.loads(self.raw_path.read_text(encoding="utf-8"))
+            # Never replace a good snapshot with a structurally invalid one;
+            # the failed refresh stays visible through stale/refresh_failed.
+            validate_snapshot_structure(raw)
             public = sanitize_public_render_state(raw)
             tmp = self.public_path.with_suffix(".tmp")
             tmp.write_text(json.dumps(public, ensure_ascii=False), encoding="utf-8")

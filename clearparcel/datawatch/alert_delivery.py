@@ -235,6 +235,27 @@ def _backoff(attempts: int, settings: dict, retry_after: float | None) -> timede
     return timedelta(seconds=seconds)
 
 
+def _checked(record: dict) -> datetime | None:
+    try:
+        return _utc(record.get("checked_at"))
+    except ValueError:
+        return None
+
+
+def _closes(recovery: dict, failure: dict) -> bool:
+    """Whether ``recovery`` closes the incident ``failure`` belongs to.
+
+    Chronology comes from provider check times, not from arrival order, so a
+    delayed caller cannot reopen an incident with an older failure. Without
+    both check times the recovery closes the failure, as before.
+    """
+    if (failure["type"] == "recovered" or failure.get("worker") != recovery.get("worker")
+            or failure.get("source_id") != recovery.get("source_id")):
+        return False
+    closed_at, failed_at = _checked(recovery), _checked(failure)
+    return closed_at is None or failed_at is None or failed_at <= closed_at
+
+
 def _enqueue(data: dict, messages: list, at: datetime) -> tuple[list, list]:
     """Record new candidates once. Returns (new_keys, known_keys)."""
     events = data["events"]
@@ -257,11 +278,26 @@ def _enqueue(data: dict, messages: list, at: datetime) -> tuple[list, list]:
             # A recovery closes the earlier incident for this worker/source. A
             # later failure has a new preview key and therefore reopens it.
             for other in events.values():
-                if (other is not record and other["type"] != "recovered"
-                        and other.get("worker") == message["worker"]
-                        and other.get("source_id") == message["source_id"]
-                        and not other.get("resolved_by")):
+                if other is not record and not other.get("resolved_by") and _closes(record, other):
                     other["resolved_by"] = key
+            # A delayed recovery checked before a failure already accepted is
+            # history, not current health: never report it after that failure.
+            newer = [other for other in events.values()
+                     if other["type"] != "recovered" and not _closes(record, other)
+                     and other.get("worker") == record["worker"]
+                     and other.get("source_id") == record["source_id"]]
+            if newer:
+                record["resolved_by"] = max(newer, key=lambda o: (_checked(o), o["event_key"]))["event_key"]
+        elif record["checked_at"] is not None and _checked(record) is not None:
+            # A failure checked no later than an already accepted recovery
+            # arrived late: it belongs to the closed incident, so record it
+            # for audit and let the sweep supersede it instead of sending it.
+            closer = min((other for other in events.values()
+                          if other["type"] == "recovered" and _checked(other) is not None
+                          and _closes(other, record)),
+                         key=lambda other: (_checked(other), other["event_key"]), default=None)
+            if closer is not None:
+                record["resolved_by"] = closer["event_key"]
     return new, known
 
 
