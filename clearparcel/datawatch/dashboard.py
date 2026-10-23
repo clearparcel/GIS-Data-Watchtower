@@ -29,7 +29,7 @@ from clearparcel.datawatch.csp import secure_html, strip_markers
 from clearparcel.datawatch.county_profile_panel import render_county_profile_body, percentage_patterns, research_summary
 from clearparcel.datawatch.county_profile_exports import county_profiles_csv, parcel_sources_csv
 from clearparcel.datawatch.county_profiles import FreshnessPolicy, compose_county_profiles, county_profile_counts
-from clearparcel.datawatch.gac_standards import gac_defaults, load_gac_standard, normalize_standard_key, standard_keys
+from clearparcel.datawatch.gac_standards import load_gac_standard, normalize_standard_key, standard_keys
 from clearparcel.datawatch.gac_projection import project_gac
 from clearparcel.datawatch.public_values import county_metadata_dates
 from clearparcel.datawatch.public_projection import sanitize_public_render_state

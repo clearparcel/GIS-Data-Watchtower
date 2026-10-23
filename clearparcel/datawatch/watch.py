@@ -1277,7 +1277,12 @@ def _arcgis_mngac_completeness(
 def _gac_bool(value) -> bool | None:
     if type(value) is bool:
         return value
-    text = str(value or "").strip().lower()
+    if type(value) is int:
+        # Numeric flags: 0 is an explicit false, not missing data.
+        return {0: False, 1: True}.get(value)
+    if value is None or not isinstance(value, str):
+        return None
+    text = value.strip().lower()
     if text in {"true", "yes", "y", "1"}:
         return True
     if text in {"false", "no", "n", "0"}:
