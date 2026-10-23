@@ -1,5 +1,12 @@
 # Project status
 
+## v0.3.7 dashboard release — prepared, deployment pending, 2026-10-23
+
+Owner-approved release of the October 23 review fixes (#131–#141) to the
+public and private dashboards. The provider and public-publisher jobs stay
+on v0.3.6, unchanged, by owner decision. See
+[the release record](docs/release-v0.3.7.md).
+
 ## Backup check and access review — passed with recommendations, 2026-10-20
 
 A read-only check restored every operational object into isolated storage
