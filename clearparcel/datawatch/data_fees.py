@@ -19,7 +19,8 @@ LAYERS = (
 LAYER_KEYS = tuple(key for key, _ in LAYERS)
 FEE_STATUSES = {"fee": "Fee published", "no-fee": "No fee (county confirmed)"}
 UNCONFIRMED_LABEL = "Not yet confirmed"
-REST_STATUSES = {"fee": "Fee charged", "no-fee": "No fee", "unconfirmed": "Not confirmed"}
+REST_STATUSES = {"fee": "Fee charged", "no-fee": "No fee", "unconfirmed": "Not confirmed",
+                 "not-offered": "Not offered (data by request only)"}
 SOURCE_KINDS = {"published-fee-schedule": "Published county fee schedule",
                 "county-response": "County response to ClearParcel inquiry"}
 LAYER_FIELDS = {"fee_status", "rest_download", "amount", "product", "source_kind",
@@ -51,6 +52,9 @@ def _validate_layer(entry: object) -> None:
         raise ValueError("A confirmed no-fee layer cannot charge for REST download")
     if rest == "fee" and status != "fee":
         raise ValueError("A REST download fee requires a fee status")
+    # Only the county can say its service is withdrawn; a schedule cannot.
+    if rest == "not-offered" and entry["source_kind"] != "county-response":
+        raise ValueError("A withdrawn REST route requires a county response")
     if status == "fee" and not (_text(entry["amount"]) and _text(entry["product"])):
         raise ValueError("A published fee requires an amount and product")
     for key in ("amount", "product"):

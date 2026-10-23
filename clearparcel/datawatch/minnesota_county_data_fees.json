@@ -32,13 +32,13 @@
       "layers": {
         "parcels": {
           "fee_status": "fee",
-          "rest_download": "unconfirmed",
-          "amount": "$697",
-          "product": "Requested complete GIS parcel dataset in Shapefile format (2025-effective schedule; signed disclosure)",
-          "source_kind": "published-fee-schedule",
-          "source_url": "https://www.browncountymn.gov/DocumentCenter/View/502/Fee-Schedule-PDF",
-          "source_date": "2026-10-06",
-          "note": "Published county fee for the listed product. Whether downloading through the county's REST service or another direct route is charged has not been confirmed by the county."
+          "rest_download": "not-offered",
+          "amount": "Hourly rate, set case by case (rate not yet published)",
+          "product": "Parcel data provided through a signed data request form",
+          "source_kind": "county-response",
+          "source_url": "https://www.browncountymn.gov/463/Fee-Schedule",
+          "source_date": "2026-10-23",
+          "note": "The county GIS office said its parcel REST service is no longer public or authoritative and is not covered by the fee schedule. Parcel data is available only through a signed data request form, billed hourly case by case. This replaces the $697 complete-shapefile price in the 2025-effective schedule read on 2026-10-06. Address point and road centerline terms are not yet confirmed."
         }
       }
     },

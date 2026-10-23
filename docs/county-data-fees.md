@@ -25,7 +25,7 @@ Each county record lists only the layers with information. Each layer entry has:
 | Field | Meaning |
 | --- | --- |
 | `fee_status` | `fee` (the county publishes or confirmed a fee for some form of this data) or `no-fee` (the county confirmed there is no fee). |
-| `rest_download` | Whether downloading through the county's REST service or another direct route is charged: `fee`, `no-fee` or `unconfirmed`. |
+| `rest_download` | Whether downloading through the county's REST service or another direct route is charged: `fee`, `no-fee`, `unconfirmed`, or `not-offered` (the county says the route is not public; data only by request). `not-offered` requires a county response. |
 | `amount`, `product` | The fee text as the county states it, and what it buys. Required for `fee`. |
 | `source_kind` | `published-fee-schedule` (requires the official `source_url`) or `county-response` (a reply to ClearParcel's inquiry). |
 | `source_url`, `source_date` | Official citation and the date it was read or the reply was received. |
@@ -55,6 +55,16 @@ Redwood, Swift and Winona. Blue Earth's Basic Bundle also covers road
 centerlines at the same bundle price. A regression test requires every
 research `parcel_dataset_fee` to have a matching fee record with the same
 amount and policy URL.
+
+County responses so far:
+
+- **Brown (2026-10-23):** the county GIS office said its parcel REST service
+  is no longer public or authoritative and is not covered by the fee
+  schedule. Parcel data is available only through a signed data request
+  form, billed hourly case by case. This supersedes the $697 schedule
+  price; the hourly rate is not yet published. The parcel-access research
+  record and the private source registry still describe the earlier REST
+  service and need a separate owner-approved update.
 
 The County Terms Outreach emails ask every county whether using its REST
 services or downloading parcel, address point and road centerline data

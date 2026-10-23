@@ -45,6 +45,9 @@ class DataFeeValidationTests(unittest.TestCase):
         for name, record in load_parcel_access().items():
             if record.get('parcel_dataset_fee'):
                 parcels = fees[name]['parcels']
+                # A later county reply supersedes the researched schedule.
+                if parcels['source_kind'] == 'county-response' and parcels['source_date'] > record['review_date']:
+                    continue
                 self.assertEqual(parcels['amount'], record['parcel_dataset_fee'], name)
                 self.assertEqual(parcels['source_url'], record['fee_policy_url'], name)
 
@@ -64,6 +67,7 @@ class DataFeeValidationTests(unittest.TestCase):
             entry(note='Ask gis@example.mn.us'),
             entry(source_url='javascript:alert(1)'),
             entry(fee_status='free'),
+            entry(rest_download='not-offered'),
             {**entry(), 'extra': 1},
         ]
         for layer in bad:
@@ -98,8 +102,11 @@ class DataFeeProfileTests(unittest.TestCase):
         self.assertEqual(len(profiles), 87)
         for profile in profiles.values():
             self.assertEqual([r['layer'] for r in profile['data_fees']], list(LAYER_KEYS))
+        swift = profiles['swift']['data_fees'][0]
+        self.assertEqual(swift['rest_download'], 'unconfirmed')
         brown = profiles['brown']['data_fees'][0]
-        self.assertEqual((brown['amount'], brown['rest_download']), ('$697', 'unconfirmed'))
+        self.assertEqual((brown['source_kind'], brown['rest_download']), ('county-response', 'not-offered'))
+        self.assertIn('data by request only', render_county_profile_body(profiles['brown']))
 
     def test_profile_panel_escapes_and_links_source(self):
         fees = {'Brown': {'parcels': entry(product='<b>Parcels</b>')}}
@@ -125,8 +132,8 @@ class DataFeeProfileTests(unittest.TestCase):
         profiles = self.profiles()
         rows = list(csv.DictReader(io.StringIO(county_data_fees_csv(profiles))))
         self.assertEqual(len(rows), 87 * 3)
-        brown = next(r for r in rows if r['county'] == 'Brown' and r['layer'] == 'parcels')
-        self.assertEqual(brown['amount'], '$697')
+        swift = next(r for r in rows if r['county'] == 'Swift' and r['layer'] == 'parcels')
+        self.assertTrue(swift['amount'].startswith('$0.03'))
         aitkin = next(r for r in rows if r['county'] == 'Aitkin' and r['layer'] == 'parcels')
         self.assertEqual((aitkin['fee_status'], aitkin['amount']), ('unconfirmed', ''))
         sheets = dict(county_profile_xlsx_sheets(profiles))
