@@ -103,6 +103,19 @@ class LocalStorageContainmentTests(unittest.TestCase):
             self.backend.upload_if_version("link/outside.txt", self.payload, None)
         self.assertEqual(self.outside.read_text(encoding="utf-8"), "sibling")
 
+    @unittest.skipUnless(hasattr(os, "symlink"), "symlinks unavailable")
+    def test_symlinked_object_leaving_the_root_is_refused(self):
+        (self.root / "objects").mkdir(exist_ok=True)
+        try:
+            (self.root / "objects" / "leaf.json").symlink_to(self.outside)
+        except OSError:
+            self.skipTest("symlink creation not permitted")
+        with self.assertRaises(ValueError):
+            self.backend.download("leaf.json", self.root / "copy.txt")
+        with self.assertRaises(ValueError):
+            self.backend.upload_if_version("leaf.json", self.payload, None)
+        self.assertEqual(self.outside.read_text(encoding="utf-8"), "sibling")
+
 
 class BackendSelectionTests(unittest.TestCase):
     def test_local_is_the_default_and_unknown_backends_fail_closed(self):
