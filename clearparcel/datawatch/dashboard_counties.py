@@ -5,6 +5,7 @@ from clearparcel.datawatch import dashboard as _dashboard
 from clearparcel.datawatch.dashboard_summary import catalog_summary
 from clearparcel.datawatch.county_profile_panel import profile_time
 from clearparcel.datawatch.public_values import county_metadata_dates
+from clearparcel.datawatch.gac_standards import standard_field_counts
 
 
 def render_counties(config: dict) -> str:
@@ -42,7 +43,7 @@ def render_counties(config: dict) -> str:
     if mngac:
         mngac_card = (
             f'<div class="card"><h2>MN GAC field completeness</h2><p><strong>{_dashboard._esc(mngac.get("covered_counties") if isinstance(mngac.get("covered_counties"), int) else "—")} of {len(counties)} counties</strong> are represented in MnGeo Plan Parcels Open for standardized field-population statistics.</p>'
-            f'<p><a href="/mngac">Explore the interactive county map and all 91 fields →</a></p></div><br>'
+            f'<p><a href="/mngac">Explore the interactive county map and all {standard_field_counts("parcel")["fields"]} fields →</a></p></div><br>'
         )
     else:
         mngac_card = '<div class="card"><h2>MN GAC field completeness</h2><p class="muted">A statewide completeness observation has not been stored yet.</p><p><a href="/mngac">Open MN GAC completeness →</a></p></div><br>'
