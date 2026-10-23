@@ -8,9 +8,9 @@
 
 **[Explore the live public dashboard](https://gis-watchtower.clear-parcel.com/)** · **[User guide](docs/user-guide.md)** · **[Documentation index](docs/README.md)**
 
-The current production release is **v0.3.6**, deployed October 20, 2026 to
-the public and private dashboards and both Cloud Run jobs. See
-[STATUS.md](STATUS.md) and the [release record](docs/release-v0.3.6.md). Alert
+The current production release is **v0.3.7**, deployed October 23, 2026 to
+the public and private dashboards; both Cloud Run jobs remain on v0.3.6. See
+[STATUS.md](STATUS.md) and the [release record](docs/release-v0.3.7.md). Alert
 delivery to the operator email channel is enabled; the five-cycle observation
 is in progress.
 

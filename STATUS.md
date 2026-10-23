@@ -1,11 +1,13 @@
 # Project status
 
-## v0.3.7 dashboard release — prepared, deployment pending, 2026-10-23
+## v0.3.7 dashboard release — deployed, 2026-10-23
 
-Owner-approved release of the October 23 review fixes (#131–#141) to the
-public and private dashboards. The provider and public-publisher jobs stay
-on v0.3.6, unchanged, by owner decision. See
-[the release record](docs/release-v0.3.7.md).
+The public and private dashboards run v0.3.7 (`39cff31`, Cloud Build
+`7e16d1bf`) with the October 23 review fixes (#131–#141), including hosted,
+immutably cached brand images. The provider and public-publisher jobs stay
+on v0.3.6, unchanged, by owner decision. Public acceptance passed; a
+signed-in private check is pending. No job was executed and no provider was
+polled. See [the release record](docs/release-v0.3.7.md).
 
 ## Backup check and access review — passed with recommendations, 2026-10-20
 
