@@ -37,7 +37,7 @@ function pause(){userPaused=true;save();schedule()}
 function resume(){userPaused=false;save();schedule()}
 function suspend(reason='dialog'){holds.add(reason);schedule()}
 function release(reason='dialog'){holds.delete(reason);schedule()}
-window.watchtowerRefresh={pause,resume,suspend,release,save};
+window.watchtowerRefresh={pause,resume,suspend,release,save,paused:()=>userPaused};
 document.addEventListener('DOMContentLoaded',()=>{revision=document.querySelector('[data-content-revision]')?.dataset.contentRevision||null;window.watchtowerContentRevision=revision;restore();document.getElementById('refresh-pause')?.addEventListener('click',()=>userPaused?resume():pause());ids.forEach(id=>{const el=document.getElementById(id);el?.addEventListener(el.tagName==='SELECT'?'change':'input',save)});schedule()});
 document.addEventListener('visibilitychange',schedule);window.addEventListener('pagehide',save);
 })();
