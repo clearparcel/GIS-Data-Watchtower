@@ -36,7 +36,25 @@ class LocalStorage(StorageBackend):
         self.root = Path(root).expanduser().resolve()
 
     def _path(self, name: str) -> Path:
-        return self.root / name
+        """Map a GCS-style object key to a file that stays under ``root``.
+
+        Keys are relative, ``/``-separated names. Absolute, drive-qualified,
+        UNC, backslash, empty-segment and ``.``/``..`` keys are rejected before
+        any filesystem access. The resolved path must still lie under the root,
+        so a symlink or junction inside the store that points elsewhere is
+        refused too. Only the parent directory is resolved: on Windows,
+        resolving a file that another writer is atomically replacing can
+        briefly yield a path outside the root.
+        """
+        if (not isinstance(name, str) or not name or "\x00" in name or "\\" in name
+                or ":" in name or name.startswith("/")
+                or any(part in ("", ".", "..") for part in name.split("/"))):
+            raise ValueError(f"invalid local storage object name: {name!r}")
+        candidate = self.root / name
+        parent = candidate.parent.resolve()
+        if not parent.is_relative_to(self.root) or candidate.is_symlink() or candidate.is_junction():
+            raise ValueError(f"local storage object name escapes the storage root: {name!r}")
+        return parent / candidate.name
 
     @staticmethod
     def _token(path: Path) -> str | None:
