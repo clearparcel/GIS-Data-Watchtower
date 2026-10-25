@@ -60,6 +60,32 @@ class SnapshotStructureTests(unittest.TestCase):
             with self.subTest(label), self.assertRaises(InvalidSnapshotError):
                 validate_snapshot_structure(document)
 
+    def test_totals_and_overall_must_agree_with_sources(self):
+        def variant(status="ok", counts=None, overall="ok"):
+            state = populated()
+            state["sources"]["feed"]["status"] = status
+            state["counts"] = counts if counts is not None else {"ok": 1, "warn": 0, "error": 0}
+            state["overall"] = overall
+            return state
+        for label, state in {
+            "inflated ok": variant("error", {"ok": 99, "warn": 0, "error": 0}),
+            "missing error": variant("error", {"ok": 0, "warn": 0, "error": 0}),
+            "overall hides error": variant("error", {"ok": 0, "warn": 0, "error": 1}, "ok"),
+            "overall hides warn": variant("warn", {"ok": 0, "warn": 1, "error": 0}, "ok"),
+            "overall worse than sources": variant(overall="error"),
+            "zero fleet claims ok source": {**empty_fleet(), "counts": {"ok": 1, "warn": 0, "error": 0}},
+        }.items():
+            with self.subTest(label), self.assertRaisesRegex(InvalidSnapshotError, "disagrees"):
+                validate_snapshot_structure(state)
+        for label, state in {
+            "error fleet": variant("error", {"ok": 0, "warn": 0, "error": 1}, "error"),
+            "unknown status counts nowhere": variant("unknown", {"ok": 0, "warn": 0, "error": 0}, "ok"),
+            "partial totals": variant(counts={"ok": 1}),
+            "absent overall": {k: v for k, v in populated().items() if k != "overall"},
+        }.items():
+            with self.subTest(label):
+                validate_snapshot_structure(state)
+
     def test_valid_empty_and_populated_snapshots_are_accepted(self):
         validate_snapshot_structure(empty_fleet())
         validate_snapshot_structure(populated())
@@ -124,6 +150,19 @@ class PublicCacheValidationTests(unittest.TestCase):
         self.storage.document = populated()
         cache.refresh(force=True)
         self.assertFalse(cache.stale)
+
+    def test_contradictory_totals_keep_last_good_state(self):
+        """Audit WT-A06: an all-clear beside an error source is never accepted."""
+        cache = public_dashboard._PublicStateCache()
+        cache.refresh(force=True)
+        good = cache.public_path.read_bytes()
+        bad = populated()
+        bad["sources"]["feed"]["status"] = "error"
+        bad["counts"] = {"ok": 99, "warn": 0, "error": 0}
+        self.storage.document = bad
+        cache.refresh(force=True)
+        self.assertTrue(cache.stale)
+        self.assertEqual(cache.public_path.read_bytes(), good)
 
     def test_invalid_first_snapshot_is_unavailable_not_empty(self):
         self.storage.document = {"public_published_at": _now(), "sources": {}}

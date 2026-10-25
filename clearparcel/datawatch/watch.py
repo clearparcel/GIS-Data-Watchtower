@@ -2641,6 +2641,36 @@ def _check_sources_unlocked(
     return result
 
 
+class InvalidSourceRegistryError(ValueError):
+    """The source registry cannot be checked as a whole; nothing was polled or saved."""
+
+
+def validate_source_registry(sources: object) -> None:
+    """Reject a registry whose source IDs are missing or collide.
+
+    Results, state and history are keyed by source ID, so a second entry with
+    the same ID would silently replace the first one's observation. IDs are
+    compared case-insensitively because source filters already match that way.
+    Every entry counts, whether or not it is enabled or assigned to this profile.
+    """
+    if not isinstance(sources, list):
+        raise InvalidSourceRegistryError("source registry 'sources' must be a list")
+    seen: dict[str, tuple[int, str]] = {}
+    for index, source in enumerate(sources):
+        if not isinstance(source, dict):
+            raise InvalidSourceRegistryError(f"source entry {index} is not an object")
+        source_id = source.get("id")
+        if not isinstance(source_id, str) or not source_id.strip() or source_id != source_id.strip():
+            raise InvalidSourceRegistryError(f"source entry {index} has a missing or blank id")
+        key = source_id.casefold()
+        if key in seen:
+            first_index, first_id = seen[key]
+            raise InvalidSourceRegistryError(
+                f"duplicate source id: entry {first_index} ({first_id!r}) and entry {index} ({source_id!r})"
+            )
+        seen[key] = (index, source_id)
+
+
 def check_sources(
     config: dict,
     *,
@@ -2648,6 +2678,8 @@ def check_sources(
     save: bool = True,
     execution_profile: str | None = None,
 ) -> dict:
+    # Before any lock, provider request or state write.
+    validate_source_registry(config.get("sources", []))
     # A fresh set of 429-blocked hosts for this run only.
     token = _RUN_BLOCKED_HOSTS.set(set())
     try:
