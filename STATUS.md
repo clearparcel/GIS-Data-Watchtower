@@ -1,5 +1,12 @@
 # Project status
 
+## v0.3.8 coordinated release — prepared, deployment pending, 2026-10-25
+
+Owner-approved release of the October 24 audit fixes (#145–#150) to all four
+surfaces: both dashboards and the provider and public-publisher jobs. Job
+images are swapped only; schedules, cadence and execution profiles are
+unchanged. See [the release record](docs/release-v0.3.8.md).
+
 ## v0.3.7 dashboard release — deployed, 2026-10-23
 
 The public and private dashboards run v0.3.7 (`39cff31`, Cloud Build
