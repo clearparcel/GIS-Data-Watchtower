@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime as dt
 import math
 
+from clearparcel.datawatch.direct_gac_schema import observed_standard_field_names
 from clearparcel.datawatch.public_values import safe_public_url, sanitize_item_metadata, sanitize_source_metadata, _metadata_text, _display_text
 
 
@@ -263,6 +264,12 @@ def sanitize_public_render_state(state: dict) -> dict:
         metadata = sanitize_source_metadata(source)
         if metadata:
             summary['public_metadata'] = metadata
+
+        # Only public standard vocabulary: which MN GAC parcel names the feed
+        # uses, so schema drift is visible without publishing its schema.
+        standard_names = observed_standard_field_names(source) if source.get("category") == "Parcels" else None
+        if standard_names is not None:
+            summary["gac_standard_field_names"] = standard_names
 
         if source_id == "mn-parcel-county-catalog":
             summary["county_records"] = _sanitize_catalog_records(source.get("county_records"))
