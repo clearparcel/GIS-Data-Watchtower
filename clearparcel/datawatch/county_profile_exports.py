@@ -21,6 +21,11 @@ SOURCE_FIELDS = ('county', 'county_slug', 'county_fips', 'category', 'availabili
     'county_metadata_published_at', 'county_metadata_content_at', 'checked_at',
     'last_success_at', 'health', 'reporting', 'execution_profile', 'monitoring_decision',
     'file_type', 'file_size_bytes', 'file_etag', 'file_last_modified')
+# Columns copied straight from each composed source record, named rather than
+# sliced by position so a column added to SOURCE_FIELDS cannot fall outside it.
+_GROUP_SOURCE_FIELDS = ('county', 'county_slug', 'county_fips', 'category', 'availability', 'review_status')
+_RECORD_SOURCE_FIELDS = tuple(k for k in SOURCE_FIELDS if k not in _GROUP_SOURCE_FIELDS
+                              and k != 'approved_public_links' and not k.startswith('file_'))
 
 
 def _links(links: list) -> str:
@@ -60,7 +65,7 @@ def _tables(profiles: dict[str, dict]) -> tuple[list[dict], list[dict]]:
             for source in group.get('sources') or [{}]:
                 row = {k: summary[k] for k in ('county', 'county_slug', 'county_fips')}
                 row.update(category=category, availability=group.get('availability'), review_status=group.get('review_status'))
-                row.update({k: source.get(k) for k in SOURCE_FIELDS[6:25]})
+                row.update({k: source.get(k) for k in _RECORD_SOURCE_FIELDS})
                 row['approved_public_links'] = _links(source.get('approved_public_links') or [])
                 row.update({'file_' + k: (source.get('file') or {}).get(k) for k in ('type', 'size_bytes', 'etag', 'last_modified')})
                 sources.append(row)
