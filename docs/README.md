@@ -35,6 +35,7 @@ Choose the path that matches what you want to do. For the live dashboard and a c
 | Guide | Purpose |
 | --- | --- |
 | [Google Cloud deployment](google-cloud-deployment.md) | Optional Cloud Run and storage deployment |
+| [Provider-run alerting proposal](provider-run-alerting-proposal.md) | Proposed (not applied): alert on Watchtower failures and missed runs separately from source errors |
 | [Public dashboard hosting](public-dashboard-hosting.md) | Anonymous sanitized service, access boundaries, publication, and freshness |
 | [Release policy](release-policy.md) | Versioning, evidence, and rollback expectations |
 | [Current v0.3.2 dashboard release](release-v0.3.2.md) | Private GAC query-routing correction and guarded wrapper migration |
