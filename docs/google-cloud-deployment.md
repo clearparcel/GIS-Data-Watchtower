@@ -1,11 +1,9 @@
 # Google Cloud deployment
 
-The current production dashboard release is **v0.3.7**, deployed October 23, 2026
-to the public and private dashboards; the provider and public-publisher jobs
-remain on **v0.3.6**, deployed October 20. See the
-[v0.3.7 release record](release-v0.3.7.md) for dashboard images, revisions and
-rollback targets, and the [v0.3.6 release record](release-v0.3.6.md) for the
-job images. [STATUS.md](../STATUS.md) is the authoritative operational state.
+The current production release is **v0.3.8**, deployed October 24, 2026 to
+the public and private dashboards and the provider and public-publisher jobs.
+See the [v0.3.8 release record](release-v0.3.8.md) for images, revisions and
+rollback targets. [STATUS.md](../STATUS.md) is the authoritative operational state.
 
 The records below describe historical deployments, not current traffic.
 

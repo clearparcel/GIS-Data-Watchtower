@@ -38,8 +38,9 @@ Choose the path that matches what you want to do. For the live dashboard and a c
 | [Provider-run alerting proposal](provider-run-alerting-proposal.md) | Proposed (not applied): alert on Watchtower failures and missed runs separately from source errors |
 | [Public dashboard hosting](public-dashboard-hosting.md) | Anonymous sanitized service, access boundaries, publication, and freshness |
 | [Release policy](release-policy.md) | Versioning, evidence, and rollback expectations |
-| [Current v0.3.7 dashboard release](release-v0.3.7.md) | Current public and private dashboard images, revisions, and rollback targets |
-| [v0.3.6 coordinated release](release-v0.3.6.md) | Current provider and publisher job images; dashboard rollback baseline |
+| [Current v0.3.8 coordinated release](release-v0.3.8.md) | Current dashboard and job images, revisions, and rollback targets |
+| [v0.3.7 dashboard release](release-v0.3.7.md) | Previous dashboard release; dashboard rollback baseline |
+| [v0.3.6 coordinated release](release-v0.3.6.md) | Previous job images; job rollback baseline |
 | [v0.3.5](release-v0.3.5.md), [v0.3.4](release-v0.3.4.md), [v0.3.3](release-v0.3.3.md) releases | Historical October 20 provider-job and coordinated releases |
 | [v0.3.2](release-v0.3.2.md) and [v0.3.1](release-v0.3.1.md) dashboard releases | Historical dashboard releases |
 | [v0.3.0 release](release-v0.3.0.md) | Historical coordinated release (October 14) |
