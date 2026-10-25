@@ -58,7 +58,7 @@ The dashboard API always serves a **sanitized state representation**. There is n
 
 Every source normally defines:
 
-- `id`
+- `id` — unique across the whole registry, compared case-insensitively, including disabled sources and sources assigned to other execution profiles. A missing, blank or duplicate ID fails the run (exit 3) before any provider request, dispatch-slot claim or state write.
 - `name`
 - `provider`
 - `category`
