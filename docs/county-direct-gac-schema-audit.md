@@ -40,6 +40,8 @@ The [MN GAC Parcel Data Standard v1.1.3](https://mn.gov/mngeo/assets/MN_GAC_Parc
 
 The [official FAQ](https://mn.gov/mngeo/assets/MN_GAC_Parcel_Data_Standard_FAQ_tcm1235-753538.pdf) identifies this as a transfer standard, not a prescription for internal storage. Missing names show a mismatch in the checked feed, not that a county never provides standardized exports. Full compliance also needs type, width, domain, order, conditional and value checks.
 
+The audit date stays attached to each result. A later observation marks the result **Direct feed schema needs recheck** when its field count differs from the audit, or when the set of MN GAC names it uses differs from the audited set, even at the same count. Field order, letter case and renamed non-standard fields don't trigger a recheck. Public snapshots carry only the MN GAC standard names a parcel feed uses (`gac_standard_field_names`), never its full schema. Without that evidence the count comparison alone applies.
+
 | Direct county | In MnGeo Open | Statewide records | Direct names / 91 | Mandatory names / 7 |
 |---|---|---:|---:|---:|
 | [Aitkin](https://gisweb.co.aitkin.mn.us/arcgis/rest/services/ParcelTaxData/FeatureServer/0?f=pjson) | Yes | 43,024 | 2 | 0 |

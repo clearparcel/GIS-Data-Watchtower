@@ -104,19 +104,17 @@ Developers can use the [documentation index](docs/README.md), [contribution guid
 
 ## Releases and project status
 
-**GIS Data Watchtower v0.3.0 is live**, deployed October 14, 2026, from
-merged source `4e4dbec`. It ships the 2026-10-13 review stack: provider
-compliance at run time, shared-state guards, public accuracy, mobile and
-accessibility work, engine hardening, and a script-hash Content-Security-Policy.
-The previous v0.2.3 release added the supplied Watchtower logo beside the
-public header title and the supplied favicon.
+The current production release is **v0.3.7** on the public and private
+dashboards (deployed October 23, 2026); the provider and public-publisher jobs
+remain on **v0.3.6** (deployed October 20). Each component's current release
+record lists its images, revisions and rollback targets.
 The footer displays only the version number; the About section explains
 the open-source ClearParcel mission, disclaimer, and GitHub link.
 
-- **[Current production release and rollback evidence](docs/release-v0.3.0.md)** — v0.3.0 images, revisions, and acceptance
-- **[v0.2.3 release](docs/release-v0.2.3.md)** — rollback baseline
+- **[v0.3.7 dashboard release](docs/release-v0.3.7.md)** — current dashboard images, revisions, and rollback to v0.3.6 revisions
+- **[v0.3.6 coordinated release](docs/release-v0.3.6.md)** — current provider and publisher job images
 - **[Validated operational status](STATUS.md)** — current monitoring and remaining gates
-- **[GitHub releases](https://github.com/clearparcel/GIS-Data-Watchtower/releases)** — versioned summaries
+- **[GitHub releases](https://github.com/clearparcel/GIS-Data-Watchtower/releases)** — versioned summaries; the latest published there is v0.2.2, so the release records above are authoritative for v0.3.x
 - **[Documentation index](docs/README.md)** — user guides, methodology, engineering references and dated history
 - **[Original v0.2.0 release](docs/archive/release-v0.2.0.md)** and
   **[October 11 correction](docs/archive/release-county-percentage-fix-2026-10-11.md)** — retained history
@@ -126,7 +124,7 @@ the v0.2.2 application image. The coordinated v0.2.2 release updated both
 dashboard services and the existing provider/publisher job images without
 changing source registries, security settings, or schedules.
 
-The v0.3.0 rollout updated both dashboard services and the provider and public-publisher job images. Monitoring schedules, source registries and security boundaries were preserved. The v0.2.3 rollout had updated only the dashboard services, so v0.2.2 is the job rollback baseline.
+Historical: the v0.3.0 rollout (October 14) updated both dashboard services and the provider and public-publisher job images. Monitoring schedules, source registries and security boundaries were preserved. The v0.2.3 rollout had updated only the dashboard services, so v0.2.2 was then the job rollback baseline.
 
 This is a **pre-1.0** project. Open issues may represent documented
 provider-policy, privacy, and observation gates rather than defects.
