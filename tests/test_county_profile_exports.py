@@ -5,7 +5,7 @@ import zipfile
 import xml.etree.ElementTree as ET
 from unittest.mock import patch
 from clearparcel.datawatch import dashboard
-from clearparcel.datawatch.county_profile_exports import county_profiles_csv, parcel_sources_csv
+from clearparcel.datawatch.county_profile_exports import SOURCE_FIELDS, county_profiles_csv, parcel_sources_csv
 
 def workbook_rows(raw, sheet_name):
     """Decode workbook cells by their headers rather than matching XML fragments."""
@@ -100,3 +100,28 @@ class CountyProfileExportTests(unittest.TestCase):
                 value = source.get(field)
                 self.assertEqual(row[field], '' if value is None else str(value))
         self.assertEqual(source_rows[1]['file_size_bytes'], '0')
+
+    def test_every_source_column_round_trips_known_values(self):
+        """Audit WT-A04: each source column carries its record value in JSON, CSV and XLSX."""
+        import json
+        snap = self.snapshot()
+        profile = snap['counties'][0]['parcel_source_profile']
+        group = ('county', 'county_slug', 'county_fips', 'category', 'availability', 'review_status')
+        sentinel = {k: f'sentinel-{k}' for k in SOURCE_FIELDS if k not in group and k != 'approved_public_links'
+                    and not k.startswith('file_')}
+        sentinel.update(execution_profile='cloud', monitoring_decision='candidate-low-frequency', feature_count=42)
+        sentinel['file'] = {'type': 'sentinel-type', 'size_bytes': 7, 'etag': 'sentinel-etag', 'last_modified': 'sentinel-lm'}
+        profile['county_download']['sources'] = [sentinel]
+        profiles = {row['parcel_source_profile']['county']['slug']: row['parcel_source_profile']
+                    for row in json.loads(json.dumps(snap))['counties']}
+        expected = {k: str(v) for k, v in sentinel.items() if k != 'file'}
+        expected.update({'file_' + k: str(v) for k, v in sentinel['file'].items()})
+        csv_rows = list(csv.DictReader(io.StringIO(parcel_sources_csv(profiles))))
+        xlsx_rows = workbook_rows(dashboard._snapshot_xlsx(snap), 'Parcel Sources')
+        for label, rows in (('csv', csv_rows), ('xlsx', xlsx_rows)):
+            row = next(r for r in rows if r['county_slug'] == profile['county']['slug'] and r['category'] == 'county_download')
+            for field, value in expected.items():
+                with self.subTest(fmt=label, field=field):
+                    self.assertEqual(row[field], value)
+        populated = set(expected) | set(group) | {'approved_public_links'}
+        self.assertEqual(set(SOURCE_FIELDS) - populated, set())
