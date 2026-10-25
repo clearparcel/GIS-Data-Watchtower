@@ -89,6 +89,8 @@ EXIT_OK, EXIT_WARN, EXIT_SOURCE_ERROR, EXIT_TOOL_FAILURE, EXIT_DISPATCH_REFUSED 
 
 def _guard(config: dict, config_path, command: str, override, profile) -> None:
     """Claim the provider-run slot (raises DispatchRefused) when spacing is configured."""
+    from clearparcel.datawatch.watch import validate_source_registry
+    validate_source_registry(config.get("sources", []))  # an invalid registry never claims the slot
     from clearparcel.datawatch.cloud_job import job_storage
     from clearparcel.datawatch.dispatch_guard import guard_dispatch
     guard_dispatch(lambda: job_storage(config, config_path), command=command, override=override, profile=profile)
