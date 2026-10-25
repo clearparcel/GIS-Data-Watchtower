@@ -7,7 +7,7 @@ from pathlib import Path
 
 from .aggregate import publish_partial
 from .storage import StorageConflictError, backend_from_env
-from .watch import _EXECUTION_PROFILES, _resolve_execution_profile, check_sources, load_config
+from .watch import _EXECUTION_PROFILES, _resolve_execution_profile, check_sources, load_config, validate_source_registry
 
 
 ARTIFACTS = {
@@ -80,6 +80,7 @@ def preflight_cloud_job(config: dict) -> None:
         raise RuntimeError("cloud-job refuses the placeholder example configuration; pass --config with the "
                            "deployment registry (or set WATCHTOWER_ALLOW_EXAMPLE_CONFIG=1 for a synthetic test)")
     require_publishable_profile(config, job_profile())
+    validate_source_registry(config.get("sources", []))
 
 
 def run_cloud_job(config_path: str | Path) -> dict:

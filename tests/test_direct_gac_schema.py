@@ -102,3 +102,55 @@ class DirectGacSchemaTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class DirectSchemaNameDriftTests(unittest.TestCase):
+    """Audit WT-A07: unchanged field count alone does not re-establish audited names."""
+
+    def setUp(self):
+        self.record = load_direct_schema_assessments()['mn-wabasha-parcels']
+        self.standard = [field['field'] for field in load_gac_standard('parcel')['fields']]
+        self.extra = [f'COUNTY_ONLY_{n}' for n in range(self.record['field_count'] - len(self.standard))]
+
+    def assess(self, **source):
+        return direct_schema_assessment('mn-wabasha-parcels', {'county_slug': 'wabasha', 'category': 'Parcels',
+                                                               'field_count': self.record['field_count'], **source})
+
+    def test_same_count_rename_needs_recheck(self):
+        renamed = [f'RENAMED_{n}' for n in range(self.record['field_count'])]
+        result = self.assess(field_names=renamed)
+        self.assertEqual(result['status'], 'needs-recheck')
+        self.assertEqual(result['reason'], 'Observed MN GAC field names changed since the schema audit.')
+        self.assertEqual(result['checked_at'], self.record['checked_at'])  # audit date is kept
+
+    def test_same_count_mandatory_replacement_needs_recheck(self):
+        mandatory = next(f['field'] for f in load_gac_standard('parcel')['fields'] if f['inclusion'] == 'Mandatory')
+        names = [name for name in self.standard if name != mandatory] + self.extra + ['REPLACEMENT']
+        self.assertEqual(len(names), self.record['field_count'])
+        self.assertEqual(self.assess(field_names=names)['status'], 'needs-recheck')
+
+    def test_order_case_and_non_standard_renames_are_harmless(self):
+        names = [name.lower() for name in reversed(self.standard)] + [f'OTHER_{n}' for n in range(len(self.extra))]
+        self.assertEqual(self.assess(field_names=names)['status'], 'standard-field-names')
+
+    def test_count_change_and_absent_evidence_keep_existing_behavior(self):
+        changed = self.assess(field_names=self.standard + self.extra, field_count=self.record['field_count'] + 1)
+        self.assertEqual((changed['status'], changed['reason']),
+                         ('needs-recheck', 'Observed field count changed since the schema audit.'))
+        self.assertEqual(self.assess()['status'], 'standard-field-names')  # no names known: count only
+
+    def test_public_projection_carries_only_standard_names_and_detects_renames(self):
+        from clearparcel.datawatch.public_projection import sanitize_public_render_state
+        state = {'schema_version': 3, 'generated_at': '2026-10-24T10:00:00+00:00', 'counts': {}, 'workers': {},
+                 'sources': {'mn-wabasha-parcels': {'id': 'mn-wabasha-parcels', 'county_slug': 'wabasha',
+                                                    'category': 'Parcels', 'status': 'ok',
+                                                    'field_count': self.record['field_count'],
+                                                    'field_names': self.standard[1:] + self.extra + ['PRIVATE_NAME']},
+                             'roads': {'id': 'roads', 'category': 'Road centerlines', 'status': 'ok',
+                                       'field_names': self.standard}}}
+        public = sanitize_public_render_state(state)['sources']
+        parcel = public['mn-wabasha-parcels']
+        self.assertNotIn('field_names', parcel)
+        self.assertEqual(parcel['gac_standard_field_names'], sorted(self.standard[1:]))
+        self.assertNotIn('gac_standard_field_names', public['roads'])
+        self.assertEqual(direct_schema_assessment('mn-wabasha-parcels', parcel)['status'], 'needs-recheck')

@@ -407,6 +407,21 @@ class CountyProfilesTests(unittest.TestCase):
         self.assertEqual(p['becker']['monitoring']['health'], 'unknown')
         self.assertEqual(p['becker']['monitoring']['reporting'], 'unknown')
 
+    def test_future_check_or_worker_report_is_not_current(self):
+        """Audit WT-A05: a time beyond the clock-skew tolerance proves no current check."""
+        future = (NOW + dt.timedelta(days=2)).isoformat()
+        near = (NOW + dt.timedelta(minutes=4)).isoformat()
+        def reporting(checked_at, report_at=STAMP):
+            state = {'workers': {'cloud': {'last_report_at': report_at}},
+                     'sources': {'parcel': {'county_slug': 'anoka', 'category': 'Parcels', 'adapter': 'arcgis_layer',
+                                            'status': 'ok', 'worker': 'cloud', 'checked_at': checked_at}}}
+            profile = compose(state)['anoka']
+            source = next(s for s in profile['county_arcgis_rest']['sources'] if s['monitored_source_id'] == 'parcel')
+            return source['reporting'], profile['monitoring']['active']
+        self.assertEqual(reporting(future), ('unknown', True))  # the monitoring path is kept
+        self.assertEqual(reporting(STAMP, future), ('unknown', True))
+        self.assertEqual(reporting(near), ('current', True))
+
     def test_repository_requires_distinct_parcel_evidence(self):
         state = {'sources': {'mn-parcel-county-catalog': {'status': 'ok', 'checked_at': STAMP,
             'county_records': {'Aitkin': {'data_url': 'https://example.com/parcels.zip', 'acqdate': 1760000000000}}}}}
