@@ -74,6 +74,31 @@ def _links(items: list[dict]) -> str:
             links.append(f'<a href="{_esc(url)}" target="_blank" rel="noopener">{_esc(item.get("label") or item.get("authority") or url)}</a>')
     return " · ".join(links) or "Not available"
 
+def render_data_fees(rows: list[dict]) -> str:
+    """County data fees by layer; an unconfirmed layer is never shown as free."""
+    if not rows:
+        return ""
+    body = ""
+    for row in rows:
+        url = safe_public_url(row.get("source_url"))
+        source = _esc(row.get("source_label") or "No fee information recorded yet")
+        if url:
+            source = f'<a href="{_esc(url)}" target="_blank" rel="noopener">{source}</a>'
+        if row.get("source_date"):
+            source += " · " + _esc(row["source_date"])
+        amount = row.get("amount") or ("$0" if row.get("fee_status") == "no-fee" else "Not yet confirmed")
+        detail = f'<br><span class="subtext">{_esc(row["product"])}</span>' if row.get("product") else ""
+        note = f'<br><span class="subtext">{_esc(row["note"])}</span>' if row.get("note") else ""
+        body += (f'<tr><th scope="row">{_esc(row.get("layer_label"))}</th><td>{_esc(row.get("fee_status_label"))}</td>'
+                 f'<td>{_esc(amount)}{detail}</td><td>{_esc(row.get("rest_download_label"))}</td><td>{source}{note}</td></tr>')
+    return ('<section class="profile-fees"><h3>Data fees</h3>'
+            '<p class="subtext">Fees the county publishes or has confirmed for its own parcel, address point and road centerline data. '
+            '"Not yet confirmed" means Watchtower has no county answer yet; it does not mean the data is free. '
+            'Free statewide routes such as MnGeo Plan Parcels Open are reported separately.</p>'
+            '<table class="fee-table"><thead><tr><th scope="col">Layer</th><th scope="col">Fee status</th><th scope="col">Amount</th>'
+            '<th scope="col">REST or direct download</th><th scope="col">Source</th></tr></thead><tbody>' + body + '</tbody></table></section>')
+
+
 def render_county_profile_body(profile: dict) -> str:
     """Render one complete composed profile using escaped scalar values."""
     county, monitoring = profile.get("county", {}), profile.get("monitoring", {})
@@ -96,6 +121,7 @@ def render_county_profile_body(profile: dict) -> str:
             body += _rows([("Inventory ID", source.get("inventory_id")), ("Observed source ID", source.get("monitored_source_id")), ("Authority", source.get("authority")), ("Dataset type", source.get("dataset_type")), ("Layer ID", source.get("layer_id")), ("Geometry type", source.get("geometry_type")), ("Feature count", f"{count:,}" if isinstance(count, int) else count), ("Count basis", source.get("feature_count_basis")), ("Provider update", profile_time(source.get("provider_updated_at"))), ("MnGeo acquisition", profile_time(source.get("county_acquired_at"))), ("County metadata publication", profile_time(source.get("county_metadata_published_at"))), ("County metadata content date", profile_time(source.get("county_metadata_content_at"))), ("Catalog refresh", profile_time(source.get("catalog_refreshed_at"))), ("Watchtower check", profile_time(source.get("checked_at"))), ("Successful observation", profile_time(source.get("last_success_at"))), ("Health", source.get("health")), ("Reporting", source.get("reporting")), ("Execution profile", source.get("execution_profile")), ("Monitoring decision", source.get("monitoring_decision")), ("File type", file.get("type")), ("File size (bytes)", file.get("size_bytes")), ("ETag", file.get("etag")), ("File last modified", profile_time(file.get("last_modified")))])
             body += '<p>Official product links: ' + _links(source.get("approved_public_links") or []) + '</p></article>'
         body += '</section>'
+    body += render_data_fees(profile.get("data_fees") or [])
     body += '<section><h3>Access and research evidence</h3>' + _rows([("County-direct classification", access.get("detailed_classification")), ("Dataset fee", access.get("dataset_fee")), ("Fee product", access.get("fee_product")), ("Monitoring decision", access.get("monitoring_decision")), ("Research status", "Complete" if research.get("complete") else "Research incomplete"), ("Research review", profile_time(research.get("review_date"))), ("Successful county observation", profile_time(monitoring.get("last_success_at"))), ("Aggregate generated", profile_time(monitoring.get("aggregate_generated_at")))])
     body += _evidence_details(research.get("evidence_links") or access.get("evidence_links") or []) + '</section>'
     if profile.get("comments"):

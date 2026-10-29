@@ -29,7 +29,7 @@ from clearparcel.datawatch.public_values import safe_public_url
 from clearparcel.datawatch.csp import secure_html, strip_markers
 from clearparcel.datawatch.brand_assets import dispatch_brand_asset
 from clearparcel.datawatch.county_profile_panel import render_county_profile_body, percentage_patterns, research_summary
-from clearparcel.datawatch.county_profile_exports import county_profiles_csv, parcel_sources_csv
+from clearparcel.datawatch.county_profile_exports import county_data_fees_csv, county_profiles_csv, parcel_sources_csv
 from clearparcel.datawatch.county_profiles import FreshnessPolicy, compose_county_profiles, county_profile_counts
 from clearparcel.datawatch.gac_standards import load_gac_standard, normalize_standard_key, standard_keys
 from clearparcel.datawatch.gac_projection import project_gac
@@ -1066,10 +1066,11 @@ def serve(config: dict, host: str = "127.0.0.1", port: int = 8765) -> None:
                 county_snapshot=lambda slug: _county_snapshot(config, slug),
             ):
                 return
-            if parsed.path in ("/county-profiles.csv", "/parcel-sources.csv"):
+            if parsed.path in ("/county-profiles.csv", "/parcel-sources.csv", "/county-data-fees.csv"):
                 snap = _statewide_snapshot(config)
                 profiles = {row["parcel_source_profile"]["county"]["slug"]: row["parcel_source_profile"] for row in snap["counties"]}
-                export = county_profiles_csv if parsed.path == "/county-profiles.csv" else parcel_sources_csv
+                export = {"/county-profiles.csv": county_profiles_csv, "/parcel-sources.csv": parcel_sources_csv,
+                          "/county-data-fees.csv": county_data_fees_csv}[parsed.path]
                 return self._send(200, export(profiles), "text/csv; charset=utf-8")
             if dispatch_gac_routes(parsed.path, parsed.query, config=config, send=self._send):
                 return

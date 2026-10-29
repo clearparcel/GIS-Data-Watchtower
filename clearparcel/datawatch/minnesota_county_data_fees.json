@@ -1,0 +1,371 @@
+{
+  "schema_version": 1,
+  "scope": "Published or county-confirmed fees for county-supplied parcel, address point and road centerline GIS data in Minnesota. A county or layer without a record is not yet confirmed; it is never treated as free.",
+  "counties": [
+    {
+      "county": "Aitkin",
+      "layers": {
+        "parcels": {
+          "fee_status": "no-fee",
+          "rest_download": "no-fee",
+          "amount": null,
+          "product": null,
+          "source_kind": "county-response",
+          "source_url": null,
+          "source_date": "2026-10-23",
+          "note": "The county GIS coordinator said the county does not charge for GIS data. The reply covers all county GIS data in one statement, not each layer separately."
+        },
+        "address_points": {
+          "fee_status": "no-fee",
+          "rest_download": "no-fee",
+          "amount": null,
+          "product": null,
+          "source_kind": "county-response",
+          "source_url": null,
+          "source_date": "2026-10-23",
+          "note": "The county GIS coordinator said the county does not charge for GIS data. The reply covers all county GIS data in one statement, not each layer separately."
+        },
+        "road_centerlines": {
+          "fee_status": "no-fee",
+          "rest_download": "no-fee",
+          "amount": null,
+          "product": null,
+          "source_kind": "county-response",
+          "source_url": null,
+          "source_date": "2026-10-23",
+          "note": "The county GIS coordinator said the county does not charge for GIS data. The reply covers all county GIS data in one statement, not each layer separately."
+        }
+      }
+    },
+    {
+      "county": "Becker",
+      "layers": {
+        "parcels": {
+          "fee_status": "no-fee",
+          "rest_download": "no-fee",
+          "amount": null,
+          "product": null,
+          "source_kind": "county-response",
+          "source_url": "https://www.beckercountymn.gov/online_services/GIS_data.aspx",
+          "source_date": "2026-10-23",
+          "note": "The county confirmed that all data on its GIS data download page is free with no license terms. This is a file download page, not a REST service."
+        },
+        "address_points": {
+          "fee_status": "no-fee",
+          "rest_download": "no-fee",
+          "amount": null,
+          "product": null,
+          "source_kind": "county-response",
+          "source_url": "https://www.beckercountymn.gov/online_services/GIS_data.aspx",
+          "source_date": "2026-10-23",
+          "note": "The county confirmed that all data on its GIS data download page is free with no license terms. This is a file download page, not a REST service."
+        },
+        "road_centerlines": {
+          "fee_status": "no-fee",
+          "rest_download": "no-fee",
+          "amount": null,
+          "product": null,
+          "source_kind": "county-response",
+          "source_url": "https://www.beckercountymn.gov/online_services/GIS_data.aspx",
+          "source_date": "2026-10-23",
+          "note": "The county confirmed that all data on its GIS data download page is free with no license terms. This is a file download page, not a REST service."
+        }
+      }
+    },
+    {
+      "county": "Blue Earth",
+      "layers": {
+        "parcels": {
+          "fee_status": "fee",
+          "rest_download": "unconfirmed",
+          "amount": "$30 Basic Bundle for for-profit use; qualifying nonprofit 10%; qualifying government may receive at no cost",
+          "product": "Basic Bundle GIS shapefiles including parcel boundaries and road centerlines, with parcel-related attributes",
+          "source_kind": "published-fee-schedule",
+          "source_url": "https://www.blueearthcountymn.gov/DocumentCenter/View/1752",
+          "source_date": "2026-10-06",
+          "note": "Published county fee for the listed product. Whether downloading through the county's REST service or another direct route is charged has not been confirmed by the county."
+        },
+        "road_centerlines": {
+          "fee_status": "fee",
+          "rest_download": "unconfirmed",
+          "amount": "$30 Basic Bundle for for-profit use; qualifying nonprofit 10%; qualifying government may receive at no cost",
+          "product": "Basic Bundle GIS shapefiles (road centerlines are bundled with parcel boundaries; one bundle price)",
+          "source_kind": "published-fee-schedule",
+          "source_url": "https://www.blueearthcountymn.gov/DocumentCenter/View/1752",
+          "source_date": "2026-10-06",
+          "note": "Road centerlines are part of the same published Basic Bundle as parcels; the amount is the bundle price, not a separate centerline fee. Whether REST/direct download is charged has not been confirmed by the county."
+        }
+      }
+    },
+    {
+      "county": "Brown",
+      "layers": {
+        "parcels": {
+          "fee_status": "fee",
+          "rest_download": "not-offered",
+          "amount": "$697 complete dataset; partial $0.04 per parcel ($20 minimum) plus service fee; professional service $75/hour (half-hour minimum)",
+          "product": "Parcel shapefile through a signed data request and disclosure",
+          "source_kind": "county-response",
+          "source_url": "https://www.browncountymn.gov/DocumentCenter/View/502/Fee-Schedule-PDF",
+          "source_date": "2026-10-23",
+          "note": "The county GIS office said on 2026-10-23 that its parcel REST service is no longer public or authoritative and is not covered by the fee schedule; parcel data comes only by signed request. The county confirmed these figures on 2026-10-23 and expects fee schedule changes in the new year. Access is by signed data request and disclosure form only; the county supplies the form by email."
+        },
+        "road_centerlines": {
+          "fee_status": "fee",
+          "rest_download": "not-offered",
+          "amount": "$500",
+          "product": "Street centerline shapefile (signed data disclosure)",
+          "source_kind": "county-response",
+          "source_url": "https://www.browncountymn.gov/DocumentCenter/View/502/Fee-Schedule-PDF",
+          "source_date": "2026-10-23",
+          "note": "Price from the IT section of the county's 2025-effective fee schedule, delivered as a shapefile. The county confirmed these figures on 2026-10-23 and expects fee schedule changes in the new year. Access is by signed data request and disclosure form only; the county supplies the form by email."
+        },
+        "address_points": {
+          "fee_status": "fee",
+          "rest_download": "not-offered",
+          "amount": "$300",
+          "product": "Rural address points shapefile; city addresses not included (signed data disclosure)",
+          "source_kind": "county-response",
+          "source_url": "https://www.browncountymn.gov/DocumentCenter/View/502/Fee-Schedule-PDF",
+          "source_date": "2026-10-23",
+          "note": "Price from the IT section of the county's 2025-effective fee schedule, delivered as a shapefile. The county confirmed these figures on 2026-10-23 and expects fee schedule changes in the new year. Access is by signed data request and disclosure form only; the county supplies the form by email."
+        }
+      }
+    },
+    {
+      "county": "Carver",
+      "layers": {
+        "parcels": {
+          "fee_status": "no-fee",
+          "rest_download": "no-fee",
+          "amount": null,
+          "product": null,
+          "source_kind": "county-response",
+          "source_url": null,
+          "source_date": "2026-10-23",
+          "note": "The county IT office answered the parcel, address point and road centerline REST download question with no fees for these services, and said no license or attribution terms apply. The county noted there is no official uptime guarantee."
+        },
+        "address_points": {
+          "fee_status": "no-fee",
+          "rest_download": "no-fee",
+          "amount": null,
+          "product": null,
+          "source_kind": "county-response",
+          "source_url": null,
+          "source_date": "2026-10-23",
+          "note": "The county IT office answered the parcel, address point and road centerline REST download question with no fees for these services, and said no license or attribution terms apply. The county noted there is no official uptime guarantee."
+        },
+        "road_centerlines": {
+          "fee_status": "no-fee",
+          "rest_download": "no-fee",
+          "amount": null,
+          "product": null,
+          "source_kind": "county-response",
+          "source_url": null,
+          "source_date": "2026-10-23",
+          "note": "The county IT office answered the parcel, address point and road centerline REST download question with no fees for these services, and said no license or attribution terms apply. The county noted there is no official uptime guarantee."
+        }
+      }
+    },
+    {
+      "county": "Chippewa",
+      "layers": {
+        "parcels": {
+          "fee_status": "unconfirmed",
+          "rest_download": "not-offered",
+          "amount": null,
+          "product": null,
+          "source_kind": "county-response",
+          "source_url": null,
+          "source_date": "2026-10-29",
+          "note": "The county said its REST services are not currently available to the public and it is deciding internally how to handle data requests. No fees were stated, so fees remain not yet confirmed."
+        },
+        "address_points": {
+          "fee_status": "unconfirmed",
+          "rest_download": "not-offered",
+          "amount": null,
+          "product": null,
+          "source_kind": "county-response",
+          "source_url": null,
+          "source_date": "2026-10-29",
+          "note": "The county said its REST services are not currently available to the public and it is deciding internally how to handle data requests. No fees were stated, so fees remain not yet confirmed."
+        },
+        "road_centerlines": {
+          "fee_status": "unconfirmed",
+          "rest_download": "not-offered",
+          "amount": null,
+          "product": null,
+          "source_kind": "county-response",
+          "source_url": null,
+          "source_date": "2026-10-29",
+          "note": "The county said its REST services are not currently available to the public and it is deciding internally how to handle data requests. No fees were stated, so fees remain not yet confirmed."
+        }
+      }
+    },
+    {
+      "county": "Faribault",
+      "layers": {
+        "parcels": {
+          "fee_status": "fee",
+          "rest_download": "unconfirmed",
+          "amount": "$500 entire county or $100 per township",
+          "product": "Parcels including core and regional attribute data",
+          "source_kind": "published-fee-schedule",
+          "source_url": "https://www.faribaultcountymn.gov/DocumentCenter/View/266/GIS-Data-Fee-Schedule",
+          "source_date": "2026-10-06",
+          "note": "Published county fee for the listed product. Whether downloading through the county's REST service or another direct route is charged has not been confirmed by the county."
+        }
+      }
+    },
+    {
+      "county": "Goodhue",
+      "layers": {
+        "parcels": {
+          "fee_status": "fee",
+          "rest_download": "unconfirmed",
+          "amount": "$0.05 per parcel for public-request digital parcel data; compilation/service charges may apply",
+          "product": "Digital parcel dataset / parcel polygons and assessor value-added attributes",
+          "source_kind": "published-fee-schedule",
+          "source_url": "https://goodhuecountymn.gov/files/finance/finance/2025_fee_schedule_78889.pdf",
+          "source_date": "2026-10-05",
+          "note": "Published county fee for the listed product. Whether downloading through the county's REST service or another direct route is charged has not been confirmed by the county."
+        }
+      }
+    },
+    {
+      "county": "Jackson",
+      "layers": {
+        "parcels": {
+          "fee_status": "fee",
+          "rest_download": "unconfirmed",
+          "amount": "$100 for the full GIS parcel layer",
+          "product": "Full GIS parcel layer in ESRI shapefile form",
+          "source_kind": "published-fee-schedule",
+          "source_url": "https://jacksoncountymn.gov/property-data",
+          "source_date": "2026-10-05",
+          "note": "Published county fee for the listed product. Whether downloading through the county's REST service or another direct route is charged has not been confirmed by the county. The county also shares parcels at no cost through MnGeo Plan Parcels Open; that statewide route is reported separately."
+        }
+      }
+    },
+    {
+      "county": "Kandiyohi",
+      "layers": {
+        "parcels": {
+          "fee_status": "fee",
+          "rest_download": "unconfirmed",
+          "amount": "$1,280 entire parcel layer; area of interest = features × $0.05 + $75 labor",
+          "product": "Parcels with Tax Data",
+          "source_kind": "published-fee-schedule",
+          "source_url": "https://gis.kcmn.us/maps/geographicInformationReleaseForm.pdf",
+          "source_date": "2026-10-06",
+          "note": "Published county fee for the listed product. Whether downloading through the county's REST service or another direct route is charged has not been confirmed by the county."
+        }
+      }
+    },
+    {
+      "county": "Le Sueur",
+      "layers": {
+        "parcels": {
+          "fee_status": "fee",
+          "rest_download": "unconfirmed",
+          "amount": "$0.05 per parcel or $50/hour, whichever is greater",
+          "product": "Parcel layer / LSC Parcels",
+          "source_kind": "published-fee-schedule",
+          "source_url": "https://www.lesueurcounty.gov/389/Fees",
+          "source_date": "2026-10-05",
+          "note": "Published county fee for the listed product. Whether downloading through the county's REST service or another direct route is charged has not been confirmed by the county."
+        }
+      }
+    },
+    {
+      "county": "Lincoln",
+      "layers": {
+        "parcels": {
+          "fee_status": "fee",
+          "rest_download": "unconfirmed",
+          "amount": "$0.05 per parcel plus $25 data-delivery charge for staff-serviced requests",
+          "product": "Parcel boundaries and attributes",
+          "source_kind": "published-fee-schedule",
+          "source_url": "https://cms2.revize.com/revize/lincolncountymn/Documents/Departments%20and%20Agencies/GIS%20and%20Maps/Geospatial%20Data%20Pricing.pdf",
+          "source_date": "2026-10-06",
+          "note": "Published county fee for the listed product. Whether downloading through the county's REST service or another direct route is charged has not been confirmed by the county."
+        }
+      }
+    },
+    {
+      "county": "Nicollet",
+      "layers": {
+        "parcels": {
+          "fee_status": "fee",
+          "rest_download": "unconfirmed",
+          "amount": "$0.05 per parcel ($5 minimum) or $500 for the entire county",
+          "product": "GIS Digital Data - Parcels, ESRI Shapefile format",
+          "source_kind": "published-fee-schedule",
+          "source_url": "https://www.nicolletcountymn.gov/DocumentCenter/View/5049/Property-Services-Fee-Schedule",
+          "source_date": "2026-10-05",
+          "note": "Published county fee for the listed product. Whether downloading through the county's REST service or another direct route is charged has not been confirmed by the county."
+        }
+      }
+    },
+    {
+      "county": "Nobles",
+      "layers": {
+        "parcels": {
+          "fee_status": "fee",
+          "rest_download": "unconfirmed",
+          "amount": "$0.05 per parcel ($25 minimum) or $500 for the county parcel shapefile",
+          "product": "Digital parcel shapefile / County Parcel Shapefile",
+          "source_kind": "published-fee-schedule",
+          "source_url": "https://www.co.nobles.mn.us/wp-content/uploads/2024/12/2025-Fee-Schedule-Draft.pdf",
+          "source_date": "2026-10-05",
+          "note": "Published county fee for the listed product. Whether downloading through the county's REST service or another direct route is charged has not been confirmed by the county."
+        }
+      }
+    },
+    {
+      "county": "Redwood",
+      "layers": {
+        "parcels": {
+          "fee_status": "fee",
+          "rest_download": "unconfirmed",
+          "amount": "$800 for countywide parcel data or $0.10 per parcel",
+          "product": "Parcel Data",
+          "source_kind": "published-fee-schedule",
+          "source_url": "https://redwoodcounty-mn.gov/departments/environmental-office/",
+          "source_date": "2026-10-05",
+          "note": "Published county fee for the listed product. Whether downloading through the county's REST service or another direct route is charged has not been confirmed by the county."
+        }
+      }
+    },
+    {
+      "county": "Swift",
+      "layers": {
+        "parcels": {
+          "fee_status": "fee",
+          "rest_download": "unconfirmed",
+          "amount": "$0.03 per parcel without tax information; $0.04 with tax information; $450 full parcel layer with tax information; government agencies exempt.",
+          "product": "GIS Parcel Data",
+          "source_kind": "published-fee-schedule",
+          "source_url": "https://swiftcounty.gov/uploads/dm/48672/2026_Licenses_Fees_and_Service_Charges",
+          "source_date": "2026-10-06",
+          "note": "Published county fee for the listed product. Whether downloading through the county's REST service or another direct route is charged has not been confirmed by the county."
+        }
+      }
+    },
+    {
+      "county": "Winona",
+      "layers": {
+        "parcels": {
+          "fee_status": "fee",
+          "rest_download": "unconfirmed",
+          "amount": "$75 minimum plus per-parcel rate (rate tiers in county fee schedule)",
+          "product": "GIS Data Set - Parcels",
+          "source_kind": "published-fee-schedule",
+          "source_url": "https://winonacounty.gov/Archive.aspx?ADID=434",
+          "source_date": "2026-10-05",
+          "note": "Published county fee for the listed product. Whether downloading through the county's REST service or another direct route is charged has not been confirmed by the county. The county also shares parcels at no cost through MnGeo Plan Parcels Open; that statewide route is reported separately."
+        }
+      }
+    }
+  ]
+}

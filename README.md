@@ -39,7 +39,7 @@ It monitors selected public ArcGIS, WMS/WFS, and other supported GIS services, r
 | Public view | What it helps answer |
 | --- | --- |
 | **Overview** | How many service entries are monitored? Which had warnings? How many Minnesota counties have parcel observations? |
-| **Minnesota Counties** | What access, statewide availability, county contacts, and monitoring evidence are recorded for a county? |
+| **Minnesota Counties** | What access, statewide availability, county contacts, data fees, and monitoring evidence are recorded for a county? |
 | **MN GAC** | How frequently are standard parcel, address-point, and road-centerline fields populated in available statewide data? |
 | **Data Sources** | Which public GIS sources are checked, and what were their latest recorded statuses and observation times? |
 | **Exports** | How can I reuse published summary evidence as JSON, CSV, or Excel without downloading private operational data or raw parcel-owner records? |
@@ -72,7 +72,7 @@ See the [illustrated public user guide](docs/user-guide.md) for step-by-step ins
 - The public site exposes derived counts, field population, statuses, and attribution—not parcel-owner records, private credentials, operational provider endpoints, or diagnostic fingerprints.
 - The system uses bounded, respectful requests. It does not scrape human-facing property-search websites or bypass provider access restrictions. Public reachability does not grant redistribution rights.
 
-Read the [MN GAC methodology](docs/gac-standards.md), [county access methodology](docs/county-parcel-data-access-audit.md), [provider-use guidance](docs/data-watchtower-provider-compliance.md), and [public/private design](docs/public-dashboard-hosting.md).
+Read the [MN GAC methodology](docs/gac-standards.md), [county access methodology](docs/county-parcel-data-access-audit.md), [county data fees](docs/county-data-fees.md), [provider-use guidance](docs/data-watchtower-provider-compliance.md), and [public/private design](docs/public-dashboard-hosting.md).
 
 ## Install and run your own monitor
 

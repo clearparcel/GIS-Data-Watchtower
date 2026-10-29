@@ -6,6 +6,7 @@ from clearparcel.datawatch.dashboard_summary import catalog_summary
 from clearparcel.datawatch.county_profile_panel import profile_time
 from clearparcel.datawatch.public_values import county_metadata_dates
 from clearparcel.datawatch.gac_standards import standard_field_counts
+from clearparcel.datawatch.data_fees import fee_counts
 from clearparcel.datawatch.product import page_title
 
 
@@ -53,8 +54,38 @@ def render_counties(config: dict) -> str:
         '<div class="filters"><input id="cq" aria-label="Filter counties" placeholder="Filter counties…"><select id="cs" aria-label="Filter by county monitoring coverage"><option value="">All coverage types</option><option value="ok">Actively checked</option><option value="overdue">Check overdue</option><option value="catalog">MnGeo catalog only</option><option value="needs-source">No active parcel monitoring</option><option value="not-configured">No source information yet</option><option value="warn">Needs attention</option><option value="error">Check failed</option></select></div>' \
         f'<table id="counties"><thead><tr><th>County</th><th>Monitoring coverage<br><span class="subtext">Health and active monitoring path</span></th><th>County-direct access<br><span class="subtext">Evidence-backed county access</span></th><th>Statewide open access<br><span class="subtext">Current MnGeo Plan Parcels Open coverage</span></th><th>County-direct sources<br><span class="subtext">County-specific sources actively checked</span></th></tr></thead><tbody>{rows}</tbody></table></div>' \
         f"{SCRIPT_TAG}" "function filterCounties(){const q=document.getElementById('cq').value.toLowerCase(),s=document.getElementById('cs').value;document.querySelectorAll('#counties tbody tr').forEach(r=>r.style.display=(!q||r.dataset.name.includes(q))&&(!s||r.dataset.status===s)?'':'none')}document.getElementById('cq').addEventListener('input',filterCounties);document.getElementById('cs').addEventListener('change',filterCounties);</script>"
+    body += render_fee_summary(profiles)
     body += f'<div class="card"><h2>Parcel source research</h2>{_dashboard.research_summary(profiles)}</div>'
     return _dashboard._layout(page_title("Minnesota Counties"), '<p><a href="/">← Watchtower overview</a></p>'+body, static=bool(config.get("_public_mode")), csrf_token=str(config.get("_csrf_token") or ""))
+
+
+def render_fee_summary(profiles: dict[str, dict]) -> str:
+    """Statewide fee card: recorded county answers only; every other layer stays unconfirmed."""
+    counts = fee_counts(profiles)
+    rows = ""
+    for slug in sorted(profiles):
+        profile = profiles[slug]
+        recorded = [row for row in profile.get("data_fees") or [] if row.get("source_kind")]
+        for row in recorded:
+            url = _dashboard._safe_url(row.get("source_url"))
+            source = _dashboard._esc(row.get("source_label"))
+            if url:
+                source = f'<a href="{_dashboard._esc(url)}" target="_blank" rel="noopener">{source}</a>'
+            rows += (f'<tr><td><a href="/county?slug={_dashboard.urllib.parse.quote(slug)}">{_dashboard._esc(profile["county"]["name"])} County</a></td>'
+                     f'<td>{_dashboard._esc(row["layer_label"])}</td><td>{_dashboard._esc(row.get("amount") or row["fee_status_label"])}'
+                     f'<br><span class="subtext">{_dashboard._esc(row.get("product") or "")}</span></td>'
+                     f'<td>{_dashboard._esc(row["rest_download_label"])}</td><td>{source}<br><span class="subtext">{_dashboard._esc(row.get("source_date"))}</span></td></tr>')
+    if not rows:
+        rows = '<tr><td colspan="5">No county data fees are recorded yet.</td></tr>'
+    return (f'<div class="card" id="county-data-fees"><h2>County data fees</h2>'
+            f'<p><strong>{counts["with_published_fee"]} of {counts["counties"]} counties</strong> have a published or confirmed fee for at least one of parcels, address points or road centerlines. '
+            f'{counts["with_confirmed_no_fee"]} have confirmed no fee for at least one layer. '
+            f'{counts["fully_unconfirmed"]} have no confirmed fee information yet.</p>'
+            '<p class="subtext">Fees apply to county-supplied data. "Not confirmed" for REST or direct download means the county has not yet said whether that route is charged; '
+            'a published fee for a file or bundle does not by itself show that every route is charged. Missing information is never shown as free. '
+            'Free statewide routes such as MnGeo Plan Parcels Open are reported separately.</p>'
+            '<table id="county-fees"><thead><tr><th>County</th><th>Layer</th><th>Fee</th><th>REST or direct download</th><th>Source</th></tr></thead>'
+            f'<tbody>{rows}</tbody></table><p><a href="/county-data-fees.csv">Download all county data fees (CSV)</a></p></div>')
 
 
 def render_county(config: dict, slug: str) -> str:

@@ -317,7 +317,7 @@ def _public_layout_v2(title: str, body: str, *, refresh_seconds: int = 30, publi
         '<a href="index.html">Overview</a><a href="state.json">Sanitized state JSON</a>'
         if static_bundle else
         '<a href="/snapshot.xlsx">Excel (.xlsx)</a><a href="/county-profiles.csv">County profiles (CSV)</a>'
-        '<a href="/parcel-sources.csv">Parcel sources (CSV)</a><a href="/snapshot.csv">Monitored sources (CSV)</a>'
+        '<a href="/parcel-sources.csv">Parcel sources (CSV)</a><a href="/county-data-fees.csv">County data fees (CSV)</a><a href="/snapshot.csv">Monitored sources (CSV)</a>'
         '<a href="/snapshot.json">JSON</a>'
     )
     analytics_script = posthog_html(
@@ -565,7 +565,7 @@ code{{font-size:12px;overflow-wrap:anywhere}}
 <a href="/snapshot.xlsx">{icon("export")}<span>Export</span></a>
 </nav><div class="side-note">{side_context}<br><small>Central Time primary</small></div></aside>
 <section class="content-shell">
-<div class="pagebar" role="region" aria-label="Page title and export"><div class="pagebar-title">{_esc(page_title)}</div><div class="page-actions"><details class="export-menu"><summary>Export</summary><div class="export-pop"><a href="/snapshot.xlsx">Excel (.xlsx)</a><a href="/county-profiles.csv">County profiles (CSV)</a><a href="/parcel-sources.csv">Parcel sources (CSV)</a><a href="/snapshot.csv">Monitored sources (CSV)</a><a href="/snapshot.json">JSON</a></div></details></div></div>
+<div class="pagebar" role="region" aria-label="Page title and export"><div class="pagebar-title">{_esc(page_title)}</div><div class="page-actions"><details class="export-menu"><summary>Export</summary><div class="export-pop"><a href="/snapshot.xlsx">Excel (.xlsx)</a><a href="/county-profiles.csv">County profiles (CSV)</a><a href="/parcel-sources.csv">Parcel sources (CSV)</a><a href="/county-data-fees.csv">County data fees (CSV)</a><a href="/snapshot.csv">Monitored sources (CSV)</a><a href="/snapshot.json">JSON</a></div></details></div></div>
 <main id="main-content" tabindex="-1">{body}<footer class="app-footnote">{_esc(PRODUCT_NAME)}</footer></main>
 </section></div>
 <nav class="mobile-nav" aria-label="Mobile navigation">

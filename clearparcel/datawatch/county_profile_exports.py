@@ -5,6 +5,7 @@ import csv
 import io
 
 from .parcel_access import INVENTORY_CATEGORIES
+from .data_fees import FEE_FIELDS
 from .public_values import safe_public_url, spreadsheet_cell, spreadsheet_text
 
 SUMMARY_FIELDS = ('county', 'county_slug', 'county_fips', 'active', 'paths', 'health', 'reporting',
@@ -72,6 +73,17 @@ def _tables(profiles: dict[str, dict]) -> tuple[list[dict], list[dict]]:
     return summaries, sources
 
 
+def _fee_rows(profiles: dict[str, dict]) -> list[dict]:
+    """One row per county and layer, including unconfirmed layers."""
+    rows = []
+    for slug in sorted(profiles):
+        county = (profiles[slug].get('county') or {}).get('name')
+        for fee in profiles[slug].get('data_fees') or []:
+            rows.append({'county': county, **{k: fee.get(k) for k in FEE_FIELDS[1:]},
+                         'source_url': safe_public_url(fee.get('source_url'))})
+    return rows
+
+
 def _csv(fields: tuple, rows: list[dict]) -> str:
     out = io.StringIO()
     writer = csv.DictWriter(out, fieldnames=fields)
@@ -90,6 +102,11 @@ def parcel_sources_csv(profiles: dict[str, dict]) -> str:
     return _csv(SOURCE_FIELDS, _tables(profiles)[1])
 
 
+def county_data_fees_csv(profiles: dict[str, dict]) -> str:
+    """Return each county's parcel, address point and road centerline fee status."""
+    return _csv(FEE_FIELDS, _fee_rows(profiles))
+
+
 def county_profile_xlsx_sheets(profiles: dict[str, dict]) -> list[tuple[str, list[list]]]:
     """Return the same tables with numeric/boolean cells and literal safe text."""
     summaries, sources = _tables(profiles)
@@ -98,7 +115,8 @@ def county_profile_xlsx_sheets(profiles: dict[str, dict]) -> list[tuple[str, lis
             return value
         return spreadsheet_text(value)
     return [(name, [list(fields)] + [[cell(row.get(k)) for k in fields] for row in rows])
-            for name, fields, rows in [('County Access', SUMMARY_FIELDS, summaries), ('Parcel Sources', SOURCE_FIELDS, sources)]]
+            for name, fields, rows in [('County Access', SUMMARY_FIELDS, summaries), ('Parcel Sources', SOURCE_FIELDS, sources),
+                                       ('Data Fees', FEE_FIELDS, _fee_rows(profiles))]]
 
 
 def __getattr__(name: str):
