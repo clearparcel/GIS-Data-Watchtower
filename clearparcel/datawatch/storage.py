@@ -7,7 +7,7 @@ import random
 import time
 from pathlib import Path
 
-from .file_lock import FileLock, atomic_write
+from .file_lock import FileLock, _retry_sharing, atomic_write
 
 
 class StorageConflictError(RuntimeError):
@@ -57,15 +57,20 @@ class LocalStorage(StorageBackend):
         return parent / candidate.name
 
     @staticmethod
+    def _read_shared(path: Path) -> bytes:
+        """Read bytes, retrying a Windows sharing violation during atomic replace."""
+        return _retry_sharing(path.read_bytes, timeout=5.0)
+
+    @staticmethod
     def _token(path: Path) -> str | None:
-        return hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else None
+        return hashlib.sha256(LocalStorage._read_shared(path)).hexdigest() if path.is_file() else None
 
     def download(self, name: str, destination: Path) -> bool:
         source = self._path(name)
         if not source.is_file():
             return False
         destination.parent.mkdir(parents=True, exist_ok=True)
-        destination.write_bytes(source.read_bytes())
+        destination.write_bytes(self._read_shared(source))
         return True
 
     def download_versioned(self, name: str, destination: Path) -> tuple[bool, str | None]:
@@ -75,7 +80,7 @@ class LocalStorage(StorageBackend):
         # Read one immutable byte snapshot and derive the token from exactly the
         # bytes copied to the worker. Writers use atomic replacement, so this
         # binds the compare-and-swap token to the snapshot the caller consumed.
-        raw = source.read_bytes()
+        raw = self._read_shared(source)
         destination.parent.mkdir(parents=True, exist_ok=True)
         destination.write_bytes(raw)
         return True, hashlib.sha256(raw).hexdigest()

@@ -9,6 +9,37 @@ import time
 from pathlib import Path
 
 
+def _sharing_violation(exc: BaseException) -> bool:
+    """Windows denies access while another handle still has the file open.
+
+    ``os.replace`` and ``open`` then raise ``PermissionError`` with errno 13
+    (WinError 5 access denied, or 32/33 sharing or lock violation). That is
+    transient contention, not a missing directory permission: the caller has
+    already created a file in the same directory.
+    """
+    if not isinstance(exc, OSError):
+        return False
+    winerror = getattr(exc, "winerror", None)
+    if winerror in (5, 32, 33):
+        return True
+    return os.name == "nt" and exc.errno in (errno.EACCES, errno.EAGAIN, errno.EPERM)
+
+
+def _retry_sharing(operation, *, timeout: float):
+    """Retry ``operation`` while Windows reports a sharing violation."""
+    deadline = time.monotonic() + max(0.0, timeout)
+    while True:
+        try:
+            return operation()
+        except OSError as exc:
+            if not _sharing_violation(exc):
+                raise
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise
+            time.sleep(min(0.02, remaining))
+
+
 class FileLock:
     """A persistent lock file whose OS lock is released on process termination.
 
@@ -26,14 +57,22 @@ class FileLock:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         if self.path.is_dir():
             raise RuntimeError("legacy lock directory requires stopped-worker reconciliation: " + str(self.path))
-        stream = self.path.open("a+b")
-        try:
-            if os.fstat(stream.fileno()).st_size == 0:
-                stream.write(b"\0")
-                stream.flush()
-            end = time.monotonic() + self.timeout
-            while True:
+        deadline = time.monotonic() + self.timeout
+        while True:
+            stream = None
+            try:
                 try:
+                    stream = self.path.open("a+b")
+                except OSError as exc:
+                    # Opening the lock file can itself be denied on Windows
+                    # while another handle is replacing or locking it.
+                    if not _sharing_violation(exc):
+                        raise
+                    raise _LockContended(exc) from exc
+                try:
+                    if os.fstat(stream.fileno()).st_size == 0:
+                        stream.write(b"\0")
+                        stream.flush()
                     stream.seek(0)
                     if os.name == "nt":
                         import msvcrt
@@ -41,18 +80,23 @@ class FileLock:
                     else:
                         import fcntl
                         fcntl.flock(stream.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-                    self._file = stream
-                    return self
                 except OSError as exc:
-                    if exc.errno not in (errno.EACCES, errno.EAGAIN, errno.EDEADLK):
+                    stream.close()
+                    stream = None
+                    if exc.errno not in (errno.EACCES, errno.EAGAIN, errno.EDEADLK) and not _sharing_violation(exc):
                         raise
-                    remaining = end - time.monotonic()
-                    if remaining <= 0:
-                        raise TimeoutError(f"timed out waiting for file lock: {self.path}") from exc
-                    time.sleep(min(0.025, remaining))
-        except BaseException:
-            stream.close()
-            raise
+                    raise _LockContended(exc) from exc
+                self._file = stream
+                return self
+            except _LockContended as contended:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise TimeoutError(f"timed out waiting for file lock: {self.path}") from contended.__cause__
+                time.sleep(min(0.025, remaining))
+            except BaseException:
+                if stream is not None and self._file is None:
+                    stream.close()
+                raise
 
     def close(self) -> None:
         stream, self._file = self._file, None
@@ -68,6 +112,10 @@ class FileLock:
 
     def __exit__(self, *args) -> None:
         self.close()
+
+
+class _LockContended(Exception):
+    """The lock file is momentarily unavailable; acquire() waits and retries."""
 
 
 def _fsync_directory(directory: Path) -> None:
@@ -99,6 +147,10 @@ def atomic_write(path: Path, raw: bytes, *, mode: int | None = None) -> None:
             mode = path.stat().st_mode & 0o777
         except FileNotFoundError:
             mode = None
+        except OSError as exc:
+            if not _sharing_violation(exc):
+                raise
+            mode = None
     scratch = None
     try:
         with tempfile.NamedTemporaryFile(dir=path.parent, prefix="." + path.name + ".",
@@ -112,7 +164,10 @@ def atomic_write(path: Path, raw: bytes, *, mode: int | None = None) -> None:
                 os.chmod(scratch, mode)
             except OSError:
                 pass  # Best effort; Windows honors only the read-only bit.
-        scratch.replace(path)
+        # A concurrent reader on Windows keeps the destination open, and
+        # os.replace then raises PermissionError 13 (Access is denied).
+        # The scratch file is already in this directory, so retry the rename.
+        _retry_sharing(lambda: scratch.replace(path), timeout=5.0)
         _fsync_directory(path.parent)
     finally:
         if scratch is not None:
