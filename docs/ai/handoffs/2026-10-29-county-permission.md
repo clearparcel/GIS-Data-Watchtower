@@ -32,11 +32,18 @@ does skip a direct query of that hosted service.
 
 ## Checks
 
-Python 3.12. `python -W error::ResourceWarning -m unittest discover -s tests -q`:
-795 tests, exit 0, about 31 seconds. `compileall` for `clearparcel`, `tests`,
+Rebased onto `aa11702` (official product name, #154). Python 3.12.
+`python -W error::ResourceWarning -m unittest discover -s tests -q`:
+802 tests, exit 0, about 30 seconds. `compileall` for `clearparcel`, `tests`,
 and `scripts` passed. `python scripts/sync_current_status.py --check` passed.
 `git diff --check` passed. Node on this machine is 22.23.4, so the JavaScript
-behavior tests skipped; CI runs them with Node 24.
+behavior tests skipped; CI runs those with Node 24.
+
+Windows CI once failed `test_concurrent_invocations_send_each_event_once`
+with `PermissionError` 13 (Access is denied) and passed on rerun. That is a
+sharing violation: a reader still has the ledger open while another thread
+replaces it, and `os.replace` / `open` were not retried. The lock and the
+atomic replace now retry that Windows error. The concurrency test is unchanged.
 
 ## Gates
 
