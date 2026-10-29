@@ -1,8 +1,8 @@
 # Google Cloud deployment
 
-The current production release is **v0.3.8**, deployed October 24, 2026 to
+The current production release is **v0.3.9**, deployed October 29, 2026 to
 the public and private dashboards and the provider and public-publisher jobs.
-See the [v0.3.8 release record](release-v0.3.8.md) for images, revisions and
+See the [v0.3.9 release record](release-v0.3.9.md) for images, revisions and
 rollback targets. [STATUS.md](../STATUS.md) is the authoritative operational state.
 
 The records below describe historical deployments, not current traffic.
