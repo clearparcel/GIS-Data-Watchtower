@@ -8,6 +8,7 @@ from pathlib import Path
 
 from clearparcel.datawatch.dashboard import build_static_site, serve
 from clearparcel.datawatch.dispatch_guard import DispatchGuardError, DispatchRefused
+from clearparcel.datawatch.product import PRODUCT_NAME
 from clearparcel.datawatch.watch import _EXECUTION_PROFILES, _resolve_execution_profile, _safe_diagnostic, check_sources, load_config, load_history, load_state
 
 
@@ -22,7 +23,7 @@ def _default_config() -> Path | None:
 def _render(report: dict) -> str:
     counts = report.get("counts") or {}
     lines = [
-        f'GIS Data Watchtower - {str(report.get("overall", "unknown")).upper()}',
+        f'{PRODUCT_NAME} - {str(report.get("overall", "unknown")).upper()}',
         f'Checks: ok={counts.get("ok", 0)}, warn={counts.get("warn", 0)}, error={counts.get("error", 0)}',
     ]
     if report.get("error"):
@@ -40,7 +41,7 @@ def _render(report: dict) -> str:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="watchtower", description="GIS Data Watchtower")
+    parser = argparse.ArgumentParser(prog="watchtower", description=PRODUCT_NAME)
     parser.add_argument("--config", type=Path, default=_default_config())
     sub = parser.add_subparsers(dest="command", required=True)
     p = sub.add_parser("check", help="Check GIS data sources")

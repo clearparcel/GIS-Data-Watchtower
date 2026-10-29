@@ -9,6 +9,7 @@ from unittest.mock import patch
 from tests.html_text import metric, page_text
 
 from clearparcel.datawatch.dashboard import _layout, render_counties, render_county, render_mngac
+from clearparcel.datawatch.product import PRODUCT_NAME
 from clearparcel.datawatch.public_dashboard import (
     _PublicStateCache,
     _publication_health,
@@ -26,7 +27,7 @@ class PublicDashboardTests(unittest.TestCase):
         self.assertIn('id="about-watchtower"', page)
         self.assertIn('Making Minnesota GIS data easier to understand.', page)
         about = page_text(page)
-        self.assertIn("GIS Data Watchtower is an open-source ClearParcel project", about)
+        self.assertIn(f"{PRODUCT_NAME} is an open-source ClearParcel project", about)
         self.assertIn("county access research", about)
         self.assertIn("Minnesota GAC field-population insights", page)
         self.assertIn("Disclaimer:", page)
@@ -383,8 +384,11 @@ class PublicDashboardTests(unittest.TestCase):
             self.assertNotIn("PRIVATE-SCHEMA", page)
             self.assertNotIn("PRIVATE-FINGERPRINT", page)
             self.assertNotIn('<form method="post" action="/refresh"', page)
-            self.assertIn("CLEARPARCEL GIS DATA WATCHTOWER", page)
-            self.assertIn("<h1>Minnesota Open Data Watchtower</h1>", page)
+            self.assertIn(f'<div class="brand-eyebrow">{PRODUCT_NAME}</div>', page)
+            self.assertIn(f"<h1>{PRODUCT_NAME}</h1>", page)
+            self.assertIn("text-transform:uppercase", page)
+            self.assertNotIn("CLEARPARCEL GIS DATA WATCHTOWER", page)
+            self.assertNotIn("Minnesota Open Data Watchtower", page)
             self.assertIn("summary-v2", page)
             self.assertIn("Explore Minnesota GIS data", page)
             self.assertIn("Counties with parcel observations", page)
@@ -434,8 +438,11 @@ class PublicDashboardTests(unittest.TestCase):
                 "_public_mode": True,
             }
             page = render_public_dashboard(config)
-            self.assertIn("CLEARPARCEL GIS DATA WATCHTOWER", page)
-            self.assertIn("<h1>Minnesota Open Data Watchtower</h1>", page)
+            self.assertIn(f'<div class="brand-eyebrow">{PRODUCT_NAME}</div>', page)
+            self.assertIn(f"<h1>{PRODUCT_NAME}</h1>", page)
+            self.assertIn("text-transform:uppercase", page)
+            self.assertNotIn("CLEARPARCEL GIS DATA WATCHTOWER", page)
+            self.assertNotIn("Minnesota Open Data Watchtower", page)
             self.assertIn("Explore Minnesota GIS data", page)
             self.assertIn('class="summary-v2"', page)
             self.assertIn('id="mngac-map"', page)
@@ -581,7 +588,7 @@ class PublicDashboardTests(unittest.TestCase):
         self.assertIn("2 via MnGeo open parcels · 1 via county-direct sources · 1 via both · each county counted once",
                       page_text(overview))
         for page in (overview, mngac):
-            self.assertIn("<h1>Minnesota Open Data Watchtower</h1>", page)
+            self.assertIn(f"<h1>{PRODUCT_NAME}</h1>", page)
             self.assertIn(percentage_color_js(), page)
         self.assertIn(json.dumps(percentage_legend()), overview)
         self.assertIn(percentage_legend(), mngac)

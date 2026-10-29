@@ -3,7 +3,7 @@
 County display semantics updated: **2026-10-20**. Source descriptions below were
 last reviewed October 11; this update performs no provider checks.
 
-GIS Data Watchtower can measure how extensively fields from the **Minnesota Geospatial Advisory Council (GAC) Parcel Data Standard** are populated in a standardized statewide parcel layer.
+ClearParcel GIS Data Watchtower can measure how extensively fields from the **Minnesota Geospatial Advisory Council (GAC) Parcel Data Standard** are populated in a standardized statewide parcel layer.
 
 The feature is designed around the official **MN GAC Parcel Data Standard v1.1.3** (published 2023-10-27):
 

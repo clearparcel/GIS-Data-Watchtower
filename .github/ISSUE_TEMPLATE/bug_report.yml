@@ -5,7 +5,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thank you for helping improve Watchtower. Never publish credentials, private GIS records, operational endpoints, personal information, or vulnerability details. Report security issues privately using SECURITY.md.
+        Thank you for helping improve ClearParcel GIS Data Watchtower. Never publish credentials, private GIS records, operational endpoints, personal information, or vulnerability details. Report security issues privately using SECURITY.md.
   - type: dropdown
     id: component
     attributes:

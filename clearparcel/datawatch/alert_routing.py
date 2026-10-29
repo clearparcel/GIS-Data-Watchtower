@@ -5,6 +5,7 @@ import hashlib
 import json
 
 from .operations_triage import triage_executions
+from .product import PRODUCT_NAME
 
 
 _MESSAGES = {
@@ -80,7 +81,7 @@ def prepare_alert_preview(executions, *, expected_sources, routing, as_of,
             "type": kind, "worker": pair[0], "source_id": pair[1],
             "execution_id": row["execution_id"] if row else None,
             "checked_at": source.get("checked_at") if source else None,
-            "subject": f"Watchtower: {kind}",
+            "subject": f"{PRODUCT_NAME}: {kind}",
             "message": _MESSAGES[kind],
         })
 

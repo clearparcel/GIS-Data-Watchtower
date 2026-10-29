@@ -5,7 +5,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Watchtower reports evidence, not official county-wide compliance grades. Please cite a public authoritative source and distinguish county-direct, MnGeo statewide, and Watchtower monitoring facts. Do not attach private records.
+        ClearParcel GIS Data Watchtower reports evidence, not official county-wide compliance grades. Please cite a public authoritative source and distinguish county-direct, MnGeo statewide, and Watchtower monitoring facts. Do not attach private records.
   - type: input
     id: county
     attributes:

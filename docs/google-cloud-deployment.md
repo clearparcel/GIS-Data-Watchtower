@@ -85,7 +85,7 @@ The user subsequently explicitly requested daily cloud activation. Scheduler
 identity scope, retry settings, validation and rollback. The prior five-day
 study remains incomplete; enabling the schedule does not certify that study.
 
-GIS Data Watchtower can run as a scheduled **Cloud Run Job** while retaining the same CLI and monitoring engine used locally.
+ClearParcel GIS Data Watchtower can run as a scheduled **Cloud Run Job** while retaining the same CLI and monitoring engine used locally.
 
 ## Architecture
 

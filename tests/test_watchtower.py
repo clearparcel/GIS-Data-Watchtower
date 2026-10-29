@@ -13,6 +13,7 @@ import clearparcel.datawatch.watch as datawatch
 import clearparcel.datawatch.dashboard as datawatch_dashboard
 from clearparcel.datawatch.watch import _compare, load_config as load_data_config, load_history as load_data_history
 from clearparcel.datawatch.dashboard_exports import _csv_safe
+from clearparcel.datawatch.product import PRODUCT_NAME
 from tests.html_text import page_text
 
 class DataWatchTests(unittest.TestCase):
@@ -392,7 +393,7 @@ class DataWatchTests(unittest.TestCase):
             config = {'state_file': str(state), 'history_file': str(history)}
             overview = datawatch_dashboard.render_dashboard(config)
             detail = datawatch_dashboard.render_source(config, 'sample')
-            self.assertIn('GIS Data Watchtower', overview)
+            self.assertIn(PRODUCT_NAME, overview)
             self.assertIn('Sample Parcels', overview)
             self.assertIn('123', overview)
             self.assertIn('Technical details', detail)

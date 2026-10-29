@@ -29,6 +29,7 @@ from clearparcel.datawatch.dashboard import (
 )
 from clearparcel.datawatch.dashboard_exports import _mngac_csv, _snapshot_xlsx
 from clearparcel.datawatch.dashboard_templates import _esc, _layout
+from clearparcel.datawatch.product import PRODUCT_NAME, page_title
 from clearparcel.datawatch.dashboard_routes import dispatch_gac_routes, dispatch_snapshot_exports
 from clearparcel.datawatch.parcel_access import load_parcel_access
 from clearparcel.datawatch.county_profile_exports import county_profiles_csv, parcel_sources_csv
@@ -271,9 +272,9 @@ def render_public_dashboard(config: dict) -> str:
     <div class="public-about-heading">
       <span class="public-about-eyebrow">About this project</span>
       <h2 id="watchtower-about-title">Making Minnesota GIS data easier to understand.</h2>
-      <p class="public-about-lead"><strong>GIS Data Watchtower is an open-source ClearParcel project</strong> focused on making Minnesota GIS data easier to understand. It brings together public dataset availability, source monitoring, county access research, and Minnesota GAC field-population insights—helping people explore GIS data and see what has changed.</p>
+      <p class="public-about-lead"><strong>{_esc(PRODUCT_NAME)} is an open-source ClearParcel project</strong> focused on making Minnesota GIS data easier to understand. It brings together public dataset availability, source monitoring, county access research, and Minnesota GAC field-population insights—helping people explore GIS data and see what has changed.</p>
     </div>
-    <a class="public-about-link" href="https://github.com/clearparcel/GIS-Data-Watchtower" target="_blank" rel="noopener noreferrer" aria-label="View GIS Data Watchtower on GitHub (opens in a new tab)">View on GitHub ↗</a>
+    <a class="public-about-link" href="https://github.com/clearparcel/GIS-Data-Watchtower" target="_blank" rel="noopener noreferrer" aria-label="View {_esc(PRODUCT_NAME)} on GitHub (opens in a new tab)">View on GitHub ↗</a>
   </div>
   <p class="public-about-disclaimer"><strong>Disclaimer:</strong> Results are informational, may be incomplete or outdated, and are not official property records or a standards-compliance grade. Confirm current information and reuse terms with the original data provider.</p>
 </section>
@@ -365,13 +366,13 @@ document.getElementById('health').addEventListener('change',filterRows);
 </script>
 {profile_panel}
 """
-    return _layout("GIS Data Watchtower", body, refresh_seconds=30, static=True)
+    return _layout(PRODUCT_NAME, body, refresh_seconds=30, static=True)
 
 def render_public_source(config: dict, source_id: str) -> str:
     source = (_dashboard_state(config).get("sources") or {}).get(source_id)
     if not source:
         return _layout(
-            "Source not found",
+            page_title("Source not found"),
             '<div class="card"><h2>Source not found</h2><p><a href="/">Return to dashboard</a></p></div>',
             refresh_seconds=30,
             static=True,
@@ -399,7 +400,7 @@ def render_public_source(config: dict, source_id: str) -> str:
     if source.get('county_slug') and source.get('category') == 'Parcels':
         body += render_direct_schema_findings([direct_schema_assessment(source_id, source)])
     return _layout(
-        f'Data Source — {source.get("name") or source_id} — GIS Data Watchtower',
+        page_title(f'Data Source — {source.get("name") or source_id}'),
         body,
         refresh_seconds=30,
         static=True,
@@ -709,7 +710,7 @@ def serve_public(host: str = "0.0.0.0", port: int = 8080) -> None:
             return
 
     server = _BoundedThreadingHTTPServer((host, port), Handler, max_connections=max_connections, request_timeout=_public_request_timeout_seconds())
-    print(f"GIS Data Watchtower public dashboard: http://{host}:{port}")
+    print(f"{PRODUCT_NAME} public dashboard: http://{host}:{port}")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
