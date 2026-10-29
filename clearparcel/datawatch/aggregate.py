@@ -10,8 +10,9 @@ from copy import deepcopy
 from pathlib import Path
 
 from . import strict_json
-from .storage import StorageBackend, StorageConflictError
 from .file_lock import atomic_write
+from .parcel_access import CountyPermission
+from .storage import StorageBackend, StorageConflictError
 
 _ALLOWED_STATUS = {"ok", "warn", "error"}
 # Tolerated clock difference between a worker and the aggregate writer.
@@ -85,7 +86,7 @@ def merge_states(base: dict | None, partial: dict, worker: str, *, now: dt.datet
         # observed or deliberately skipped (disabled or reassigned in the
         # registry); unrelated or renamed IDs do not count.
         intended = {sid for sid, reason in (partial.get("skipped_sources") or {}).items()
-                    if reason in {"disabled", "execution-profile", "hold-for-terms"}}
+                    if reason in {"disabled", "execution-profile"} | CountyPermission.COVERAGE_SKIPS}
         covered = sum(1 for sid in owned if sid in partial_sources or sid in intended)
         allowed = (partial.get("allow_inventory_shrink") is True
                    or covered >= math.ceil(len(owned) * FLEET_RETIREMENT_MIN_SHARE))

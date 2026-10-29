@@ -50,6 +50,209 @@ def _date(value: object) -> bool:
         return False
 
 
+class CountyPermission:
+    """Outreach and the checks that permission allows, on the county research record.
+
+    Optional monitoring fields record contact, reply, permitted scope and a stop
+    request. When they are absent, the county has not given affirmative permission
+    and the existing terms decision decides. ``not-assessed`` does not authorize
+    an automated county-direct check. ``hold-for-terms`` still blocks county-direct
+    parcel checks until that decision itself changes.
+    """
+
+    SCOPES = frozenset({"none", "details-and-count", "full"})
+    REPLIES = frozenset({"no-reply", "permitted", "declined", "stop"})
+    AFFIRMATIVE = frozenset({"details-and-count", "full"})
+    # Queries past service metadata and one record count.
+    EXTRA_QUERIES = ("parcel_quality", "geometry_sample", "geometry_sample_size",
+                     "gac_completeness", "mngac_completeness")
+    # Skip reasons a fleet report may treat as deliberate coverage, alongside
+    # the existing disabled and execution-profile skips.
+    COVERAGE_SKIPS = frozenset({"hold-for-terms", "awaiting-permission", "stop-requested"})
+
+    @staticmethod
+    def validate_outreach(monitoring: dict) -> None:
+        """Reject an outreach record that contradicts itself. Absent fields are allowed."""
+        if "contacted_date" in monitoring and monitoring["contacted_date"] is not None and not _date(monitoring["contacted_date"]):
+            raise ValueError("Invalid outreach contact date")
+        if "reply" in monitoring and monitoring["reply"] not in CountyPermission.REPLIES | {None}:
+            raise ValueError("Invalid outreach reply")
+        if "scope" in monitoring and monitoring["scope"] not in CountyPermission.SCOPES:
+            raise ValueError("Invalid permitted scope")
+        if "stop_requested" in monitoring and type(monitoring["stop_requested"]) is not bool:
+            raise ValueError("stop_requested must be boolean")
+        reply = monitoring.get("reply")
+        scope = monitoring.get("scope")
+        stop = monitoring.get("stop_requested") is True
+        if reply == "stop" and not stop:
+            raise ValueError("A stop reply requires stop_requested")
+        if stop and scope in CountyPermission.AFFIRMATIVE:
+            raise ValueError("A stop request cannot also permit checks")
+        if scope in CountyPermission.AFFIRMATIVE and reply != "permitted":
+            raise ValueError("A permitted scope requires reply permitted")
+        if reply in {"declined", "no-reply", "stop"} and scope in CountyPermission.AFFIRMATIVE:
+            raise ValueError("That reply cannot permit checks")
+
+    @staticmethod
+    def from_record(record: dict | None) -> dict:
+        """One permission record per county. Missing outreach means no affirmative permission."""
+        monitoring = (record or {}).get("monitoring") if isinstance(record, dict) else None
+        monitoring = monitoring if isinstance(monitoring, dict) else {}
+        reply = monitoring.get("reply") if monitoring.get("reply") in CountyPermission.REPLIES else None
+        scope = monitoring.get("scope") if monitoring.get("scope") in CountyPermission.SCOPES else None
+        contacted = monitoring.get("contacted_date") if _date(monitoring.get("contacted_date")) else None
+        stop = monitoring.get("stop_requested") is True or reply == "stop"
+        if stop or (scope in CountyPermission.AFFIRMATIVE and reply != "permitted"):
+            scope = "none" if stop else None
+        decision = monitoring.get("decision")
+        if decision not in MONITORING_DECISIONS:
+            decision = None
+        return {"contacted_date": contacted, "reply": reply, "scope": scope,
+                "stop_requested": stop, "terms_decision": decision}
+
+    @staticmethod
+    def index_by_slug(research: dict) -> dict[str, dict]:
+        counties = json.loads(Path(__file__).with_name("minnesota_counties.json").read_text(encoding="utf-8"))["counties"]
+        slug_by_name = {str(county.get("name")): str(county.get("slug")) for county in counties}
+        return {slug_by_name[name]: CountyPermission.from_record(record)
+                for name, record in research.items() if name in slug_by_name}
+
+    @staticmethod
+    def _hostname(source: dict) -> str:
+        try:
+            host = urlsplit(str((source or {}).get("url") or "")).hostname or ""
+        except ValueError:
+            return ""
+        return host.lower().rstrip(".")
+
+    @staticmethod
+    def is_county_direct(source: dict) -> bool:
+        """A county parcel source: a county slug and a Parcels category, any host."""
+        slug = str((source or {}).get("county_slug") or "").strip()
+        category = str((source or {}).get("category") or "").strip().lower()
+        return bool(slug) and category.startswith("parcel")
+
+    @staticmethod
+    def is_county_operated(source: dict) -> bool:
+        """The request goes to a server the county itself runs.
+
+        ArcGIS Online, the Geospatial Commons, and MnGeo (``gisdata.mn.gov``,
+        including enterprise) are not the county's server.
+        """
+        host = CountyPermission._hostname(source)
+        if not host:
+            return False
+        if host == "arcgis.com" or host.endswith(".arcgis.com"):
+            return False
+        if host == "gisdata.mn.gov" or host.endswith(".gisdata.mn.gov"):
+            return False
+        return True
+
+    @staticmethod
+    def is_county_agol_service(source: dict) -> bool:
+        """A direct query of a hosted feature or map service on ArcGIS Online.
+
+        Item metadata at ``www.arcgis.com/sharing/rest/content/items`` is not
+        a service query. County-published hosted layers are: the county owns
+        the layer, and Esri operates ``services.arcgis.com``.
+        """
+        host = CountyPermission._hostname(source)
+        if host == "services.arcgis.com":
+            hosted = True
+        elif host.startswith("services") and host.endswith(".arcgis.com"):
+            hosted = host[len("services"):-len(".arcgis.com")].isdigit()
+        else:
+            hosted = False
+        if not hosted:
+            return False
+        try:
+            path = urlsplit(str((source or {}).get("url") or "")).path.lower()
+        except ValueError:
+            return False
+        return "/rest/services/" in path and ("/featureserver" in path or "/mapserver" in path)
+
+    @staticmethod
+    def skip_reason(source: dict, permission: dict | None) -> str | None:
+        """Why this source must not be polled, or None when a check is allowed.
+
+        ``hold-for-terms`` stays the existing parcel rule and does not depend
+        on the host. The permission gate applies only to a server the county
+        operates. ``stop_requested`` also covers a direct query of the county's
+        own ArcGIS Online hosted feature or map service.
+        """
+        slug = str((source or {}).get("county_slug") or "").strip()
+        if not slug:
+            return None
+        if permission and permission.get("terms_decision") == "hold-for-terms" and CountyPermission.is_county_direct(source):
+            return "hold-for-terms"
+        county_server = CountyPermission.is_county_operated(source)
+        agol_service = CountyPermission.is_county_agol_service(source)
+        if permission and permission.get("stop_requested") and (county_server or agol_service):
+            return "stop-requested"
+        if not CountyPermission.is_county_direct(source) or not county_server:
+            return None
+        if permission is None:
+            return "awaiting-permission"
+        if permission.get("scope") in CountyPermission.AFFIRMATIVE and permission.get("reply") == "permitted":
+            return None
+        decision = permission.get("terms_decision")
+        if decision in (None, "not-assessed") or permission.get("scope") == "none":
+            return "awaiting-permission"
+        return None
+
+    @staticmethod
+    def constrain(source: dict, permission: dict | None) -> dict:
+        """Drop queries beyond service metadata and a record count when that is all that's permitted."""
+        if not permission or permission.get("stop_requested") or permission.get("scope") != "details-and-count":
+            return source
+        if not (CountyPermission.is_county_operated(source) or CountyPermission.is_county_agol_service(source)):
+            return source
+        limited = dict(source)
+        for key in CountyPermission.EXTRA_QUERIES:
+            limited.pop(key, None)
+        return limited
+
+    @staticmethod
+    def public_note(permission: dict | None) -> str | None:
+        """Short public sentence, or None when checks are not limited by this record."""
+        if not permission:
+            return None
+        if permission.get("stop_requested"):
+            return "Checking paused. This county asked Watchtower to stop."
+        if permission.get("terms_decision") == "hold-for-terms":
+            return "County-direct parcel checks are paused until terms are settled."
+        if permission.get("scope") == "details-and-count" and permission.get("reply") == "permitted":
+            return "Limited check: service details and a record count only."
+        if permission.get("terms_decision") == "not-assessed" or permission.get("scope") == "none":
+            return "Awaiting county permission. Watchtower is not automatically checking this county's own GIS server."
+        return None
+
+    @staticmethod
+    def display_status(source: dict, permission: dict | None) -> str | None:
+        """Paused or awaiting-permission when this source must not be checked. Never an error."""
+        reason = CountyPermission.skip_reason(source, permission)
+        if reason == "awaiting-permission":
+            return "awaiting-permission"
+        if reason in {"stop-requested", "hold-for-terms"}:
+            return "paused"
+        return None
+
+    @staticmethod
+    def note_for_source(source: dict, permission: dict | None) -> str | None:
+        if CountyPermission.skip_reason(source, permission):
+            return CountyPermission.public_note(permission)
+        if (permission and permission.get("scope") == "details-and-count" and permission.get("reply") == "permitted"
+                and str((source or {}).get("county_slug") or "").strip() and not permission.get("stop_requested")):
+            return CountyPermission.public_note(permission)
+        return None
+
+    @staticmethod
+    def display(source: dict, permission: dict | None) -> tuple[str, str | None]:
+        """Status and note for a public page. A blocked check is not shown as a failure."""
+        status = str((source or {}).get("status") or "unknown")
+        replacement = CountyPermission.display_status(source, permission)
+        return (replacement or status), CountyPermission.note_for_source(source, permission)
+
 def _validate_inventory(record: dict) -> None:
     inventory = record["source_inventory"]
     if not isinstance(inventory, dict) or set(inventory) != set(INVENTORY_CATEGORIES):
@@ -179,8 +382,10 @@ def validate_parcel_access(data: dict) -> None:
         if type(direct) is not bool or (direct and not record["download_or_service_url"]):
             raise ValueError("Direct source must have a usable URL")
         monitoring = record["monitoring"]
-        if set(monitoring) != {"decision", "reason", "terms_urls"}:
+        if (not isinstance(monitoring, dict) or not {"decision", "reason", "terms_urls"}
+                <= set(monitoring) <= {"decision", "reason", "terms_urls", "contacted_date", "reply", "scope", "stop_requested"}):
             raise ValueError("Invalid monitoring assessment")
+        CountyPermission.validate_outreach(monitoring)
         if monitoring["decision"] not in {"candidate-low-frequency", "hold-for-terms", "not-appropriate", "not-assessed"}:
             raise ValueError("Invalid monitoring decision")
         if monitoring["decision"] == "candidate-low-frequency" and not direct:

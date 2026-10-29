@@ -24,7 +24,7 @@ from clearparcel.datawatch.product import PRODUCT_NAME, page_title
 from clearparcel.datawatch.watch import _safe_diagnostic, check_sources, load_history, load_history_index, load_state
 from clearparcel.datawatch.transport import RequestDeadline
 from clearparcel.datawatch.aggregate import with_freshness
-from clearparcel.datawatch.parcel_access import access_label, load_parcel_access, statewide_access_label
+from clearparcel.datawatch.parcel_access import CountyPermission, access_label, load_parcel_access, statewide_access_label
 from clearparcel.datawatch.public_values import safe_public_url
 from clearparcel.datawatch.csp import secure_html, strip_markers
 from clearparcel.datawatch.brand_assets import dispatch_brand_asset
@@ -399,7 +399,16 @@ def _county_status(config: dict, county: dict, state: dict, *, profiles: dict | 
     open_approved = str((catalog_record or {}).get("gac_open_approval", "")).lower() == "true"
     has_data = bool((catalog_record or {}).get("data_url"))
 
-    monitored_sources = list(matches)
+    permission = (profile.get("monitoring") or {}).get("permission")
+    visible = []
+    for src in matches:
+        if permission and CountyPermission.skip_reason(src, permission):
+            label, _note = CountyPermission.display(src, permission)
+            visible.append({**src, "status": label, "_permission_blocked": True})
+        else:
+            visible.append(src)
+    matches = visible
+    monitored_sources = [src for src in matches if not src.get("_permission_blocked")]
     if statewide_monitored and isinstance(statewide_source, dict):
         monitored_sources.append(statewide_source)
 
@@ -424,6 +433,12 @@ def _county_status(config: dict, county: dict, state: dict, *, profiles: dict | 
         # window is not "actively checked": keep availability and check age apart.
         if profile['monitoring'].get('reporting') == 'overdue' and status in ('ok', 'unknown'):
             status = 'overdue'
+    blocked = [src for src in matches if src.get("_permission_blocked")]
+    # A paused county-server check must not be shown as a failed check. MnGeo
+    # coverage still uses its own health.
+    if blocked and not any(not src.get("_permission_blocked") for src in matches) and "mngeo-open" not in monitoring_paths:
+        status = blocked[0].get("status") or status
+    matches = [{key: value for key, value in src.items() if key != "_permission_blocked"} for src in matches]
     return {
         "name": name,
         "slug": county["slug"],
@@ -689,6 +704,8 @@ def _coverage_status(value: str) -> str:
         "not-configured": "No source information yet",
         "warn": "Needs attention",
         "error": "Check failed",
+        "paused": "Paused",
+        "awaiting-permission": "Awaiting permission",
     }.get(value, value.replace("-", " ").title())
 
 
@@ -699,12 +716,14 @@ def _health_status(value: str) -> str:
         "warn": "Warning",
         "error": "Error",
         "unknown": "Unknown",
+        "paused": "Paused",
+        "awaiting-permission": "Awaiting permission",
     }.get(value, "Unknown")
 
 
 def _status_class(value: str) -> str:
     value = str(value or "unknown").strip().lower()
-    return value if value in {"ok", "warn", "error", "info", "unknown"} else "unknown"
+    return value if value in {"ok", "warn", "error", "info", "unknown", "paused", "awaiting-permission"} else "unknown"
 
 
 def _friendly_status(value: str) -> str:

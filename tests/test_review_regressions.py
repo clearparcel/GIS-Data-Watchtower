@@ -1,5 +1,6 @@
 """Offline regressions for the October 6 manual review findings."""
 import contextlib
+import errno
 import io
 import json
 import os
@@ -225,6 +226,46 @@ class ReviewRegressions(unittest.TestCase):
                 first.close()
                 with self.assertRaises(TimeoutError):
                     FileLock(path).acquire()
+
+    def test_windows_sharing_violation_is_retried_for_the_lock_and_the_replace(self):
+        """PermissionError 13 is how Windows reports a file another handle still has open."""
+        def denied():
+            err = PermissionError(errno.EACCES, "Access is denied")
+            err.winerror = 32
+            return err
+
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / "lock"
+            real_open = Path.open
+            calls = {"n": 0}
+
+            def open_once(self, *args, **kwargs):
+                if self == path:
+                    calls["n"] += 1
+                    if calls["n"] == 1:
+                        raise denied()
+                return real_open(self, *args, **kwargs)
+
+            with patch.object(Path, "open", open_once):
+                lock = FileLock(path, timeout=1).acquire()
+            lock.close()
+            self.assertGreaterEqual(calls["n"], 2)
+
+            target = Path(td) / "ledger.json"
+            target.write_bytes(b"old")
+            real_replace = os.replace
+            replaced = {"n": 0}
+
+            def replace_once(src, dst):
+                replaced["n"] += 1
+                if replaced["n"] == 1:
+                    raise denied()
+                return real_replace(src, dst)
+
+            with patch("os.replace", side_effect=replace_once):
+                atomic_write(target, b"new")
+            self.assertEqual(target.read_bytes(), b"new")
+            self.assertGreaterEqual(replaced["n"], 2)
 
     def test_legacy_cas_directory_fails_closed(self):
         with tempfile.TemporaryDirectory() as td:
