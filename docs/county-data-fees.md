@@ -24,7 +24,7 @@ Each county record lists only the layers with information. Each layer entry has:
 
 | Field | Meaning |
 | --- | --- |
-| `fee_status` | `fee` (the county publishes or confirmed a fee for some form of this data) or `no-fee` (the county confirmed there is no fee). |
+| `fee_status` | `fee` (the county publishes or confirmed a fee for some form of this data), `no-fee` (the county confirmed there is no fee), or `unconfirmed` (only in a county response that answered the access question without stating fees; no amount allowed). |
 | `rest_download` | Whether downloading through the county's REST service or another direct route is charged: `fee`, `no-fee`, `unconfirmed`, or `not-offered` (the county says the route is not public; data only by request). `not-offered` requires a county response. |
 | `amount`, `product` | The fee text as the county states it, and what it buys. Required for `fee`. |
 | `source_kind` | `published-fee-schedule` (requires the official `source_url`) or `county-response` (a reply to ClearParcel's inquiry). |
@@ -77,6 +77,12 @@ County responses so far:
   parcel, address point or road centerline REST services, and no license or
   attribution terms apply. Recorded as no fee, including REST download, for
   all three layers.
+
+- **Chippewa (2026-10-29):** the county said its REST services are not
+  currently available to the public and it is deciding how to handle data
+  requests. No fees were stated, so all three layers stay *Not yet
+  confirmed* with REST marked not offered. Earlier research showing free
+  public parcel data does not apply to the REST service.
 
 The County Terms Outreach emails ask every county whether using its REST
 services or downloading parcel, address point and road centerline data

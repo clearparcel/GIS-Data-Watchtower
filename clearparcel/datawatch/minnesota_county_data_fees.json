@@ -168,6 +168,41 @@
       }
     },
     {
+      "county": "Chippewa",
+      "layers": {
+        "parcels": {
+          "fee_status": "unconfirmed",
+          "rest_download": "not-offered",
+          "amount": null,
+          "product": null,
+          "source_kind": "county-response",
+          "source_url": null,
+          "source_date": "2026-10-29",
+          "note": "The county said its REST services are not currently available to the public and it is deciding internally how to handle data requests. No fees were stated, so fees remain not yet confirmed."
+        },
+        "address_points": {
+          "fee_status": "unconfirmed",
+          "rest_download": "not-offered",
+          "amount": null,
+          "product": null,
+          "source_kind": "county-response",
+          "source_url": null,
+          "source_date": "2026-10-29",
+          "note": "The county said its REST services are not currently available to the public and it is deciding internally how to handle data requests. No fees were stated, so fees remain not yet confirmed."
+        },
+        "road_centerlines": {
+          "fee_status": "unconfirmed",
+          "rest_download": "not-offered",
+          "amount": null,
+          "product": null,
+          "source_kind": "county-response",
+          "source_url": null,
+          "source_date": "2026-10-29",
+          "note": "The county said its REST services are not currently available to the public and it is deciding internally how to handle data requests. No fees were stated, so fees remain not yet confirmed."
+        }
+      }
+    },
+    {
       "county": "Faribault",
       "layers": {
         "parcels": {

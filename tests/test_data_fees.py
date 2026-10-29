@@ -78,6 +78,18 @@ class DataFeeValidationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             validate_data_fees(doc({'parcels': entry()}, county='Atlantis'), ['Brown'])
 
+    def test_access_answer_without_fees_stays_unconfirmed(self):
+        answer = entry(fee_status='unconfirmed', amount=None, product=None, rest_download='not-offered',
+                       source_kind='county-response', source_url=None)
+        validate_data_fees(doc({'parcels': answer}))
+        for bad in ({**answer, 'source_kind': 'published-fee-schedule', 'source_url': 'https://example.mn.us/f.pdf'},
+                    {**answer, 'rest_download': 'unconfirmed'}, {**answer, 'amount': '$5'}):
+            with self.subTest(bad=bad), self.assertRaises(ValueError):
+                validate_data_fees(doc({'parcels': bad}))
+        row = county_fee_rows({'parcels': answer})[0]
+        self.assertEqual(row['fee_status_label'], 'Not yet confirmed')
+        self.assertNotIn('$0', render_data_fees([row]))
+
     def test_county_response_may_cite_by_date_without_publishing_correspondence(self):
         validate_data_fees(doc({'address_points': entry(
             fee_status='no-fee', amount=None, product=None, rest_download='no-fee',
@@ -124,7 +136,7 @@ class DataFeeProfileTests(unittest.TestCase):
         self.assertEqual((counts['with_published_fee'], counts['with_confirmed_no_fee'], counts['fully_unconfirmed']), (1, 1, 85))
         card = render_fee_summary(profiles)
         self.assertIn('1 of 87 counties', card)
-        self.assertIn('85 have no fee information recorded yet', card)
+        self.assertIn('85 have no confirmed fee information yet', card)
         self.assertIn('Wabasha County', card)
         self.assertNotIn('Aitkin County', card)
 

@@ -59,12 +59,12 @@ def render_counties(config: dict) -> str:
 
 
 def render_fee_summary(profiles: dict[str, dict]) -> str:
-    """Statewide fee card: recorded fees only; every other layer stays unconfirmed."""
+    """Statewide fee card: recorded county answers only; every other layer stays unconfirmed."""
     counts = fee_counts(profiles)
     rows = ""
     for slug in sorted(profiles):
         profile = profiles[slug]
-        recorded = [row for row in profile.get("data_fees") or [] if row["fee_status"] != "unconfirmed"]
+        recorded = [row for row in profile.get("data_fees") or [] if row.get("source_kind")]
         for row in recorded:
             url = _dashboard._safe_url(row.get("source_url"))
             source = _dashboard._esc(row.get("source_label"))
@@ -79,7 +79,7 @@ def render_fee_summary(profiles: dict[str, dict]) -> str:
     return (f'<div class="card" id="county-data-fees"><h2>County data fees</h2>'
             f'<p><strong>{counts["with_published_fee"]} of {counts["counties"]} counties</strong> have a published or confirmed fee for at least one of parcels, address points or road centerlines. '
             f'{counts["with_confirmed_no_fee"]} have confirmed no fee for at least one layer. '
-            f'{counts["fully_unconfirmed"]} have no fee information recorded yet.</p>'
+            f'{counts["fully_unconfirmed"]} have no confirmed fee information yet.</p>'
             '<p class="subtext">Fees apply to county-supplied data. "Not confirmed" for REST or direct download means the county has not yet said whether that route is charged; '
             'a published fee for a file or bundle does not by itself show that every route is charged. Missing information is never shown as free. '
             'Free statewide routes such as MnGeo Plan Parcels Open are reported separately.</p>'

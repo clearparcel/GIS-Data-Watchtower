@@ -46,8 +46,12 @@ def _validate_layer(entry: object) -> None:
     if not isinstance(entry, dict) or set(entry) != LAYER_FIELDS:
         raise ValueError("Invalid fee layer fields")
     status, rest = entry["fee_status"], entry["rest_download"]
-    if status not in FEE_STATUSES or rest not in REST_STATUSES:
+    if (status not in FEE_STATUSES and status != "unconfirmed") or rest not in REST_STATUSES:
         raise ValueError("Invalid fee status")
+    # A county may answer about access before it states any fee.
+    if status == "unconfirmed" and (entry["source_kind"] != "county-response" or rest == "unconfirmed"
+                                    or entry["amount"] is not None):
+        raise ValueError("An unconfirmed fee entry must record a county's answer on access")
     if status == "no-fee" and rest != "no-fee":
         raise ValueError("A confirmed no-fee layer cannot charge for REST download")
     if rest == "fee" and status != "fee":
@@ -115,7 +119,7 @@ def county_fee_rows(layers: dict | None) -> list[dict]:
                          "source_date": None, "note": None})
             continue
         rows.append({"layer": key, "layer_label": label, **entry,
-                     "fee_status_label": FEE_STATUSES[entry["fee_status"]],
+                     "fee_status_label": FEE_STATUSES.get(entry["fee_status"], UNCONFIRMED_LABEL),
                      "rest_download_label": REST_STATUSES[entry["rest_download"]],
                      "source_label": SOURCE_KINDS[entry["source_kind"]]})
     return rows
