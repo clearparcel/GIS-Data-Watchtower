@@ -2,16 +2,16 @@
 
 ## County check permission — in review, not deployed
 
-The checker now follows the county research record before it contacts a
-county service. A county-direct parcel source is not polled when the county's
-terms decision is `not-assessed` and no affirmative permission is recorded.
-`stop_requested` skips every source for that county. A `details-and-count`
-permission reads service metadata and a record count only. Public county and
-source pages say when a check is paused, awaiting permission, or limited;
-they do not present that as a failed check. `hold-for-terms` is unchanged and
-is not lifted by a scope field. No provider was polled for this change, and
-it is not deployed. The owner still has to approve any merge and any
-deployment.
+The checker follows the county research record before it contacts a server
+the county itself operates. A `not-assessed` parcel source on that kind of
+server is not polled unless affirmative permission is recorded.
+`stop_requested` also skips a direct query of the county's ArcGIS Online
+hosted feature or map service. MnGeo, Commons, and ArcGIS Online item
+metadata stay outside those gates. `hold-for-terms` is unchanged. A
+`details-and-count` permission reads service metadata and a record count
+only on the hosts the gate covers. Public pages do not present a paused
+county-server check as a failure. No provider was polled, and this is not
+deployed. Merge and deployment still need the owner's approval.
 
 ## v0.3.8 coordinated release — deployed, 2026-10-24
 

@@ -140,23 +140,19 @@ def render_public_dashboard(config: dict) -> str:
     all_field = (mngac or {}).get("field_population_percent")
     mandatory = (mngac or {}).get("mandatory_population_percent")
 
-    permissions = {slug: (profile.get("monitoring") or {}).get("permission")
-                   for slug, profile in profiles.items()}
     rows = []
     for source_id, source in sorted(
         sources.items(),
         key=lambda item: str((item[1] or {}).get("name") or item[0]).lower(),
     ):
         name = source.get("name") or source_id
-        permission = permissions.get(str(source.get("county_slug") or "").strip().lower())
-        status, note = CountyPermission.display(source, permission)
-        note_html = f'<br><span class="subtext">{_esc(note)}</span>' if note else ""
+        status = source.get("status") or "unknown"
         rows.append(
             f'<tr data-name="{_esc(str(name).lower())}" data-status="{_esc(status)}">'
             f'<td><a href="/source?{urllib.parse.urlencode({"id": source_id})}"><strong>{_esc(name)}</strong></a>'
             f'<br><span class="subtext">{_esc(source.get("category") or "Other")}</span></td>'
             f'<td>{_esc(source.get("provider") or "—")}</td>'
-            f'<td><span class="pill {_status_class(status)}">{_esc(_health_status(status))}</span>{note_html}</td>'
+            f'<td><span class="pill {_status_class(status)}">{_esc(_health_status(status))}</span></td>'
             f'<td>{_esc(f"{source.get("feature_count"):,}" if isinstance(source.get("feature_count"), int) else source.get("feature_count") or "—")}</td>'
             f'<td>{_esc(source.get("change_count") if source.get("change_count") is not None else "—")}</td>'
             f'<td>{_esc(_public_time(source.get("last_success_at")))}</td>'

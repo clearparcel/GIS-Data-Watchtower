@@ -133,14 +133,14 @@ class CalendarDateTests(unittest.TestCase):
 
 class OverdueStatusTests(unittest.TestCase):
     def status_for(self, checked_at):
-        state = {"generated_at": checked_at, "sources": {"mn-todd-parcels": {
-            "id": "mn-todd-parcels", "county_slug": "todd", "category": "Parcels", "status": "ok",
+        state = {"generated_at": checked_at, "sources": {"mn-wabasha-parcels": {
+            "id": "mn-wabasha-parcels", "county_slug": "wabasha", "category": "Parcels", "status": "ok",
             "checked_at": checked_at, "last_report_at": checked_at, "last_success_at": checked_at}}}
         config = {"_render_state": state, "state_file": "unused.json"}
         state = dashboard._dashboard_state(config)
         research = dashboard.load_parcel_access()
         profiles = dashboard._county_profiles(config, state, research)
-        county = next(c for c in dashboard._load_counties() if c["slug"] == "todd")
+        county = next(c for c in dashboard._load_counties() if c["slug"] == "wabasha")
         return dashboard._county_status(config, county, state, profiles=profiles, research=research)
 
     def test_healthy_but_overdue_county_is_not_actively_checked(self):
@@ -153,8 +153,8 @@ class OverdueStatusTests(unittest.TestCase):
     def test_counties_card_counts_paths_and_states_overdue(self):
         from clearparcel.datawatch.dashboard_counties import render_counties
         old = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=10)).isoformat()
-        state = {"generated_at": old, "sources": {"mn-todd-parcels": {
-            "id": "mn-todd-parcels", "county_slug": "todd", "category": "Parcels", "status": "ok",
+        state = {"generated_at": old, "sources": {"mn-wabasha-parcels": {
+            "id": "mn-wabasha-parcels", "county_slug": "wabasha", "category": "Parcels", "status": "ok",
             "checked_at": old, "last_report_at": old, "last_success_at": old}}}
         page = render_counties({"_render_state": state, "state_file": "unused.json"})
         self.assertIn("Counties with a monitoring path", page)

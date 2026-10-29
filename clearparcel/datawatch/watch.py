@@ -185,14 +185,10 @@ def _county_slug(name: str) -> str | None:
 
 def _hold_skip_reason(source: dict, held_counties: frozenset[str]) -> str | None:
     """County-direct parcel sources for hold-for-terms counties are never polled (AGENTS.md)."""
-    from clearparcel.datawatch.parcel_access import CountyPermission
     slug = str(source.get("county_slug") or "").strip().lower()
-    if not slug or slug not in held_counties:
-        return None
-    return CountyPermission.skip_reason(source, {
-        "contacted_date": None, "reply": None, "scope": None,
-        "stop_requested": False, "terms_decision": "hold-for-terms",
-    })
+    if slug and slug in held_counties and str(source.get("category") or "").strip().lower().startswith("parcel"):
+        return "hold-for-terms"
+    return None
 
 
 def _permissions_by_slug() -> dict[str, dict]:
@@ -1976,16 +1972,17 @@ def _attach_item_metadata(records: dict, source: dict, timeout: int) -> dict | N
     started = time.monotonic()
     fetched: dict[str, dict] = {}
     signal = None
-    permissions = _permissions_by_slug()
+    held = _held_county_slugs()
     for county in sorted(records):
         record = records[county]
         item = catalog_item_id(record.get("data_url"))
         if not item:
             continue
         canonical = canonical_minnesota_county(county) or county
-        slug = _county_slug(canonical)
-        # The same permission rule as a county-direct parcel source: no item read without it.
-        if slug and _permission_skip_reason({"county_slug": slug, "category": "Parcels"}, permissions):
+        if _county_slug(canonical) in held:
+            # Hold-for-terms counties get no unattended county-direct reads (AGENTS.md).
+            # Item metadata on ArcGIS Online is not a county-server query, so the
+            # permission and stop gates do not apply here.
             record["item_metadata"] = {"item_id": item, "status": "held"}
             continue
         if item not in fetched:

@@ -66,7 +66,8 @@ class CountyPermission:
     # Queries past service metadata and one record count.
     EXTRA_QUERIES = ("parcel_quality", "geometry_sample", "geometry_sample_size",
                      "gac_completeness", "mngac_completeness")
-    # Skip reasons a fleet report may treat as deliberate coverage.
+    # Skip reasons a fleet report may treat as deliberate coverage, alongside
+    # the existing disabled and execution-profile skips.
     COVERAGE_SKIPS = frozenset({"hold-for-terms", "awaiting-permission", "stop-requested"})
 
     @staticmethod
@@ -117,26 +118,81 @@ class CountyPermission:
                 for name, record in research.items() if name in slug_by_name}
 
     @staticmethod
+    def _hostname(source: dict) -> str:
+        try:
+            host = urlsplit(str((source or {}).get("url") or "")).hostname or ""
+        except ValueError:
+            return ""
+        return host.lower().rstrip(".")
+
+    @staticmethod
     def is_county_direct(source: dict) -> bool:
-        """A county's own parcel service: a county slug and a Parcels category."""
+        """A county parcel source: a county slug and a Parcels category, any host."""
         slug = str((source or {}).get("county_slug") or "").strip()
         category = str((source or {}).get("category") or "").strip().lower()
         return bool(slug) and category.startswith("parcel")
 
     @staticmethod
+    def is_county_operated(source: dict) -> bool:
+        """The request goes to a server the county itself runs.
+
+        ArcGIS Online, the Geospatial Commons, and MnGeo (``gisdata.mn.gov``,
+        including enterprise) are not the county's server.
+        """
+        host = CountyPermission._hostname(source)
+        if not host:
+            return False
+        if host == "arcgis.com" or host.endswith(".arcgis.com"):
+            return False
+        if host == "gisdata.mn.gov" or host.endswith(".gisdata.mn.gov"):
+            return False
+        return True
+
+    @staticmethod
+    def is_county_agol_service(source: dict) -> bool:
+        """A direct query of a hosted feature or map service on ArcGIS Online.
+
+        Item metadata at ``www.arcgis.com/sharing/rest/content/items`` is not
+        a service query. County-published hosted layers are: the county owns
+        the layer, and Esri operates ``services.arcgis.com``.
+        """
+        host = CountyPermission._hostname(source)
+        if host == "services.arcgis.com":
+            hosted = True
+        elif host.startswith("services") and host.endswith(".arcgis.com"):
+            hosted = host[len("services"):-len(".arcgis.com")].isdigit()
+        else:
+            hosted = False
+        if not hosted:
+            return False
+        try:
+            path = urlsplit(str((source or {}).get("url") or "")).path.lower()
+        except ValueError:
+            return False
+        return "/rest/services/" in path and ("/featureserver" in path or "/mapserver" in path)
+
+    @staticmethod
     def skip_reason(source: dict, permission: dict | None) -> str | None:
-        """Why this source must not be polled, or None when a check is allowed."""
+        """Why this source must not be polled, or None when a check is allowed.
+
+        ``hold-for-terms`` stays the existing parcel rule and does not depend
+        on the host. The permission gate applies only to a server the county
+        operates. ``stop_requested`` also covers a direct query of the county's
+        own ArcGIS Online hosted feature or map service.
+        """
         slug = str((source or {}).get("county_slug") or "").strip()
         if not slug:
             return None
-        if permission is None:
-            return "awaiting-permission" if CountyPermission.is_county_direct(source) else None
-        if permission.get("stop_requested"):
-            return "stop-requested"
-        if not CountyPermission.is_county_direct(source):
-            return None
-        if permission.get("terms_decision") == "hold-for-terms":
+        if permission and permission.get("terms_decision") == "hold-for-terms" and CountyPermission.is_county_direct(source):
             return "hold-for-terms"
+        county_server = CountyPermission.is_county_operated(source)
+        agol_service = CountyPermission.is_county_agol_service(source)
+        if permission and permission.get("stop_requested") and (county_server or agol_service):
+            return "stop-requested"
+        if not CountyPermission.is_county_direct(source) or not county_server:
+            return None
+        if permission is None:
+            return "awaiting-permission"
         if permission.get("scope") in CountyPermission.AFFIRMATIVE and permission.get("reply") == "permitted":
             return None
         decision = permission.get("terms_decision")
@@ -149,25 +205,12 @@ class CountyPermission:
         """Drop queries beyond service metadata and a record count when that is all that's permitted."""
         if not permission or permission.get("stop_requested") or permission.get("scope") != "details-and-count":
             return source
-        if not str((source or {}).get("county_slug") or "").strip():
+        if not (CountyPermission.is_county_operated(source) or CountyPermission.is_county_agol_service(source)):
             return source
         limited = dict(source)
         for key in CountyPermission.EXTRA_QUERIES:
             limited.pop(key, None)
         return limited
-
-    @staticmethod
-    def posture(permission: dict | None) -> str | None:
-        """County display posture: paused, awaiting-permission, limited, or None."""
-        if not permission:
-            return None
-        if permission.get("stop_requested") or permission.get("terms_decision") == "hold-for-terms":
-            return "paused"
-        if permission.get("scope") == "details-and-count" and permission.get("reply") == "permitted":
-            return "limited"
-        if permission.get("terms_decision") == "not-assessed" or permission.get("scope") == "none":
-            return "awaiting-permission"
-        return None
 
     @staticmethod
     def public_note(permission: dict | None) -> str | None:
@@ -181,7 +224,7 @@ class CountyPermission:
         if permission.get("scope") == "details-and-count" and permission.get("reply") == "permitted":
             return "Limited check: service details and a record count only."
         if permission.get("terms_decision") == "not-assessed" or permission.get("scope") == "none":
-            return "Awaiting county permission. Watchtower is not checking this county's own parcel service."
+            return "Awaiting county permission. Watchtower is not automatically checking this county's own GIS server."
         return None
 
     @staticmethod
@@ -209,14 +252,6 @@ class CountyPermission:
         status = str((source or {}).get("status") or "unknown")
         replacement = CountyPermission.display_status(source, permission)
         return (replacement or status), CountyPermission.note_for_source(source, permission)
-
-    @staticmethod
-    def mark_paused(source: dict) -> dict:
-        updated = dict(source)
-        updated["health"] = "paused"
-        updated["reporting"] = "paused"
-        return updated
-
 
 def _validate_inventory(record: dict) -> None:
     inventory = record["source_inventory"]

@@ -14,25 +14,26 @@ a record count. Public pages say so, and do not show the pause as an error.
 
 ## What changed
 
-The existing county monitoring object in
-`minnesota_county_parcel_access.json` is the permission record. Optional
+The existing county monitoring object is the permission record. Optional
 fields: `contacted_date`, `reply`, `scope` (`none`, `details-and-count`,
-`full`), `stop_requested`. `CountyPermission` in `parcel_access.py` is the
-single decision point for the checker, item-metadata reads, alert scope, and
-public labels. No parallel permission file was added. Current research rows
-are unchanged, so every `not-assessed` county is treated as having no
-affirmative permission.
+`full`), `stop_requested`. `CountyPermission` decides the new skips.
+`hold-for-terms` remains the existing parcel rule, including its item-metadata
+skip. The permission gate applies only to a server the county operates.
+`stop_requested` also covers a direct query of the county's ArcGIS Online
+hosted feature or map service. MnGeo, Commons, and ArcGIS Online item
+metadata are outside both new gates.
 
-Shared-memory ID `gis-data-watchtower` was not retrieved in this cloud
-session. The October 20 monitoring-authority evidence in the repository is
-the local source for the count of 14 not-assessed county-direct sources.
-That private registry is not in this checkout, so the county list below is
-every county whose terms decision is `not-assessed`.
+The private registry is not in this checkout. The public direct-feed audit
+`county_direct_gac_schema.json` is the configured set used to name sources
+whose checks change. County-owned ArcGIS Online hosted layers are the
+county's published service, but Esri operates the host, so they are not
+treated as the county's own server for the permission gate. A stop request
+does skip a direct query of that hosted service.
 
 ## Checks
 
 Python 3.12. `python -W error::ResourceWarning -m unittest discover -s tests -q`:
-794 tests, exit 0, about 30 seconds. `compileall` for `clearparcel`, `tests`,
+795 tests, exit 0, about 31 seconds. `compileall` for `clearparcel`, `tests`,
 and `scripts` passed. `python scripts/sync_current_status.py --check` passed.
 `git diff --check` passed. Node on this machine is 22.23.4, so the JavaScript
 behavior tests skipped; CI runs them with Node 24.

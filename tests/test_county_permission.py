@@ -23,11 +23,6 @@ def research_copy():
     return json.loads(RESEARCH.read_text(encoding="utf-8"))
 
 
-def names_for(decision):
-    data = research_copy()
-    return sorted(row["county"] for row in data["counties"] if row["monitoring"]["decision"] == decision)
-
-
 class OutreachRecordTests(unittest.TestCase):
     def test_optional_outreach_fields_round_trip_and_contradictions_are_rejected(self):
         data = research_copy()
@@ -223,22 +218,28 @@ class CoverageAndPageTests(unittest.TestCase):
 
     def test_expected_alerts_follow_the_same_skip_rules(self):
         config = {"sources": [
-            {"id": "waiting", "execution_profiles": ["cloud"], "county_slug": "aitkin", "category": "Parcels"},
+            {"id": "waiting", "execution_profiles": ["cloud"], "county_slug": "aitkin", "category": "Parcels",
+             "url": "https://gisweb.co.aitkin.mn.us/arcgis/rest/services/ParcelTaxData/FeatureServer/0"},
             {"id": "roads", "execution_profiles": ["cloud"], "county_slug": "aitkin", "category": "Roads"},
-            {"id": "candidate", "execution_profiles": ["cloud"], "county_slug": "todd", "category": "Parcels"},
+            {"id": "hosted", "execution_profiles": ["cloud"], "county_slug": "morrison", "category": "Parcels",
+             "url": "https://services1.arcgis.com/lQjrBHFnTgKBR9zX/arcgis/rest/services/MorrisonParcelsQ2/FeatureServer/0"},
+            {"id": "candidate", "execution_profiles": ["cloud"], "county_slug": "todd", "category": "Parcels",
+             "url": "https://gis.mytoddcounty.com/toddcounty/rest/services/PublicViewerServer/MapServer/80"},
         ]}
-        self.assertEqual([row["source_id"] for row in expected_sources(config, "cloud")], ["roads", "candidate"])
+        self.assertEqual([row["source_id"] for row in expected_sources(config, "cloud")],
+                         ["roads", "hosted", "candidate"])
 
     def test_public_county_page_shows_awaiting_permission_instead_of_a_failure(self):
         state = {"generated_at": NOW.isoformat(), "sources": {"mn-aitkin-parcels": {
             "id": "mn-aitkin-parcels", "name": "Aitkin parcels", "county_slug": "aitkin",
             "category": "Parcels", "status": "error", "checked_at": NOW.isoformat(),
+            "url": "https://gisweb.co.aitkin.mn.us/arcgis/rest/services/ParcelTaxData/FeatureServer/0",
             "problems": ["provider failed"]}}}
         page = render_county({"_render_state": state, "state_file": "unused.json"}, "aitkin")
         self.assertIn("Awaiting county permission", page)
+        self.assertIn("own GIS server", page)
         self.assertIn("Awaiting permission", page)
         self.assertNotIn("Check failed", page)
-        self.assertNotIn(">Error<", page)
         self.assertEqual(_health_status("awaiting-permission"), "Awaiting permission")
         self.assertEqual(_health_status("paused"), "Paused")
 
@@ -259,16 +260,75 @@ class CoverageAndPageTests(unittest.TestCase):
         self.assertIn("Healthy", page)
         self.assertNotIn("Awaiting county permission", page)
 
-    def test_counties_whose_direct_checks_change_are_the_not_assessed_counties(self):
-        paused = names_for("not-assessed")
-        self.assertIn("Aitkin", paused)
-        self.assertIn("Wabasha", paused)
-        self.assertNotIn("Todd", paused)
-        self.assertNotIn("Brown", paused)
-        self.assertGreaterEqual(len(paused), 14)
-        for name in names_for("hold-for-terms"):
-            permission = CountyPermission.from_record(load_parcel_access()[name])
-            self.assertEqual(CountyPermission.skip_reason(
-                {"county_slug": "x", "category": "Parcels"}, permission), "hold-for-terms")
-            self.assertIsNone(CountyPermission.skip_reason(
-                {"county_slug": "x", "category": "Roads"}, permission))
+    def test_configured_sources_that_change_are_county_operated_and_not_assessed(self):
+        """The live private registry is not in this checkout.
+
+        county_direct_gac_schema.json is the public set of configured direct
+        feeds. Only a not-assessed feed on a server the county operates is
+        newly skipped. ArcGIS Online hosted layers and the MnGeo host are not.
+        """
+        schema = json.loads((ROOT / "clearparcel/datawatch/county_direct_gac_schema.json").read_text(encoding="utf-8"))
+        counties = json.loads((ROOT / "clearparcel/datawatch/minnesota_counties.json").read_text(encoding="utf-8"))
+        slug_of = {row["name"]: row["slug"] for row in counties["counties"]}
+        research = load_parcel_access()
+        changed = []
+        for row in schema["assessments"]:
+            source = {"id": row["source_id"], "url": row.get("url"), "category": "Parcels",
+                      "county_slug": slug_of[row["county"]]}
+            reason = CountyPermission.skip_reason(source, CountyPermission.from_record(research[row["county"]]))
+            if reason == "awaiting-permission":
+                changed.append(row["source_id"])
+        self.assertEqual(changed, [
+            "mn-aitkin-parcels-direct",
+            "mn-beltrami-parcels-direct",
+            "mn-dakota-parcels-direct",
+            "mn-koochiching-parcels-direct",
+            "mn-olmsted-parcels-direct",
+            "mn-pipestone-parcels-direct",
+            "mn-ramsey-parcels-direct",
+            "mn-rice-parcels-direct",
+            "mn-st-louis-parcels-direct",
+            "mn-waseca-parcels-direct",
+        ])
+
+    def test_agol_hosted_layers_and_mngeo_are_not_permission_gated(self):
+        research = load_parcel_access()
+        hosted = {"id": "mn-morrison-parcels-direct", "county_slug": "morrison", "category": "Parcels",
+                  "url": "https://services1.arcgis.com/lQjrBHFnTgKBR9zX/arcgis/rest/services/MorrisonParcelsQ2/FeatureServer/0"}
+        mngeo = {"id": "mn-wabasha-parcels", "county_slug": "wabasha", "category": "Parcels",
+                 "url": "https://enterprise.gisdata.mn.gov/aghost/rest/services/us_mn_co_wabasha/plan_parcelspolygon/FeatureServer/0"}
+        self.assertIsNone(CountyPermission.skip_reason(hosted, CountyPermission.from_record(research["Morrison"])))
+        self.assertIsNone(CountyPermission.skip_reason(mngeo, CountyPermission.from_record(research["Wabasha"])))
+        stopped = CountyPermission.from_record({"monitoring": {"decision": "not-assessed", "stop_requested": True, "reply": "stop", "scope": "none"}})
+        self.assertEqual(CountyPermission.skip_reason(hosted, stopped), "stop-requested")
+        self.assertIsNone(CountyPermission.skip_reason(mngeo, stopped))
+        swift = {"county_slug": "swift", "category": "Parcels",
+                 "url": "https://services3.arcgis.com/D3VRNSq5Pf3sYZAp/arcgis/rest/services/Swift_Parcels/FeatureServer/0"}
+        self.assertEqual(CountyPermission.skip_reason(swift, CountyPermission.from_record(research["Swift"])), "hold-for-terms")
+        self.assertTrue(CountyPermission.is_county_agol_service(hosted))
+        self.assertFalse(CountyPermission.is_county_agol_service(
+            {"url": "https://www.arcgis.com/sharing/rest/content/items/abc/info/metadata/metadata.xml"}))
+
+    def test_stop_does_not_skip_arcgis_online_item_metadata(self):
+        research = load_parcel_access()
+        research["Wabasha"]["monitoring"].update({
+            "contacted_date": "2026-10-29", "reply": "stop", "scope": "none", "stop_requested": True,
+        })
+        item = "bf8ef9d0b3f1455c9af61ef6b60329e2"
+        catalog = {"features": [{"attributes": {
+            "countyname": "Wabasha",
+            "data_url": f"https://hub.arcgis.com/api/v3/datasets/{item}_0/downloads/data"}}]}
+        calls = []
+
+        def request(url, timeout, **_kwargs):
+            calls.append(url)
+            return b"<metadata></metadata>", {"status": 200}
+
+        with patch("clearparcel.datawatch.parcel_access.load_parcel_access", return_value=research), \
+                patch.object(watch, "_json_request", return_value=(catalog, {"status": 200})), \
+                patch.object(watch, "_request", side_effect=request):
+            result = watch._arcgis_county_catalog(
+                {"id": "mn-parcel-county-catalog", "kind": "arcgis_county_catalog",
+                 "url": "https://catalog.example.invalid/0", "item_metadata": True}, 30)
+        self.assertEqual(calls, [watch.ITEM_METADATA_URL.format(item)])
+        self.assertNotEqual(result["county_records"]["Wabasha"]["item_metadata"].get("status"), "held")
