@@ -487,9 +487,20 @@ or viewer-only findings; free statewide access does not override a direct fee.
 - An enabled county-direct parcel source (one with a `county_slug` and a
   `Parcels` category) for a county whose `monitoring.decision` is
   `hold-for-terms` in `minnesota_county_parcel_access.json` is never polled;
-  the run reports it under `skipped_sources` as `hold-for-terms`. The data file
-  is read on every run, so a changed decision takes effect without a code
-  change.
+  the run reports it under `skipped_sources` as `hold-for-terms`. The same
+  record may include outreach fields `contacted_date`, `reply`, `scope`
+  (`none`, `details-and-count`, or `full`), and `stop_requested`. With no
+  affirmative permission, a `not-assessed` county-direct parcel source is
+  skipped as `awaiting-permission`. `stop_requested` skips every source for
+  that county, including roads and addresses, as `stop-requested`.
+  `details-and-count` keeps service metadata and a record count and turns off
+  parcel-quality, geometry-sample, GAC completeness, and owner, address, and
+  duplicate-ID queries. A permitted scope does not override `hold-for-terms`.
+  The data file is read on every run, so a changed decision or reply takes
+  effect without a code change. Public county and source pages say when a
+  check is paused, awaiting permission, or limited to details and a count;
+  that state is not shown as a failed check. The MnGeo catalog does not read
+  ArcGIS item metadata for a county whose parcel source would be skipped.
 - A run whose source filter matches nothing is an empty run (exit 2), and the
   shared aggregate refuses any report with no source observations except an
   explicit fleet drain. A fleet report whose inventory shrink is refused

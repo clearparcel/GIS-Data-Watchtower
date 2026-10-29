@@ -234,11 +234,11 @@ class FreshnessTests(unittest.TestCase):
     def test_county_profiles_use_provider_check_time(self):
         now = dt.datetime.now(dt.timezone.utc)
         recent, old = now.isoformat(), (now - dt.timedelta(days=3)).isoformat()
-        state = {"sources": {"p": {"id": "p", "county_slug": "wabasha", "category": "Parcels",
+        state = {"sources": {"p": {"id": "p", "county_slug": "todd", "category": "Parcels",
                                    "adapter": "arcgis_layer", "status": "warn", "deferred": True,
                                    "checked_at": old, "last_report_at": recent}}}
         profiles = compose_county_profiles(state, load_parcel_access(), now=now, freshness_policy=FreshnessPolicy())
-        self.assertEqual(profiles["wabasha"]["monitoring"]["reporting"], "overdue")
+        self.assertEqual(profiles["todd"]["monitoring"]["reporting"], "overdue")
 
     def test_public_state_keeps_only_a_deferral_flag(self):
         from clearparcel.datawatch.public_projection import sanitize_public_render_state
@@ -273,8 +273,8 @@ class CountyAndTableTests(unittest.TestCase):
     def test_stale_failures_count_as_overdue(self):
         from clearparcel.datawatch.dashboard_counties import render_counties
         old = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=10)).isoformat()
-        state = {"generated_at": old, "sources": {"mn-wabasha-parcels": {
-            "id": "mn-wabasha-parcels", "county_slug": "wabasha", "category": "Parcels", "status": "error",
+        state = {"generated_at": old, "sources": {"mn-todd-parcels": {
+            "id": "mn-todd-parcels", "county_slug": "todd", "category": "Parcels", "status": "error",
             "checked_at": old, "last_report_at": old}}}
         page = render_counties({"_render_state": state, "state_file": "unused.json"})
         self.assertIn("1 of these is overdue for a new check.", page)

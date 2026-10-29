@@ -92,7 +92,8 @@ class CountyProfilesTests(unittest.TestCase):
         for slug, source_id in ids.items():
             self.assertEqual(profiles[slug]['county_arcgis_rest']['sources'][0]['monitored_source_id'], source_id)
             self.assertEqual(profiles[slug]['county_arcgis_rest']['sources'][0]['feature_count'], 17)
-            self.assertEqual(profiles[slug]['monitoring']['active_parcel_source_count'], 1)
+            self.assertEqual(profiles[slug]['monitoring']['active_parcel_source_count'], 0)
+            self.assertEqual(profiles[slug]['county_arcgis_rest']['sources'][0]['health'], 'paused')
         for category in ('mngeo_public_repository', 'county_download'):
             self.assertEqual(profiles['wabasha'][category]['sources'][0]['feature_count'], 17)
         self.assertIsNone(profiles['washington']['county_arcgis_rest']['sources'][0]['feature_count'])
@@ -276,7 +277,9 @@ class CountyProfilesTests(unittest.TestCase):
                 self.assertEqual(source['monitored_source_id'], source_id)
                 self.assertEqual(source['layer_id'], layer)
                 self.assertEqual(source['feature_count'], 42)
-            self.assertEqual(profile['monitoring']['active_parcel_source_count'], 1)
+                self.assertEqual(source['health'], 'paused')
+            self.assertEqual(profile['monitoring']['active_parcel_source_count'], 0)
+            self.assertIn("Awaiting county permission", profile['monitoring']['permission_note'])
 
     def test_inventory_completion_requires_all_four_evidence_reviews(self):
         raw = json.loads((Path(__file__).parents[1] / 'clearparcel/datawatch/minnesota_county_parcel_access.json').read_text(encoding='utf-8'))
@@ -322,7 +325,8 @@ class CountyProfilesTests(unittest.TestCase):
         self.assertEqual(profile['access']['monitoring_decision'], 'hold-for-terms')
         self.assertEqual(source['monitored_source_id'], source_id)
         self.assertEqual(source['feature_count'], 42)
-        self.assertTrue(profile['monitoring']['active'])
+        self.assertFalse(profile['monitoring']['active'])
+        self.assertIn("paused until terms", profile['monitoring']['permission_note'])
         self.assertFalse(profile['research']['complete'])
 
     def test_hub_download_and_rest_share_one_observation(self):
@@ -381,31 +385,31 @@ class CountyProfilesTests(unittest.TestCase):
         for key in ('county_arcgis_rest', 'county_download'):
             research[county['name']]['source_inventory'][key].update(availability='yes', sources=[copy.deepcopy(item)])
         p = compose(state, research)
-        self.assertEqual(county_profile_counts(p), {'total': 87, 'active': 70, 'county_direct': 24, 'mngeo_open': 59, 'both': 13})
+        self.assertEqual(county_profile_counts(p), {'total': 87, 'active': 63, 'county_direct': 11, 'mngeo_open': 59, 'both': 7})
         self.assertEqual(p[county['slug']]['monitoring']['active_parcel_source_count'], 2)
         self.assertEqual(p[county['slug']]['county_download']['sources'][0]['feature_count'], 2000)
 
     def test_nonparcel_slug_alias_and_failed_observation(self):
         state = {'sources': {'image': {'county_slug': 'aitkin', 'category': 'Imagery', 'status': 'ok'},
             'alias': {'county_slug': 'lake-extra', 'category': 'Parcels'},
-            'parcel': {'county_slug': 'anoka', 'category': 'Parcels', 'adapter': 'arcgis_layer', 'status': 'error',
+            'parcel': {'county_slug': 'roseau', 'category': 'Parcels', 'adapter': 'arcgis_layer', 'status': 'error',
                 'checked_at': STAMP, 'last_success_at': '2026-10-01T00:00:00+00:00', 'feature_count': 42},
-            'undated': {'county_slug': 'becker', 'category': 'Parcels', 'adapter': 'arcgis_layer', 'status': 'ok'}}}
+            'undated': {'county_slug': 'wadena', 'category': 'Parcels', 'adapter': 'arcgis_layer', 'status': 'ok'}}}
         p = compose(state)
         self.assertFalse(p['aitkin']['monitoring']['active'])
         self.assertFalse(p['lake']['monitoring']['active'])
-        source = next(s for s in p['anoka']['county_arcgis_rest']['sources'] if s['monitored_source_id'] == 'parcel')
+        source = next(s for s in p['roseau']['county_arcgis_rest']['sources'] if s['monitored_source_id'] == 'parcel')
         self.assertEqual(source['health'], 'error')
         self.assertEqual(source['reporting'], 'current')
         self.assertEqual(source['feature_count'], 42)
         self.assertEqual(source['last_success_at'], '2026-10-01T00:00:00+00:00')
         # A fresh report without a fresh provider check does not make the check current.
         state['sources']['parcel'].update(checked_at='2026-10-01T00:00:00+00:00', last_report_at=STAMP)
-        self.assertEqual(compose(state)['anoka']['monitoring']['reporting'], 'overdue')
+        self.assertEqual(compose(state)['roseau']['monitoring']['reporting'], 'overdue')
         state['sources']['parcel']['last_report_at'] = '2026-10-01T00:00:00+00:00'
-        self.assertEqual(compose(state)['anoka']['monitoring']['reporting'], 'overdue')
-        self.assertEqual(p['becker']['monitoring']['health'], 'unknown')
-        self.assertEqual(p['becker']['monitoring']['reporting'], 'unknown')
+        self.assertEqual(compose(state)['roseau']['monitoring']['reporting'], 'overdue')
+        self.assertEqual(p['wadena']['monitoring']['health'], 'unknown')
+        self.assertEqual(p['wadena']['monitoring']['reporting'], 'unknown')
 
     def test_future_check_or_worker_report_is_not_current(self):
         """Audit WT-A05: a time beyond the clock-skew tolerance proves no current check."""
@@ -413,9 +417,9 @@ class CountyProfilesTests(unittest.TestCase):
         near = (NOW + dt.timedelta(minutes=4)).isoformat()
         def reporting(checked_at, report_at=STAMP):
             state = {'workers': {'cloud': {'last_report_at': report_at}},
-                     'sources': {'parcel': {'county_slug': 'anoka', 'category': 'Parcels', 'adapter': 'arcgis_layer',
+                     'sources': {'parcel': {'county_slug': 'todd', 'category': 'Parcels', 'adapter': 'arcgis_layer',
                                             'status': 'ok', 'worker': 'cloud', 'checked_at': checked_at}}}
-            profile = compose(state)['anoka']
+            profile = compose(state)['todd']
             source = next(s for s in profile['county_arcgis_rest']['sources'] if s['monitored_source_id'] == 'parcel')
             return source['reporting'], profile['monitoring']['active']
         self.assertEqual(reporting(future), ('unknown', True))  # the monitoring path is kept
@@ -446,15 +450,15 @@ class CountyProfilesTests(unittest.TestCase):
         self.assertEqual(observed['feature_count'], 1234)
         self.assertEqual(observed['checked_at'], STAMP)
         self.assertEqual(observed['last_success_at'], STAMP)
-        self.assertEqual(observed['health'], 'ok')
-        self.assertEqual(observed['reporting'], 'current')
+        self.assertEqual(observed['health'], 'paused')
+        self.assertEqual(observed['reporting'], 'paused')
         self.assertEqual(observed['geometry_type'], 'esriGeometryPolygon')
         self.assertEqual(observed['provider_updated_at'], '2025-01-01T00:00:00+00:00')
         self.assertIsNone(catalog_only['feature_count'])
         self.assertIsNone(catalog_only['checked_at'])
         self.assertEqual(catalog_only['health'], 'unknown')
         self.assertIsNone(catalog_only['county_acquired_at'])
-        self.assertEqual(p['monitoring']['active_parcel_source_count'], 1)
+        self.assertEqual(p['monitoring']['active_parcel_source_count'], 0)
         self.assertEqual(p['county_arcgis_rest']['sources'][0]['monitored_source_id'], observed['monitored_source_id'])
         del state['sources']['parcel-data']
         p = compose(state, research)['aitkin']

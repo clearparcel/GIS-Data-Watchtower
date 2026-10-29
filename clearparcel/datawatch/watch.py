@@ -185,10 +185,28 @@ def _county_slug(name: str) -> str | None:
 
 def _hold_skip_reason(source: dict, held_counties: frozenset[str]) -> str | None:
     """County-direct parcel sources for hold-for-terms counties are never polled (AGENTS.md)."""
+    from clearparcel.datawatch.parcel_access import CountyPermission
     slug = str(source.get("county_slug") or "").strip().lower()
-    if slug and slug in held_counties and str(source.get("category") or "").strip().lower().startswith("parcel"):
-        return "hold-for-terms"
-    return None
+    if not slug or slug not in held_counties:
+        return None
+    return CountyPermission.skip_reason(source, {
+        "contacted_date": None, "reply": None, "scope": None,
+        "stop_requested": False, "terms_decision": "hold-for-terms",
+    })
+
+
+def _permissions_by_slug() -> dict[str, dict]:
+    """Per-county permission records from the research file, keyed by county slug."""
+    from clearparcel.datawatch.parcel_access import CountyPermission, load_parcel_access
+    return CountyPermission.index_by_slug(load_parcel_access())
+
+
+def _permission_skip_reason(source: dict, permissions: dict[str, dict]) -> str | None:
+    from clearparcel.datawatch.parcel_access import CountyPermission
+    slug = str(source.get("county_slug") or "").strip().lower()
+    if not slug:
+        return None
+    return CountyPermission.skip_reason(source, permissions.get(slug))
 
 
 # The product token and repository URL stay stable. The comment carries the
@@ -1958,15 +1976,16 @@ def _attach_item_metadata(records: dict, source: dict, timeout: int) -> dict | N
     started = time.monotonic()
     fetched: dict[str, dict] = {}
     signal = None
-    held = _held_county_slugs()
+    permissions = _permissions_by_slug()
     for county in sorted(records):
         record = records[county]
         item = catalog_item_id(record.get("data_url"))
         if not item:
             continue
         canonical = canonical_minnesota_county(county) or county
-        if _county_slug(canonical) in held:
-            # Hold-for-terms counties get no unattended county-direct reads (AGENTS.md).
+        slug = _county_slug(canonical)
+        # The same permission rule as a county-direct parcel source: no item read without it.
+        if slug and _permission_skip_reason({"county_slug": slug, "category": "Parcels"}, permissions):
             record["item_metadata"] = {"item_id": item, "status": "held"}
             continue
         if item not in fetched:
@@ -2339,15 +2358,18 @@ def _check_sources_unlocked(
     rate_limits = _active_rate_limits(previous_state.get("rate_limits"), run_started)
     default_backoff = int(config.get("rate_limit_default_backoff_seconds", _RATE_LIMIT_DEFAULT_SECONDS))
     _block_hosts(rate_limits)
-    held_counties = _held_county_slugs()
+    from clearparcel.datawatch.parcel_access import CountyPermission
+    permissions = _permissions_by_slug()
 
     for source in config.get("sources", []):
         if filtered and filtered not in source["id"].lower() and filtered not in source["name"].lower():
             continue
-        skip_reason = _profile_skip_reason(source, execution_profile) or _hold_skip_reason(source, held_counties)
+        skip_reason = _profile_skip_reason(source, execution_profile) or _permission_skip_reason(source, permissions)
         if skip_reason:
             skipped_sources[str(source.get("id") or "<missing-id>")] = skip_reason
             continue
+        slug = str(source.get("county_slug") or "").strip().lower()
+        source_to_check = CountyPermission.constrain(source, permissions.get(slug) if slug else None)
         hosts = _source_hosts(source)
         if any(host in rate_limits for host in hosts):
             # A provider asked us to back off: make no request to that host.
@@ -2365,7 +2387,7 @@ def _check_sources_unlocked(
         for attempt in range(retries + 1):
             attempts = attempt + 1
             try:
-                details = _source_check(source, source_timeout)
+                details = _source_check(source_to_check, source_timeout)
                 last_error = None
                 break
             except Exception as exc:

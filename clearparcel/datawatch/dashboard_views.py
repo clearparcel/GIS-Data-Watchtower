@@ -79,8 +79,11 @@ def render_dashboard(config: dict) -> str:
     else:
         body += '<div class="card" id="alerts"><h2>Active alerts</h2><p class="ok"><strong>No active alerts.</strong></p><span class="subtext">No current Watchtower alert requires attention.</span></div><br>'
     rows = []
+    permissions = _dashboard.CountyPermission.index_by_slug(_dashboard.load_parcel_access())
     categories = sorted({str(meta.get("category") or src.get("category") or "Other") for _,src,meta,_,_ in enriched})
     for sid, src, meta, stats, hist in sorted(enriched, key=lambda x: str(x[1].get("name", x[0])).lower()):
+        shown, note = _dashboard.CountyPermission.display(src, permissions.get(str(src.get("county_slug") or "").strip().lower()))
+        note_html = f'<br><span class="subtext">{_dashboard._esc(note)}</span>' if note else ""
         provider = meta.get("provider") or src.get("provider") or "—"
         category = meta.get("category") or src.get("category") or "Other"
         prev_count = next((x.get("feature_count") for x in reversed(hist[:-1]) if x.get("feature_count") is not None), None) if len(hist) > 1 else None
@@ -88,10 +91,10 @@ def render_dashboard(config: dict) -> str:
         delta = current_count - prev_count if isinstance(current_count,(int,float)) and isinstance(prev_count,(int,float)) else None
         delta_text = "—" if delta is None else f"{delta:+,}"
         delta_class = "delta-up" if isinstance(delta,(int,float)) and delta > 0 else "delta-down" if isinstance(delta,(int,float)) and delta < 0 else ""
-        rows.append(f"""<tr data-name="{_dashboard._esc((src.get('name') or sid).lower())}" data-category="{_dashboard._esc(category)}" data-status="{_dashboard._esc(src.get('status','unknown'))}">
+        rows.append(f"""<tr data-name="{_dashboard._esc((src.get('name') or sid).lower())}" data-category="{_dashboard._esc(category)}" data-status="{_dashboard._esc(shown)}">
 <td><a href="/source?{_dashboard.urllib.parse.urlencode({'id':sid})}"><strong>{_dashboard._esc(src.get('name') or sid)}</strong></a><br><span class="muted">{_dashboard._esc(sid)}</span></td>
 <td>{_dashboard._esc(provider)}<br><span class="muted">{_dashboard._esc(category)}</span></td>
-<td><span class="pill {_dashboard._status_class(src.get('status','unknown'))}">{_dashboard._esc(_dashboard._health_status(src.get('status','unknown')))}</span><br><span class="muted">{_dashboard._esc(src.get('reporting','current'))} reporting · {_dashboard._esc(src.get('worker') or 'default')} worker</span></td>
+<td><span class="pill {_dashboard._status_class(shown)}">{_dashboard._esc(_dashboard._health_status(shown))}</span>{note_html}<br><span class="muted">{_dashboard._esc('Not checking' if shown in ('paused', 'awaiting-permission') else (src.get('reporting') or 'current'))} reporting · {_dashboard._esc(src.get('worker') or 'default')} worker</span></td>
 <td>{_dashboard._esc(f"{current_count:,}" if isinstance(current_count,int) else current_count or '—')}<br><span class="{delta_class}">{_dashboard._esc(delta_text)}</span></td>
 <td>{_dashboard._esc(stats.get('change_age_days') if stats.get('change_age_days') is not None else '—')}</td>
 <td>{_dashboard._esc(stats.get('success_rate') if stats.get('success_rate') is not None else '—')}%<br><span class="muted">{_dashboard._esc(stats.get('consecutive_ok'))} consecutive</span></td>
@@ -177,13 +180,18 @@ def render_source(config: dict, source_id: str) -> str:
     )
     provider = meta.get("provider") or src.get("provider") or "—"
     category = meta.get("category") or src.get("category") or "—"
+    permission = _dashboard.CountyPermission.index_by_slug(_dashboard.load_parcel_access()).get(str(src.get("county_slug") or "").strip().lower())
+    shown, note = _dashboard.CountyPermission.display(src, permission)
+    note_html = f'<div class="card"><p>{_dashboard._esc(note)}</p></div><br>' if note else ""
+    reporting_label = "Not checking" if shown in ("paused", "awaiting-permission") else ("Reporting overdue" if src.get("reporting") == "stale" else "Reporting on time")
     source_count_text = _dashboard._esc(f"{src.get('feature_count'):,}" if isinstance(src.get('feature_count'),int) else src.get('feature_count','—'))
     body = f"""<p><a href="/">← All data sources</a></p><div class="grid">
 <div class="card"><div class="muted">Data source</div><h2>{_dashboard._esc(src.get('name') or source_id)}</h2><code>{_dashboard._esc(source_id)}</code></div>
-<div class="card"><div class="muted">Health</div><div class="metric {_dashboard._status_class(src.get('status','unknown'))}">{_dashboard._esc(_dashboard._health_status(src.get('status','unknown')))}</div><span class="subtext">{_dashboard._esc('Reporting overdue' if src.get('reporting') == 'stale' else 'Reporting on time')} · {_dashboard._esc(src.get('worker') or 'local/default')} worker</span></div>
+<div class="card"><div class="muted">Health</div><div class="metric {_dashboard._status_class(shown)}">{_dashboard._esc(_dashboard._health_status(shown))}</div><span class="subtext">{_dashboard._esc(reporting_label)} · {_dashboard._esc(src.get('worker') or 'local/default')} worker</span></div>
 <div class="card"><div class="muted">Record count</div><div class="metric">{source_count_text}</div><span class="subtext">Features or rows reported during the latest successful check.</span></div>
 <div class="card"><div class="muted">Recent reliability</div><div class="metric">{_dashboard._esc(stats.get('success_rate') if stats.get('success_rate') is not None else '—')}%</div><span class="subtext">{_dashboard._esc(stats.get('consecutive_ok'))} successful checks in a row.</span></div>
 <div class="card"><div class="muted">Days since data changed</div><div class="metric">{_dashboard._esc(stats.get('change_age_days') if stats.get('change_age_days') is not None else '—')}</div><span class="subtext">Elapsed days since Watchtower last detected a meaningful observation change.</span></div></div>
+{note_html}
 <div class="grid"><div class="card"><h3>Record-count history</h3>{_dashboard._svg_sparkline(feature_values)}</div><div class="card"><h3>Response-time history</h3>{_dashboard._svg_sparkline(latency_values)}</div></div>
 
 <div class="section-head"><div><h2>About this data</h2><p>Operational source facts first; low-level adapter and coordinate details remain expandable below.</p></div></div>

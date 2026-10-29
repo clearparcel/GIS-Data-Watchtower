@@ -24,7 +24,7 @@ from clearparcel.datawatch.product import PRODUCT_NAME, page_title
 from clearparcel.datawatch.watch import _safe_diagnostic, check_sources, load_history, load_history_index, load_state
 from clearparcel.datawatch.transport import RequestDeadline
 from clearparcel.datawatch.aggregate import with_freshness
-from clearparcel.datawatch.parcel_access import access_label, load_parcel_access, statewide_access_label
+from clearparcel.datawatch.parcel_access import CountyPermission, access_label, load_parcel_access, statewide_access_label
 from clearparcel.datawatch.public_values import safe_public_url
 from clearparcel.datawatch.csp import secure_html, strip_markers
 from clearparcel.datawatch.brand_assets import dispatch_brand_asset
@@ -424,6 +424,18 @@ def _county_status(config: dict, county: dict, state: dict, *, profiles: dict | 
         # window is not "actively checked": keep availability and check age apart.
         if profile['monitoring'].get('reporting') == 'overdue' and status in ('ok', 'unknown'):
             status = 'overdue'
+    posture = profile['monitoring'].get('posture')
+    permission = profile['monitoring'].get('permission')
+    # A county-direct source that must not be checked stays visible as paused,
+    # including when an older observation would otherwise look healthy or failed.
+    if permission and matches and 'mngeo-open' not in monitoring_paths and posture in {'awaiting-permission', 'paused'}:
+        status = posture
+    if permission:
+        shown = []
+        for src in matches:
+            shown_status, _note = CountyPermission.display(src, permission)
+            shown.append({**src, 'status': shown_status})
+        matches = shown
     return {
         "name": name,
         "slug": county["slug"],
@@ -689,6 +701,9 @@ def _coverage_status(value: str) -> str:
         "not-configured": "No source information yet",
         "warn": "Needs attention",
         "error": "Check failed",
+        "paused": "Paused",
+        "awaiting-permission": "Awaiting permission",
+        "limited": "Limited check",
     }.get(value, value.replace("-", " ").title())
 
 
@@ -699,12 +714,14 @@ def _health_status(value: str) -> str:
         "warn": "Warning",
         "error": "Error",
         "unknown": "Unknown",
+        "paused": "Paused",
+        "awaiting-permission": "Awaiting permission",
     }.get(value, "Unknown")
 
 
 def _status_class(value: str) -> str:
     value = str(value or "unknown").strip().lower()
-    return value if value in {"ok", "warn", "error", "info", "unknown"} else "unknown"
+    return value if value in {"ok", "warn", "error", "info", "unknown", "paused", "awaiting-permission"} else "unknown"
 
 
 def _friendly_status(value: str) -> str:
@@ -796,14 +813,19 @@ def build_static_site(config: dict, output_dir: str | Path) -> dict:
     # a missing or malformed count is unavailable ("—"), never a measured zero.
     counts = {key: raw_counts[key] if type(raw_counts.get(key)) is int and raw_counts[key] >= 0 else "—"
               for key in ("ok", "warn", "error")}
+    permissions = CountyPermission.index_by_slug(load_parcel_access())
+    raw_by_id = state.get("sources") if isinstance(state.get("sources"), dict) else {}
     rows = []
     for sid, src in sorted(sources.items(), key=lambda x: str((x[1] or {}).get("name", x[0])).lower()):
         filename = "source-" + urllib.parse.quote(sid, safe="") + ".html"
         href = urllib.parse.quote(filename, safe="")
+        raw = raw_by_id.get(sid) if isinstance(raw_by_id.get(sid), dict) else src
+        shown, note = CountyPermission.display(raw, permissions.get(str(raw.get("county_slug") or "").strip().lower()))
+        note_html = f'<br><span class="muted">{_esc(note)}</span>' if note else ""
         rows.append(
             f'<tr><td><a href="{_esc(href)}"><strong>{_esc(src.get("name") or sid)}</strong></a>'
             f'<br><span class="muted">{_esc(sid)}</span></td>'
-            f'<td><span class="pill {_status_class(src.get("status","unknown"))}">{_esc(_health_status(src.get("status","unknown")))}</span></td>'
+            f'<td><span class="pill {_status_class(shown)}">{_esc(_health_status(shown))}</span>{note_html}</td>'
             f'<td>{_esc(src.get("provider") or "—")}</td>'
             f'<td>{_esc(src.get("category") or "—")}</td>'
             f'<td>{_esc(f"{src.get("feature_count"):,}" if isinstance(src.get("feature_count"), int) else "—")}</td>'
@@ -811,11 +833,12 @@ def build_static_site(config: dict, output_dir: str | Path) -> dict:
         )
         detail = f'<p><a href="index.html">← All data sources</a></p><div class="grid">' \
             f'<div class="card"><div class="muted">Data source</div><h2>{_esc(src.get("name") or sid)}</h2></div>' \
-            f'<div class="card"><div class="muted">Status</div><div class="metric {_status_class(src.get("status","unknown"))}">{_esc(_health_status(src.get("status","unknown")))}</div></div>' \
+            f'<div class="card"><div class="muted">Status</div><div class="metric {_status_class(shown)}">{_esc(_health_status(shown))}</div></div>' \
             f'<div class="card"><div class="muted">Record count</div><div class="metric">{_esc(f"{src.get("feature_count"):,}" if isinstance(src.get("feature_count"), int) else "—")}</div></div></div>' \
             f'<div class="card"><h2>About this data</h2><p><strong>Provided by:</strong> {_esc(src.get("provider") or "—")}<br>' \
             f'<strong>Data type:</strong> {_esc(src.get("category") or "—")}<br><strong>Last checked:</strong> {_esc(src.get("checked_at") or "—")}<br>' \
-            f'<strong>Changes found this check:</strong> {_esc(_static_change_count(src))}</p></div>'
+            f'<strong>Changes found this check:</strong> {_esc(_static_change_count(src))}</p></div>' \
+            + (f'<div class="card"><p>{_esc(note)}</p></div>' if note else "")
         (output / filename).write_text(strip_markers(
             _layout(page_title(src.get("name") or sid), detail, refresh_seconds=300,
                     static=True, public_summary=False, static_bundle=True)),

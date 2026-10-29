@@ -31,7 +31,7 @@ from clearparcel.datawatch.dashboard_exports import _mngac_csv, _snapshot_xlsx
 from clearparcel.datawatch.dashboard_templates import _esc, _layout
 from clearparcel.datawatch.product import PRODUCT_NAME, page_title
 from clearparcel.datawatch.dashboard_routes import dispatch_gac_routes, dispatch_snapshot_exports
-from clearparcel.datawatch.parcel_access import load_parcel_access
+from clearparcel.datawatch.parcel_access import CountyPermission, load_parcel_access
 from clearparcel.datawatch.county_profile_exports import county_profiles_csv, parcel_sources_csv
 from clearparcel.datawatch.county_profiles import county_profile_counts, _latest, _timestamp
 from clearparcel.datawatch.county_profile_panel import render_inline_county_panel, percentage_legend, percentage_color_js, research_summary, render_direct_schema_findings
@@ -140,19 +140,23 @@ def render_public_dashboard(config: dict) -> str:
     all_field = (mngac or {}).get("field_population_percent")
     mandatory = (mngac or {}).get("mandatory_population_percent")
 
+    permissions = {slug: (profile.get("monitoring") or {}).get("permission")
+                   for slug, profile in profiles.items()}
     rows = []
     for source_id, source in sorted(
         sources.items(),
         key=lambda item: str((item[1] or {}).get("name") or item[0]).lower(),
     ):
         name = source.get("name") or source_id
-        status = source.get("status") or "unknown"
+        permission = permissions.get(str(source.get("county_slug") or "").strip().lower())
+        status, note = CountyPermission.display(source, permission)
+        note_html = f'<br><span class="subtext">{_esc(note)}</span>' if note else ""
         rows.append(
             f'<tr data-name="{_esc(str(name).lower())}" data-status="{_esc(status)}">'
             f'<td><a href="/source?{urllib.parse.urlencode({"id": source_id})}"><strong>{_esc(name)}</strong></a>'
             f'<br><span class="subtext">{_esc(source.get("category") or "Other")}</span></td>'
             f'<td>{_esc(source.get("provider") or "—")}</td>'
-            f'<td><span class="pill {_status_class(status)}">{_esc(_health_status(status))}</span></td>'
+            f'<td><span class="pill {_status_class(status)}">{_esc(_health_status(status))}</span>{note_html}</td>'
             f'<td>{_esc(f"{source.get("feature_count"):,}" if isinstance(source.get("feature_count"), int) else source.get("feature_count") or "—")}</td>'
             f'<td>{_esc(source.get("change_count") if source.get("change_count") is not None else "—")}</td>'
             f'<td>{_esc(_public_time(source.get("last_success_at")))}</td>'
@@ -378,11 +382,14 @@ def render_public_source(config: dict, source_id: str) -> str:
             static=True,
         )
 
+    permission = CountyPermission.index_by_slug(load_parcel_access()).get(str(source.get("county_slug") or "").strip().lower())
+    shown, note = CountyPermission.display(source, permission)
+    note_html = f'<div class="card"><p>{_esc(note)}</p></div>' if note else ""
     body = (
         '<p><a href="/">← Watchtower overview</a></p>'
         '<div class="grid">'
         f'<div class="card"><div class="muted">Data source</div><h2>{_esc(source.get("name") or source_id)}</h2></div>'
-        f'<div class="card"><div class="muted">Status</div><div class="metric {_status_class(source.get("status") or "unknown")}">{_esc(_health_status(source.get("status") or "unknown"))}</div></div>'
+        f'<div class="card"><div class="muted">Status</div><div class="metric {_status_class(shown)}">{_esc(_health_status(shown))}</div></div>'
         f'<div class="card"><div class="muted">Records</div><div class="metric">{_esc(source.get("feature_count") if source.get("feature_count") is not None else "—")}</div></div>'
         '</div>'
         '<div class="card"><h2>Public monitoring summary</h2><dl class="definition-list">'
@@ -396,6 +403,7 @@ def render_public_source(config: dict, source_id: str) -> str:
         f'<dt>Duplicate-ID extra rows</dt><dd>{_esc(source.get("duplicate_id_extra_rows") if source.get("duplicate_id_extra_rows") is not None else "Not checked")}</dd>'
         f'<dt>Missing mapped shape</dt><dd>{_esc(source.get("null_geometry_count") if source.get("null_geometry_count") is not None else "Not checked")}</dd>'
         '</dl></div>'
+        + note_html
     )
     if source.get('county_slug') and source.get('category') == 'Parcels':
         body += render_direct_schema_findings([direct_schema_assessment(source_id, source)])

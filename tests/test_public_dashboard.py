@@ -73,6 +73,7 @@ class PublicDashboardTests(unittest.TestCase):
         with patch('clearparcel.datawatch.public_dashboard._dashboard_state', return_value=state), patch('clearparcel.datawatch.dashboard._dashboard_state', return_value=state):
             page = render_public_dashboard({'_public_mode': True})
             county_page = render_county({'_public_mode': True}, 'olmsted')
+            direct_page = render_county({'_public_mode': True}, 'winona')
             index = render_counties({'_public_mode': True})
         self.assertIn('"pct": 80', page)
         self.assertIn('Mandatory-field population', page)
@@ -82,7 +83,7 @@ class PublicDashboardTests(unittest.TestCase):
         self.assertNotIn('Free parcel data', index)
         self.assertIn('href="https://clear-parcel.com"', page)
         self.assertIn('src="/assets/clearparcel-logo-', page)
-        self.assertIn('<strong>Records:</strong> 42,996', county_page)
+        self.assertIn('<strong>Records:</strong> 42,996', direct_page)
         self.assertIn('Official evidence and findings', county_page)
         self.assertIn('Read detailed research notes', county_page)
 
@@ -191,8 +192,8 @@ class PublicDashboardTests(unittest.TestCase):
         from clearparcel.datawatch.dashboard import _county_monitoring_counts
         public = sanitize_public_render_state(coverage_state())
         profiles = compose_county_profiles(public, load_parcel_access(), now=NOW, freshness_policy=FreshnessPolicy())
-        self.assertEqual(county_profile_counts(profiles)['active'], 70)
-        self.assertEqual(_county_monitoring_counts({}, public)['active'], 70)
+        self.assertEqual(county_profile_counts(profiles)['active'], 63)
+        self.assertEqual(_county_monitoring_counts({}, public)['active'], 63)
         observed = next(source for source in profiles['aitkin']['mngac_public_parcels']['sources'] if source['monitored_source_id'] == 'statewide')
         self.assertEqual(observed['feature_count'], 1000)
         self.assertEqual(public, sanitize_public_render_state(public))
@@ -282,7 +283,7 @@ class PublicDashboardTests(unittest.TestCase):
                     "name": "County Parcels",
                     "provider": "Example County",
                     "category": "Parcels",
-                    "county_slug": "olmsted",
+                    "county_slug": "winona",
                     "status": "ok",
                     "feature_count": 10,
                     "checked_at": now,

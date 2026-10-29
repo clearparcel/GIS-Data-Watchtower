@@ -212,8 +212,8 @@ of risking a duplicate. A worker with no expected sources skips delivery.
 
 If `WATCHTOWER_ALERT_DELIVERY_CONFIG` is also set, the delivery stage runs over
 those receipts. The expected scope is derived from the registry with the
-worker's own rules, so disabled, other-profile and hold-for-terms sources are
-excluded automatically. The stage writes one structured log line per run
+worker's own rules, so disabled, other-profile, hold-for-terms,
+awaiting-permission and stop-requested sources are excluded automatically. The stage writes one structured log line per run
 (`watchtower_alert_delivery` counts, or `watchtower_alert_pipeline_error` on a
 failure). Neither stage polls a provider, changes the job's exit code, or
 raises into the job; a failure is only logged.

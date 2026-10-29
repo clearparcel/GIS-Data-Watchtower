@@ -17,11 +17,11 @@ ARCGIS = b"""<metadata xml:lang="en"><Esri><ModDate>20260707</ModDate></Esri><da
 <resTitle>Parcels</resTitle><date><pubDate>2026-01-30T00:00:00</pubDate><reviseDate>2026-02-15T09:30:00</reviseDate>
 </date></idCitation></dataIdInfo><mdDateSt>20260708</mdDateSt></metadata>"""
 CATALOG = {"features": [
-    {"attributes": {"countyname": "Wabasha", "acqdate": 1784764800000, "rundate": 1785974400000,
+    {"attributes": {"countyname": "Todd", "acqdate": 1784764800000, "rundate": 1785974400000,
                     "data_url": f"https://hub.arcgis.com/api/v3/datasets/{ITEM_A}_0/downloads/data?format=fgdb"}},
-    {"attributes": {"countyname": "Houston", "acqdate": 1782691200000, "rundate": 1785974400000,
+    {"attributes": {"countyname": "Hubbard", "acqdate": 1782691200000, "rundate": 1785974400000,
                     "data_url": f"Non-scriptable, download from: https://maps-beta.hub.arcgis.com/datasets/{ITEM_B}_0/explore"}},
-    {"attributes": {"countyname": "Fillmore", "acqdate": 1782691200000, "rundate": 1785974400000,
+    {"attributes": {"countyname": "Dodge", "acqdate": 1782691200000, "rundate": 1785974400000,
                     "data_url": f"https://hub.arcgis.com/api/v3/datasets/{ITEM_A}_0/downloads/data?format=shp"}},
     {"attributes": {"countyname": "Anoka", "acqdate": 1782691200000, "rundate": 1785974400000,
                     "data_url": "https://gisdata.metc.state.mn.us/gisdata/Parcels/plan_regional_parcels.zip"}},
@@ -107,9 +107,9 @@ class CatalogMetadataTests(unittest.TestCase):
         result, calls = self.run_catalog({**SOURCE, "item_metadata": True}, {ITEM_A: FGDC, ITEM_B: ARCGIS})
         self.assertEqual(sorted(calls), sorted(watch.ITEM_METADATA_URL.format(i) for i in (ITEM_A, ITEM_B)))
         records = result["county_records"]
-        self.assertEqual(records["Wabasha"]["item_metadata"]["publication_date"], "2026-06-22")
-        self.assertEqual(records["Fillmore"]["item_metadata"]["item_id"], ITEM_A)
-        self.assertEqual(records["Houston"]["item_metadata"]["revision_date"], "2026-02-15")
+        self.assertEqual(records["Todd"]["item_metadata"]["publication_date"], "2026-06-22")
+        self.assertEqual(records["Dodge"]["item_metadata"]["item_id"], ITEM_A)
+        self.assertEqual(records["Hubbard"]["item_metadata"]["revision_date"], "2026-02-15")
         self.assertNotIn("item_metadata", records["Anoka"])
         self.assertEqual(result["catalog_hash"], plain["catalog_hash"])
         self.assertEqual(result["schema_hash"], plain["schema_hash"])
@@ -126,15 +126,15 @@ class CatalogMetadataTests(unittest.TestCase):
         result, calls = self.run_catalog({**SOURCE, "item_metadata": True}, {ITEM_A: FGDC, ITEM_B: FGDC},
                                          blocked={"www.arcgis.com"})
         self.assertEqual(calls, [])
-        self.assertEqual(result["county_records"]["Wabasha"]["item_metadata"]["status"], "deferred")
+        self.assertEqual(result["county_records"]["Todd"]["item_metadata"]["status"], "deferred")
 
     def test_rate_limit_keeps_the_catalog_and_signals_the_backoff(self):
         result, calls = self.run_catalog({**SOURCE, "item_metadata": True},
                                          {ITEM_A: watch.ProviderRateLimitError("60", "www.arcgis.com"), ITEM_B: FGDC})
-        self.assertEqual(len(calls), 1)  # Fillmore is read first; nothing more after the 429
+        self.assertEqual(len(calls), 1)  # Dodge is read first; nothing more after the 429
         self.assertEqual(result["_auxiliary_rate_limit"], {"host": "www.arcgis.com", "retry_after": "60"})
         self.assertEqual({r["item_metadata"]["status"] for c, r in result["county_records"].items()
-                          if c in ("Houston", "Wabasha", "Fillmore")}, {"deferred"})
+                          if c in ("Hubbard", "Todd", "Dodge")}, {"deferred"})
         self.assertEqual(result["county_record_count"], 5)
 
     def test_held_counties_are_never_read(self):
@@ -142,13 +142,28 @@ class CatalogMetadataTests(unittest.TestCase):
         self.assertNotIn(watch.ITEM_METADATA_URL.format(ITEM_HELD), calls)
         self.assertEqual(result["county_records"]["Brown"]["item_metadata"]["status"], "held")
 
+    def test_not_assessed_counties_are_not_read(self):
+        catalog = {"features": [{"attributes": {
+            "countyname": "Wabasha", "acqdate": 1784764800000, "rundate": 1785974400000,
+            "data_url": f"https://hub.arcgis.com/api/v3/datasets/{ITEM_A}_0/downloads/data"}}]}
+        request, calls = fake_request({ITEM_A: FGDC})
+        token = watch._RUN_BLOCKED_HOSTS.set(set())
+        try:
+            with patch.object(watch, "_json_request", return_value=(catalog, {"status": 200})), \
+                    patch.object(watch, "_request", side_effect=request):
+                result = watch._arcgis_county_catalog({**SOURCE, "item_metadata": True}, 30)
+        finally:
+            watch._RUN_BLOCKED_HOSTS.reset(token)
+        self.assertEqual(calls, [])
+        self.assertEqual(result["county_records"]["Wabasha"]["item_metadata"]["status"], "held")
+
     def test_item_limit_skips_the_rest(self):
         result, calls = self.run_catalog({**SOURCE, "item_metadata": True, "item_metadata_max_items": 1},
                                          {ITEM_A: FGDC, ITEM_B: FGDC})
         self.assertEqual(len(calls), 1)
         statuses = sorted(r["item_metadata"]["status"] for c, r in result["county_records"].items()
                           if "item_metadata" in r and c != "Brown")
-        self.assertEqual(statuses, ["ok", "ok", "skipped"])  # Wabasha reuses Fillmore's item
+        self.assertEqual(statuses, ["ok", "ok", "skipped"])  # Todd reuses Dodge's item
 
 
 class CheckLoopTests(unittest.TestCase):

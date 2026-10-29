@@ -9,7 +9,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 from .aggregate import CLOCK_SKEW_TOLERANCE_SECONDS
-from .parcel_access import INVENTORY_CATEGORIES
+from .parcel_access import INVENTORY_CATEGORIES, CountyPermission
 from .direct_gac_schema import direct_schema_assessment
 from .public_values import (public_access_classification, safe_public_url, provider_edit_date, county_metadata_dates,
                             sanitize_source_metadata, safe_geometry_type, safe_file_type)
@@ -141,6 +141,9 @@ def compose_county_profiles(state: dict, research: dict[str, dict], *, now: dt.d
     for county in counties:
         name, slug = county['name'], county['slug']
         record = research.get(name) or research.get(slug) or {}
+        permission = CountyPermission.from_record(record) if record.get('monitoring') else None
+        posture = CountyPermission.posture(permission)
+        blocked = posture in {'awaiting-permission', 'paused'}
         inventory = record.get('source_inventory') or {}
         direct = {sid: source for sid, source in sources.items() if sid != statewide_id
                   and sid != 'mn-parcel-county-catalog' and source.get('category') == 'Parcels'
@@ -155,9 +158,12 @@ def compose_county_profiles(state: dict, research: dict[str, dict], *, now: dt.d
             for item in static.get('sources') or []:
                 sid = item.get('monitored_source_id') or item.get('inventory_id')
                 observed = direct.get(sid) if category in ('county_arcgis_rest', 'county_download', 'mngeo_public_repository') else None
-                composed.append(_source(item, observed, sid if observed else item.get('monitored_source_id'),
+                composed_source = _source(item, observed, sid if observed else item.get('monitored_source_id'),
                                         state, now, freshness_policy,
-                                        catalog=catalog if len(matched) == 1 and item is matched[0] else None))
+                                        catalog=catalog if len(matched) == 1 and item is matched[0] else None)
+                if blocked and sid in direct:
+                    composed_source = CountyPermission.mark_paused(composed_source)
+                composed.append(composed_source)
             categories[category] = {'availability': static.get('availability', 'unknown'),
                                     'review_status': static.get('review_status', 'pending'), 'sources': composed}
         # A missing statewide observation cannot confirm historical membership.
@@ -176,15 +182,19 @@ def compose_county_profiles(state: dict, research: dict[str, dict], *, now: dt.d
             adapter = sanitize_source_metadata(observed).get('adapter')
             category = 'county_download' if adapter == 'http_file' else 'county_arcgis_rest' if adapter in ('arcgis_layer', 'arcgis_service') else None
             if category and not any(s.get('monitored_source_id') == sid for s in categories[category]['sources']):
-                categories[category]['sources'].append(_source({}, observed, sid, state, now, freshness_policy))
-        active = dict(direct)
-        paths = ['county-direct'] if direct else []
+                composed_source = _source({}, observed, sid, state, now, freshness_policy)
+                categories[category]['sources'].append(CountyPermission.mark_paused(composed_source) if blocked else composed_source)
+        active = {} if blocked else dict(direct)
+        paths = ['county-direct'] if active else []
         if isinstance(members.get(name), dict):
             active[statewide_id] = statewide_source
             paths.append('mngeo-open')
-        statuses = [_health(source, state, now, freshness_policy) for source in active.values()]
-        health = next((status for status in ('error', 'warn', 'unknown', 'ok') if any(h == status for h, _ in statuses)), 'unknown')
-        reporting = next((status for status in ('overdue', 'unknown', 'current') if any(r == status for _, r in statuses)), 'unknown')
+        if blocked and not active:
+            health, reporting = 'paused', 'paused'
+        else:
+            statuses = [_health(source, state, now, freshness_policy) for source in active.values()]
+            health = next((status for status in ('error', 'warn', 'unknown', 'ok') if any(h == status for h, _ in statuses)), 'unknown')
+            reporting = next((status for status in ('overdue', 'unknown', 'current') if any(r == status for _, r in statuses)), 'unknown')
         evidence = _evidence(record)
         # The research dataset is the sole authority for monitoring decisions.
         decision = (record.get('monitoring') or {}).get('decision')
@@ -193,7 +203,9 @@ def compose_county_profiles(state: dict, research: dict[str, dict], *, now: dt.d
             'monitoring': {'active': bool(active), 'paths': paths, 'health': health, 'reporting': reporting,
                 'active_parcel_source_count': len(active), 'last_checked_at': _latest(s.get('checked_at') for s in active.values()),
                 'last_success_at': _latest(s.get('last_success_at') for s in active.values()),
-                'aggregate_generated_at': state.get('generated_at') if _timestamp(state.get('generated_at')) else None},
+                'aggregate_generated_at': state.get('generated_at') if _timestamp(state.get('generated_at')) else None,
+                'posture': posture, 'permission_note': CountyPermission.public_note(permission),
+                'permission': permission},
             **categories,
             'direct_gac_schema': [direct_schema_assessment(sid, source) for sid, source in sorted(direct.items())],
             'access': {'public_classification': public_access_classification(record),

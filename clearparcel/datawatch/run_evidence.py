@@ -253,17 +253,18 @@ class ReceiptLog:
 def expected_sources(config: dict, profile: str | None) -> list:
     """Sources this worker is expected to report, derived from the registry.
 
-    Disabled, other-profile and hold-for-terms sources are excluded with the
-    same rules the worker uses before polling.
+    Disabled, other-profile, hold-for-terms, awaiting-permission and
+    stop-requested sources are excluded with the same rules the worker uses
+    before polling.
     """
-    from .watch import _held_county_slugs, _hold_skip_reason, _profile_skip_reason
-    held = _held_county_slugs()
+    from .watch import _permission_skip_reason, _permissions_by_slug, _profile_skip_reason
+    permissions = _permissions_by_slug()
     rows = []
     for source in config.get("sources") or []:
         sid = source.get("id")
         if not isinstance(sid, str) or not sid:
             continue
-        if _profile_skip_reason(source, profile) or _hold_skip_reason(source, held):
+        if _profile_skip_reason(source, profile) or _permission_skip_reason(source, permissions):
             continue
         rows.append({"worker": profile or "unassigned", "source_id": sid})
     return rows
