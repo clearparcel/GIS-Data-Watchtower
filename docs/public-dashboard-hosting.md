@@ -1,6 +1,6 @@
 # Public dashboard hosting
 
-GIS Data Watchtower supports a separate, anonymous, read-only presentation service for sharing derived monitoring results without exposing the private operational dashboard.
+ClearParcel GIS Data Watchtower supports a separate, anonymous, read-only presentation service for sharing derived monitoring results without exposing the private operational dashboard.
 
 ## Production URL
 

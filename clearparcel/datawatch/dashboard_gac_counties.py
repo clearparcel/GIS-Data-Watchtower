@@ -10,6 +10,7 @@ from . import dashboard as dashboard
 from .county_profile_panel import percentage_color, percentage_legend, profile_time, render_direct_schema_findings
 from .direct_gac_schema import direct_schema_assessment
 from .gac_standards import gac_defaults, load_gac_standard, standard_field_counts, standard_keys
+from .product import page_title
 
 LABELS = {'parcel': 'Parcels', 'address': 'Address Points', 'road': 'Road Centerlines'}
 
@@ -182,6 +183,6 @@ def render_county_results(config: dict, standard_key: str, county: dict | None) 
                    + map_html + percentage_legend() + '</div>')
     body += f'<details><summary>Choose another county on the map</summary>{map_content}</details>{map_end}' if county else map_content
     body += f'<p class="subtext">Public publication: {esc(profile_time(state.get("public_published_at")))}</p>'
-    return dashboard._layout(f'MN GAC {name + " County — " if name else ""}{LABELS[standard_key]} — Watchtower', body,
+    return dashboard._layout(page_title(f'MN GAC {name + " County — " if name else ""}{LABELS[standard_key]}'), body,
                              refresh_seconds=30 if config.get('_public_mode') else 0,
                              static=bool(config.get('_public_mode')), csrf_token=str(config.get('_csrf_token') or ''))

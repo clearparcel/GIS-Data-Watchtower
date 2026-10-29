@@ -2,6 +2,7 @@ from __future__ import annotations
 from clearparcel.datawatch.csp import SCRIPT_TAG
 
 from clearparcel.datawatch import dashboard as _dashboard
+from clearparcel.datawatch.product import PRODUCT_NAME, page_title
 
 
 def _county_direct_parcels(source_id: str, source: dict) -> bool:
@@ -155,14 +156,14 @@ def render_dashboard(config: dict) -> str:
 <div class="filters"><input id="q" aria-label="Filter data sources" placeholder="Filter datasets…"><select id="cat" aria-label="Filter by source category"><option value="">All categories</option>{options}</select><select id="health" aria-label="Filter by source health"><option value="">All statuses</option><option>ok</option><option>warn</option><option>error</option></select></div>
 <table id="datasets"><thead><tr><th>Data source</th><th>Provided by / type</th><th>Status</th><th>Records / change<br><span class="subtext">Current count and change from the prior comparable check</span></th><th>Days since data changed<br><span class="subtext">Days since Watchtower last detected a source-data change</span></th><th>Recent reliability<br><span class="subtext">Successful checks across retained recent history</span></th><th>Response time<br><span class="subtext">Elapsed time for the source request/check</span></th><th>Last successful check<br><span class="subtext">Most recent successful observation, not merely last attempt</span></th></tr></thead><tbody>{"".join(rows)}</tbody></table></div>
 {SCRIPT_TAG}function filterRows(){{const q=document.getElementById('q').value.toLowerCase(),c=document.getElementById('cat').value,h=document.getElementById('health').value;document.querySelectorAll('#datasets tbody tr').forEach(r=>{{r.style.display=(!q||r.dataset.name.includes(q))&&(!c||r.dataset.category===c)&&(!h||r.dataset.status===h)?'':'none'}})}};document.getElementById('q').addEventListener('input',filterRows);for(const id of ['cat','health'])document.getElementById(id).addEventListener('change',filterRows);</script>"""
-    return _dashboard._layout("GIS Data Watchtower", body, csrf_token=str(config.get("_csrf_token") or ""))
+    return _dashboard._layout(PRODUCT_NAME, body, csrf_token=str(config.get("_csrf_token") or ""))
 
 
 def render_source(config: dict, source_id: str) -> str:
     state = _dashboard._dashboard_state(config)
     src = (state.get("sources") or {}).get(source_id)
     if not src:
-        return _dashboard._layout("Source not found", '<div class="card"><h2>Source not found</h2><p><a href="/">Return to dashboard</a></p></div>', csrf_token=str(config.get("_csrf_token") or ""))
+        return _dashboard._layout(page_title("Source not found"), '<div class="card"><h2>Source not found</h2><p><a href="/">Return to dashboard</a></p></div>', csrf_token=str(config.get("_csrf_token") or ""))
     hist = _dashboard.load_history(config, source_filter=source_id, exact=True, limit=60).get("entries", [])
     stats = _dashboard._history_stats(hist)
     meta = _dashboard._source_config_map(config).get(source_id, {})
@@ -210,4 +211,4 @@ def render_source(config: dict, source_id: str) -> str:
 <dt>Observation comparison ID</dt><dd><code>{_dashboard._esc(src.get('observation_fingerprint'))}</code></dd>
 </dl></div></details></div><br>
 <div class="card"><h2>Check history</h2><span class="subtext">Recent retained observations for this source.</span><table class="history-table"><thead><tr><th>Last checked</th><th>Status</th><th>Records</th><th>Changes found</th><th>Response time</th></tr></thead><tbody>{history_rows}</tbody></table></div>"""
-    return _dashboard._layout(f"{src.get('name') or source_id}", body, csrf_token=str(config.get("_csrf_token") or ""))
+    return _dashboard._layout(page_title(src.get("name") or source_id), body, csrf_token=str(config.get("_csrf_token") or ""))

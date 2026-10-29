@@ -1,4 +1,4 @@
-# GIS Data Watchtower documentation
+# ClearParcel GIS Data Watchtower documentation
 
 Choose the path that matches what you want to do. For the live dashboard and a concise introduction, start with the [project README](../README.md).
 

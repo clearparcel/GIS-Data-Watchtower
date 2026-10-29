@@ -6,6 +6,7 @@ from clearparcel.datawatch.dashboard_summary import catalog_summary
 from clearparcel.datawatch.county_profile_panel import profile_time
 from clearparcel.datawatch.public_values import county_metadata_dates
 from clearparcel.datawatch.gac_standards import standard_field_counts
+from clearparcel.datawatch.product import page_title
 
 
 def render_counties(config: dict) -> str:
@@ -53,14 +54,14 @@ def render_counties(config: dict) -> str:
         f'<table id="counties"><thead><tr><th>County</th><th>Monitoring coverage<br><span class="subtext">Health and active monitoring path</span></th><th>County-direct access<br><span class="subtext">Evidence-backed county access</span></th><th>Statewide open access<br><span class="subtext">Current MnGeo Plan Parcels Open coverage</span></th><th>County-direct sources<br><span class="subtext">County-specific sources actively checked</span></th></tr></thead><tbody>{rows}</tbody></table></div>' \
         f"{SCRIPT_TAG}" "function filterCounties(){const q=document.getElementById('cq').value.toLowerCase(),s=document.getElementById('cs').value;document.querySelectorAll('#counties tbody tr').forEach(r=>r.style.display=(!q||r.dataset.name.includes(q))&&(!s||r.dataset.status===s)?'':'none')}document.getElementById('cq').addEventListener('input',filterCounties);document.getElementById('cs').addEventListener('change',filterCounties);</script>"
     body += f'<div class="card"><h2>Parcel source research</h2>{_dashboard.research_summary(profiles)}</div>'
-    return _dashboard._layout("Minnesota Counties — GIS Data Watchtower", '<p><a href="/">← Watchtower overview</a></p>'+body, static=bool(config.get("_public_mode")), csrf_token=str(config.get("_csrf_token") or ""))
+    return _dashboard._layout(page_title("Minnesota Counties"), '<p><a href="/">← Watchtower overview</a></p>'+body, static=bool(config.get("_public_mode")), csrf_token=str(config.get("_csrf_token") or ""))
 
 
 def render_county(config: dict, slug: str) -> str:
     state = _dashboard._dashboard_state(config)
     county = next((x for x in _dashboard._load_counties() if x.get("slug") == slug), None)
     if not county:
-        return _dashboard._layout("County not found", '<p><a href="/counties">← Minnesota counties</a></p><div class="card">County not found.</div>', static=bool(config.get("_public_mode")), csrf_token=str(config.get("_csrf_token") or ""))
+        return _dashboard._layout(page_title("County not found"), '<p><a href="/counties">← Minnesota counties</a></p><div class="card">County not found.</div>', static=bool(config.get("_public_mode")), csrf_token=str(config.get("_csrf_token") or ""))
     research = _dashboard.load_parcel_access()
     profiles = _dashboard._county_profiles(config, state, research)
     info = _dashboard._county_status(config, county, state, profiles=profiles, research=research)
@@ -170,4 +171,4 @@ def render_county(config: dict, slug: str) -> str:
     contacts_html = f'<div class="card"><h2>County GIS contacts</h2><p class="muted"><strong>Contact source:</strong> {contact_source}. {contact_source_note}{verified_text}</p><table class="contacts-table"><thead><tr><th>Name</th><th>Title</th><th>Department</th><th>Phone</th><th>Email</th></tr></thead><tbody>{contact_rows}</tbody></table></div>'
     export_links = f'<p><a href="/county-snapshot.csv?slug={_dashboard.urllib.parse.quote(slug)}">Download county snapshot (CSV)</a> · <a href="/county-snapshot.xlsx?slug={_dashboard.urllib.parse.quote(slug)}">Download county snapshot (Excel)</a> · <a href="/county-snapshot.json?slug={_dashboard.urllib.parse.quote(slug)}">Download county snapshot (JSON)</a></p>'
     body = f'<p><a href="/counties">← Minnesota counties</a></p>{export_links}<div class="grid"><div class="card"><div class="muted">County</div><h2>{_dashboard._esc(county["name"])} County</h2></div><div class="card"><div class="muted">Monitoring coverage</div><div class="metric {_dashboard._esc(info["status"])}">{_dashboard._esc(_dashboard._friendly_status(info["status"]).upper())}</div></div><div class="card"><div class="muted">Monitoring path</div><div class="metric" style="font-size:20px">{_dashboard._esc(_dashboard._monitoring_path_label(info))}</div></div><div class="card"><div class="muted">County-direct sources</div><div class="metric">{len(info["sources"])}</div></div></div><div class="grid">{source_cards}</div><br>{parcel_access_detail}<br>{mngac_html}<br>{gac_summary_html}<br><div class="card county-complete-profile">{complete_profile}</div><br>{contacts_html}'
-    return _dashboard._layout(f'{county["name"]} County — Watchtower', body, static=bool(config.get("_public_mode")), csrf_token=str(config.get("_csrf_token") or ""))
+    return _dashboard._layout(page_title(f'{county["name"]} County'), body, static=bool(config.get("_public_mode")), csrf_token=str(config.get("_csrf_token") or ""))

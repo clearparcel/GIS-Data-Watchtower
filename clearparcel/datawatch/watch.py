@@ -27,6 +27,7 @@ from clearparcel.datawatch.transport import RequestDeadline, PinnedURL, resolve_
 from clearparcel.datawatch.file_lock import FileLock, atomic_write
 from clearparcel.datawatch import strict_json
 from clearparcel.datawatch.gac_standards import canonical_minnesota_county, gac_defaults, load_gac_standard, normalize_standard_key
+from clearparcel.datawatch.product import PRODUCT_NAME
 
 class ProviderRateLimitError(RuntimeError):
     """Provider explicitly asked the client to slow down."""
@@ -190,7 +191,9 @@ def _hold_skip_reason(source: dict, held_counties: frozenset[str]) -> str | None
     return None
 
 
-USER_AGENT = "GIS-Data-Watchtower/0.1 (+https://github.com/clearparcel/GIS-Data-Watchtower)"
+# The product token and repository URL stay stable. The comment carries the
+# official name; User-Agent tokens cannot contain spaces.
+USER_AGENT = f"GIS-Data-Watchtower/0.1 ({PRODUCT_NAME}; +https://github.com/clearparcel/GIS-Data-Watchtower)"
 _REDIRECT_CODES = {301, 302, 303, 307, 308}
 _ANSI_ESCAPE_RE = re.compile(r"\x1b(?:\[[0-?]*[ -/]*[@-~]|\][^\x07]*(?:\x07|\x1b\\))")
 _MAX_DIAGNOSTIC_CHARS = 1024
@@ -2234,7 +2237,7 @@ def _build_alerts(
 
 def _write_alert_text(path: Path, document: dict) -> None:
     lines = [
-        f"ClearParcel GIS Data Watchtower Alerts - {document.get('generated_at')}",
+        f"{PRODUCT_NAME} Alerts - {document.get('generated_at')}",
         f"Active alerts: {len(document.get('active', []))}",
         "",
     ]

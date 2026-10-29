@@ -1,4 +1,4 @@
-# GIS Data Watchtower
+# ClearParcel GIS Data Watchtower
 
 **Explore the availability, freshness, and field population of Minnesota public GIS data.**
 
@@ -30,7 +30,7 @@ synthetic aggregate recovery and concurrent publishing in temporary local storag
 
 ## What is Watchtower?
 
-GIS Data Watchtower is an open-source Python monitoring and reporting application maintained by **ClearParcel**. Its public website—**Minnesota Open Data Watchtower**—helps county staff, GIS professionals, researchers, and residents understand where Minnesota public geospatial data is available and what the latest recorded checks show.
+**ClearParcel GIS Data Watchtower** is an open-source Python monitoring and reporting application. Its public website helps county staff, GIS professionals, researchers, and residents understand where Minnesota public geospatial data is available and what the latest recorded checks show.
 
 It monitors selected public ArcGIS, WMS/WFS, and other supported GIS services, records changes and data-quality signals, and publishes a **sanitized, read-only** dashboard. It is **not** a property-ownership search, a complete inventory of every GIS service, an official source-data repository, or a certification of a county's compliance with a data standard.
 
@@ -135,4 +135,4 @@ Contributions and corrections are welcome. Use [GitHub Issues](https://github.co
 
 **Do not report vulnerabilities in public issues.** Follow the private reporting process in [SECURITY.md](SECURITY.md).
 
-GIS Data Watchtower is licensed under the **[MIT License](LICENSE)**. Source agencies remain authoritative for their own datasets, definitions, release policies, and attribution requirements.
+ClearParcel GIS Data Watchtower is licensed under the **[MIT License](LICENSE)**. Source agencies remain authoritative for their own datasets, definitions, release policies, and attribution requirements.

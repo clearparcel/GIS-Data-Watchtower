@@ -19,6 +19,7 @@ from clearparcel.datawatch.dashboard_templates import (
     _layout,
     _public_layout_v2,
 )
+from clearparcel.datawatch.product import PRODUCT_NAME, page_title
 
 from clearparcel.datawatch.watch import _safe_diagnostic, check_sources, load_history, load_history_index, load_state
 from clearparcel.datawatch.transport import RequestDeadline
@@ -658,7 +659,7 @@ def _statewide_snapshot(config: dict) -> dict:
         })
     aggregate_sources.sort(key=lambda row: (str(row.get("county") or ""), str(row.get("name") or "")))
     return {
-        "title": "Minnesota GIS Data Watchtower snapshot",
+        "title": f"{PRODUCT_NAME} snapshot",
         **_snapshot_time_fields(dt.datetime.now(dt.timezone.utc).isoformat(), "snapshot_created"),
         **_snapshot_time_fields(state.get("generated_at"), "watchtower_last_checked"),
         "overall": _status_class(state.get("overall","unknown")),
@@ -816,7 +817,7 @@ def build_static_site(config: dict, output_dir: str | Path) -> dict:
             f'<strong>Data type:</strong> {_esc(src.get("category") or "—")}<br><strong>Last checked:</strong> {_esc(src.get("checked_at") or "—")}<br>' \
             f'<strong>Changes found this check:</strong> {_esc(_static_change_count(src))}</p></div>'
         (output / filename).write_text(strip_markers(
-            _layout(f'Watchtower — {src.get("name") or sid}', detail, refresh_seconds=300,
+            _layout(page_title(src.get("name") or sid), detail, refresh_seconds=300,
                     static=True, public_summary=False, static_bundle=True)),
             encoding="utf-8",
         )
@@ -827,7 +828,7 @@ def build_static_site(config: dict, output_dir: str | Path) -> dict:
         f'<div class="card"><div class="muted">Warnings / errors</div><div class="metric">{counts["warn"]} / {counts["error"]}</div></div></div>' \
         f'<div class="card"><div class="muted">Last checked</div><strong>{_esc(public.get("generated_at") or "No saved observation")}</strong></div><br>' \
         '<div class="card"><h2>Data being watched</h2><table><thead><tr><th>Data source</th><th>Status</th><th>Provided by</th><th>Type</th><th>Records</th><th>Changes found</th><th>Last checked</th></tr></thead><tbody>' + "".join(rows) + "</tbody></table></div>"
-    page = _layout("GIS Data Watchtower", body, refresh_seconds=300, static=True,
+    page = _layout(PRODUCT_NAME, body, refresh_seconds=300, static=True,
                    public_summary=False, static_bundle=True)
     (output / "index.html").write_text(strip_markers(page), encoding="utf-8")
     (output / "state.json").write_text(json.dumps(public, indent=2), encoding="utf-8")
@@ -1000,7 +1001,7 @@ def serve(config: dict, host: str = "127.0.0.1", port: int = 8765) -> None:
                 return False
             raw = b"Authentication required"
             self.send_response(401)
-            self.send_header("WWW-Authenticate", 'Basic realm="GIS Data Watchtower"')
+            self.send_header("WWW-Authenticate", f'Basic realm="{PRODUCT_NAME}"')
             self.send_header("Content-Type", "text/plain; charset=utf-8")
             self.send_header("Content-Length", str(len(raw)))
             self.end_headers()
@@ -1093,7 +1094,7 @@ def serve(config: dict, host: str = "127.0.0.1", port: int = 8765) -> None:
             return
 
     server = _BoundedThreadingHTTPServer((host, port), Handler, max_connections=max_connections, request_timeout=request_timeout_seconds)
-    print(f"GIS Data Watchtower dashboard: http://{host}:{port}")
+    print(f"{PRODUCT_NAME} dashboard: http://{host}:{port}")
     try:
         server.serve_forever()
     except KeyboardInterrupt:

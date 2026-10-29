@@ -2,7 +2,7 @@
 
 Last reviewed: **2026-10-10**
 
-GIS Data Watchtower supports a shared Minnesota Geospatial Advisory Council (GAC)
+ClearParcel GIS Data Watchtower supports a shared Minnesota Geospatial Advisory Council (GAC)
 standards engine for statewide parcel, address-point, and road-centerline field
 population monitoring.
 

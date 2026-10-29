@@ -34,6 +34,7 @@ import uuid
 
 from . import strict_json
 from .alert_routing import prepare_alert_preview
+from .product import PRODUCT_NAME
 from .storage import StorageBackend, StorageConflictError
 
 LEDGER_SCHEMA_VERSION = 1
@@ -347,8 +348,8 @@ def _eligible(data: dict, at: datetime, replay_safe: bool, max_attempts: int) ->
 def build_digest(records: list, *, routing: dict, digest_id: str, created_at: datetime,
                  pending_after: int) -> dict:
     kinds = sorted({r["type"] for r in records})
-    subject = f"Watchtower alerts: {len(records)} ({', '.join(kinds)})"
-    lines = []
+    subject = f"{PRODUCT_NAME} alerts: {len(records)} ({', '.join(kinds)})"
+    lines = [PRODUCT_NAME, ""]
     for r in records:
         lines.append(f"- {r['type']} | worker {r['worker']} | source {r['source_id']} | "
                      f"execution {r['execution_id'] or 'none'} | checked {r['checked_at'] or 'unknown'}")
