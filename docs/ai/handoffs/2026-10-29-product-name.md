@@ -11,8 +11,10 @@
   - Repository: `clearparcel/GIS-Data-Watchtower`.
   - Branch: `cursor/official-product-name-e5f2`.
   - Base: `f0984c339a77d795f1c3ba94be261bace5fdaa37` (`main`).
-  - Head: the tip of this branch after the naming commit. The pull request
-    records the published head.
+  - Naming commit: `e423a01a3c753caf037ee6017572076a71195538`.
+  - Head: the published tip of this branch. The pull request records it. A
+    later commit on this branch only fills in this SHA and does not change
+    behavior.
 - Implementer and requested reviewer:
   - Implementer: Cursor cloud agent.
   - Requested reviewer: none. An independent review was not requested in this
