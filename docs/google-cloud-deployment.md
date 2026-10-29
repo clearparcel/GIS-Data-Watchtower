@@ -1,6 +1,15 @@
 # Google Cloud deployment
 
-The current production dashboard release is **v0.3.2**, deployed October 20, 2026 from
+The current production release is **v0.3.9**, deployed October 29, 2026 to
+the public and private dashboards and the provider and public-publisher jobs.
+See the [v0.3.9 release record](release-v0.3.9.md) for images, revisions and
+rollback targets. [STATUS.md](../STATUS.md) is the authoritative operational state.
+
+The records below describe historical deployments, not current traffic.
+
+## Earlier deployment history
+
+The **v0.3.2** dashboard release was deployed October 20, 2026 from
 merged source `3c078d8963228c3bfa6239acf7cb2aaf008045c8` by Cloud Build
 `9d6fc776-b5f0-441f-94d6-47268856ca6e`.
 - **Services:** public revision `00035-gib` and private revision `00037-teh`
@@ -17,9 +26,6 @@ The private image includes the hash-verified migrated GAC wrapper; authenticated
 selection, standard/scope navigation and export checks passed in the recorded
 scope. The [selector handoff](ai/handoffs/2026-10-20-private-gac-selector.md)
 retains the original diagnosis and migration contract.
-The records below describe historical deployments, not current traffic.
-
-## Earlier deployment history
 
 The previous production dashboard application was **v0.2.3**, deployed
 October 13 from merged source `f95d9315510497ae25cfd058f9a175b240b6debd`.
@@ -79,7 +85,7 @@ The user subsequently explicitly requested daily cloud activation. Scheduler
 identity scope, retry settings, validation and rollback. The prior five-day
 study remains incomplete; enabling the schedule does not certify that study.
 
-GIS Data Watchtower can run as a scheduled **Cloud Run Job** while retaining the same CLI and monitoring engine used locally.
+ClearParcel GIS Data Watchtower can run as a scheduled **Cloud Run Job** while retaining the same CLI and monitoring engine used locally.
 
 ## Architecture
 

@@ -1,4 +1,4 @@
-# GIS Data Watchtower documentation
+# ClearParcel GIS Data Watchtower documentation
 
 Choose the path that matches what you want to do. For the live dashboard and a concise introduction, start with the [project README](../README.md).
 
@@ -35,13 +35,17 @@ Choose the path that matches what you want to do. For the live dashboard and a c
 | Guide | Purpose |
 | --- | --- |
 | [Google Cloud deployment](google-cloud-deployment.md) | Optional Cloud Run and storage deployment |
+| [Provider-run alerting proposal](provider-run-alerting-proposal.md) | Proposed (not applied): alert on Watchtower failures and missed runs separately from source errors |
 | [Public dashboard hosting](public-dashboard-hosting.md) | Anonymous sanitized service, access boundaries, publication, and freshness |
 | [Release policy](release-policy.md) | Versioning, evidence, and rollback expectations |
-| [Current v0.3.2 dashboard release](release-v0.3.2.md) | Private GAC query-routing correction and guarded wrapper migration |
-| [Previous v0.3.1 dashboard release](release-v0.3.1.md) | Immutable images, live verification, acceptance gaps and rollback |
-| [v0.3.0 release](release-v0.3.0.md) | Current job images and dashboard rollback baseline |
-| [v0.2.3 release](release-v0.2.3.md) | Rollback baseline for v0.3.0 services; branding update |
-| [v0.2.2 release](release-v0.2.2.md) | Rollback baseline for the v0.3.0 job images |
+| [Current v0.3.9 coordinated release](release-v0.3.9.md) | Current dashboard and job images, revisions, and rollback targets |
+| [v0.3.8 coordinated release](release-v0.3.8.md) | Previous release; dashboard and job rollback baseline |
+| [v0.3.7 dashboard release](release-v0.3.7.md) | Earlier dashboard release |
+| [v0.3.6 coordinated release](release-v0.3.6.md) | Earlier job images |
+| [v0.3.5](release-v0.3.5.md), [v0.3.4](release-v0.3.4.md), [v0.3.3](release-v0.3.3.md) releases | Historical October 20 provider-job and coordinated releases |
+| [v0.3.2](release-v0.3.2.md) and [v0.3.1](release-v0.3.1.md) dashboard releases | Historical dashboard releases |
+| [v0.3.0 release](release-v0.3.0.md) | Historical coordinated release (October 14) |
+| [v0.2.3](release-v0.2.3.md) and [v0.2.2](release-v0.2.2.md) releases | Historical releases and earlier rollback baselines |
 | [Current status](current-status.md) | Generated companion to authoritative [STATUS.md](../STATUS.md); do not edit directly |
 | [Private vulnerability reporting](../SECURITY.md) | Safe reporting and security expectations |
 

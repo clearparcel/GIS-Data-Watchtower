@@ -7,6 +7,7 @@ import re
 from clearparcel.datawatch.build_info import application_identity
 from clearparcel.datawatch.analytics import posthog_html
 from clearparcel.datawatch.brand_assets import asset_src, favicon_html
+from clearparcel.datawatch.product import PRODUCT_NAME, page_label
 
 
 def _esc(value) -> str:
@@ -32,7 +33,7 @@ body{margin:0;background:radial-gradient(circle at 30% -10%,#152039 0,transparen
 a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
 a:focus-visible,button:focus-visible,summary:focus-visible,input:focus-visible,select:focus-visible,.mngac-county:focus{outline:2px solid var(--blue);outline-offset:2px}
 .public-header{height:88px;padding:18px max(22px,calc((100vw - 1400px)/2));display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);background:#090d15cc;position:sticky;top:0;backdrop-filter:blur(16px);z-index:30}
-.brand-eyebrow{font-size:10px;letter-spacing:.18em;color:var(--blue);font-weight:800}
+.brand-eyebrow{font-size:10px;letter-spacing:.18em;color:var(--blue);font-weight:800;text-transform:uppercase}
 .public-header h1{font-size:24px;margin:3px 0 0;letter-spacing:-.25px}
 .live-state{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--green);font-weight:800;white-space:nowrap}.live-dot{width:7px;height:7px;border-radius:50%;background:currentColor;box-shadow:0 0 14px currentColor}
 .public-main{max-width:1400px;margin:auto;padding:0 22px 64px}
@@ -45,7 +46,7 @@ a:focus-visible,button:focus-visible,summary:focus-visible,input:focus-visible,s
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-bottom:18px}.primary-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.worker-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 .card{background:linear-gradient(145deg,var(--panel),#0d121c);border:1px solid var(--line);border-radius:var(--radius);padding:17px;box-shadow:var(--shadow);min-width:0}.card h2,.card h3{margin-top:0}.card h2{font-size:18px}.card h3{font-size:15px}
 .metric{font-size:27px;font-weight:800;line-height:1.05;letter-spacing:-.5px;margin-top:4px}.muted{color:var(--muted)}.subtext{display:block;color:var(--muted);font-size:11px;line-height:1.45;margin-top:6px}.ok{color:var(--green)}.warn,.overdue{color:var(--amber)}.error{color:var(--red)}.catalog{color:var(--blue)}.not-configured,.needs-source{color:var(--muted)}
-.status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:currentColor;margin-right:7px}.pill{display:inline-flex;align-items:center;height:24px;padding:4px 9px;border:1px solid var(--line);border-radius:999px;font-size:10px;text-transform:uppercase;font-weight:800}.pill.ok{border-color:#2d7155}.pill.warn,.pill.catalog,.pill.overdue{border-color:#705b2d}.pill.error{border-color:#773944}
+.status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:currentColor;margin-right:7px}.pill{display:inline-flex;align-items:center;height:24px;padding:4px 9px;border:1px solid var(--line);border-radius:999px;font-size:10px;text-transform:uppercase;font-weight:800}.pill.ok{border-color:#2d7155}.pill.warn,.pill.catalog,.pill.overdue,.pill.paused,.pill.awaiting-permission{border-color:#705b2d}.pill.error{border-color:#773944}
 .section-head{display:flex;align-items:end;justify-content:space-between;gap:16px;margin:28px 2px 12px}.section-head h2{margin:0;font-size:18px}.section-head p,.section-head span{margin:3px 0 0;color:var(--muted);font-size:11px}.section-head>a{font-size:11px;font-weight:700}
 .activity-strip{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px}.worker-card{display:grid;grid-template-columns:1fr;gap:10px 18px}.worker-card h3{margin:0}.worker-meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.worker-meta div{min-width:90px}.worker-meta .muted,.worker-meta span{display:block;font-size:9px}.worker-meta strong{display:block;margin-top:3px;font-size:13px;overflow-wrap:anywhere}
 .summary-v2{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;margin-bottom:30px}.summary-v2 .card{padding:16px 18px}.summary-v2 .metric{font-size:24px}.summary-v2 .muted{font-size:11px}
@@ -295,7 +296,7 @@ def _public_layout_v2(title: str, body: str, *, refresh_seconds: int = 30, publi
     ])
     short_labels = {"Minnesota Counties": "Counties", "Data Sources": "Sources", "Sanitized state JSON": "State JSON"}
     if static_bundle:
-        active = "overview" if title == "GIS Data Watchtower" else ""
+        active = "overview" if title == PRODUCT_NAME else ""
     nav = "".join(
         f'<a href="{href}" class="{"active" if key == active else ""}"'
         + (' aria-current="page"' if key == active else "")
@@ -303,11 +304,7 @@ def _public_layout_v2(title: str, body: str, *, refresh_seconds: int = 30, publi
            if label in short_labels else f'>{label}</a>')
         for key, href, label in tabs
     )
-    page_name = (
-        title.replace(" — GIS Data Watchtower", "")
-        .replace(" — Watchtower", "")
-        .replace("GIS Data Watchtower", "Overview")
-    )
+    page_name = page_label(title)
     subtitle = {
         "overview": "Availability, freshness, and structure of Minnesota public GIS data.",
         "state": "Sanitized, read-only Watchtower state for offline review.",
@@ -331,12 +328,12 @@ def _public_layout_v2(title: str, body: str, *, refresh_seconds: int = 30, publi
     )
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-{_favicon_html(hosted=hosted)}{refresh_meta}{analytics_script}<title>{_esc(title)}</title><style>{_PUBLIC_V2_CSS}{_TABLE_CSS}</style></head><body>
+{_favicon_html(hosted=hosted)}{refresh_meta}{analytics_script}<meta name="application-name" content="{_esc(PRODUCT_NAME)}"><title>{_esc(title)}</title><style>{_PUBLIC_V2_CSS}{_TABLE_CSS}</style></head><body>
 <a class="skip-link" href="#main-content">Skip to content</a>
 <header class="public-header">
-  <a class="public-brand" href="{brand_href}" aria-label="GIS Data Watchtower overview">
-    <img class="public-brand-logo" src="{watchtower_logo_src}" width="54" height="54" alt="GIS Data Watchtower logo" decoding="async">
-    <div class="public-brand-title"><div class="brand-eyebrow">CLEARPARCEL GIS DATA WATCHTOWER</div><h1>Minnesota Open Data Watchtower</h1></div>
+  <a class="public-brand" href="{brand_href}" aria-label="{_esc(PRODUCT_NAME)} overview">
+    <img class="public-brand-logo" src="{watchtower_logo_src}" width="54" height="54" alt="{_esc(PRODUCT_NAME)} logo" decoding="async">
+    <div class="public-brand-title"><div class="brand-eyebrow">{_esc(PRODUCT_NAME)}</div><h1>{_esc(PRODUCT_NAME)}</h1></div>
   </a>
   <div class="live-state"><span class="live-dot" aria-hidden="true"></span><span class="live-label"><span class="live-long">PUBLIC · READ ONLY</span><span class="live-short">READ ONLY</span></span>{'<button type="button" id="refresh-pause">Pause refresh</button>' if refresh_seconds else ''}</div>
 </header>
@@ -346,7 +343,7 @@ def _public_layout_v2(title: str, body: str, *, refresh_seconds: int = 30, publi
   </div>
   <div class="page-kicker"><div class="eyebrow">PUBLIC DATA INTELLIGENCE</div><h2>{_esc(page_name)}</h2><p>{_esc(subtitle)}</p></div>
   <p id="refresh-status" role="status"></p><div id="main-content" tabindex="-1">{body}</div>
-  <footer class="public-footnote"><a class="footer-brand" href="https://clear-parcel.com" aria-label="ClearParcel home"><img src="{logo_src}" alt="ClearParcel" width="120" height="42"></a><span class="public-footer-meta"><strong class="application-version">{_esc(release_label)}</strong></span></footer>
+  <footer class="public-footnote"><a class="footer-brand" href="https://clear-parcel.com" aria-label="ClearParcel home"><img src="{logo_src}" alt="ClearParcel" width="120" height="42"></a><span class="public-footer-meta"><span class="product-name">{_esc(PRODUCT_NAME)}</span> · <strong class="application-version">{_esc(release_label)}</strong></span></footer>
 </main>{SCRIPT_TAG}(function(){{const row=document.querySelector('.public-tabs'),active=row&&row.querySelector('a.active');if(active&&row.scrollWidth>row.clientWidth&&active.offsetLeft+active.offsetWidth>row.clientWidth)row.scrollLeft=active.offsetLeft-12;}})();</script>{SCRIPT_TAG}(function(){{const menu=document.querySelector('.public-export');if(!menu)return;document.addEventListener('keydown',e=>{{if(e.key==='Escape'&&menu.open){{menu.open=false;menu.querySelector('summary').focus()}}}});document.addEventListener('click',e=>{{if(menu.open&&!menu.contains(e.target))menu.open=false}});}})();</script></body></html>"""
 
 def _layout(title: str, body: str, *, refresh_seconds: int = 30, static: bool = False, csrf_token: str = "", public_summary: bool = True,
@@ -376,10 +373,11 @@ def _layout(title: str, body: str, *, refresh_seconds: int = 30, static: bool = 
             "menu": '<path d="M4 7h16M4 12h16M4 17h16"/>',
         }
         return f'<svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">{paths.get(kind, paths["overview"])}</svg>'
-    page_title = title.replace(" — GIS Data Watchtower", "").replace("GIS Data Watchtower", "Overview")
+    page_title = page_label(title)
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 {_favicon_html()}{refresh_meta}
+<meta name="application-name" content="{_esc(PRODUCT_NAME)}">
 <title>{_esc(title)}</title>
 <style>
 :root{{--navy:#10263b;--navy-2:#17324d;--green:#2d6a4f;--bg:#edf2f6;--card:#fff;--text:#17212b;--muted:#58656f;--accent:#0b6fa4;--soft:#f6f8fa;--line:#d9e1e7;--warn:#8a4600;--err:#a3342f;--shadow:0 3px 14px rgb(23 50 77 / 9%);--radius:13px}}
@@ -452,6 +450,7 @@ code{{font-size:12px;overflow-wrap:anywhere}}
 .mobile-nav{{display:none}}
 .history-table{{width:100%}}
 .flat-note{{padding:20px 4px;color:var(--muted);font-size:13px}}
+.app-footnote{{margin-top:28px;padding-top:12px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}}
 .mngac-controls{{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:14px}}
 .mngac-controls label{{display:grid;gap:4px;font-size:12px;font-weight:700;color:var(--muted)}}
 .mngac-controls select,.mngac-controls input{{min-height:40px;padding:8px 10px;border:1px solid #ccd4db;border-radius:8px;background:#fff;font:inherit;color:var(--text)}}
@@ -554,9 +553,9 @@ code{{font-size:12px;overflow-wrap:anywhere}}
   .bar-row{{grid-template-columns:100px minmax(60px,1fr) 40px}}
 }}
 {_TABLE_CSS}</style></head><body>
-<a class="skip-link" href="#main-content">Skip to content</a><header><h1>GIS Data Watchtower</h1><div class="actions"><span>{_esc(refresh_label)}</span>{refresh_form}{'<button type="button" id="refresh-pause">Pause refresh</button>' if auto_refresh else ''}</div></header>
+<a class="skip-link" href="#main-content">Skip to content</a><header><h1>{_esc(PRODUCT_NAME)}</h1><div class="actions"><span>{_esc(refresh_label)}</span>{refresh_form}{'<button type="button" id="refresh-pause">Pause refresh</button>' if auto_refresh else ''}</div></header>
 <div class="app-shell">
-<aside class="sidebar"><div class="side-brand"><strong>ClearParcel</strong><small>GIS Data Watchtower</small></div><nav>
+<aside class="sidebar"><div class="side-brand"><strong>{_esc(PRODUCT_NAME)}</strong></div><nav>
 <a href="/">{icon("overview")}<span>Overview</span></a>
 <a href="/counties">{icon("counties")}<span>Minnesota Counties</span></a>
 <a href="/mngac">{icon("mngac")}<span>MN GAC Completeness</span></a>
@@ -567,7 +566,7 @@ code{{font-size:12px;overflow-wrap:anywhere}}
 </nav><div class="side-note">{side_context}<br><small>Central Time primary</small></div></aside>
 <section class="content-shell">
 <div class="pagebar" role="region" aria-label="Page title and export"><div class="pagebar-title">{_esc(page_title)}</div><div class="page-actions"><details class="export-menu"><summary>Export</summary><div class="export-pop"><a href="/snapshot.xlsx">Excel (.xlsx)</a><a href="/county-profiles.csv">County profiles (CSV)</a><a href="/parcel-sources.csv">Parcel sources (CSV)</a><a href="/county-data-fees.csv">County data fees (CSV)</a><a href="/snapshot.csv">Monitored sources (CSV)</a><a href="/snapshot.json">JSON</a></div></details></div></div>
-<main id="main-content" tabindex="-1">{body}</main>
+<main id="main-content" tabindex="-1">{body}<footer class="app-footnote">{_esc(PRODUCT_NAME)}</footer></main>
 </section></div>
 <nav class="mobile-nav" aria-label="Mobile navigation">
 <a href="/">{icon("overview")}<span>Overview</span></a><a href="/counties">{icon("counties")}<span>Counties</span></a><a href="/mngac">{icon("mngac")}<span>MN GAC</span></a><a href="/#datasets">{icon("sources")}<span>Sources</span></a><a href="/snapshot.xlsx">{icon("export")}<span>Export</span></a>

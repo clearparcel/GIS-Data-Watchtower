@@ -8,7 +8,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from .parcel_access import INVENTORY_CATEGORIES
+from .aggregate import CLOCK_SKEW_TOLERANCE_SECONDS
+from .parcel_access import INVENTORY_CATEGORIES, CountyPermission
 from .data_fees import county_fee_rows, load_data_fees
 from .direct_gac_schema import direct_schema_assessment
 from .public_values import (public_access_classification, safe_public_url, provider_edit_date, county_metadata_dates,
@@ -53,11 +54,14 @@ def _health(source, state, now, policy):
     # Provider-check time decides freshness; a deferred record's report time
     # does not, because no request was made (legacy records fall back).
     observed = checked if (checked or source.get('deferred')) else (_timestamp(source.get('last_report_at')) or success)
-    reporting = 'unknown' if observed is None else 'overdue' if now - observed > dt.timedelta(minutes=policy.source_stale_minutes) else 'current'
+    # A time beyond the clock-skew tolerance in the future proves no current check.
+    skew = dt.timedelta(seconds=CLOCK_SKEW_TOLERANCE_SECONDS)
+    reporting = ('unknown' if observed is None or observed - now > skew
+                 else 'overdue' if now - observed > dt.timedelta(minutes=policy.source_stale_minutes) else 'current')
     worker = (state.get('workers') or {}).get(source.get('worker'))
     if isinstance(worker, dict):
         report = _timestamp(worker.get('last_report_at')) or _timestamp(worker.get('checked_at'))
-        if report is None:
+        if report is None or report - now > skew:
             reporting = 'unknown' if reporting != 'overdue' else reporting
         elif now - report > dt.timedelta(minutes=policy.worker_stale_minutes):
             reporting = 'overdue'
@@ -186,12 +190,14 @@ def compose_county_profiles(state: dict, research: dict[str, dict], *, now: dt.d
         evidence = _evidence(record)
         # The research dataset is the sole authority for monitoring decisions.
         decision = (record.get('monitoring') or {}).get('decision')
+        permission = CountyPermission.from_record(record) if record.get('monitoring') else None
         profiles[slug] = {
             'schema_version': 1, 'county': {**county, 'fips': fips[name]},
             'monitoring': {'active': bool(active), 'paths': paths, 'health': health, 'reporting': reporting,
                 'active_parcel_source_count': len(active), 'last_checked_at': _latest(s.get('checked_at') for s in active.values()),
                 'last_success_at': _latest(s.get('last_success_at') for s in active.values()),
-                'aggregate_generated_at': state.get('generated_at') if _timestamp(state.get('generated_at')) else None},
+                'aggregate_generated_at': state.get('generated_at') if _timestamp(state.get('generated_at')) else None,
+                'permission': permission, 'permission_note': CountyPermission.public_note(permission)},
             **categories,
             'direct_gac_schema': [direct_schema_assessment(sid, source) for sid, source in sorted(direct.items())],
             'access': {'public_classification': public_access_classification(record),

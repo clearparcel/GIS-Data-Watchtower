@@ -1,9 +1,9 @@
 # Versioning and release policy
 
-The current recorded production release is **v0.3.6**, deployed October 20
-to both dashboards and both jobs (see the [release record](release-v0.3.6.md)).
-Rollback targets are the v0.3.5 dashboard revisions and job image, listed in
-the same record. Older release records are in the
+The current recorded production release is **v0.3.9**, deployed October 29
+to both dashboards and both jobs (see the [release record](release-v0.3.9.md)).
+Rollback targets are the v0.3.8 dashboard revisions and the v0.3.8 job image,
+listed in the v0.3.9 record. Older release records are in the
 [archive](README.md#historical-engineering-and-release-records). Daily cloud
 provider polling was separately approved and activated on October 10;
 application publication does not reschedule it. Future runtime changes
@@ -44,15 +44,15 @@ Tags use `vMAJOR.MINOR.PATCH`. GitHub release notes should summarize user-visibl
 
 ## Visible application identity
 
-Public page footers display **only the semantic application version** (for example, `v0.2.1`), with no build SHA or environment tag. The About Watchtower section explains the mission, links to GitHub, and includes a brief disclaimer. The canonical version is the `[project].version` field in `pyproject.toml`; source checkouts prefer it over stale installed metadata, while installed wheels use distribution metadata.
+Public page footers display **only the semantic application version** (for example, `v0.2.1`), with no build SHA or environment tag. The About section of ClearParcel GIS Data Watchtower explains the mission, links to GitHub, and includes a brief disclaimer. The canonical version is the `[project].version` field in `pyproject.toml`; source checkouts prefer it over stale installed metadata, while installed wheels use distribution metadata.
 
 **Every coordinated production deployment containing updated application code must use a new, strictly higher semantic version than the version currently visible on the deployed public site.** The operator must bump `pyproject.toml` in the release candidate before building, run `python scripts/check_release_version.py` against the live public version, retain the preflight evidence, deploy the vetted immutable image, and then verify the publicly displayed version and release record. The script fails closed if the live version cannot be verified, the candidate is not a valid semantic version, or the candidate is not strictly newer. Run this preflight once per coordinated release (before any public/private service rollout), not independently for each service in that release. Preview builds are not production releases.
 
 The source commit and build environment **remain inside immutable `build_info.json` and release/provenance records**, and may continue to inform optional analytics. They are intentionally not shown in the public footer. Container builds still require `WATCHTOWER_BUILD_REVISION` (full commit SHA) and `WATCHTOWER_BUILD_ENVIRONMENT` (`preview` or `production`). The production source package and visible version must agree. Build only from a clean, committed checkout; do not infer revision identity from the runtime Git state.
 
-**The public site reports v0.3.5 as of October 20, 2026.** The next coordinated
+**The public site reports v0.3.9 as of October 29, 2026.** The next coordinated
 application-code release must be strictly newer. The
-[release record](release-v0.3.5.md) identifies the deployed artifact and
+[release record](release-v0.3.9.md) identifies the deployed artifact and
 verification limits. Always recheck live identity before promotion.
 
 ## Security fixes

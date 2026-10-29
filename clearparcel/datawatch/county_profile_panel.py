@@ -106,6 +106,8 @@ def render_county_profile_body(profile: dict) -> str:
     body = f'<h2 id="county-profile-title">{_esc(county.get("name"))} County</h2>'
     body += '<p>' + _esc(" · ".join(monitoring.get("paths") or []) or "No active parcel monitoring") + ' · ' + _esc(monitoring.get("health")) + ' · ' + _esc(monitoring.get("reporting")) + '</p>'
     body += '<div class="profile-summary">' + _rows([("Active monitoring", "Yes" if monitoring.get("active") else "No"), ("County-direct access", access.get("public_classification")), ("Active parcel sources", monitoring.get("active_parcel_source_count")), ("Latest county Watchtower check", profile_time(monitoring.get("last_checked_at")))]) + '</div>'
+    if monitoring.get("permission_note"):
+        body += '<p class="permission-note">' + _esc(monitoring.get("permission_note")) + '</p>'
     body += render_direct_schema_findings(profile.get('direct_gac_schema') or [])
     for key, heading in GROUPS:
         category = profile.get(key, {})

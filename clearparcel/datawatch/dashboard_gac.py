@@ -16,6 +16,7 @@ from clearparcel.datawatch.gac_standards import (
     normalize_standard_key,
     standard_field_counts,
 )
+from clearparcel.datawatch.product import page_title
 from .dashboard_gac_counties import navigation, resolve_county, county_map, render_county_results
 
 
@@ -57,7 +58,7 @@ def _render_gac_standard(config: dict, standard_key: str, county: dict | None = 
             + percentage_legend() + publication
         )
         return _dashboard._layout(
-            f'{standard.get("short_name") or "MN GAC"} Completeness — GIS Data Watchtower',
+            page_title(f'{standard.get("short_name") or "MN GAC"} Completeness'),
             body, refresh_seconds=30 if config.get("_public_mode") else 300, static=bool(config.get("_public_mode")),
             csrf_token=str(config.get("_csrf_token") or "")
         )
@@ -240,7 +241,7 @@ def _render_gac_standard(config: dict, standard_key: str, county: dict | None = 
 {publication}
 """
     return _dashboard._layout(
-        f'{standard.get("short_name") or "MN GAC"} Completeness — GIS Data Watchtower',
+        page_title(f'{standard.get("short_name") or "MN GAC"} Completeness'),
         body, refresh_seconds=30 if config.get("_public_mode") else 0, static=bool(config.get("_public_mode")),
         csrf_token=str(config.get("_csrf_token") or "")
     )
@@ -278,7 +279,7 @@ def render_mngac(config: dict, standard_key: str = "parcel", *, county: str = ''
             'Once the configured MnGeo statewide parcel check records it, this page will show county and field statistics.</p></div>'
             + county_map(standard_key, data) + percentage_legend() + publication
         )
-        return _dashboard._layout("MN GAC Completeness — GIS Data Watchtower", body, refresh_seconds=30 if config.get("_public_mode") else 300, static=bool(config.get("_public_mode")), csrf_token=str(config.get("_csrf_token") or ""))
+        return _dashboard._layout(page_title("MN GAC Completeness"), body, refresh_seconds=30 if config.get("_public_mode") else 300, static=bool(config.get("_public_mode")), csrf_token=str(config.get("_csrf_token") or ""))
 
     covered = int(data.get("covered_counties") or 0)
     uncovered = max(0, total_counties - covered)
@@ -456,7 +457,7 @@ def render_mngac(config: dict, standard_key: str = "parcel", *, county: str = ''
 </script>
 {publication}
 """
-    return _dashboard._layout("MN GAC Completeness — GIS Data Watchtower", body, refresh_seconds=30 if config.get("_public_mode") else 0, static=bool(config.get("_public_mode")), csrf_token=str(config.get("_csrf_token") or ""))
+    return _dashboard._layout(page_title("MN GAC Completeness"), body, refresh_seconds=30 if config.get("_public_mode") else 0, static=bool(config.get("_public_mode")), csrf_token=str(config.get("_csrf_token") or ""))
 
 def _render_county_mngac(state: dict, county: dict) -> str:
     data, stats = _dashboard._mngac_county_record(state, str(county.get("name") or ""))

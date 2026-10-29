@@ -27,6 +27,7 @@ from clearparcel.datawatch.transport import RequestDeadline, PinnedURL, resolve_
 from clearparcel.datawatch.file_lock import FileLock, atomic_write
 from clearparcel.datawatch import strict_json
 from clearparcel.datawatch.gac_standards import canonical_minnesota_county, gac_defaults, load_gac_standard, normalize_standard_key
+from clearparcel.datawatch.product import PRODUCT_NAME
 
 class ProviderRateLimitError(RuntimeError):
     """Provider explicitly asked the client to slow down."""
@@ -190,7 +191,23 @@ def _hold_skip_reason(source: dict, held_counties: frozenset[str]) -> str | None
     return None
 
 
-USER_AGENT = "GIS-Data-Watchtower/0.1 (+https://github.com/clearparcel/GIS-Data-Watchtower)"
+def _permissions_by_slug() -> dict[str, dict]:
+    """Per-county permission records from the research file, keyed by county slug."""
+    from clearparcel.datawatch.parcel_access import CountyPermission, load_parcel_access
+    return CountyPermission.index_by_slug(load_parcel_access())
+
+
+def _permission_skip_reason(source: dict, permissions: dict[str, dict]) -> str | None:
+    from clearparcel.datawatch.parcel_access import CountyPermission
+    slug = str(source.get("county_slug") or "").strip().lower()
+    if not slug:
+        return None
+    return CountyPermission.skip_reason(source, permissions.get(slug))
+
+
+# The product token and repository URL stay stable. The comment carries the
+# official name; User-Agent tokens cannot contain spaces.
+USER_AGENT = f"GIS-Data-Watchtower/0.1 ({PRODUCT_NAME}; +https://github.com/clearparcel/GIS-Data-Watchtower)"
 _REDIRECT_CODES = {301, 302, 303, 307, 308}
 _ANSI_ESCAPE_RE = re.compile(r"\x1b(?:\[[0-?]*[ -/]*[@-~]|\][^\x07]*(?:\x07|\x1b\\))")
 _MAX_DIAGNOSTIC_CHARS = 1024
@@ -1964,6 +1981,8 @@ def _attach_item_metadata(records: dict, source: dict, timeout: int) -> dict | N
         canonical = canonical_minnesota_county(county) or county
         if _county_slug(canonical) in held:
             # Hold-for-terms counties get no unattended county-direct reads (AGENTS.md).
+            # Item metadata on ArcGIS Online is not a county-server query, so the
+            # permission and stop gates do not apply here.
             record["item_metadata"] = {"item_id": item, "status": "held"}
             continue
         if item not in fetched:
@@ -2234,7 +2253,7 @@ def _build_alerts(
 
 def _write_alert_text(path: Path, document: dict) -> None:
     lines = [
-        f"ClearParcel GIS Data Watchtower Alerts - {document.get('generated_at')}",
+        f"{PRODUCT_NAME} Alerts - {document.get('generated_at')}",
         f"Active alerts: {len(document.get('active', []))}",
         "",
     ]
@@ -2336,15 +2355,18 @@ def _check_sources_unlocked(
     rate_limits = _active_rate_limits(previous_state.get("rate_limits"), run_started)
     default_backoff = int(config.get("rate_limit_default_backoff_seconds", _RATE_LIMIT_DEFAULT_SECONDS))
     _block_hosts(rate_limits)
-    held_counties = _held_county_slugs()
+    from clearparcel.datawatch.parcel_access import CountyPermission
+    permissions = _permissions_by_slug()
 
     for source in config.get("sources", []):
         if filtered and filtered not in source["id"].lower() and filtered not in source["name"].lower():
             continue
-        skip_reason = _profile_skip_reason(source, execution_profile) or _hold_skip_reason(source, held_counties)
+        skip_reason = _profile_skip_reason(source, execution_profile) or _permission_skip_reason(source, permissions)
         if skip_reason:
             skipped_sources[str(source.get("id") or "<missing-id>")] = skip_reason
             continue
+        slug = str(source.get("county_slug") or "").strip().lower()
+        source_to_check = CountyPermission.constrain(source, permissions.get(slug) if slug else None)
         hosts = _source_hosts(source)
         if any(host in rate_limits for host in hosts):
             # A provider asked us to back off: make no request to that host.
@@ -2362,7 +2384,7 @@ def _check_sources_unlocked(
         for attempt in range(retries + 1):
             attempts = attempt + 1
             try:
-                details = _source_check(source, source_timeout)
+                details = _source_check(source_to_check, source_timeout)
                 last_error = None
                 break
             except Exception as exc:
@@ -2641,6 +2663,36 @@ def _check_sources_unlocked(
     return result
 
 
+class InvalidSourceRegistryError(ValueError):
+    """The source registry cannot be checked as a whole; nothing was polled or saved."""
+
+
+def validate_source_registry(sources: object) -> None:
+    """Reject a registry whose source IDs are missing or collide.
+
+    Results, state and history are keyed by source ID, so a second entry with
+    the same ID would silently replace the first one's observation. IDs are
+    compared case-insensitively because source filters already match that way.
+    Every entry counts, whether or not it is enabled or assigned to this profile.
+    """
+    if not isinstance(sources, list):
+        raise InvalidSourceRegistryError("source registry 'sources' must be a list")
+    seen: dict[str, tuple[int, str]] = {}
+    for index, source in enumerate(sources):
+        if not isinstance(source, dict):
+            raise InvalidSourceRegistryError(f"source entry {index} is not an object")
+        source_id = source.get("id")
+        if not isinstance(source_id, str) or not source_id.strip() or source_id != source_id.strip():
+            raise InvalidSourceRegistryError(f"source entry {index} has a missing or blank id")
+        key = source_id.casefold()
+        if key in seen:
+            first_index, first_id = seen[key]
+            raise InvalidSourceRegistryError(
+                f"duplicate source id: entry {first_index} ({first_id!r}) and entry {index} ({source_id!r})"
+            )
+        seen[key] = (index, source_id)
+
+
 def check_sources(
     config: dict,
     *,
@@ -2648,6 +2700,8 @@ def check_sources(
     save: bool = True,
     execution_profile: str | None = None,
 ) -> dict:
+    # Before any lock, provider request or state write.
+    validate_source_registry(config.get("sources", []))
     # A fresh set of 429-blocked hosts for this run only.
     token = _RUN_BLOCKED_HOSTS.set(set())
     try:

@@ -19,11 +19,12 @@ from clearparcel.datawatch.dashboard_templates import (
     _layout,
     _public_layout_v2,
 )
+from clearparcel.datawatch.product import PRODUCT_NAME, page_title
 
 from clearparcel.datawatch.watch import _safe_diagnostic, check_sources, load_history, load_history_index, load_state
 from clearparcel.datawatch.transport import RequestDeadline
 from clearparcel.datawatch.aggregate import with_freshness
-from clearparcel.datawatch.parcel_access import access_label, load_parcel_access, statewide_access_label
+from clearparcel.datawatch.parcel_access import CountyPermission, access_label, load_parcel_access, statewide_access_label
 from clearparcel.datawatch.public_values import safe_public_url
 from clearparcel.datawatch.csp import secure_html, strip_markers
 from clearparcel.datawatch.brand_assets import dispatch_brand_asset
@@ -398,7 +399,16 @@ def _county_status(config: dict, county: dict, state: dict, *, profiles: dict | 
     open_approved = str((catalog_record or {}).get("gac_open_approval", "")).lower() == "true"
     has_data = bool((catalog_record or {}).get("data_url"))
 
-    monitored_sources = list(matches)
+    permission = (profile.get("monitoring") or {}).get("permission")
+    visible = []
+    for src in matches:
+        if permission and CountyPermission.skip_reason(src, permission):
+            label, _note = CountyPermission.display(src, permission)
+            visible.append({**src, "status": label, "_permission_blocked": True})
+        else:
+            visible.append(src)
+    matches = visible
+    monitored_sources = [src for src in matches if not src.get("_permission_blocked")]
     if statewide_monitored and isinstance(statewide_source, dict):
         monitored_sources.append(statewide_source)
 
@@ -423,6 +433,12 @@ def _county_status(config: dict, county: dict, state: dict, *, profiles: dict | 
         # window is not "actively checked": keep availability and check age apart.
         if profile['monitoring'].get('reporting') == 'overdue' and status in ('ok', 'unknown'):
             status = 'overdue'
+    blocked = [src for src in matches if src.get("_permission_blocked")]
+    # A paused county-server check must not be shown as a failed check. MnGeo
+    # coverage still uses its own health.
+    if blocked and not any(not src.get("_permission_blocked") for src in matches) and "mngeo-open" not in monitoring_paths:
+        status = blocked[0].get("status") or status
+    matches = [{key: value for key, value in src.items() if key != "_permission_blocked"} for src in matches]
     return {
         "name": name,
         "slug": county["slug"],
@@ -658,7 +674,7 @@ def _statewide_snapshot(config: dict) -> dict:
         })
     aggregate_sources.sort(key=lambda row: (str(row.get("county") or ""), str(row.get("name") or "")))
     return {
-        "title": "Minnesota GIS Data Watchtower snapshot",
+        "title": f"{PRODUCT_NAME} snapshot",
         **_snapshot_time_fields(dt.datetime.now(dt.timezone.utc).isoformat(), "snapshot_created"),
         **_snapshot_time_fields(state.get("generated_at"), "watchtower_last_checked"),
         "overall": _status_class(state.get("overall","unknown")),
@@ -688,6 +704,8 @@ def _coverage_status(value: str) -> str:
         "not-configured": "No source information yet",
         "warn": "Needs attention",
         "error": "Check failed",
+        "paused": "Paused",
+        "awaiting-permission": "Awaiting permission",
     }.get(value, value.replace("-", " ").title())
 
 
@@ -698,12 +716,14 @@ def _health_status(value: str) -> str:
         "warn": "Warning",
         "error": "Error",
         "unknown": "Unknown",
+        "paused": "Paused",
+        "awaiting-permission": "Awaiting permission",
     }.get(value, "Unknown")
 
 
 def _status_class(value: str) -> str:
     value = str(value or "unknown").strip().lower()
-    return value if value in {"ok", "warn", "error", "info", "unknown"} else "unknown"
+    return value if value in {"ok", "warn", "error", "info", "unknown", "paused", "awaiting-permission"} else "unknown"
 
 
 def _friendly_status(value: str) -> str:
@@ -816,7 +836,7 @@ def build_static_site(config: dict, output_dir: str | Path) -> dict:
             f'<strong>Data type:</strong> {_esc(src.get("category") or "—")}<br><strong>Last checked:</strong> {_esc(src.get("checked_at") or "—")}<br>' \
             f'<strong>Changes found this check:</strong> {_esc(_static_change_count(src))}</p></div>'
         (output / filename).write_text(strip_markers(
-            _layout(f'Watchtower — {src.get("name") or sid}', detail, refresh_seconds=300,
+            _layout(page_title(src.get("name") or sid), detail, refresh_seconds=300,
                     static=True, public_summary=False, static_bundle=True)),
             encoding="utf-8",
         )
@@ -827,7 +847,7 @@ def build_static_site(config: dict, output_dir: str | Path) -> dict:
         f'<div class="card"><div class="muted">Warnings / errors</div><div class="metric">{counts["warn"]} / {counts["error"]}</div></div></div>' \
         f'<div class="card"><div class="muted">Last checked</div><strong>{_esc(public.get("generated_at") or "No saved observation")}</strong></div><br>' \
         '<div class="card"><h2>Data being watched</h2><table><thead><tr><th>Data source</th><th>Status</th><th>Provided by</th><th>Type</th><th>Records</th><th>Changes found</th><th>Last checked</th></tr></thead><tbody>' + "".join(rows) + "</tbody></table></div>"
-    page = _layout("GIS Data Watchtower", body, refresh_seconds=300, static=True,
+    page = _layout(PRODUCT_NAME, body, refresh_seconds=300, static=True,
                    public_summary=False, static_bundle=True)
     (output / "index.html").write_text(strip_markers(page), encoding="utf-8")
     (output / "state.json").write_text(json.dumps(public, indent=2), encoding="utf-8")
@@ -1000,7 +1020,7 @@ def serve(config: dict, host: str = "127.0.0.1", port: int = 8765) -> None:
                 return False
             raw = b"Authentication required"
             self.send_response(401)
-            self.send_header("WWW-Authenticate", 'Basic realm="GIS Data Watchtower"')
+            self.send_header("WWW-Authenticate", f'Basic realm="{PRODUCT_NAME}"')
             self.send_header("Content-Type", "text/plain; charset=utf-8")
             self.send_header("Content-Length", str(len(raw)))
             self.end_headers()
@@ -1094,7 +1114,7 @@ def serve(config: dict, host: str = "127.0.0.1", port: int = 8765) -> None:
             return
 
     server = _BoundedThreadingHTTPServer((host, port), Handler, max_connections=max_connections, request_timeout=request_timeout_seconds)
-    print(f"GIS Data Watchtower dashboard: http://{host}:{port}")
+    print(f"{PRODUCT_NAME} dashboard: http://{host}:{port}")
     try:
         server.serve_forever()
     except KeyboardInterrupt:

@@ -25,7 +25,7 @@ def _gac(key: str) -> dict:
 
 def _state() -> dict:
     return {"schema_version": 3, "generated_at": "2026-10-23T10:00:00+00:00", "overall": "ok",
-            "counts": {"ok": 1, "warn": 0, "error": 0}, "workers": {},
+            "counts": {"ok": 2, "warn": 0, "error": 0}, "workers": {},
             "sources": {key: {"id": key, "status": "ok", "gac_completeness": _gac(key)}
                         for key in ("parcel", "address")}}
 

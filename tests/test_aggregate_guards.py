@@ -240,6 +240,28 @@ class ClockSkewTests(unittest.TestCase):
         self.assertTrue(fresh["workers"]["cloud"]["clock_skew"])
         self.assertFalse(with_freshness({"workers": {"cloud": {"last_report_at": stamp(-5)}}}, now=NOW)["workers"]["cloud"]["clock_skew"])
 
+    def test_future_source_check_is_not_current(self):
+        """Audit WT-A05: a source check beyond the skew tolerance is flagged and stale."""
+        def source_at(minutes):
+            state = {"workers": {"cloud": {"last_report_at": stamp(0)}},
+                     "sources": {"a": {"status": "ok", "worker": "cloud", "checked_at": stamp(minutes)}}}
+            return with_freshness(state, now=NOW)["sources"]["a"]
+        far = source_at(2 * 24 * 60)
+        self.assertEqual((far["clock_skew"], far["stale"], far["reporting"]), (True, True, "stale"))
+        self.assertEqual(far["health"], "healthy")  # health is not rewritten, only reporting
+        for minutes in (0, 4, -60):  # within tolerance or ordinary past checks stay current
+            with self.subTest(minutes=minutes):
+                fresh = source_at(minutes)
+                self.assertEqual((fresh["clock_skew"], fresh["reporting"]), (False, "current"))
+        self.assertEqual(source_at(-27 * 60)["reporting"], "stale")
+
+    def test_future_worker_report_makes_its_sources_stale(self):
+        state = {"workers": {"cloud": {"last_report_at": stamp(24 * 60)}},
+                 "sources": {"a": {"status": "ok", "worker": "cloud", "checked_at": stamp(0)}}}
+        fresh = with_freshness(state, now=NOW)
+        self.assertTrue(fresh["workers"]["cloud"]["stale"])
+        self.assertEqual(fresh["sources"]["a"]["reporting"], "stale")
+
 
 class StateFileTests(IsolatedEnv):
     def test_undecodable_primary_state_recovers_from_backup(self):

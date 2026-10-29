@@ -11,10 +11,11 @@ from clearparcel.datawatch import dashboard
 from clearparcel.datawatch.county_profile_panel import percentage_legend, render_county_profile_panel
 from clearparcel.datawatch.dashboard_refresh import _SCRIPT
 from clearparcel.datawatch.dashboard_templates import _accessible_tables, _layout
+from clearparcel.datawatch.product import page_title
 
 
 def public_page(body="<h2>Example</h2><table><thead><tr><th>A</th></tr></thead><tbody><tr><th>Row</th></tr></tbody></table>"):
-    return _layout("Minnesota Counties — GIS Data Watchtower", body, static=True)
+    return _layout(page_title("Minnesota Counties"), body, static=True)
 
 
 def private_page(body="<p>x</p>"):

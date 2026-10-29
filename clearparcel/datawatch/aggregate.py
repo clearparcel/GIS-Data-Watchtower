@@ -10,8 +10,9 @@ from copy import deepcopy
 from pathlib import Path
 
 from . import strict_json
-from .storage import StorageBackend, StorageConflictError
 from .file_lock import atomic_write
+from .parcel_access import CountyPermission
+from .storage import StorageBackend, StorageConflictError
 
 _ALLOWED_STATUS = {"ok", "warn", "error"}
 # Tolerated clock difference between a worker and the aggregate writer.
@@ -85,7 +86,7 @@ def merge_states(base: dict | None, partial: dict, worker: str, *, now: dt.datet
         # observed or deliberately skipped (disabled or reassigned in the
         # registry); unrelated or renamed IDs do not count.
         intended = {sid for sid, reason in (partial.get("skipped_sources") or {}).items()
-                    if reason in {"disabled", "execution-profile", "hold-for-terms"}}
+                    if reason in {"disabled", "execution-profile"} | CountyPermission.COVERAGE_SKIPS}
         covered = sum(1 for sid in owned if sid in partial_sources or sid in intended)
         allowed = (partial.get("allow_inventory_shrink") is True
                    or covered >= math.ceil(len(owned) * FLEET_RETIREMENT_MIN_SHARE))
@@ -253,14 +254,17 @@ def with_freshness(state: dict, *, worker_stale_minutes: int = 1560, source_stal
     now = now or dt.datetime.now(dt.timezone.utc)
     if now.tzinfo is None:
         now = now.replace(tzinfo=dt.timezone.utc)
+    # A time beyond the clock-skew tolerance in the future is not evidence of a
+    # current check: it is flagged and reported stale until a plausible one arrives.
     for worker in (result.get("workers") or {}).values():
         seen = _parse_time(worker.get("last_report_at") or worker.get("checked_at") or worker.get("last_success_at"))
-        worker["stale"] = not seen or _age_seconds(now, seen) > worker_stale_minutes * 60
         worker["clock_skew"] = bool(seen and _age_seconds(now, seen) < -CLOCK_SKEW_TOLERANCE_SECONDS)
+        worker["stale"] = not seen or worker["clock_skew"] or _age_seconds(now, seen) > worker_stale_minutes * 60
     workers = result.get("workers") or {}
     for source in (result.get("sources") or {}).values():
         seen = _source_check_time(source)
-        source["stale"] = not seen or _age_seconds(now, seen) > source_stale_minutes * 60
+        source["clock_skew"] = bool(seen and _age_seconds(now, seen) < -CLOCK_SKEW_TOLERANCE_SECONDS)
+        source["stale"] = not seen or source["clock_skew"] or _age_seconds(now, seen) > source_stale_minutes * 60
         source["worker_stale"] = bool((workers.get(source.get("worker")) or {}).get("stale"))
         status = source.get("status")
         source["health"] = "healthy" if status == "ok" else "unhealthy" if status in ("warn", "error") else "unknown"

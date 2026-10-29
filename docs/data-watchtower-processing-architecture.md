@@ -1,8 +1,8 @@
-# GIS Data Watchtower processing architecture
+# ClearParcel GIS Data Watchtower processing architecture
 
 Last reviewed: **2026-10-06**
 
-GIS Data Watchtower is cloud-neutral at the monitoring-engine layer and supports local, cloud, and hybrid execution.
+ClearParcel GIS Data Watchtower is cloud-neutral at the monitoring-engine layer and supports local, cloud, and hybrid execution.
 
 ## Components
 

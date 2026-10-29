@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime as dt
 import math
 
+from clearparcel.datawatch.direct_gac_schema import observed_standard_field_names
 from clearparcel.datawatch.public_values import safe_public_url, sanitize_item_metadata, sanitize_source_metadata, _metadata_text, _display_text
 
 
@@ -227,6 +228,34 @@ def validate_snapshot_structure(state: object) -> None:
     for key in ("ok", "warn", "error"):
         if key in state["counts"] and _public_count(state["counts"][key]) is None:
             raise InvalidSnapshotError(f"snapshot count {key} is invalid")
+    validate_snapshot_totals(state)
+
+
+def validate_snapshot_totals(state: dict) -> None:
+    """Reject totals or overall status that disagree with the snapshot's own sources.
+
+    Totals are a tally of the source set (see aggregate.merge_states), so an
+    all-clear can never sit beside an error source. Absent totals stay absent.
+    """
+    sources = state.get("sources") if isinstance(state.get("sources"), dict) else {}
+    counts = state.get("counts") if isinstance(state.get("counts"), dict) else {}
+    derived = _status_counts(sources)
+    for key in ("ok", "warn", "error"):
+        if key in counts and counts[key] != derived[key]:
+            raise InvalidSnapshotError(
+                f"snapshot count {key}={counts[key]} disagrees with {derived[key]} {key} sources")
+    if state.get("overall") is not None and state["overall"] != _overall(derived):
+        raise InvalidSnapshotError(
+            f"snapshot overall={state['overall']!r} disagrees with its sources ({_overall(derived)!r})")
+
+
+def _status_counts(sources: dict) -> dict[str, int]:
+    return {key: sum(1 for record in sources.values() if isinstance(record, dict) and record.get("status") == key)
+            for key in ("ok", "warn", "error")}
+
+
+def _overall(counts: dict[str, int]) -> str:
+    return "error" if counts["error"] else "warn" if counts["warn"] else "ok"
 
 
 def sanitize_public_render_state(state: dict) -> dict:
@@ -263,6 +292,12 @@ def sanitize_public_render_state(state: dict) -> dict:
         metadata = sanitize_source_metadata(source)
         if metadata:
             summary['public_metadata'] = metadata
+
+        # Only public standard vocabulary: which MN GAC parcel names the feed
+        # uses, so schema drift is visible without publishing its schema.
+        standard_names = observed_standard_field_names(source) if source.get("category") == "Parcels" else None
+        if standard_names is not None:
+            summary["gac_standard_field_names"] = standard_names
 
         if source_id == "mn-parcel-county-catalog":
             summary["county_records"] = _sanitize_catalog_records(source.get("county_records"))

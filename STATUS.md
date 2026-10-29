@@ -1,20 +1,62 @@
 # Project status
 
-## County data fees on the dashboard — in review, 2026-10-23
+## County data fees on the dashboard — in review, 2026-10-29
 
 County profiles, the Minnesota Counties page and the exports now show
 published or county-confirmed fees for parcel, address point and road
 centerline data, with source links and dates. Layers without information
 show *Not yet confirmed*, never free. Thirteen parcel fees are seeded from
-the verified research; county outreach replies will fill the rest. Not yet
+the verified research, and replies from Aitkin, Becker, Brown, Carver and
+Chippewa are recorded; further outreach replies will fill the rest. Not yet
 deployed. See [county data fees](docs/county-data-fees.md).
 
-## v0.3.7 dashboard release — prepared, deployment pending, 2026-10-23
+## v0.3.9 coordinated release — deployed, 2026-10-29
 
-Owner-approved release of the October 23 review fixes (#131–#141) to the
-public and private dashboards. The provider and public-publisher jobs stay
-on v0.3.6, unchanged, by owner decision. See
-[the release record](docs/release-v0.3.7.md).
+All four surfaces run v0.3.9 (`0526041`, Cloud Build `08d5ecf8`) with the
+county permission gate (#153) and the ClearParcel GIS Data Watchtower name
+(#154). Only the job images changed; schedules, the 23-hour spacing guard,
+and the execution profile are unchanged. The private registry (35 entries)
+passed `validate_source_registry`. Public acceptance passed and the footer
+shows v0.3.9. No job was executed. See [the release record](docs/release-v0.3.9.md).
+
+## County check permission — deployed in v0.3.9, 2026-10-29
+
+The checker follows the county research record before it contacts a server
+the county itself operates. A `not-assessed` parcel source on that kind of
+server is not polled unless affirmative permission is recorded.
+`stop_requested` also skips a direct query of the county's ArcGIS Online
+hosted feature or map service. MnGeo, Commons, and ArcGIS Online item
+metadata stay outside those gates. `hold-for-terms` is unchanged. A
+`details-and-count` permission reads service metadata and a record count
+only on the hosts the gate covers. Public pages do not present a paused
+county-server check as a failure.
+
+A dry-run against the live registry skips `awaiting-permission` for aitkin,
+beltrami, dakota, olmsted, pipestone, ramsey, rice, st-louis, and waseca, and
+`hold-for-terms` for brown and swift. Koochiching is still checked by design:
+its source is on ArcGIS Online (`services3.arcgis.com`), not a county-operated
+server, and the gate applies only to county servers (ArcGIS Online only for a
+stop request). No job was executed. See [the release record](docs/release-v0.3.9.md).
+
+## v0.3.8 coordinated release — deployed, 2026-10-24
+
+All four surfaces run v0.3.8 (`2a688d6`, Cloud Build `a05785e2`) with the
+October 24 audit fixes (#145–#150). Only the job images changed; schedules,
+cadence, environment and execution profiles are unchanged. The private
+registry passed the new source-ID check before the provider job was switched.
+Public acceptance passed and the first v0.3.8 publisher run succeeded; a
+signed-in private check is pending, and the first v0.3.8 provider run is the
+October 25 05:00 schedule. No job was executed by hand and no provider was
+polled. See [the release record](docs/release-v0.3.8.md).
+
+## v0.3.7 dashboard release — deployed, 2026-10-23
+
+The public and private dashboards run v0.3.7 (`39cff31`, Cloud Build
+`7e16d1bf`) with the October 23 review fixes (#131–#141), including hosted,
+immutably cached brand images. The provider and public-publisher jobs stay
+on v0.3.6, unchanged, by owner decision. Public acceptance passed; a
+signed-in private check is pending. No job was executed and no provider was
+polled. See [the release record](docs/release-v0.3.7.md).
 
 ## Backup check and access review — passed with recommendations, 2026-10-20
 

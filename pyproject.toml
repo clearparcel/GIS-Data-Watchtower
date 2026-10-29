@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "clearparcel-gis-data-watchtower"
-version = "0.3.7"
-description = "Provider-friendly monitoring and QA for public GIS data services"
+version = "0.3.9"
+description = "ClearParcel GIS Data Watchtower — provider-friendly monitoring and QA for public GIS data services"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.12"

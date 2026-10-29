@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 from clearparcel.datawatch.build_info import application_identity
 from clearparcel.datawatch.dashboard import _public_layout_v2
+from clearparcel.datawatch.product import PRODUCT_NAME
 
 
 class BuildIdentityTests(unittest.TestCase):
@@ -32,7 +33,7 @@ class BuildIdentityTests(unittest.TestCase):
             build_file = Path(folder) / "build_info.json"
             build_file.write_text(json.dumps({"revision": revision, "environment": "preview"}), encoding="utf-8")
             with patch("clearparcel.datawatch.build_info.BUILD_INFO_FILE", build_file), patch("clearparcel.datawatch.build_info.PROJECT_FILE", Path(folder) / "missing.toml"), patch("clearparcel.datawatch.build_info.version", return_value="0.1.1"):
-                page = _public_layout_v2("Watchtower", "")
+                page = _public_layout_v2(PRODUCT_NAME, "")
         footer = page.split('<footer class="public-footnote">', 1)[1].split('</footer>', 1)[0]
         self.assertIn('<strong class="application-version">v0.1.1</strong>', footer)
         self.assertNotIn("build", footer.lower())
@@ -41,9 +42,9 @@ class BuildIdentityTests(unittest.TestCase):
         self.assertNotIn(revision, footer)
 
     def test_footer_uses_transparent_png_logo(self):
-        page = _public_layout_v2("Watchtower", "")
+        page = _public_layout_v2(PRODUCT_NAME, "")
         self.assertRegex(page, r'<img src="/assets/clearparcel-logo-[0-9a-f]{12}\.png" alt="ClearParcel"')
-        bundle = _public_layout_v2("Watchtower", "", static_bundle=True)
+        bundle = _public_layout_v2(PRODUCT_NAME, "", static_bundle=True)
         self.assertIn('<img src="data:image/png;base64,', bundle)
 
     def test_missing_or_invalid_metadata_does_not_invent_a_build(self):

@@ -7,6 +7,7 @@ from pathlib import Path
 
 from clearparcel.datawatch.brand_assets import asset_url, dispatch_brand_asset
 from clearparcel.datawatch.dashboard_templates import _layout
+from clearparcel.datawatch.product import PRODUCT_NAME
 
 ASSETS = Path(__file__).resolve().parents[1] / "clearparcel" / "datawatch"
 _FILES = {
@@ -39,7 +40,7 @@ class _Handler:
 
 class HostedBrandAssetTests(unittest.TestCase):
     def test_hosted_page_references_versioned_urls_instead_of_embedding(self):
-        page = _layout("GIS Data Watchtower", "<p>test</p>", static=True, refresh_seconds=0)
+        page = _layout(PRODUCT_NAME, "<p>test</p>", static=True, refresh_seconds=0)
         self.assertNotIn("data:image/", page)
         for key in _FILES:
             with self.subTest(key=key):
@@ -47,13 +48,13 @@ class HostedBrandAssetTests(unittest.TestCase):
                 self.assertIn(asset_url(key), page)
 
     def test_hosted_page_is_much_smaller_than_offline_export(self):
-        hosted = _layout("GIS Data Watchtower", "<p>test</p>", static=True, refresh_seconds=0)
-        bundle = _layout("GIS Data Watchtower", "<p>test</p>", static=True, static_bundle=True, refresh_seconds=0)
+        hosted = _layout(PRODUCT_NAME, "<p>test</p>", static=True, refresh_seconds=0)
+        bundle = _layout(PRODUCT_NAME, "<p>test</p>", static=True, static_bundle=True, refresh_seconds=0)
         embedded = sum((ASSETS / name).stat().st_size for name in _FILES.values())
         self.assertGreater(len(bundle) - len(hosted), embedded)
 
     def test_offline_export_stays_self_contained(self):
-        bundle = _layout("GIS Data Watchtower", "<p>test</p>", static=True, static_bundle=True, refresh_seconds=0)
+        bundle = _layout(PRODUCT_NAME, "<p>test</p>", static=True, static_bundle=True, refresh_seconds=0)
         self.assertNotIn("/assets/", bundle)
         self.assertEqual(len(re.findall(r'src="data:image/', bundle)), 2)
         self.assertEqual(len(re.findall(r'href="data:image/png', bundle)), 2)

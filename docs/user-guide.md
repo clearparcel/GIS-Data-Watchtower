@@ -1,4 +1,4 @@
-# Minnesota Open Data Watchtower — public user guide
+# ClearParcel GIS Data Watchtower — public user guide
 
 **Live dashboard:** https://gis-watchtower.clear-parcel.com/
 
@@ -8,7 +8,7 @@
 
 ## Before you begin
 
-Minnesota Open Data Watchtower is a **free, public, read-only** view of GIS monitoring observations and county data-access research. It helps locate evidence and understand data availability, freshness, and field population. It does **not** establish legal boundaries, ownership, source-data licensing rights, or a county's full compliance with a data standard.
+ClearParcel GIS Data Watchtower is a **free, public, read-only** view of GIS monitoring observations and county data-access research. It helps locate evidence and understand data availability, freshness, and field population. It does **not** establish legal boundaries, ownership, source-data licensing rights, or a county's full compliance with a data standard.
 
 The four top navigation sections are **Overview**, **Minnesota Counties**, **MN GAC**, and **Data Sources**. The top-right **Export** menu offers downloadable summaries.
 
