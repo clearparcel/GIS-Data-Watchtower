@@ -288,6 +288,10 @@ def _url_host(url: str) -> str:
 # Hosts under an HTTP 429 backoff during the current check run. Redirects to
 # them are refused so a different source cannot reach a host that asked to stop.
 _RUN_BLOCKED_HOSTS: contextvars.ContextVar[set] = contextvars.ContextVar("watchtower_blocked_hosts")
+# Optional durable sink for 429 backoffs beyond local state (the cloud job's
+# storage embargo object). Called with the current backoffs after each local
+# checkpoint; it must raise if it cannot persist them.
+_RATE_LIMIT_SINK: contextvars.ContextVar = contextvars.ContextVar("watchtower_rate_limit_sink", default=None)
 
 
 def _block_hosts(hosts) -> None:
@@ -2105,6 +2109,13 @@ def _checkpoint_rate_limits(state_path: Path, previous_state: dict, rate_limits:
         # Fail closed: without a durable backoff, the next run could poll the host again.
         raise RateLimitPersistenceError(
             f"could not persist a provider 429 backoff to {state_path}; stopping this run") from exc
+    sink = _RATE_LIMIT_SINK.get()
+    if sink is not None:
+        try:
+            sink(dict(rate_limits))
+        except Exception as exc:  # noqa: BLE001 - fail closed on any sink failure
+            raise RateLimitPersistenceError(
+                "could not persist a provider 429 backoff to the shared embargo; stopping this run") from exc
 
 
 _RETAINABLE = frozenset({"unavailable", "deferred", "skipped"})  # never "held"
@@ -2777,15 +2788,18 @@ def check_sources(
     source_filter: str | None = None,
     save: bool = True,
     execution_profile: str | None = None,
+    rate_limit_sink=None,
 ) -> dict:
     # Before any lock, provider request or state write.
     validate_source_registry(config.get("sources", []))
     _validate_dispatch_options(config, "configuration", _CONFIG_DISPATCH_OPTIONS)
     # A fresh set of 429-blocked hosts for this run only.
     token = _RUN_BLOCKED_HOSTS.set(set())
+    sink_token = _RATE_LIMIT_SINK.set(rate_limit_sink)
     try:
         return _check_sources(config, source_filter=source_filter, save=save, execution_profile=execution_profile)
     finally:
+        _RATE_LIMIT_SINK.reset(sink_token)
         _RUN_BLOCKED_HOSTS.reset(token)
 
 

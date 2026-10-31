@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import datetime as dt
+import json
 import os
 import tempfile
 import urllib.parse
@@ -7,7 +9,17 @@ from pathlib import Path
 
 from .aggregate import publish_partial
 from .storage import StorageConflictError, backend_from_env
-from .watch import _EXECUTION_PROFILES, _resolve_execution_profile, check_sources, load_config, validate_source_registry
+from . import strict_json
+from .watch import (
+    _EXECUTION_PROFILES,
+    _active_rate_limits,
+    _resolve_execution_profile,
+    _validated_state,
+    check_sources,
+    load_config,
+    load_state,
+    validate_source_registry,
+)
 
 
 ARTIFACTS = {
@@ -17,6 +29,11 @@ ARTIFACTS = {
     "alerts_text_file": "alerts.txt",
 }
 HISTORY_ARCHIVE = "history.jsonl.1"
+# Per-host provider 429 backoffs, written (version-conditional) the moment a
+# 429 arrives, so a container killed before its state upload still leaves the
+# embargo behind (audit WT31-02). Private: it lives beside state.json.
+RATE_LIMIT_EMBARGO = "rate-limit-embargo.json"
+_EMBARGO_ATTEMPTS = 8
 # RFC 2606 / 6761 names used only by placeholder configurations.
 _PLACEHOLDER_DOMAINS = ("example.com", "example.org", "example.net", "example", "invalid", "test", "localhost")
 
@@ -80,6 +97,69 @@ def _upload_backoff_checkpoint(storage, state_path: Path | None, downloaded: str
     except Exception:  # noqa: BLE001 - a conflict means another writer advanced state
         return False
     return True
+
+
+def _merge_backoffs(*sources: dict) -> dict:
+    """Combine per-host backoffs; the longer (or operator-held) embargo wins."""
+    merged: dict = {}
+    for backoffs in sources:
+        for host, entry in (backoffs or {}).items():
+            current = merged.get(host)
+            if current is None:
+                merged[host] = dict(entry)
+                continue
+            if current.get("hold_until_cleared") is True:
+                continue
+            if entry.get("hold_until_cleared") is True or str(entry.get("not_before")) > str(current.get("not_before")):
+                merged[host] = dict(entry)
+    return merged
+
+
+def _read_embargo(storage, local: Path) -> tuple[dict, str | int | None]:
+    """The active shared embargo and its version. An unreadable embargo fails closed."""
+    exists, version = storage.download_versioned(RATE_LIMIT_EMBARGO, local)
+    if not exists:
+        return {}, version
+    try:
+        value = strict_json.loads(local.read_text(encoding="utf-8"))
+        if not isinstance(value, dict) or not isinstance(value.get("rate_limits"), dict):
+            raise ValueError("rate_limits must be an object")
+    except (OSError, ValueError) as exc:
+        raise RuntimeError(f"{RATE_LIMIT_EMBARGO} is unreadable; refusing to poll providers "
+                           "until an operator repairs it") from exc
+    return _active_rate_limits(value["rate_limits"], dt.datetime.now(dt.timezone.utc)), version
+
+
+def _embargo_sink(storage, workdir: Path):
+    """Persist each 429 backoff to the shared embargo object immediately."""
+    local = workdir / RATE_LIMIT_EMBARGO
+
+    def sink(rate_limits: dict) -> None:
+        for _attempt in range(_EMBARGO_ATTEMPTS):
+            current, version = _read_embargo(storage, local)
+            merged = _merge_backoffs(current, rate_limits)
+            local.write_text(json.dumps({"schema_version": 1, "rate_limits": merged}, indent=2,
+                                        allow_nan=False) + "\n", encoding="utf-8")
+            try:
+                storage.upload_if_version(RATE_LIMIT_EMBARGO, local, version)
+                return
+            except StorageConflictError:
+                continue
+        raise StorageConflictError(f"{RATE_LIMIT_EMBARGO} kept changing; backoff not persisted")
+
+    return sink
+
+
+def _apply_embargo(storage, state_path: Path | None, workdir: Path) -> None:
+    """Fold the shared embargo into the downloaded local state before any request."""
+    embargo, _version = _read_embargo(storage, workdir / RATE_LIMIT_EMBARGO)
+    if not embargo or state_path is None:
+        return
+    state = load_state(state_path) if state_path.is_file() else {"schema_version": 1, "sources": {}}
+    state = _validated_state(state)
+    state["rate_limits"] = _merge_backoffs(state.get("rate_limits") or {}, embargo)
+    state.pop("_state_recovered_from_backup", None)
+    state_path.write_text(json.dumps(state, indent=2, allow_nan=False) + "\n", encoding="utf-8")
 
 
 def job_storage(config: dict, config_path: str | Path):
@@ -146,9 +226,12 @@ def _run_cloud_job(config_path: str | Path, workdir: Path) -> dict:
     profile = job_profile()
     require_publishable_profile(config, profile)
     state_path = Path(config["state_file"]) if config.get("state_file") else None
+    # A backoff another (possibly killed) job recorded applies to this run too.
+    _apply_embargo(storage, state_path, workdir)
     downloaded_state = _file_digest(state_path)
     try:
-        result = check_sources(config, save=True, execution_profile=profile)
+        result = check_sources(config, save=True, execution_profile=profile,
+                               rate_limit_sink=_embargo_sink(storage, workdir))
     except BaseException:
         # A provider 429 is checkpointed into local state as soon as it is
         # signaled. If the run then fails, upload that checkpoint (version-

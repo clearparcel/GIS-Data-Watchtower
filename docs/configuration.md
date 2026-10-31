@@ -152,8 +152,16 @@ source that received it. Watchtower:
    run's observations are saved only when the run completes. If the backoff
    cannot be written, the run stops instead of polling further. A cloud job
    whose run fails uploads that checkpoint to its state object with the same
-   version precondition as a normal upload. A job killed outright before the
-   upload (for example, the container is terminated) can still lose it.
+   version precondition as a normal upload. A cloud job also writes each
+   backoff, as soon as it arrives, to a private `rate-limit-embargo.json`
+   object beside `state.json` (version-conditional, merged with backoffs other
+   jobs recorded; the longer or operator-held backoff wins). Every cloud job
+   folds that object into its state before any request, so a container killed
+   outright before its state upload still leaves the embargo behind. If the
+   embargo cannot be written, or exists but cannot be read, the job stops
+   instead of polling. To clear an operator hold (`hold_until_cleared`) on a
+   cloud worker, remove the host from both `state.json` and
+   `rate-limit-embargo.json`.
 
 Numeric dispatch options (`timeout_seconds` and `retries` on any source, and
 the top-level `timeout_seconds`, `retries`, `retry_delay_seconds`, and
