@@ -8,7 +8,8 @@ from pathlib import Path
 
 from clearparcel.datawatch.public_dashboard import sanitize_public_render_state, sanitize_source_metadata
 from clearparcel.datawatch import strict_json
-from clearparcel.datawatch.storage import GCSStorage, StorageBackend, StorageConflictError
+from clearparcel.datawatch.public_projection import validate_snapshot_structure
+from clearparcel.datawatch.storage import GCSStorage, StorageBackend, StorageConflictError, gcs_object_identity
 from clearparcel.datawatch.aggregate import _parse_time
 
 
@@ -23,6 +24,21 @@ _FORBIDDEN_PUBLIC_KEYS = {
     "statistics_queries",
     "gac_check_error",
 }
+
+
+class PublisherAliasError(RuntimeError):
+    """Source and destination address the same object; publishing would overwrite private input."""
+
+
+def _refuse_alias(source_identity: str | None, destination_identity: str | None) -> None:
+    if source_identity is not None and source_identity == destination_identity:
+        raise PublisherAliasError(
+            "public publisher source and destination are the same object; refusing to overwrite private input")
+
+
+def _identity(backend, name: str) -> str | None:
+    identify = getattr(backend, "object_identity", None)
+    return identify(name) if callable(identify) else None
 
 
 def _required_env(name: str) -> str:
@@ -118,6 +134,8 @@ def publish_public_snapshot(
     workdir: str | Path,
 ) -> dict:
     """Read the unified aggregate, sanitize it, and publish only the public representation."""
+    # Before any read or write: the destination must never be the private input.
+    _refuse_alias(_identity(source, source_object), _identity(destination, destination_object))
     root = Path(workdir)
     root.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="watchtower-public-", dir=root) as scratch:
@@ -131,6 +149,9 @@ def publish_public_snapshot(
         raw = strict_json.loads(raw_path.read_text(encoding="utf-8"))
         public = sanitize_public_render_state(raw)
         validate_public_state(public)
+        # The same contract the public reader applies: a snapshot it would
+        # reject must never replace the last accepted publication.
+        validate_snapshot_structure(public)
         current_path = scratch_root / "destination.json"
         published = False
         for attempt in range(8):
@@ -170,18 +191,21 @@ def publish_public_snapshot_from_env() -> dict:
 
     Distinct service identities are a deployment configuration responsibility.
     """
-    source = GCSStorage(
-        _required_env("WATCHTOWER_PUBLIC_SOURCE_BUCKET"),
-        os.environ.get("WATCHTOWER_PUBLIC_SOURCE_PREFIX", "").strip("/"),
-    )
-    destination = GCSStorage(
-        _required_env("WATCHTOWER_PUBLIC_DEST_BUCKET"),
-        os.environ.get("WATCHTOWER_PUBLIC_DEST_PREFIX", "").strip("/"),
-    )
+    source_bucket = _required_env("WATCHTOWER_PUBLIC_SOURCE_BUCKET")
+    source_prefix = os.environ.get("WATCHTOWER_PUBLIC_SOURCE_PREFIX", "").strip("/")
+    destination_bucket = _required_env("WATCHTOWER_PUBLIC_DEST_BUCKET")
+    destination_prefix = os.environ.get("WATCHTOWER_PUBLIC_DEST_PREFIX", "").strip("/")
+    source_object = os.environ.get("WATCHTOWER_PUBLIC_SOURCE_OBJECT", "aggregate-state.json")
+    destination_object = os.environ.get("WATCHTOWER_PUBLIC_DEST_OBJECT", "aggregate-state.json")
+    # Refuse an ambiguous configuration before constructing either client.
+    _refuse_alias(gcs_object_identity(source_bucket, source_prefix, source_object),
+                  gcs_object_identity(destination_bucket, destination_prefix, destination_object))
+    source = GCSStorage(source_bucket, source_prefix)
+    destination = GCSStorage(destination_bucket, destination_prefix)
     return publish_public_snapshot(
         source,
         destination,
-        source_object=os.environ.get("WATCHTOWER_PUBLIC_SOURCE_OBJECT", "aggregate-state.json"),
-        destination_object=os.environ.get("WATCHTOWER_PUBLIC_DEST_OBJECT", "aggregate-state.json"),
+        source_object=source_object,
+        destination_object=destination_object,
         workdir=os.environ.get("WATCHTOWER_PUBLIC_PUBLISH_WORKDIR", "/tmp/watchtower-public-publish"),
     )
