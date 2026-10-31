@@ -227,7 +227,7 @@ class HybridReadinessTests(unittest.TestCase):
                 "generated_at": "2026-10-04T20:00:00+00:00", "overall": "ok",
                 "counts": {"ok": 0, "warn": 0, "error": 0}, "sources": {},
             }
-            def fake_check(config, save=True, execution_profile=None):
+            def fake_check(config, save=True, execution_profile=None, rate_limit_sink=None):
                 for key, content in (
                     ("state_file", "{}"), ("history_file", "{}\n"),
                     ("alerts_file", "{}"), ("alerts_text_file", "ok\n"),

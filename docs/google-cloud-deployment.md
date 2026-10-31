@@ -91,7 +91,7 @@ ClearParcel GIS Data Watchtower can run as a scheduled **Cloud Run Job** while r
 
 Cloud Scheduler → Cloud Run Job → GIS providers → Google Cloud Storage
 
-The job downloads the last saved state/history into ephemeral `/tmp`, performs one bounded Watchtower run, then uploads the resulting artifacts back to Cloud Storage. Both the active `history.jsonl` and the retained `history.jsonl.1` archive use generation preconditions. Dashboard hosting remains separate from provider polling.
+The job downloads the last saved state/history into ephemeral `/tmp`, performs one bounded Watchtower run, then uploads the resulting artifacts back to Cloud Storage. Both the active `history.jsonl` and the retained `history.jsonl.1` archive use generation preconditions. A provider 429 is also written immediately to `rate-limit-embargo.json` in the same bucket (generation-conditional), so the backoff survives a container that is killed mid-run. Dashboard hosting remains separate from provider polling.
 
 ## Required environment
 
@@ -152,7 +152,7 @@ DNS -> Google external Application Load Balancer -> serverless NEG -> Cloud Run 
 
 The public service runs `watchtower public-dashboard`, performs no provider polling, accepts no state-changing POST actions, and reads only the sanitized production object. A separate `watchtower public-publish` Cloud Run Job reads the unified aggregate, reduces it to a public allowlist, validates that forbidden operational fields are absent, and writes the production object. Operational provider URLs, raw change payloads, tracked values, fingerprints, provenance, and worker telemetry are excluded.
 
-Use separate least-privilege service accounts: the public dashboard receives `storage.objects.get` only for the production aggregate; the publisher receives source-object read plus destination-object read and conditional replacement permissions; the Scheduler identity receives only `run.jobs.run` through the job's invoker binding. Destination reads are required by the follow-up CAS publisher; verify existing IAM before releasing it, without broadening unrelated access. Restrict Cloud Run ingress to `internal-and-cloud-load-balancing`; anonymous access is then provided only through the Google load-balancing path. The private operational dashboard remains behind its own authentication boundary.
+Use separate least-privilege service accounts: the public dashboard receives `storage.objects.get` only for the production aggregate; the publisher receives source-object read plus destination-object read and conditional replacement permissions; the Scheduler identity receives only `run.jobs.run` through the job's invoker binding. Destination reads are required by the follow-up CAS publisher; verify existing IAM before releasing it, without broadening unrelated access. Restrict Cloud Run ingress to `internal-and-cloud-load-balancing`; anonymous access is then provided only through the Google load-balancing path. The private operational dashboard remains behind its own authentication boundary and runs as its own service account with object read access only to the Watchtower state and aggregate objects it renders; it does not share the provider job's identity, which can write state and read the private registry (owner decision 2026-10-31).
 
 The ClearParcel deployment is published at **https://gis-watchtower.clear-parcel.com**. Its Cloudflare record is DNS-only; Cloudflare provides authoritative DNS but does not proxy the application traffic.
 

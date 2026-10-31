@@ -53,12 +53,17 @@ DEFAULTS = {
     "max_queue_age_hours": 72,
     "max_messages_per_digest": 25,
     "max_age_hours": 36,
+    # Settled records older than this are pruned on each delivery write
+    # (audit WT31-12 / A08; owner decision 2026-10-31).
+    "retention_days": 180,
 }
 _INTEGER_SETTINGS = ("max_attempts", "max_messages_per_digest")
 # Upper bounds keep every computed delay representable (at most 30 days).
 _DURATION_SETTINGS = {"retry_base_minutes": 43200, "retry_cap_minutes": 43200,
                       "claim_lease_minutes": 43200, "max_queue_age_hours": 720,
-                      "max_age_hours": 720}
+                      "max_age_hours": 720, "retention_days": 3650}
+# Final states only. "ambiguous" waits for operator reconciliation and is kept.
+SETTLED_STATES = frozenset({"sent", "exhausted", "expired", "superseded", "acknowledged"})
 
 
 class LedgerError(ValueError):
@@ -329,6 +334,34 @@ def _sweep(data: dict, at: datetime, settings: dict, current: set) -> None:
                 _note(record, at, "expired", reason="older_than_max_queue_age")
 
 
+def _last_change(record: dict) -> datetime:
+    times = [record.get("accepted_at")] + [h.get("at") for h in record.get("history") or []
+                                           if isinstance(h, dict)]
+    parsed = []
+    for value in times:
+        try:
+            parsed.append(_utc(value))
+        except ValueError:
+            continue
+    return max(parsed)
+
+
+def _prune(data: dict, at: datetime, settings: dict, current: set) -> list:
+    """Drop settled records older than the retention horizon. Returns the keys.
+
+    A key whose condition is still in the current preview is kept, so pruning
+    can never let a continuing incident be queued and sent again.
+    """
+    horizon = at - timedelta(days=settings["retention_days"])
+    events = data["events"]
+    stale = [key for key, record in events.items()
+             if record["state"] in SETTLED_STATES and key not in current
+             and _last_change(record) < horizon]
+    for key in stale:
+        del events[key]
+    return stale
+
+
 def _eligible(data: dict, at: datetime, replay_safe: bool, max_attempts: int) -> list:
     rows = []
     for record in data["events"].values():
@@ -447,6 +480,7 @@ def deliver_alerts(executions, *, expected_sources, routing, as_of, ledger: Aler
             return [], known, mine, 0
         new, known = _enqueue(data, preview["messages"], clock)
         _sweep(data, clock, settings, current)
+        _prune(data, clock, settings, current)
         claimed = []
         backoff = data.get("transport_backoff_until")
         blocked["transport"] = bool(backoff) and clock < _utc(backoff)

@@ -36,6 +36,8 @@ Recommended changes (pending owner decision, none made):
 
 1. Give the read-only private dashboard its own read-only identity instead of
    the provider job's (which can write state and read the registry).
+   *Approved by the owner on 2026-10-31; to be applied with the v0.3.10
+   deployment and verified there.*
 2. Narrow the project's default compute identity, which can read every bucket.
 3. Add an independent backup: object versioning with a noncurrent-version
    lifecycle rule, and/or a daily copy to another region or project.
