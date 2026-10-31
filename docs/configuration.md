@@ -81,7 +81,12 @@ Optional common controls include:
   reason `execution-profile-unresolved`.
 - `thresholds`
 
-The `arcgis_county_catalog` adapter (MnGeo's county catalog) also accepts:
+The `arcgis_county_catalog` adapter (MnGeo's county catalog) reads one result
+page. If the provider flags that page with `exceededTransferLimit`, the source
+fails for that run without a retry or further pages, and the last complete
+county records are kept (`catalog_retained`). An ArcGIS duplicate-ID summary
+whose group query is flagged the same way is reported with
+`duplicate_scan_capped: true`, so its totals are lower bounds. It also accepts:
 
 - `item_metadata`: `true` reads the county's own ArcGIS item metadata record
   for each catalog county whose `data_url` links a hub or opendata dataset
@@ -109,7 +114,11 @@ The `arcgis_county_catalog` adapter (MnGeo's county catalog) also accepts:
 State, backup, alert, and local aggregate files are replaced atomically and keep
 the permissions of the file they replace. A file created for the first time is
 owner-only (0600 on POSIX); grant read access explicitly (permissions or ACLs)
-if a dashboard or publisher runs as a different user.
+if a dashboard or publisher runs as a different user. A state file that is valid
+JSON but not a state object (for example a list or `null` root, or non-object
+`sources` or `rate_limits`) is treated like an unreadable one: the reader falls
+back to a backup with the same minimum shape, and a save never rotates such a
+primary over the existing `.bak`.
 
 | Variable | Effect |
 | --- | --- |
