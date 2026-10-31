@@ -63,6 +63,25 @@ def publish_worker_result(config: dict, result: dict, profile: str, *, workdir: 
     return publish_partial(storage, str(aggregate_name), result, profile, Path(workdir))
 
 
+def _file_digest(path: Path | None) -> str | None:
+    import hashlib
+    try:
+        return hashlib.sha256(path.read_bytes()).hexdigest() if path is not None and path.is_file() else None
+    except OSError:
+        return None
+
+
+def _upload_backoff_checkpoint(storage, state_path: Path | None, downloaded: str | None, versions: dict) -> bool:
+    """Upload a changed local state after a failed run; never mask the original failure."""
+    if state_path is None or _file_digest(state_path) in (None, downloaded):
+        return False
+    try:
+        storage.upload_if_version(ARTIFACTS["state_file"], state_path, versions.get(ARTIFACTS["state_file"]))
+    except Exception:  # noqa: BLE001 - a conflict means another writer advanced state
+        return False
+    return True
+
+
 def job_storage(config: dict, config_path: str | Path):
     """The storage backend a cloud job reads and writes (shared with run evidence)."""
     return backend_from_env(config.get("_root_dir") or Path(config_path).parent.parent)
@@ -126,7 +145,16 @@ def _run_cloud_job(config_path: str | Path, workdir: Path) -> dict:
 
     profile = job_profile()
     require_publishable_profile(config, profile)
-    result = check_sources(config, save=True, execution_profile=profile)
+    state_path = Path(config["state_file"]) if config.get("state_file") else None
+    downloaded_state = _file_digest(state_path)
+    try:
+        result = check_sources(config, save=True, execution_profile=profile)
+    except BaseException:
+        # A provider 429 is checkpointed into local state as soon as it is
+        # signaled. If the run then fails, upload that checkpoint (version-
+        # conditional) so the next job still honors the backoff.
+        _upload_backoff_checkpoint(storage, state_path, downloaded_state, versions)
+        raise
     if (result.get("scope") or {}).get("type") == "empty":
         # Nothing was checked: upload nothing and publish nothing (exit 2).
         return result
