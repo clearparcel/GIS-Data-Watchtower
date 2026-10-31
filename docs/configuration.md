@@ -499,7 +499,13 @@ or viewer-only findings; free statewide access does not override a direct fee.
   hosted feature or map service (`services.arcgis.com` or `servicesN.arcgis.com`).
   `details-and-count` keeps service metadata and a record count on those same
   hosts and turns off parcel-quality, geometry-sample, GAC completeness, and
-  owner, address, and duplicate-ID queries. A permitted scope does not override
+  owner, address, and duplicate-ID queries. Under `details-and-count`, only
+  adapters that reduce to metadata, capabilities, a file header or a count
+  (`arcgis_layer`, `arcgis_service`, `arcgis_image`, `wms`, `wfs`,
+  `http_file`) are dispatched on those hosts; any other adapter, such as
+  `arcgis_county_catalog`, is skipped as `awaiting-permission` before any
+  request. A `declined` reply counts as `scope: none` even when no scope is
+  recorded. A permitted scope does not override
   `hold-for-terms`. The data file is read on every run. Public pages say when
   a county-server check is paused or awaiting permission; that state is not
   shown as a failed check.
