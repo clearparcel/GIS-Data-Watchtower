@@ -101,5 +101,42 @@ class PublicRepoHygieneTests(unittest.TestCase):
         self.assertTrue(scan("AGENTS.md", _sample("Another path: C:", "\\Users\\someone\\x")))
 
 
+
+# Release records from v0.3.10 on keep secret names, versions and digests in
+# the private deployment record (docs/release-policy.md, owner decision 2026-10-31).
+RELEASE_RECORD_FORBIDDEN = {
+    "Secret Manager secret name": re.compile(r"Secret Manager\s+`(?!<)[^`]+`"),
+    "secret or registry version": re.compile(r"\bversion\s+\d+,\s*\d+\s+entries\b", re.IGNORECASE),
+    "registry digest": re.compile(r"\bsha256\s+`[0-9a-f]{6,}", re.IGNORECASE),
+    "Cloud Build ID": re.compile(r"Cloud Build\s+\**`?[0-9a-f]{8}-[0-9a-f]{4}-"),
+}
+
+
+def release_record_findings(relative: str, text: str) -> list[str]:
+    return [f"{relative}: {label}" for label, pattern in RELEASE_RECORD_FORBIDDEN.items()
+            if pattern.search(text)]
+
+
+def _covered_release_records():
+    for path in sorted((ROOT / "docs").glob("release-v*.md")):
+        match = re.fullmatch(r"release-v(\d+)\.(\d+)\.(\d+)\.md", path.name)
+        if match and tuple(int(part) for part in match.groups()) >= (0, 3, 10):
+            yield path
+
+
+class ReleaseRecordHygieneTests(unittest.TestCase):
+    def test_new_release_records_keep_deployment_evidence_private(self):
+        findings = []
+        for path in _covered_release_records():
+            findings.extend(release_record_findings(path.name, path.read_text(encoding="utf-8")))
+        self.assertEqual(findings, [], "Move this evidence to the private deployment record:\n" + "\n".join(findings))
+
+    def test_patterns_detect_the_v039_shapes(self):
+        sample = _sample("Registry check passed: Secret Manager `sample-config` ", "version 13, 35 entries, sha256 `b0b01cd9…`.\n",
+                         "Cloud Build **`", "08d5ecf8-ac21-4e59-9901-017340e1fc86`** passed.")
+        self.assertEqual(len(release_record_findings("sample.md", sample)), 4)
+        self.assertEqual(release_record_findings("sample.md", "The private registry check passed."), [])
+
+
 if __name__ == "__main__":
     unittest.main()

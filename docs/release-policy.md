@@ -42,6 +42,19 @@ A tagged release should:
 
 Tags use `vMAJOR.MINOR.PATCH`. GitHub release notes should summarize user-visible changes and known limitations.
 
+### What a public release record may contain
+
+This repository is public. A `docs/release-vX.Y.Z.md` record, a GitHub
+Release and a PR comment name only what a reader needs to identify the
+release: version, source commit, CI result, and public behavior changes.
+They must not name Secret Manager secrets or their versions, registry
+digests or entry counts, cloud project IDs or numbers, service hostnames,
+service-account addresses, bucket names, build IDs or workstation paths.
+Keep that evidence in the private deployment record and say only that the
+check passed (for example, "the private registry check passed"). Older
+records that predate this rule are accepted as public as written
+(owner decision 2026-10-31) and are not rewritten.
+
 ### Source, downloadable release and deployment are different things
 
 - **Supported source** is `main`; its version is `[project].version` in `pyproject.toml`.
@@ -52,9 +65,10 @@ Tags use `vMAJOR.MINOR.PATCH`. GitHub release notes should summarize user-visibl
 - **Operational deployment** is what the dated `docs/release-vX.Y.Z.md` records
   name, including the exact source commit each surface was built from.
 
-Creating tags or GitHub Releases for those versions is a separate owner
-publication decision; until then, use the release records, not the Releases
-page, to identify what is deployed.
+Starting with v0.3.10, each deployed version is tagged and published as a
+GitHub Release at deployment time (owner decision 2026-10-31). Versions
+v0.3.0 through v0.3.9 are not backfilled; use their release records, not the
+Releases page, to identify what was deployed.
 
 ## Visible application identity
 
