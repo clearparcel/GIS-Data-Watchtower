@@ -416,20 +416,35 @@ def load_config(path: str | Path) -> dict:
     config["_root_dir"] = str(root)
     return config
 
+def _validated_state(value: object) -> dict:
+    """The minimum shape every state reader relies on (audit WT31-09).
+
+    Valid JSON is not enough: a list or ``null`` root, or non-object
+    containers, would fail later instead of falling back to the backup.
+    """
+    if not isinstance(value, dict):
+        raise ValueError("Watchtower state root is not an object")
+    for key in ("sources", "rate_limits"):
+        if key in value and not isinstance(value[key], dict):
+            raise ValueError(f"Watchtower state {key} is malformed")
+    if "sources" in value and not all(isinstance(record, dict) for record in value["sources"].values()):
+        raise ValueError("Watchtower state contains a malformed source record")
+    return value
+
+
 def load_state(path: str | Path) -> dict:
     p = Path(path)
     if not p.exists():
         return {"schema_version": 1, "sources": {}}
     try:
-        return strict_json.loads(p.read_text(encoding="utf-8-sig"))
-    except (OSError, ValueError) as primary:  # JSONDecodeError and UnicodeDecodeError
+        return _validated_state(strict_json.loads(p.read_text(encoding="utf-8-sig")))
+    except (OSError, ValueError) as primary:  # JSONDecodeError, UnicodeDecodeError and bad shape
         backup = p.with_suffix(p.suffix + ".bak")
         if backup.is_file():
             try:
-                recovered = strict_json.loads(backup.read_text(encoding="utf-8-sig"))
-                if isinstance(recovered, dict):
-                    recovered["_state_recovered_from_backup"] = True
-                    return recovered
+                recovered = _validated_state(strict_json.loads(backup.read_text(encoding="utf-8-sig")))
+                recovered["_state_recovered_from_backup"] = True
+                return recovered
             except (OSError, ValueError):
                 pass
         raise RuntimeError(f"Watchtower state is unreadable: {p}") from primary
@@ -443,7 +458,8 @@ def _save_json(path: Path, value: dict) -> None:
         # Never replace a good backup with an unreadable primary.
         try:
             current = path.read_bytes()
-            json.loads(current.decode("utf-8-sig"))
+            # Rotate only a document with the expected shape, never merely valid JSON.
+            _validated_state(json.loads(current.decode("utf-8-sig")))
             atomic_write(path.with_suffix(path.suffix + ".bak"), current, mode=path.stat().st_mode & 0o777)
         except (OSError, ValueError):
             pass
@@ -874,7 +890,10 @@ def _arcgis_duplicate_id_summary(url: str, field: str, timeout: int, *, prefer_c
     groups = data.get("features") or []
     duplicate_groups = len(groups)
     duplicate_rows = sum(max(0, int((x.get("attributes") or {}).get("n") or 0) - 1) for x in groups)
-    return {"duplicate_id_groups": duplicate_groups, "duplicate_id_extra_rows": duplicate_rows, "duplicate_scan_capped": len(groups) >= 2000}
+    # A provider transfer limit below 2,000 also truncates the groups: the
+    # totals are then lower bounds, not a complete scan (audit WT31-08).
+    capped = len(groups) >= 2000 or data.get("exceededTransferLimit") is True
+    return {"duplicate_id_groups": duplicate_groups, "duplicate_id_extra_rows": duplicate_rows, "duplicate_scan_capped": capped}
 
 
 def _field_candidate(field_names: list[str], exact: list[str], contains: list[str] | None = None) -> str | None:
@@ -1845,6 +1864,11 @@ def _arcgis_county_catalog(source: dict, timeout: int) -> dict:
     }
     url = source["url"].rstrip("/") + "/query?" + urllib.parse.urlencode(params)
     data, meta = _json_request(url, timeout, prefer_curl=bool(source.get("prefer_curl")))
+    if data.get("exceededTransferLimit") is True:
+        # One page of a larger result is not the catalog. Fail this source
+        # without a retry or more pages; the last complete catalog is kept.
+        raise PermanentProviderError("ArcGIS county catalog response exceeded the provider transfer limit; "
+                                     "county records would be incomplete")
     county_field = source.get("county_field", "countyname")
     records = {}
     for feature in data.get("features", []):
