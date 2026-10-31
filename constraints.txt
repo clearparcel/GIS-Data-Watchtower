@@ -18,7 +18,7 @@ certifi==2026.10.19
 cryptography==50.0.2
 cffi==2.1.1
 pyasn1-modules==0.4.2
-pyasn1==0.6.4
+pyasn1==0.6.5
 typing-extensions==4.16.0
 tzdata==2026.5
 pycparser==3.0
