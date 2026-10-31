@@ -152,6 +152,12 @@ invalid input, storage conflicts or a refused transport.
   recovery checked before an accepted failure is recorded and superseded
   rather than sent after it. Events without a check time keep the
   arrival-order behavior.
+- **Retention.** Each delivery write prunes settled records (`sent`,
+  `exhausted`, `expired`, `superseded`, `acknowledged`) whose last transition
+  is older than `retention_days` (default 180, at most 3650). `queued`,
+  `retry_wait`, `sending` and `ambiguous` records are never pruned, and a key
+  still in the current preview is kept so a continuing incident is not sent
+  again. Disabled dry runs, `acknowledge` and `reconcile` do not prune.
 - **Repeat policy.** No automatic reminders. Unacknowledged sent events are
   listed by `status` for operator follow-up.
 - **Routing gaps block sending.** Events queue but are not sent while any route
