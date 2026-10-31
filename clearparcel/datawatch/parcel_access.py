@@ -69,6 +69,16 @@ class CountyPermission:
     # Skip reasons a fleet report may treat as deliberate coverage, alongside
     # the existing disabled and execution-profile skips.
     COVERAGE_SKIPS = frozenset({"hold-for-terms", "awaiting-permission", "stop-requested"})
+    # Adapters that, once EXTRA_QUERIES are removed, request only service
+    # metadata, capabilities, a file header or one record count. Anything else
+    # (for example the county catalog adapter, which reads feature attributes)
+    # is outside a details-and-count permission and is not dispatched.
+    LIMITED_ADAPTERS = frozenset({"arcgis_layer", "arcgis_service", "arcgis_image", "wms", "wfs", "http_file"})
+    _ADAPTER_ALIASES = {
+        "arcgis_feature_layer": "arcgis_layer", "arcgis_feature_service": "arcgis_layer",
+        "arcgis_map_service": "arcgis_service", "arcgis_image_service": "arcgis_image",
+        "soil_data_access": "sda_query",
+    }
 
     @staticmethod
     def validate_outreach(monitoring: dict) -> None:
@@ -104,6 +114,9 @@ class CountyPermission:
         stop = monitoring.get("stop_requested") is True or reply == "stop"
         if stop or (scope in CountyPermission.AFFIRMATIVE and reply != "permitted"):
             scope = "none" if stop else None
+        if reply == "declined":
+            # An express refusal is never weaker than no outreach at all.
+            scope = "none"
         decision = monitoring.get("decision")
         if decision not in MONITORING_DECISIONS:
             decision = None
@@ -172,6 +185,18 @@ class CountyPermission:
         return "/rest/services/" in path and ("/featureserver" in path or "/mapserver" in path)
 
     @staticmethod
+    def _adapter(source: dict) -> str:
+        raw = str((source or {}).get("adapter") or (source or {}).get("kind") or "").strip().lower().replace("-", "_")
+        return CountyPermission._ADAPTER_ALIASES.get(raw, raw)
+
+    @staticmethod
+    def _is_limited(source: dict, permission: dict | None) -> bool:
+        """details-and-count applies to this source's server (see ``constrain``)."""
+        return bool(permission and not permission.get("stop_requested")
+                    and permission.get("scope") == "details-and-count"
+                    and (CountyPermission.is_county_operated(source) or CountyPermission.is_county_agol_service(source)))
+
+    @staticmethod
     def skip_reason(source: dict, permission: dict | None) -> str | None:
         """Why this source must not be polled, or None when a check is allowed.
 
@@ -189,6 +214,10 @@ class CountyPermission:
         agol_service = CountyPermission.is_county_agol_service(source)
         if permission and permission.get("stop_requested") and (county_server or agol_service):
             return "stop-requested"
+        if CountyPermission._is_limited(source, permission) and CountyPermission._adapter(source) not in CountyPermission.LIMITED_ADAPTERS:
+            # The adapter cannot be reduced to metadata and a count; refuse it
+            # before dispatch rather than send a broader request.
+            return "awaiting-permission"
         if not CountyPermission.is_county_direct(source) or not county_server:
             return None
         if permission is None:
@@ -203,9 +232,7 @@ class CountyPermission:
     @staticmethod
     def constrain(source: dict, permission: dict | None) -> dict:
         """Drop queries beyond service metadata and a record count when that is all that's permitted."""
-        if not permission or permission.get("stop_requested") or permission.get("scope") != "details-and-count":
-            return source
-        if not (CountyPermission.is_county_operated(source) or CountyPermission.is_county_agol_service(source)):
+        if not CountyPermission._is_limited(source, permission):
             return source
         limited = dict(source)
         for key in CountyPermission.EXTRA_QUERIES:
