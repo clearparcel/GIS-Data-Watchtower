@@ -10,7 +10,10 @@
 
 The current production release is **v0.3.9**, deployed October 29, 2026 to
 all four surfaces: the public and private dashboards and both Cloud Run jobs.
-See [STATUS.md](STATUS.md) and the [release record](docs/release-v0.3.9.md). Alert
+See [STATUS.md](STATUS.md) and the [release record](docs/release-v0.3.9.md). The
+"Latest release" badge shows the newest GitHub Release (v0.2.2), not the deployed
+version; later versions are recorded but not tagged (see the
+[release policy](docs/release-policy.md#source-downloadable-release-and-deployment-are-different-things)). Alert
 delivery to the operator email channel is enabled; the five-cycle observation
 is in progress.
 

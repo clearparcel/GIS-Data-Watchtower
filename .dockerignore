@@ -19,3 +19,8 @@ tests
 .codex/
 .agents/
 .codex-remote-attachments/
+.codex-attachments/
+
+# Only the public example configuration enters a local build context.
+config/*
+!config/example_sources.json

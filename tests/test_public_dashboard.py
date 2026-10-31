@@ -384,7 +384,7 @@ class PublicDashboardTests(unittest.TestCase):
             self.assertNotIn("PRIVATE-SCHEMA", page)
             self.assertNotIn("PRIVATE-FINGERPRINT", page)
             self.assertNotIn('<form method="post" action="/refresh"', page)
-            self.assertIn(f'<div class="brand-eyebrow">{PRODUCT_NAME}</div>', page)
+            self.assertIn(f'<div class="brand-eyebrow" aria-hidden="true">{PRODUCT_NAME}</div>', page)
             self.assertIn(f"<h1>{PRODUCT_NAME}</h1>", page)
             self.assertIn("text-transform:uppercase", page)
             self.assertNotIn("CLEARPARCEL GIS DATA WATCHTOWER", page)
@@ -438,7 +438,7 @@ class PublicDashboardTests(unittest.TestCase):
                 "_public_mode": True,
             }
             page = render_public_dashboard(config)
-            self.assertIn(f'<div class="brand-eyebrow">{PRODUCT_NAME}</div>', page)
+            self.assertIn(f'<div class="brand-eyebrow" aria-hidden="true">{PRODUCT_NAME}</div>', page)
             self.assertIn(f"<h1>{PRODUCT_NAME}</h1>", page)
             self.assertIn("text-transform:uppercase", page)
             self.assertNotIn("CLEARPARCEL GIS DATA WATCHTOWER", page)

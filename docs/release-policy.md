@@ -42,6 +42,20 @@ A tagged release should:
 
 Tags use `vMAJOR.MINOR.PATCH`. GitHub release notes should summarize user-visible changes and known limitations.
 
+### Source, downloadable release and deployment are different things
+
+- **Supported source** is `main`; its version is `[project].version` in `pyproject.toml`.
+- **Latest downloadable release** is the newest GitHub Release. The last one
+  published is v0.2.2; later versions (v0.3.0 through the current one) were
+  recorded and deployed from `main` without a Git tag or GitHub Release, so the
+  README's "Latest release" badge and the Releases page show v0.2.2.
+- **Operational deployment** is what the dated `docs/release-vX.Y.Z.md` records
+  name, including the exact source commit each surface was built from.
+
+Creating tags or GitHub Releases for those versions is a separate owner
+publication decision; until then, use the release records, not the Releases
+page, to identify what is deployed.
+
 ## Visible application identity
 
 Public page footers display **only the semantic application version** (for example, `v0.2.1`), with no build SHA or environment tag. The About section of ClearParcel GIS Data Watchtower explains the mission, links to GitHub, and includes a brief disclaimer. The canonical version is the `[project].version` field in `pyproject.toml`; source checkouts prefer it over stale installed metadata, while installed wheels use distribution metadata.

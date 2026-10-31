@@ -15,6 +15,7 @@ dist/
 
 # Private agent/review scratch
 .codex-remote-attachments/
+.codex-attachments/
 .cce-agent/
 .cce/
 .codex/
