@@ -885,7 +885,7 @@ class DataWatchTests(unittest.TestCase):
     def test_static_export_applies_typed_public_projection_to_nested_values(self):
         state = {
             "schema_version": 2, "overall": "ok",
-            "counts": {"ok": {"private_registry": "SYNTHETIC_CANARY"}, "warn": 1},
+            "counts": {"ok": {"private_registry": "SYNTHETIC_CANARY"}, "warn": 0},
             "sources": {"safe": {"name": {"token": "SYNTHETIC_CANARY"}, "provider": ["SYNTHETIC_CANARY"],
                                  "worker": "private-host-canary", "status": "ok",
                                  "feature_count": {"n": "SYNTHETIC_CANARY"}, "health": {"x": "SYNTHETIC_CANARY"},
@@ -901,7 +901,7 @@ class DataWatchTests(unittest.TestCase):
                 self.assertNotIn("SYNTHETIC_CANARY", text, path.name)
                 self.assertNotIn("private-host-canary", text, path.name)
             public = json.loads((Path(td) / "state.json").read_text(encoding="utf-8"))
-        self.assertEqual(public["counts"], {"warn": 1})
+        self.assertEqual(public["counts"], {"warn": 0})
         safe = public["sources"]["safe"]
         for key in ("name", "provider", "worker", "feature_count"):
             self.assertNotIn(key, safe)
@@ -1301,7 +1301,7 @@ class DataWatchTests(unittest.TestCase):
             history = root / 'history.jsonl'
             state.write_text(json.dumps({
                 'schema_version':2,'generated_at':'2026-10-04T12:00:00+00:00',
-                'overall':'ok\" onmouseover=\"alert(1)','counts':{'ok':1,'warn':0,'error':0},
+                'overall':'ok\" onmouseover=\"alert(1)','counts':{'ok':0,'warn':0,'error':0},
                 'sources':{'x':{'id':'x','name':'X','status':'ok\" onmouseover=\"alert(1)','feature_count':1,
                     'checked_at':'now','observation_fingerprint':'SECRET-FP',
                     'tracked_values':{'private':'SECRET-VALUE'},

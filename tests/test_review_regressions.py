@@ -27,6 +27,11 @@ def report(hour, sources, scope="fleet"):
             "scope": {"type": scope}, "sources": sources}
 
 
+def aggregate(hour):
+    """A valid empty-fleet aggregate the public publisher accepts."""
+    return {**report(hour, {}), "schema_version": 2, "counts": {"ok": 0, "warn": 0, "error": 0}, "workers": {}}
+
+
 class ReviewRegressions(unittest.TestCase):
     def test_missing_detail_pages_return_404_in_both_dashboards(self):
         paths = ("/county?slug=sibley", "/county?slug=not-a-county",
@@ -362,7 +367,7 @@ class ReviewRegressions(unittest.TestCase):
             root = Path(td)
             source, destination = LocalStorage(root / "source"), LocalStorage(root / "destination")
             source.root.mkdir()
-            (source.root / "aggregate-state.json").write_text(json.dumps(report(12, {})), encoding="utf-8")
+            (source.root / "aggregate-state.json").write_text(json.dumps(aggregate(12)), encoding="utf-8")
             self.assertTrue(publish_public_snapshot(source, destination, workdir=root / "work")["published"])
             self.assertTrue(publish_public_snapshot(source, destination, workdir=root / "work")["published"])
             with patch.object(destination, "upload_if_version", side_effect=StorageConflictError("competing writer")) as upload:
@@ -516,7 +521,7 @@ LocalStorage(sys.argv[1]).upload_if_version('state.json',Path(sys.argv[2]),None)
             root = Path(td)
             for name, hour in (("old", 11), ("new", 12)):
                 (root / name).mkdir()
-                (root / name / "aggregate-state.json").write_text(json.dumps(report(hour, {})), encoding="utf-8")
+                (root / name / "aggregate-state.json").write_text(json.dumps(aggregate(hour)), encoding="utf-8")
             ready = threading.Event(); release = threading.Event(); errors = []
             destination = LocalStorage(root / "destination")
             original_cas = destination.upload_if_version
