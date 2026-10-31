@@ -12,6 +12,9 @@ from clearparcel.datawatch.public_publish import (
 )
 from clearparcel.datawatch.storage import LocalStorage
 
+VALID_EMPTY = {"schema_version": 2, "generated_at": "2026-10-05T20:00:00+00:00", "overall": "ok",
+               "counts": {"ok": 0, "warn": 0, "error": 0}, "workers": {}, "sources": {}}
+
 
 class PublicPublishTests(unittest.TestCase):
     def test_validate_public_metadata_rejects_untyped_leaves(self):
@@ -88,7 +91,7 @@ class PublicPublishTests(unittest.TestCase):
                 source_root = root / 'source'
                 source = LocalStorage(source_root)
                 source_root.mkdir()
-                (source_root / 'aggregate-state.json').write_text('{}', encoding='utf-8')
+                (source_root / 'aggregate-state.json').write_text(json.dumps(VALID_EMPTY), encoding='utf-8')
                 destination = LocalStorage(root / 'destination')
                 workdir = root / 'work'
                 target = ('clearparcel.datawatch.public_publish.validate_public_state' if failure == 'validation'
@@ -104,7 +107,7 @@ class PublicPublishTests(unittest.TestCase):
             def __init__(self, name):
                 self.name = name
             def download(self, name, path):
-                path.write_text(json.dumps({'sources': {self.name: {'name': self.name}}}), encoding='utf-8')
+                path.write_text(json.dumps({**VALID_EMPTY, 'sources': {self.name: {'name': self.name}}}), encoding='utf-8')
                 barrier.wait(timeout=10)
                 return True
         with tempfile.TemporaryDirectory() as td:

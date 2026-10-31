@@ -34,6 +34,7 @@ from clearparcel.datawatch.dashboard_routes import dispatch_gac_routes, dispatch
 from clearparcel.datawatch.parcel_access import CountyPermission, load_parcel_access
 from clearparcel.datawatch.county_profile_exports import county_profiles_csv, parcel_sources_csv
 from clearparcel.datawatch.county_profiles import county_profile_counts, _latest, _timestamp
+from clearparcel.datawatch.aggregate import CLOCK_SKEW_TOLERANCE_SECONDS
 from clearparcel.datawatch.county_profile_panel import render_inline_county_panel, percentage_legend, percentage_color_js, research_summary, render_direct_schema_findings
 from clearparcel.datawatch.direct_gac_schema import direct_schema_assessment
 from clearparcel.datawatch.county_map_status import MAP_STATUSES, county_map_status, status_legend, status_patterns
@@ -57,6 +58,14 @@ def _publication_max_age_seconds() -> int:
     return max(60, min(int(os.environ.get("WATCHTOWER_PUBLIC_MAX_PUBLICATION_AGE_SECONDS", "1800")), 86400))
 
 
+def _plausible_time(value, now: dt.datetime) -> dt.datetime | None:
+    """A parsed time, or None when missing, invalid or beyond the skew tolerance in the future."""
+    stamp = _timestamp(value)
+    if stamp is None or (stamp - now).total_seconds() > CLOCK_SKEW_TOLERANCE_SECONDS:
+        return None
+    return stamp
+
+
 def _publication_health(state: dict, *, max_age_seconds: int, now: dt.datetime | None = None) -> tuple[bool, dict]:
     stamp = str(state.get("public_published_at") or "").strip()
     if not stamp:
@@ -68,7 +77,12 @@ def _publication_health(state: dict, *, max_age_seconds: int, now: dt.datetime |
     except ValueError:
         return False, {"status": "stale", "reason": "publication_timestamp_invalid"}
     now = now or dt.datetime.now(dt.timezone.utc)
-    age_seconds = max(0, int((now - published.astimezone(dt.timezone.utc)).total_seconds()))
+    raw_age = int((now - published.astimezone(dt.timezone.utc)).total_seconds())
+    if raw_age < -CLOCK_SKEW_TOLERANCE_SECONDS:
+        # A publication time beyond the skew tolerance in the future is not
+        # evidence of a current publication (audit WT31-07).
+        return False, {"status": "stale", "reason": "publication_clock_skew", "public_published_at": stamp}
+    age_seconds = max(0, raw_age)
     payload = {"status": "ok", "public_published_at": stamp, "age_seconds": age_seconds}
     if age_seconds > max_age_seconds:
         payload["status"] = "stale"
@@ -100,9 +114,12 @@ def _public_age(value) -> str:
         parsed = dt.datetime.fromisoformat(str(value).replace("Z", "+00:00"))
         if parsed.tzinfo is None:
             parsed = parsed.replace(tzinfo=dt.timezone.utc)
-        seconds = max(0, int((dt.datetime.now(dt.timezone.utc) - parsed.astimezone(dt.timezone.utc)).total_seconds()))
+        seconds = int((dt.datetime.now(dt.timezone.utc) - parsed.astimezone(dt.timezone.utc)).total_seconds())
     except (ValueError, TypeError):
         return "Unavailable"
+    if seconds < -CLOCK_SKEW_TOLERANCE_SECONDS:
+        return "Unavailable"
+    seconds = max(0, seconds)
     if seconds < 60:
         return "Just now"
     minutes = seconds // 60
@@ -132,8 +149,9 @@ def render_public_dashboard(config: dict) -> str:
     checked_at = _latest(source.get("checked_at") for source in sources.values())
     now = dt.datetime.now(dt.timezone.utc)
     stale_after = dt.timedelta(minutes=int(config.get("source_stale_minutes", 1560)))
-    overdue = sum(bool((stamp := _timestamp(source.get("checked_at"))) and now - stamp > stale_after) for source in sources.values())
-    unknown_checks = sum(_timestamp(source.get("checked_at")) is None for source in sources.values())
+    overdue = sum(bool((stamp := _plausible_time(source.get("checked_at"), now)) and now - stamp > stale_after) for source in sources.values())
+    # A check time beyond the skew tolerance in the future is unknown, not current.
+    unknown_checks = sum(_plausible_time(source.get("checked_at"), now) is None for source in sources.values())
     research = load_parcel_access()
     profiles = _county_profiles(config, state, research)
     monitoring = county_profile_counts(profiles)
@@ -163,7 +181,7 @@ def render_public_dashboard(config: dict) -> str:
     for name in sorted(workers):
         worker = workers[name] or {}
         status = str(worker.get("overall") or "unknown")
-        reported = _timestamp(worker.get("last_report_at") or worker.get("checked_at"))
+        reported = _plausible_time(worker.get("last_report_at") or worker.get("checked_at"), now)
         reporting = "Reporting unknown" if reported is None else "Reporting overdue" if now - reported > dt.timedelta(minutes=int(config.get("worker_stale_minutes", 1560))) else "Reporting on time"
         worker_cards.append(
             '<div class="card worker-card">'

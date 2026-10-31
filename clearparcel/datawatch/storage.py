@@ -30,6 +30,14 @@ class StorageBackend(abc.ABC):
     def upload_if_version(self, name: str, source: Path, version: str | int | None) -> None:
         raise NotImplementedError("storage backend must implement atomic version-conditional uploads")
 
+    def object_identity(self, name: str) -> str | None:
+        """A normalized identity for the physical object, or None when unknown.
+
+        Two backends that return the same identity address the same object,
+        whatever client, prefix spelling or root spelling reached it.
+        """
+        return None
+
 
 class LocalStorage(StorageBackend):
     def __init__(self, root: str | Path):
@@ -55,6 +63,9 @@ class LocalStorage(StorageBackend):
         if not parent.is_relative_to(self.root) or candidate.is_symlink() or candidate.is_junction():
             raise ValueError(f"local storage object name escapes the storage root: {name!r}")
         return parent / candidate.name
+
+    def object_identity(self, name: str) -> str | None:
+        return "file:" + os.path.normcase(str(self._path(name)))
 
     @staticmethod
     def _read_shared(path: Path) -> bytes:
@@ -94,6 +105,12 @@ class LocalStorage(StorageBackend):
             atomic_write(destination, source.read_bytes())
 
 
+def gcs_object_identity(bucket: str, prefix: str, name: str) -> str:
+    """``gcs:bucket/key`` with empty path segments collapsed, as GCS clients spell keys here."""
+    key = "/".join(part for part in f"{(prefix or '').strip('/')}/{name}".split("/") if part)
+    return f"gcs:{(bucket or '').strip().lower()}/{key}"
+
+
 class GCSStorage(StorageBackend):
     def __init__(self, bucket: str, prefix: str = ""):
         try:
@@ -106,6 +123,9 @@ class GCSStorage(StorageBackend):
 
     def _name(self, name: str) -> str:
         return f"{self.prefix}/{name}" if self.prefix else name
+
+    def object_identity(self, name: str) -> str | None:
+        return gcs_object_identity(self.bucket.name, self.prefix, name)
 
     def download(self, name: str, destination: Path) -> bool:
         exists, _ = self.download_versioned(name, destination)

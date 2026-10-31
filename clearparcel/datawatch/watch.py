@@ -416,20 +416,35 @@ def load_config(path: str | Path) -> dict:
     config["_root_dir"] = str(root)
     return config
 
+def _validated_state(value: object) -> dict:
+    """The minimum shape every state reader relies on (audit WT31-09).
+
+    Valid JSON is not enough: a list or ``null`` root, or non-object
+    containers, would fail later instead of falling back to the backup.
+    """
+    if not isinstance(value, dict):
+        raise ValueError("Watchtower state root is not an object")
+    for key in ("sources", "rate_limits"):
+        if key in value and not isinstance(value[key], dict):
+            raise ValueError(f"Watchtower state {key} is malformed")
+    if "sources" in value and not all(isinstance(record, dict) for record in value["sources"].values()):
+        raise ValueError("Watchtower state contains a malformed source record")
+    return value
+
+
 def load_state(path: str | Path) -> dict:
     p = Path(path)
     if not p.exists():
         return {"schema_version": 1, "sources": {}}
     try:
-        return strict_json.loads(p.read_text(encoding="utf-8-sig"))
-    except (OSError, ValueError) as primary:  # JSONDecodeError and UnicodeDecodeError
+        return _validated_state(strict_json.loads(p.read_text(encoding="utf-8-sig")))
+    except (OSError, ValueError) as primary:  # JSONDecodeError, UnicodeDecodeError and bad shape
         backup = p.with_suffix(p.suffix + ".bak")
         if backup.is_file():
             try:
-                recovered = strict_json.loads(backup.read_text(encoding="utf-8-sig"))
-                if isinstance(recovered, dict):
-                    recovered["_state_recovered_from_backup"] = True
-                    return recovered
+                recovered = _validated_state(strict_json.loads(backup.read_text(encoding="utf-8-sig")))
+                recovered["_state_recovered_from_backup"] = True
+                return recovered
             except (OSError, ValueError):
                 pass
         raise RuntimeError(f"Watchtower state is unreadable: {p}") from primary
@@ -443,7 +458,8 @@ def _save_json(path: Path, value: dict) -> None:
         # Never replace a good backup with an unreadable primary.
         try:
             current = path.read_bytes()
-            json.loads(current.decode("utf-8-sig"))
+            # Rotate only a document with the expected shape, never merely valid JSON.
+            _validated_state(json.loads(current.decode("utf-8-sig")))
             atomic_write(path.with_suffix(path.suffix + ".bak"), current, mode=path.stat().st_mode & 0o777)
         except (OSError, ValueError):
             pass
@@ -874,7 +890,10 @@ def _arcgis_duplicate_id_summary(url: str, field: str, timeout: int, *, prefer_c
     groups = data.get("features") or []
     duplicate_groups = len(groups)
     duplicate_rows = sum(max(0, int((x.get("attributes") or {}).get("n") or 0) - 1) for x in groups)
-    return {"duplicate_id_groups": duplicate_groups, "duplicate_id_extra_rows": duplicate_rows, "duplicate_scan_capped": len(groups) >= 2000}
+    # A provider transfer limit below 2,000 also truncates the groups: the
+    # totals are then lower bounds, not a complete scan (audit WT31-08).
+    capped = len(groups) >= 2000 or data.get("exceededTransferLimit") is True
+    return {"duplicate_id_groups": duplicate_groups, "duplicate_id_extra_rows": duplicate_rows, "duplicate_scan_capped": capped}
 
 
 def _field_candidate(field_names: list[str], exact: list[str], contains: list[str] | None = None) -> str | None:
@@ -1845,6 +1864,11 @@ def _arcgis_county_catalog(source: dict, timeout: int) -> dict:
     }
     url = source["url"].rstrip("/") + "/query?" + urllib.parse.urlencode(params)
     data, meta = _json_request(url, timeout, prefer_curl=bool(source.get("prefer_curl")))
+    if data.get("exceededTransferLimit") is True:
+        # One page of a larger result is not the catalog. Fail this source
+        # without a retry or more pages; the last complete catalog is kept.
+        raise PermanentProviderError("ArcGIS county catalog response exceeded the provider transfer limit; "
+                                     "county records would be incomplete")
     county_field = source.get("county_field", "countyname")
     records = {}
     for feature in data.get("features", []):
@@ -2058,6 +2082,29 @@ def _record_rate_limit(rate_limits: dict, host, retry_after, source_id, default_
         if wait >= _RATE_LIMIT_MAX_SECONDS:
             rate_limits[host]["hold_until_cleared"] = True
     _block_hosts(rate_limits)
+
+
+class RateLimitPersistenceError(RuntimeError):
+    """A provider backoff could not be saved; the run stops instead of polling on."""
+
+
+def _checkpoint_rate_limits(state_path: Path, previous_state: dict, rate_limits: dict) -> None:
+    """Save a 429 backoff as soon as it is signaled, before any other source runs.
+
+    The checkpoint is the previous saved state plus the current backoffs, so a
+    run that later fails or is killed still leaves the embargo on disk for the
+    next invocation. Observations from this run are saved only at the end.
+    """
+    checkpoint = {key: value for key, value in previous_state.items() if key != "_state_recovered_from_backup"}
+    checkpoint.setdefault("schema_version", 1)
+    checkpoint.setdefault("sources", {})
+    checkpoint["rate_limits"] = rate_limits
+    try:
+        _save_json(state_path, checkpoint)
+    except (OSError, TypeError, ValueError) as exc:
+        # Fail closed: without a durable backoff, the next run could poll the host again.
+        raise RateLimitPersistenceError(
+            f"could not persist a provider 429 backoff to {state_path}; stopping this run") from exc
 
 
 _RETAINABLE = frozenset({"unavailable", "deferred", "skipped"})  # never "held"
@@ -2394,6 +2441,8 @@ def _check_sources_unlocked(
                     # run and (persisted) for later runs until Retry-After.
                     _record_rate_limit(rate_limits, exc.host or (hosts[0] if hosts else None),
                                        exc.retry_after, source["id"], default_backoff)
+                    if save:
+                        _checkpoint_rate_limits(state_path, previous_state, rate_limits)
                     rate_limited = True
                     break
                 if isinstance(exc, PermanentProviderError):
@@ -2407,6 +2456,8 @@ def _check_sources_unlocked(
             # source's own observation stands and that host's backoff is persisted.
             signal = details.pop("_auxiliary_rate_limit")
             _record_rate_limit(rate_limits, signal.get("host"), signal.get("retry_after"), source["id"], default_backoff)
+            if save:
+                _checkpoint_rate_limits(state_path, previous_state, rate_limits)
         if details is not None and source["id"] == "mn-parcel-county-catalog":
             try:
                 _retain_item_metadata(details, previous_sources.get(source["id"]))
@@ -2691,6 +2742,33 @@ def validate_source_registry(sources: object) -> None:
                 f"duplicate source id: entry {first_index} ({first_id!r}) and entry {index} ({source_id!r})"
             )
         seen[key] = (index, source_id)
+        _validate_dispatch_options(source, f"source {source_id!r}")
+
+
+_DISPATCH_INT_OPTIONS = ("timeout_seconds", "retries")
+_CONFIG_DISPATCH_OPTIONS = {"timeout_seconds": int, "retries": int, "retry_delay_seconds": float,
+                            "rate_limit_default_backoff_seconds": int}
+
+
+def _validate_dispatch_options(values: dict, label: str, options: dict | None = None) -> None:
+    """Options read during dispatch must convert before any request is made.
+
+    A value that would raise mid-run (for example a non-numeric timeout on a
+    later entry) would abort the run after an earlier host had already
+    signaled a 429; it is refused up front instead.
+    """
+    for key, kind in (options or {name: int for name in _DISPATCH_INT_OPTIONS}).items():
+        if key not in values:
+            continue
+        value = values[key]
+        try:
+            if isinstance(value, bool):
+                raise ValueError
+            converted = kind(value)
+            if converted < 0 or converted != converted:
+                raise ValueError
+        except (TypeError, ValueError, OverflowError):
+            raise InvalidSourceRegistryError(f"{label} has an invalid {key}: {value!r}") from None
 
 
 def check_sources(
@@ -2702,6 +2780,7 @@ def check_sources(
 ) -> dict:
     # Before any lock, provider request or state write.
     validate_source_registry(config.get("sources", []))
+    _validate_dispatch_options(config, "configuration", _CONFIG_DISPATCH_OPTIONS)
     # A fresh set of 429-blocked hosts for this run only.
     token = _RUN_BLOCKED_HOSTS.set(set())
     try:
