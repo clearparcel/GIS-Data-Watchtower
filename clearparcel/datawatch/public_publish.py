@@ -9,7 +9,7 @@ from pathlib import Path
 from clearparcel.datawatch.public_dashboard import sanitize_public_render_state, sanitize_source_metadata
 from clearparcel.datawatch import strict_json
 from clearparcel.datawatch.storage import GCSStorage, StorageBackend, StorageConflictError
-from clearparcel.datawatch.aggregate import _parse_time
+from clearparcel.datawatch.aggregate import CLOCK_SKEW_TOLERANCE_SECONDS, _parse_time
 
 
 _FORBIDDEN_PUBLIC_KEYS = {
@@ -141,9 +141,13 @@ def publish_public_snapshot(
                     public = current
                     break
                 public["public_published_at"] = dt.datetime.now(dt.timezone.utc).isoformat()
-                # Keep the publication clock monotonic when hosts have clock skew.
+                # Keep the publication clock monotonic when hosts have clock skew,
+                # but never carry forward a previous time implausibly far in the
+                # future: it would mask missed publications (audit WT31-07).
                 previous_time = _parse_time(current.get("public_published_at"))
-                if previous_time and previous_time > _parse_time(public["public_published_at"]):
+                now_time = _parse_time(public["public_published_at"])
+                if (previous_time and previous_time > now_time
+                        and (previous_time - now_time).total_seconds() <= CLOCK_SKEW_TOLERANCE_SECONDS):
                     public["public_published_at"] = current["public_published_at"]
                 public_path.write_text(json.dumps(public, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
                 destination.upload_if_version(destination_object, public_path, version)
