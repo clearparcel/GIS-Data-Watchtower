@@ -146,6 +146,20 @@ source that received it. Watchtower:
    last real result was an error);
 3. persists a per-host `not_before` time in the worker's private `state.json`
    (`rate_limits`) and skips the host on later runs until that time passes.
+   The backoff is written to `state.json` as soon as the 429 arrives, before
+   any other source runs, so a run that later fails or is interrupted still
+   leaves it on disk. That checkpoint keeps the previous observations; this
+   run's observations are saved only when the run completes. If the backoff
+   cannot be written, the run stops instead of polling further. A cloud job
+   whose run fails uploads that checkpoint to its state object with the same
+   version precondition as a normal upload. A job killed outright before the
+   upload (for example, the container is terminated) can still lose it.
+
+Numeric dispatch options (`timeout_seconds` and `retries` on any source, and
+the top-level `timeout_seconds`, `retries`, `retry_delay_seconds`, and
+`rate_limit_default_backoff_seconds`) are validated with the registry before
+any request, so a malformed later entry can no longer abort a run after an
+earlier host has signaled a 429.
 
 `not_before` honors `Retry-After` (delta-seconds or HTTP-date) in full, with a
 60-second minimum and a one-year maximum (an effectively indefinite hold); a
@@ -508,7 +522,13 @@ or viewer-only findings; free statewide access does not override a direct fee.
   hosted feature or map service (`services.arcgis.com` or `servicesN.arcgis.com`).
   `details-and-count` keeps service metadata and a record count on those same
   hosts and turns off parcel-quality, geometry-sample, GAC completeness, and
-  owner, address, and duplicate-ID queries. A permitted scope does not override
+  owner, address, and duplicate-ID queries. Under `details-and-count`, only
+  adapters that reduce to metadata, capabilities, a file header or a count
+  (`arcgis_layer`, `arcgis_service`, `arcgis_image`, `wms`, `wfs`,
+  `http_file`) are dispatched on those hosts; any other adapter, such as
+  `arcgis_county_catalog`, is skipped as `awaiting-permission` before any
+  request. A `declined` reply counts as `scope: none` even when no scope is
+  recorded. A permitted scope does not override
   `hold-for-terms`. The data file is read on every run. Public pages say when
   a county-server check is paused or awaiting permission; that state is not
   shown as a failed check.
