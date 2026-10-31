@@ -331,9 +331,9 @@ def _public_layout_v2(title: str, body: str, *, refresh_seconds: int = 30, publi
 {_favicon_html(hosted=hosted)}{refresh_meta}{analytics_script}<meta name="application-name" content="{_esc(PRODUCT_NAME)}"><title>{_esc(title)}</title><style>{_PUBLIC_V2_CSS}{_TABLE_CSS}</style></head><body>
 <a class="skip-link" href="#main-content">Skip to content</a>
 <header class="public-header">
-  <a class="public-brand" href="{brand_href}" aria-label="{_esc(PRODUCT_NAME)} overview">
-    <img class="public-brand-logo" src="{watchtower_logo_src}" width="54" height="54" alt="{_esc(PRODUCT_NAME)} logo" decoding="async">
-    <div class="public-brand-title"><div class="brand-eyebrow">{_esc(PRODUCT_NAME)}</div><h1>{_esc(PRODUCT_NAME)}</h1></div>
+  <a class="public-brand" href="{brand_href}">
+    <img class="public-brand-logo" src="{watchtower_logo_src}" width="54" height="54" alt="" decoding="async">
+    <div class="public-brand-title"><div class="brand-eyebrow" aria-hidden="true">{_esc(PRODUCT_NAME)}</div><h1>{_esc(PRODUCT_NAME)}</h1></div>
   </a>
   <div class="live-state"><span class="live-dot" aria-hidden="true"></span><span class="live-label"><span class="live-long">PUBLIC · READ ONLY</span><span class="live-short">READ ONLY</span></span>{'<button type="button" id="refresh-pause">Pause refresh</button>' if refresh_seconds else ''}</div>
 </header>

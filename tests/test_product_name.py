@@ -39,7 +39,7 @@ class ProductNameTests(unittest.TestCase):
             private = _layout(f"Minnesota Counties — {sentinel}", "<p>counties</p>", static=False, refresh_seconds=0)
         self.assertIn(f"<title>{sentinel}</title>", public)
         self.assertIn(f'<meta name="application-name" content="{sentinel}">', public)
-        self.assertIn(f'<div class="brand-eyebrow">{sentinel}</div>', public)
+        self.assertIn(f'<div class="brand-eyebrow" aria-hidden="true">{sentinel}</div>', public)
         self.assertIn(f"<h1>{sentinel}</h1>", public)
         self.assertIn(".brand-eyebrow{", public)
         self.assertIn("text-transform:uppercase", public.split(".brand-eyebrow{", 1)[1].split("}", 1)[0])

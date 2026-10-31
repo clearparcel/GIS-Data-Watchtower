@@ -5,7 +5,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
 WORKDIR /app
 COPY pyproject.toml README.md LICENSE constraints.txt ./
 COPY clearparcel ./clearparcel
-COPY config ./config
+COPY config/example_sources.json ./config/example_sources.json
 ARG WATCHTOWER_BUILD_REVISION=""
 ARG WATCHTOWER_BUILD_ENVIRONMENT="development"
 # Preview and production images must carry the full source revision.

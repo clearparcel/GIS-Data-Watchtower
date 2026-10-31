@@ -37,6 +37,19 @@ class SupplyChainTests(unittest.TestCase):
         self.assertIn("--constraint constraints.txt", dockerfile)
         self.assertIn("pip uninstall -y pip setuptools", dockerfile)
 
+    def test_build_inputs_exclude_private_configuration_and_attachments(self):
+        # Audit WT31-10: a local docker build copies only the public example.
+        dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
+        copies = [line for line in dockerfile.splitlines() if line.startswith("COPY ")]
+        self.assertIn("COPY config/example_sources.json ./config/example_sources.json", copies)
+        self.assertFalse([line for line in copies if line.split()[1].rstrip("/") == "config"], copies)
+        dockerignore = (ROOT / ".dockerignore").read_text(encoding="utf-8").splitlines()
+        for entry in ("config/*", "!config/example_sources.json", ".codex-attachments/", ".codex-remote-attachments/"):
+            self.assertIn(entry, dockerignore)
+        gitignore = (ROOT / ".gitignore").read_text(encoding="utf-8").splitlines()
+        for entry in (".codex-attachments/", ".codex-remote-attachments/"):
+            self.assertIn(entry, gitignore)
+
     def test_ci_emits_supply_chain_artifacts(self):
         workflow = (ROOT / ".github" / "workflows" / "watchtower-ci.yml").read_text(encoding="utf-8")
         self.assertIn("generate_supply_chain.py", workflow)

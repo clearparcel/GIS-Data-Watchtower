@@ -28,8 +28,14 @@ class WatchtowerBrandingTests(unittest.TestCase):
     def test_public_header_contains_accessible_home_link_and_logo(self):
         page = _layout(PRODUCT_NAME, "<p>test</p>", static=True, static_bundle=True, refresh_seconds=0)
         header = page.split('<header class="public-header">', 1)[1].split("</header>", 1)[0]
-        self.assertIn(f'<a class="public-brand" href="index.html" aria-label="{PRODUCT_NAME} overview">', header)
-        self.assertIn(f'alt="{PRODUCT_NAME} logo"', header)
+        # The link's name is its visible heading (audit WT31-13): no aria-label
+        # that differs from the visible text, a decorative logo, and the
+        # repeated eyebrow hidden from assistive technology.
+        self.assertIn('<a class="public-brand" href="index.html">', header)
+        self.assertNotIn("aria-label", header.split("</a>", 1)[0])
+        self.assertIn('class="public-brand-logo"', header)
+        self.assertIn('alt=""', header)
+        self.assertIn('<div class="brand-eyebrow" aria-hidden="true">', header)
         self.assertIn(f'{PRODUCT_NAME}</h1>', header)
         self.assertLess(header.index('class="public-brand-logo"'), header.index("<h1>"))
         encoded = re.findall(r'<img class="public-brand-logo" src="data:image/webp;base64,([^"]+)"', header)
@@ -38,6 +44,21 @@ class WatchtowerBrandingTests(unittest.TestCase):
         self.assertEqual(decoded, (ASSETS / "watchtower-logo.webp").read_bytes())
         self.assertTrue(decoded.startswith(b"RIFF"))
         self.assertEqual(decoded[8:12], b"WEBP")
+
+    def test_about_link_name_contains_its_visible_label(self):
+        import re as _re
+        from unittest.mock import patch
+        from clearparcel.datawatch.public_dashboard import render_public_dashboard
+        state = {"schema_version": 2, "generated_at": "2026-10-31T12:00:00+00:00", "overall": "ok",
+                 "counts": {"ok": 0, "warn": 0, "error": 0}, "workers": {}, "sources": {}}
+        with patch("clearparcel.datawatch.public_dashboard._dashboard_state", return_value=state):
+            page = render_public_dashboard({"_public_mode": True})
+        link = _re.search(r'<a class="public-about-link"[^>]*>(.*?)</a>', page, _re.S)
+        self.assertNotIn("aria-label", link.group(0).split(">", 1)[0])
+        self.assertTrue(link.group(1).startswith("View on GitHub"))
+        self.assertIn('<span class="sr-only"> (opens in a new tab)</span>', link.group(1))
+        self.assertIn('<span aria-hidden="true">↗</span>', link.group(1))
+        self.assertIn(".sr-only{", page)
 
     def test_offline_static_export_uses_relative_brand_link(self):
         page = _layout(PRODUCT_NAME, "<p>test</p>", static=True, static_bundle=True, refresh_seconds=0)
