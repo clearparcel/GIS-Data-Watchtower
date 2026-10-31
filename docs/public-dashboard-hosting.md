@@ -41,7 +41,7 @@ The public Cloud Run service uses `internal-and-cloud-load-balancing` ingress. I
 
 ## Public/private boundary
 
-The anonymous service reads only the sanitized production aggregate. A separate non-public publisher job reads the unified aggregate, applies the public allowlist, validates that forbidden operational fields are absent, and writes the reduced snapshot to the production bucket. The dashboard never needs access to the private aggregate or provider registry.
+The anonymous service reads only the sanitized production aggregate. A separate non-public publisher job reads the unified aggregate, applies the public allowlist, validates that forbidden operational fields are absent, and writes the reduced snapshot to the production bucket. Before any write it also applies the public reader's own snapshot check (schema version, generation time, containers, and totals and overall that agree with the sources), so a snapshot the dashboard would reject never replaces the last accepted publication; a rejected snapshot leaves the destination bytes and version unchanged. The publisher refuses to run when its source and destination name the same object (same bucket, normalized prefix and object name, or the same local file), before reading or writing either. The static `dashboard-build` export applies the same totals check before it changes its output directory. The dashboard never needs access to the private aggregate or provider registry.
 
 Public output may include:
 

@@ -260,7 +260,8 @@ class DashboardTests(unittest.TestCase):
                 self.assertIs(handler._authorized(), expected)
 
     def test_static_site_counts_are_projected_to_integers(self):
-        state = {"overall": "ok", "counts": {"ok": "<script>x</script>", "warn": 2, "error": -1}, "sources": {}}
+        state = {"overall": "warn", "counts": {"ok": "<script>x</script>", "warn": 2, "error": -1},
+                 "sources": {"a": {"status": "warn"}, "b": {"status": "warn"}}}
         with tempfile.TemporaryDirectory() as td, \
                 patch.object(dashboard, "_dashboard_state", return_value=state), \
                 patch.object(dashboard, "_sanitize_public_state", side_effect=lambda value: value):

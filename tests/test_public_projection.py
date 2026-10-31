@@ -4,6 +4,7 @@ import unittest
 from pathlib import Path
 
 from clearparcel.datawatch.public_dashboard import sanitize_public_render_state
+from clearparcel.datawatch.public_projection import InvalidSnapshotError
 from clearparcel.datawatch.public_publish import publish_public_snapshot
 from clearparcel.datawatch.storage import LocalStorage
 
@@ -60,8 +61,14 @@ class PublicProjectionTests(unittest.TestCase):
             destination = LocalStorage(root / 'destination')
             source.root.mkdir()
             (source.root / 'aggregate-state.json').write_text(json.dumps(raw), encoding='utf-8')
-            publish_public_snapshot(source, destination, workdir=root / 'work')
-            self.assert_safe(json.loads((destination.root / 'aggregate-state.json').read_text(encoding='utf-8')))
+            # A hostile aggregate has no valid schema_version or generated_at, so
+            # the publisher refuses it (audit WT31-03) and nothing reaches the
+            # destination; its sanitized form is still checked for leaks.
+            with self.assertRaises(InvalidSnapshotError):
+                publish_public_snapshot(source, destination, workdir=root / 'work')
+            self.assertFalse((destination.root / 'aggregate-state.json').exists())
+            self.assertEqual(list((root / 'work').iterdir()), [])
+            self.assert_safe(sanitize_public_render_state(raw))
 
     def test_unknown_private_payloads_are_removed_without_forbidden_key_names(self):
         self.assert_safe(sanitize_public_render_state(without_provenance(hostile_state())))

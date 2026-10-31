@@ -34,7 +34,7 @@ from clearparcel.datawatch.county_profiles import FreshnessPolicy, compose_count
 from clearparcel.datawatch.gac_standards import load_gac_standard, normalize_standard_key, standard_keys
 from clearparcel.datawatch.gac_projection import project_gac
 from clearparcel.datawatch.public_values import county_metadata_dates
-from clearparcel.datawatch.public_projection import sanitize_public_render_state
+from clearparcel.datawatch.public_projection import sanitize_public_render_state, validate_snapshot_totals
 from clearparcel.datawatch import strict_json
 
 COUNTIES_FILE = Path(__file__).with_name("minnesota_counties.json")
@@ -801,8 +801,11 @@ def _write_static_manifest(output: Path, names: set[str]) -> None:
 def build_static_site(config: dict, output_dir: str | Path) -> dict:
     """Generate a sanitized, dependency-free static dashboard for Pages-style hosting."""
     output = Path(output_dir)
-    output.mkdir(parents=True, exist_ok=True)
     state = _dashboard_state(config)
+    # Totals or an overall that disagree with the sources are rejected before
+    # anything in the output directory changes (audit WT31-03).
+    validate_snapshot_totals(sanitize_public_render_state(state if isinstance(state, dict) else {}))
+    output.mkdir(parents=True, exist_ok=True)
     public = _sanitize_public_state(state)
     sources = public.get("sources", {})
     current_pages = {"source-" + urllib.parse.quote(sid, safe="") + ".html" for sid in sources}
