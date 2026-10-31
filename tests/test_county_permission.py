@@ -143,6 +143,75 @@ class CheckRuleTests(unittest.TestCase):
         self.assertEqual([source["id"] for source in checked], ["roads"])
         self.assertEqual(result["skipped_sources"]["parcels"], "awaiting-permission")
 
+    def test_declined_reply_without_a_scope_is_not_weaker_than_no_outreach(self):
+        # Audit WT31-01: a declined reply with no scope used to reach the adapter.
+        research = self.patched("Todd", contacted_date="2026-10-29", reply="declined", stop_requested=False)
+        research["Todd"]["monitoring"].pop("scope", None)
+        sources = self.sources()
+        for source in sources:
+            source["county_slug"] = "todd"
+        result, checked = self.checked_sources(sources, research)
+        self.assertEqual([source["id"] for source in checked], ["roads"])
+        self.assertEqual(result["skipped_sources"]["parcels"], "awaiting-permission")
+        self.assertEqual(CountyPermission.from_record(research["Todd"])["scope"], "none")
+
+    def test_declined_reply_validates_through_the_research_file(self):
+        data = research_copy()
+        todd = next(row for row in data["counties"] if row["county"] == "Todd")
+        todd["monitoring"].update({"contacted_date": "2026-10-29", "reply": "declined"})
+        validate_parcel_access(data)
+        permission = CountyPermission.from_record(todd)
+        parcels = self.sources()[0] | {"county_slug": "todd"}
+        self.assertEqual(CountyPermission.skip_reason(parcels, permission), "awaiting-permission")
+
+    def test_limited_scope_refuses_an_adapter_that_reads_feature_attributes(self):
+        # Audit WT31-01: the county catalog adapter always requests attributes,
+        # so a details-and-count grant cannot cover it on the county's server.
+        research = self.patched("Todd", contacted_date="2026-10-29", reply="permitted",
+                                scope="details-and-count", stop_requested=False)
+        sources = [
+            {"id": "catalog", "name": "County catalog", "adapter": "arcgis_county_catalog",
+             "url": "https://county.example/2", "county_slug": "todd", "category": "Parcels",
+             "out_fields": ["synthetic_col"]},
+            {"id": "soils", "name": "County soils", "adapter": "sda_query",
+             "url": "https://county.example/sda", "county_slug": "todd", "category": "Soils"},
+            {"id": "hosted", "name": "Hosted catalog", "adapter": "arcgis_county_catalog",
+             "url": "https://services3.arcgis.com/x/arcgis/rest/services/P/FeatureServer/0",
+             "county_slug": "todd", "category": "Parcels"},
+        ] + [source | {"county_slug": "todd"} for source in self.sources()]
+        with tempfile.TemporaryDirectory() as td:
+            config = self.config(Path(td), sources)
+            with patch("clearparcel.datawatch.parcel_access.load_parcel_access", return_value=research), \
+                    patch.object(watch, "_json_request") as transport, \
+                    patch.object(watch, "_source_check", wraps=watch._source_check) as check:
+                transport.return_value = ({"name": "Parcels", "fields": [], "count": 4}, {"status": 200, "transport": "test"})
+                with patch.object(watch, "_arcgis_count_query", return_value=4):
+                    result = watch.check_sources(config, save=False)
+        dispatched = [call.args[0]["id"] for call in check.call_args_list]
+        self.assertEqual(dispatched, ["parcels", "roads"])
+        for sid in ("catalog", "soils", "hosted"):
+            self.assertEqual(result["skipped_sources"][sid], "awaiting-permission")
+        requested = [str(call.args[0]) for call in transport.call_args_list]
+        self.assertFalse([url for url in requested if "outFields" in url], requested)
+
+    def test_limited_scope_still_allows_metadata_adapters_and_ignores_other_hosts(self):
+        permission = {"scope": "details-and-count", "reply": "permitted", "stop_requested": False,
+                      "terms_decision": "candidate-low-frequency", "contacted_date": "2026-10-29"}
+        for adapter in ("arcgis_layer", "arcgis-feature-layer", "arcgis_service", "arcgis_image", "wms", "wfs", "http_file"):
+            source = {"adapter": adapter, "url": "https://county.example/0", "county_slug": "todd", "category": "Parcels"}
+            with self.subTest(adapter=adapter):
+                self.assertIsNone(CountyPermission.skip_reason(source, permission))
+        # MnGeo and ArcGIS Online item metadata are not the county's server.
+        for url in ("https://gisdata.mn.gov/arcgis/rest/services/x/MapServer/0",
+                    "https://www.arcgis.com/sharing/rest/content/items/abc"):
+            source = {"adapter": "arcgis_county_catalog", "url": url, "county_slug": "todd", "category": "Parcels"}
+            with self.subTest(url=url):
+                self.assertIsNone(CountyPermission.skip_reason(source, permission))
+        # Without a limited grant the catalog adapter is unaffected.
+        full = dict(permission, scope="full")
+        catalog = {"adapter": "arcgis_county_catalog", "url": "https://county.example/2", "county_slug": "todd", "category": "Parcels"}
+        self.assertIsNone(CountyPermission.skip_reason(catalog, full))
+
     def test_details_and_count_removes_every_query_past_metadata_and_a_count(self):
         research = self.patched("Todd", contacted_date="2026-10-29", reply="permitted",
                                 scope="details-and-count", stop_requested=False)
