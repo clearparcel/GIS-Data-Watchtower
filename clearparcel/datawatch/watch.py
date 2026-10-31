@@ -2060,6 +2060,29 @@ def _record_rate_limit(rate_limits: dict, host, retry_after, source_id, default_
     _block_hosts(rate_limits)
 
 
+class RateLimitPersistenceError(RuntimeError):
+    """A provider backoff could not be saved; the run stops instead of polling on."""
+
+
+def _checkpoint_rate_limits(state_path: Path, previous_state: dict, rate_limits: dict) -> None:
+    """Save a 429 backoff as soon as it is signaled, before any other source runs.
+
+    The checkpoint is the previous saved state plus the current backoffs, so a
+    run that later fails or is killed still leaves the embargo on disk for the
+    next invocation. Observations from this run are saved only at the end.
+    """
+    checkpoint = {key: value for key, value in previous_state.items() if key != "_state_recovered_from_backup"}
+    checkpoint.setdefault("schema_version", 1)
+    checkpoint.setdefault("sources", {})
+    checkpoint["rate_limits"] = rate_limits
+    try:
+        _save_json(state_path, checkpoint)
+    except (OSError, TypeError, ValueError) as exc:
+        # Fail closed: without a durable backoff, the next run could poll the host again.
+        raise RateLimitPersistenceError(
+            f"could not persist a provider 429 backoff to {state_path}; stopping this run") from exc
+
+
 _RETAINABLE = frozenset({"unavailable", "deferred", "skipped"})  # never "held"
 _RETAIN_FOR = dt.timedelta(days=30)
 
@@ -2394,6 +2417,8 @@ def _check_sources_unlocked(
                     # run and (persisted) for later runs until Retry-After.
                     _record_rate_limit(rate_limits, exc.host or (hosts[0] if hosts else None),
                                        exc.retry_after, source["id"], default_backoff)
+                    if save:
+                        _checkpoint_rate_limits(state_path, previous_state, rate_limits)
                     rate_limited = True
                     break
                 if isinstance(exc, PermanentProviderError):
@@ -2407,6 +2432,8 @@ def _check_sources_unlocked(
             # source's own observation stands and that host's backoff is persisted.
             signal = details.pop("_auxiliary_rate_limit")
             _record_rate_limit(rate_limits, signal.get("host"), signal.get("retry_after"), source["id"], default_backoff)
+            if save:
+                _checkpoint_rate_limits(state_path, previous_state, rate_limits)
         if details is not None and source["id"] == "mn-parcel-county-catalog":
             try:
                 _retain_item_metadata(details, previous_sources.get(source["id"]))
@@ -2691,6 +2718,33 @@ def validate_source_registry(sources: object) -> None:
                 f"duplicate source id: entry {first_index} ({first_id!r}) and entry {index} ({source_id!r})"
             )
         seen[key] = (index, source_id)
+        _validate_dispatch_options(source, f"source {source_id!r}")
+
+
+_DISPATCH_INT_OPTIONS = ("timeout_seconds", "retries")
+_CONFIG_DISPATCH_OPTIONS = {"timeout_seconds": int, "retries": int, "retry_delay_seconds": float,
+                            "rate_limit_default_backoff_seconds": int}
+
+
+def _validate_dispatch_options(values: dict, label: str, options: dict | None = None) -> None:
+    """Options read during dispatch must convert before any request is made.
+
+    A value that would raise mid-run (for example a non-numeric timeout on a
+    later entry) would abort the run after an earlier host had already
+    signaled a 429; it is refused up front instead.
+    """
+    for key, kind in (options or {name: int for name in _DISPATCH_INT_OPTIONS}).items():
+        if key not in values:
+            continue
+        value = values[key]
+        try:
+            if isinstance(value, bool):
+                raise ValueError
+            converted = kind(value)
+            if converted < 0 or converted != converted:
+                raise ValueError
+        except (TypeError, ValueError, OverflowError):
+            raise InvalidSourceRegistryError(f"{label} has an invalid {key}: {value!r}") from None
 
 
 def check_sources(
@@ -2702,6 +2756,7 @@ def check_sources(
 ) -> dict:
     # Before any lock, provider request or state write.
     validate_source_registry(config.get("sources", []))
+    _validate_dispatch_options(config, "configuration", _CONFIG_DISPATCH_OPTIONS)
     # A fresh set of 429-blocked hosts for this run only.
     token = _RUN_BLOCKED_HOSTS.set(set())
     try:
