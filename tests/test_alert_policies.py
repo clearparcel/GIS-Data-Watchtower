@@ -64,6 +64,16 @@ class BuildPoliciesTests(unittest.TestCase):
         self.assertNotIn("severity", policy)  # informational, not an incident
         self.assertIn("notificationRateLimit", policy["alertStrategy"])
 
+    def test_a_dedicated_digest_job_can_log_the_digest(self):
+        policies = build_policies(**ARGS, digest_job="example-digest")
+        digest = policies["weekly-digest"]["conditions"][0]["conditionMatchedLog"]["filter"]
+        self.assertIn('resource.labels.job_name="example-digest"', digest)
+        tool = policies["provider-tool-failure"]["conditions"][0]["conditionMatchedLog"]["filter"]
+        self.assertIn('resource.labels.job_name="example-provider"', tool)
+        for bad in ("Bad_Name", ARGS["publisher_job"]):
+            with self.assertRaises(ValueError):
+                build_policies(**ARGS, digest_job=bad)
+
     def test_invalid_identifiers_are_refused(self):
         bad = [
             {**ARGS, "provider_job": "Bad_Name"},

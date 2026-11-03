@@ -35,12 +35,13 @@ PUBLISHER_ABSENT_SECONDS = 3600
 OVERDUE_NOTIFY_EVERY_SECONDS = 6 * 3600
 
 
-def _check(provider_job: str, publisher_job: str, channel: str) -> None:
-    for label, value in (("provider job", provider_job), ("publisher job", publisher_job)):
+def _check(provider_job: str, publisher_job: str, channel: str, digest_job: str) -> None:
+    for label, value in (("provider job", provider_job), ("publisher job", publisher_job),
+                         ("digest job", digest_job)):
         if not isinstance(value, str) or not _JOB.fullmatch(value):
             raise ValueError(f"{label} name is not a valid Cloud Run job name")
-    if provider_job == publisher_job:
-        raise ValueError("provider and publisher jobs must differ")
+    if publisher_job in (provider_job, digest_job):
+        raise ValueError("the publisher job must differ from the provider and digest jobs")
     if not isinstance(channel, str) or not _CHANNEL.fullmatch(channel):
         raise ValueError("channel must look like projects/<project>/notificationChannels/<id>")
 
@@ -50,9 +51,16 @@ def _docs(text: str) -> dict:
             "mimeType": "text/markdown"}
 
 
-def build_policies(*, provider_job: str, publisher_job: str, channel: str) -> dict[str, dict]:
-    """Return ``{file stem: AlertPolicy}`` ready for ``gcloud monitoring policies create``."""
-    _check(provider_job, publisher_job, channel)
+def build_policies(*, provider_job: str, publisher_job: str, channel: str,
+                   digest_job: str | None = None) -> dict[str, dict]:
+    """Return ``{file stem: AlertPolicy}`` ready for ``gcloud monitoring policies create``.
+
+    ``digest_job`` is the Cloud Run job that runs ``weekly-digest``. It defaults
+    to the provider job; a dedicated job with fixed arguments lets the scheduler
+    start it without permission to override a job's arguments.
+    """
+    digest_job = provider_job if digest_job is None else digest_job
+    _check(provider_job, publisher_job, channel, digest_job)
     job = 'resource.type="cloud_run_job" AND resource.labels.job_name="{}"'
     return {
         "provider-tool-failure": {
@@ -98,9 +106,9 @@ def build_policies(*, provider_job: str, publisher_job: str, channel: str) -> di
             "displayName": "Watchtower weekly digest",
             "combiner": "OR",
             "conditions": [{
-                "displayName": "Weekly digest logged by the provider job",
+                "displayName": "Weekly digest logged by the digest job",
                 "conditionMatchedLog": {
-                    "filter": (job.format(provider_job)
+                    "filter": (job.format(digest_job)
                                + f" AND jsonPayload.{DIGEST_KEY}.schema_version=1"),
                     "labelExtractors": {"subject": "EXTRACT(jsonPayload.message)",
                                         "body": f"EXTRACT(jsonPayload.{DIGEST_KEY}.body)",
