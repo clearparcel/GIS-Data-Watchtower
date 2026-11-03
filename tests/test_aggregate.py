@@ -98,6 +98,21 @@ class AggregateOverviewAlertTests(unittest.TestCase):
         self.assertIn("Cloud worker", page)
         self.assertIn("has not reported within the freshness window", page)
 
+    def test_overdue_source_under_a_current_worker_is_an_alert(self):
+        state = self.current({"a": "ok", "b": "ok"})
+        old = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=3)).isoformat()
+        state["sources"]["b"]["checked_at"] = old
+        card = self.alerts_card(state)
+        self.assertNotIn("No active alerts.", card)
+        self.assertIn("<strong>b</strong>", card)
+        self.assertIn("older than the freshness window", card)
+
+    def test_unannotated_state_is_annotated_before_deriving(self):
+        from clearparcel.datawatch.dashboard_views import derive_aggregate_alerts
+        state = merge({}, report(0, {"a": "ok"}), "cloud")  # October report, no freshness flags
+        alerts = derive_aggregate_alerts(state)
+        self.assertTrue(any(a["type"] == "worker_overdue" for a in alerts))
+
     def test_state_without_worker_data_is_unavailable_not_all_clear(self):
         page = self.render({"schema_version": 2, "overall": "ok", "counts": {}, "sources": {}})
         self.assertIn("Alert status unavailable.", page)

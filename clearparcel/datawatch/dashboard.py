@@ -1002,6 +1002,9 @@ def serve(config: dict, host: str = "127.0.0.1", port: int = 8765, *, read_only:
     replaces Basic auth with an upstream authenticator; see ``_trusted_frontend_auth``.
     """
     if trusted_frontend is not None:
+        if not read_only:
+            # Skipping app auth is only acceptable when nothing can be changed.
+            raise RuntimeError("a trusted frontend requires read_only=True")
         auth_password, auth_username = _trusted_frontend_auth(trusted_frontend)
     else:
         auth_password, auth_username = _dashboard_auth(config, host)
@@ -1130,7 +1133,16 @@ def serve(config: dict, host: str = "127.0.0.1", port: int = 8765, *, read_only:
             if self._require_auth():
                 return
             if read_only:
-                return self._send(405, "Read-only dashboard", "text/plain; charset=utf-8")
+                raw = b"Read-only dashboard"
+                self.send_response(405)
+                self.send_header("Allow", "GET")
+                self.send_header("Content-Type", "text/plain; charset=utf-8")
+                self.send_header("Content-Length", str(len(raw)))
+                self.send_header("Cache-Control", "no-store")
+                self.send_header("X-Content-Type-Options", "nosniff")
+                self.end_headers()
+                self.wfile.write(raw)
+                return
             if urllib.parse.urlparse(self.path).path != "/refresh":
                 return self._send(404, "Not found", "text/plain; charset=utf-8")
             if self.headers.get("Transfer-Encoding"):

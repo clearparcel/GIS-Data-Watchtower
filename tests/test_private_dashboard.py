@@ -75,6 +75,15 @@ class StateSyncTests(unittest.TestCase):
         self.sync.maybe_sync()
         self.assertEqual(self.storage.downloads, first * 2)
 
+    def test_failed_sync_still_restarts_the_interval(self):
+        (Path(self.tmp.name) / "store" / "aggregate-state.json").unlink()
+        with self.assertRaises(FileNotFoundError):
+            self.sync.sync()
+        attempts = self.storage.downloads
+        self.clock.now = 5
+        self.sync.maybe_sync()  # within the interval: no new storage read
+        self.assertEqual(self.storage.downloads, attempts)
+
     def test_failed_download_keeps_the_last_good_copy(self):
         self.sync.sync()
         good = (self.out / "agg.json").read_bytes()
@@ -148,12 +157,27 @@ class ReadOnlyServeTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             self.handler(environ={"K_SERVICE": "svc"}, read_only=True, trusted_frontend="something-else")
 
+    def test_trusted_frontend_refuses_a_writable_server(self):
+        with self.assertRaises(RuntimeError):
+            self.handler(environ={"K_SERVICE": "svc"}, read_only=False, trusted_frontend="cloud-run-iap")
+
+    def test_read_only_exports_are_served(self):
+        handler, status, sent, _ = self.handler(environ={"K_SERVICE": "svc"}, read_only=True,
+                                                trusted_frontend="cloud-run-iap")
+        handler.path = "/snapshot.json"
+        handler.do_GET()
+        self.assertEqual(status[-1], 200)
+        self.assertIn("application/json", sent["Content-Type"])
+        handler.path, handler.wfile = "/api/state", io.BytesIO()
+        handler.do_GET()
+        self.assertEqual(status[-1], 200)
+
     def test_wildcard_bind_without_trust_still_needs_a_password(self):
         with self.assertRaises(RuntimeError):
             self.handler(environ={"K_SERVICE": "svc"}, read_only=True)
 
     def test_read_only_server_has_no_refresh_form_and_refuses_post(self):
-        handler, status, _, config = self.handler(environ={"K_SERVICE": "svc"}, read_only=True,
+        handler, status, sent, config = self.handler(environ={"K_SERVICE": "svc"}, read_only=True,
                                                   trusted_frontend="cloud-run-iap")
         self.assertEqual(config["_csrf_token"], "")
         handler.do_GET()
@@ -164,6 +188,7 @@ class ReadOnlyServeTests(unittest.TestCase):
         handler.path, handler.wfile = "/refresh", io.BytesIO()
         handler.do_POST()
         self.assertEqual(status[-1], 405)
+        self.assertEqual(sent["Allow"], "GET")
 
     def test_before_request_runs_and_its_errors_are_ignored(self):
         calls = []
@@ -184,6 +209,15 @@ class ReadOnlyServeTests(unittest.TestCase):
         handler.headers = {"Authorization": "Basic " + __import__("base64").b64encode(b"watchtower:pw").decode()}
         handler.do_GET()
         self.assertIn('action="/refresh"', handler.wfile.getvalue().decode("utf-8"))
+
+
+class CliWiringTests(unittest.TestCase):
+    def test_private_dashboard_command_needs_no_config_argument(self):
+        from clearparcel.datawatch import cli, private_dashboard
+        with patch.object(private_dashboard, "serve_private_from_env") as serve, \
+                patch("sys.argv", ["watchtower", "private-dashboard"]):
+            self.assertEqual(cli.main(), 0)
+        serve.assert_called_once_with()
 
 
 if __name__ == "__main__":

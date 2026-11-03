@@ -32,8 +32,8 @@ Cloud jobs persist both `history.jsonl` and its one retained rotated file,
 bounded to those two generations. Each run's per-source summary records
 `status`, `checked_at` (the provider-check time; a deferred source keeps its
 previous check time), `rate_limited` and `deferred`, along with timing, counts
-and changes. Rows written before November 2026 lack the last three fields;
-readers return them as `null`. The PowerShell helper installs editable and
+and changes. Rows written before this was added (November 2026) lack the
+last three fields; readers return them as `null`. The PowerShell helper installs editable and
 GCS dependencies under `constraints.txt`; update that lock deliberately when
 refreshing the supported runtime set.
 
@@ -414,14 +414,19 @@ the same server, routes, security headers and Content Security Policy as
 
 - **Read-only.** No "Check now" form, and every POST returns 405; it never
   contacts a provider.
-- **Synced state.** It copies the unified aggregate and `history.jsonl` from
-  Watchtower storage on request and in the background, at most once per sync
-  interval, keeping the last good copy if a read fails. The first sync must
+- **Synced state.** It copies the unified aggregate and the cloud worker's
+  `history.jsonl` (and its rotated `history.jsonl.1`) from Watchtower storage on
+  request and in the background, at most once per sync interval, including
+  after a failed read, and keeps the last good copy if a read fails. A local
+  worker's history is not in storage, so history statistics for local-only
+  sources stay empty in the hosted view. The first sync must
   succeed or the server does not start.
 - **Upstream authentication.** IAP on the Cloud Run service authenticates every
   request, so the server binds all interfaces without Basic auth. This trust is
   accepted only inside a Cloud Run service (`K_SERVICE` set); anywhere else the
-  usual password rule applies.
+  usual password rule applies. Trusting a frontend also requires read-only mode.
+  The application does not itself verify that IAP is enabled, so deploy the
+  service only with IAP on.
 
 | Variable | Purpose | Default |
 | --- | --- | --- |

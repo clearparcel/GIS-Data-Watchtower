@@ -6,7 +6,8 @@ dashboard (same routes, security headers, CSP and connection limits as
 
 - **Read-only.** No refresh form, every POST returns 405, and no provider is
   ever contacted.
-- **Synced state.** The unified aggregate and the worker history are read from
+- **Synced state.** The unified aggregate and the cloud worker's history
+  (``history.jsonl`` and its rotated ``history.jsonl.1``) are read from
   Watchtower storage, at most every ``WATCHTOWER_PRIVATE_SYNC_SECONDS`` (30 by
   default), on request and in the background. A failed sync keeps serving the
   last good copy; the first sync must succeed or the server does not start.
@@ -28,6 +29,7 @@ import time
 from pathlib import Path
 
 HISTORY_OBJECT = "history.jsonl"
+HISTORY_ARCHIVE_OBJECT = "history.jsonl.1"  # read by the history loader beside history.jsonl
 DEFAULT_SYNC_SECONDS = 30
 
 
@@ -50,6 +52,17 @@ class StateSync:
         self._last = None
 
     def sync(self) -> dict[str, bool]:
+        """Copy every object; the interval restarts even when a copy fails.
+
+        Restarting on failure keeps an outage (or a missing permission) from
+        turning every request into another storage read.
+        """
+        try:
+            return self._sync_all()
+        finally:
+            self._last = self._clock()
+
+    def _sync_all(self) -> dict[str, bool]:
         results = {}
         for name, destination in self.objects.items():
             destination.parent.mkdir(parents=True, exist_ok=True)
@@ -65,7 +78,6 @@ class StateSync:
                 results[name] = bool(found)
             finally:
                 temp_path.unlink(missing_ok=True)
-        self._last = self._clock()
         return results
 
     def maybe_sync(self) -> None:
@@ -103,7 +115,8 @@ def prepare_private_dashboard(environ=None, *, storage=None, workdir: Path | Non
     root = Path(workdir) if workdir is not None else Path(tempfile.mkdtemp(prefix="watchtower-private-"))
     aggregate_path = root / "aggregate-state.json"
     history_path = root / HISTORY_OBJECT
-    sync = StateSync(storage, {aggregate_object: aggregate_path, HISTORY_OBJECT: history_path},
+    sync = StateSync(storage, {aggregate_object: aggregate_path, HISTORY_OBJECT: history_path,
+                               HISTORY_ARCHIVE_OBJECT: root / HISTORY_ARCHIVE_OBJECT},
                      interval=_sync_seconds(environ), required=(aggregate_object,))
     sync.sync()
     config = load_config(Path(environ.get("WATCHTOWER_CONFIG", "/secrets/data_sources.json")))

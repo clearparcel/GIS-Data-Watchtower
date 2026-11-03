@@ -23,7 +23,13 @@ def derive_aggregate_alerts(state: dict) -> list[dict] | None:
     reporting is added on top: an empty list (all clear) is returned only when
     every source is healthy and no worker or source is past its freshness
     window. Returns ``None`` (status unknown) when the state has no workers.
+    ``state`` must already carry freshness flags (``_dashboard_state`` applies
+    ``with_freshness``); unannotated state is annotated here so it is never
+    mistaken for current.
     """
+    if "stale_workers" not in state:
+        from clearparcel.datawatch.aggregate import with_freshness
+        state = with_freshness(state)
     workers = state.get("workers")
     if not isinstance(workers, dict) or not workers:
         return None
