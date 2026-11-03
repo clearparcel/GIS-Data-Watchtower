@@ -39,11 +39,14 @@ Three policies, defined in code in
 | Policy | Condition | Notifies |
 | --- | --- | --- |
 | Provider tool failure | Log match: provider job, `textPayload:"Container called exit(3)"` | At most hourly |
-| Provider run overdue | Log match: publisher job, `severity=ERROR` with `jsonPayload.watchtower_provider_run_overdue` | At most every 6 hours while open |
-| Publisher absent | Metric absence: publisher `completed_execution_count`, 1 hour | Once per incident |
+| Provider run overdue | Log match: publisher job, `severity=ERROR` with `jsonPayload.watchtower_provider_run_overdue` or `jsonPayload.watchtower_provider_watchdog_error` | At most every 6 hours while open |
+| Publisher absent | Metric absence: publisher `completed_execution_count` with `result="succeeded"`, 1 hour | Once per incident |
 
 Exit 1 and 2 stay covered by the source-alert digest. Exit 4 is a deliberate
-refusal logged as a `WARNING` with `watchtower_dispatch_refused`.
+refusal logged as a `WARNING` with `watchtower_dispatch_refused`. The original
+policy also caught platform failures that exit with other codes (a task
+timeout, an out-of-memory kill, an argument error); once it is retired, those
+are reported by the 26-hour overdue alert rather than immediately.
 
 ### Why the no-run alert is a watchdog, not a metric-absence condition
 
@@ -52,8 +55,9 @@ job's completed executions. Cloud Monitoring caps a metric-absence duration at
 [23.5 hours](https://docs.cloud.google.com/monitoring/alerts/metric-absence),
 which is shorter than one daily cycle, so such a condition would open every
 day before the next run. Google's long-lookback PromQL alerting could express
-26 hours but was still a preview feature in 2026, so it is not used for the
-only "nothing ran" alarm.
+26 hours but was a preview feature as of July 2026
+([report](https://securitybrief.asia/story/google-cloud-adds-long-lookback-promql-alert-policies)),
+so it is not used for the only "nothing ran" alarm.
 
 Instead, the public publisher, which already runs every few minutes and
 already reads the private aggregate, runs a **provider-run watchdog**
@@ -69,18 +73,23 @@ run plus the 23-hour spacing guard and daylight-saving shifts), it writes one
 
 `reason` is `overdue`, `missing` (an expected worker is absent from the
 aggregate), `no_report_time`, or `clock_skew`. The line carries no URLs,
-diagnostics or telemetry. The watchdog never polls a provider, never changes
+diagnostics or telemetry. If the watchdog itself fails, it logs
+`{"severity":"ERROR","watchtower_provider_watchdog_error":"watchdog_failed"}`,
+which the same policy matches, so a broken watchdog never looks healthy. The watchdog never polls a provider, never changes
 the publication result, and never raises. Because the watchdog lives in the
 publisher, the **publisher absent** policy covers the case where the publisher
-itself (or all scheduling in the project) stops; 1 hour fits well under the
-23.5-hour cap.
+itself stops succeeding, or scheduling in the project stops; 1 hour fits well
+under the 23.5-hour cap. It counts only successful runs, because a publisher
+that fails before the watchdog runs (for example, on an unreadable aggregate)
+would otherwise still look alive. Metric-absence conditions ignore deleted
+resources, so deleting the publisher job is not detected by this policy.
 
 Watchdog settings on the publisher job:
 
 | Variable | Meaning | Default |
 | --- | --- | --- |
 | `WATCHTOWER_PROVIDER_WATCHDOG` | `0` turns the watchdog off | on |
-| `WATCHTOWER_WATCHDOG_WORKERS` | Comma-separated workers that must report | every current (non-retired) worker in the aggregate |
+| `WATCHTOWER_WATCHDOG_WORKERS` | Comma-separated workers that must report (an empty list falls back to the default) | every current (non-retired) worker in the aggregate |
 | `WATCHTOWER_WORKER_STALE_MINUTES` | Staleness window, shared with the dashboards | `1560` |
 
 Set `WATCHTOWER_WATCHDOG_WORKERS=cloud` in production so a historical worker
@@ -103,7 +112,10 @@ private owner notes, never in this repository.
    ```
 
    The owner approves the three rendered files: exact filters, durations and
-   channel.
+   channel. In Metrics Explorer, confirm that the publisher's
+   `completed_execution_count` series carries `result="succeeded"` for its
+   normal runs; if the platform uses a different value, change the filter in
+   `alert_policies.py` first.
 3. **Verify the exit-3 text** against a synthetic tool failure: a one-off
    provider-job execution with an invalid `--config`, which makes no provider
    request. Confirm the system log line reads `Container called exit(3).`; if

@@ -19,14 +19,15 @@ import os
 from clearparcel.datawatch.aggregate import CLOCK_SKEW_TOLERANCE_SECONDS, _parse_time
 
 LOG_KEY = "watchtower_provider_run_overdue"
+ERROR_KEY = "watchtower_provider_watchdog_error"
 DEFAULT_STALE_MINUTES = 1560  # 26 hours: one daily run, the 23-hour spacing guard, DST shifts.
 
 
 def _expected_from_env(environ) -> set[str] | None:
     raw = str(environ.get("WATCHTOWER_WATCHDOG_WORKERS", "")).strip()
-    if not raw:
-        return None
-    return {name.strip() for name in raw.split(",") if name.strip()}
+    names = {name.strip() for name in raw.split(",") if name.strip()}
+    # An empty or comma-only value must never mean "expect nobody".
+    return names or None
 
 
 def _stale_minutes_from_env(environ) -> int:
@@ -84,11 +85,15 @@ def run_provider_watchdog(aggregate: dict, stream, *, now: dt.datetime | None = 
             _emit(stream, {"severity": "ERROR", LOG_KEY: finding})
         return {"checked": checked, "overdue": [f["worker"] for f in findings]}
     except Exception:  # noqa: BLE001 - observability must not fail publication
+        # A broken watchdog must be visible: the overdue policy matches this key too.
+        _emit(stream, {"severity": "ERROR", ERROR_KEY: "watchdog_failed"})
         return {"checked": 0, "overdue": [], "error": "watchdog_failed"}
 
 
 def _emit(stream, payload: dict) -> None:
     try:
+        if stream is None:
+            return
         stream.write(json.dumps(payload, ensure_ascii=True, allow_nan=False, separators=(",", ":")) + "\n")
         stream.flush()
     except Exception:  # noqa: BLE001

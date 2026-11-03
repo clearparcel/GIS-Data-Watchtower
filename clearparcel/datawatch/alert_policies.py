@@ -10,8 +10,8 @@ county source error):
    logged ``watchtower_provider_run_overdue`` (no worker report for 26 hours).
    A metric-absence condition cannot express this directly: Cloud Monitoring
    caps the absence duration at 23.5 hours, shorter than one daily cycle.
-3. **Publisher absent** - the publisher itself stopped completing runs for an
-   hour, which also covers a project-wide scheduling stop.
+3. **Publisher absent** - the publisher itself completed no successful run for
+   an hour, which also covers a scheduling stop while the job still exists.
 
 Deployment identifiers (project, job names, notification channel) are private
 and are supplied only when rendering; nothing here is project-specific.
@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import re
 
-from clearparcel.datawatch.provider_watchdog import LOG_KEY
+from clearparcel.datawatch.provider_watchdog import ERROR_KEY, LOG_KEY
 
 _JOB = re.compile(r"^[a-z](?:[a-z0-9-]{0,61}[a-z0-9])?$")
 _CHANNEL = re.compile(r"^projects/[a-z][a-z0-9-]{4,28}[a-z0-9]/notificationChannels/[0-9]+$")
@@ -32,11 +32,11 @@ OVERDUE_NOTIFY_EVERY_SECONDS = 6 * 3600
 
 def _check(provider_job: str, publisher_job: str, channel: str) -> None:
     for label, value in (("provider job", provider_job), ("publisher job", publisher_job)):
-        if not isinstance(value, str) or not _JOB.match(value):
+        if not isinstance(value, str) or not _JOB.fullmatch(value):
             raise ValueError(f"{label} name is not a valid Cloud Run job name")
     if provider_job == publisher_job:
         raise ValueError("provider and publisher jobs must differ")
-    if not isinstance(channel, str) or not _CHANNEL.match(channel):
+    if not isinstance(channel, str) or not _CHANNEL.fullmatch(channel):
         raise ValueError("channel must look like projects/<project>/notificationChannels/<id>")
 
 
@@ -75,7 +75,7 @@ def build_policies(*, provider_job: str, publisher_job: str, channel: str) -> di
                 "displayName": "Publisher watchdog reports an overdue provider worker",
                 "conditionMatchedLog": {
                     "filter": (job.format(publisher_job) + " AND severity=ERROR"
-                               f" AND jsonPayload.{LOG_KEY}.worker:*"),
+                               f" AND (jsonPayload.{LOG_KEY}.worker:* OR jsonPayload.{ERROR_KEY}:*)"),
                     "labelExtractors": {"worker": f"EXTRACT(jsonPayload.{LOG_KEY}.worker)",
                                         "reason": f"EXTRACT(jsonPayload.{LOG_KEY}.reason)"},
                 },
@@ -84,19 +84,22 @@ def build_policies(*, provider_job: str, publisher_job: str, channel: str) -> di
                               "autoClose": "1800s"},
             "notificationChannels": [channel],
             "documentation": _docs(
-                "No provider worker report within the staleness window (26 hours by default). "
-                "Check the scheduler, the provider job's recent executions, and the dispatch guard."),
+                "No provider worker report within the staleness window (26 hours by default), or the "
+                "watchdog itself failed. Check the scheduler, the provider job's recent executions, "
+                "and the dispatch guard."),
             "enabled": True,
         },
         "publisher-absent": {
-            "displayName": "Watchtower publisher: no completed run in 1 hour",
+            "displayName": "Watchtower publisher: no successful run in 1 hour",
             "combiner": "OR",
             "severity": "ERROR",
             "conditions": [{
-                "displayName": "Publisher job completed no executions",
+                "displayName": "Publisher job completed no successful executions",
                 "conditionAbsent": {
+                    # Only successful runs count: a publisher failing every run (for
+                    # example, an unreadable aggregate) never reaches the watchdog.
                     "filter": ('metric.type="run.googleapis.com/job/completed_execution_count" AND '
-                               + job.format(publisher_job)),
+                               + job.format(publisher_job) + ' AND metric.labels.result="succeeded"'),
                     "aggregations": [{"alignmentPeriod": "600s", "perSeriesAligner": "ALIGN_DELTA",
                                       "crossSeriesReducer": "REDUCE_SUM",
                                       "groupByFields": ["resource.label.job_name"]}],
@@ -107,8 +110,9 @@ def build_policies(*, provider_job: str, publisher_job: str, channel: str) -> di
             "alertStrategy": {"autoClose": "3600s"},
             "notificationChannels": [channel],
             "documentation": _docs(
-                "The public publisher has not completed a run for an hour. The provider-run watchdog "
-                "lives in the publisher, so while this is open, overdue provider runs are not detected."),
+                "The public publisher has not completed a successful run for an hour. The provider-run "
+                "watchdog lives in the publisher, so while this is open, overdue provider runs are not "
+                "detected."),
             "enabled": True,
         },
     }

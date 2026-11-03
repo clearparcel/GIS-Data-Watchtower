@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 
 from clearparcel.datawatch.alert_policies import build_policies
-from clearparcel.datawatch.provider_watchdog import LOG_KEY
+from clearparcel.datawatch.provider_watchdog import ERROR_KEY, LOG_KEY
 
 REPO = Path(__file__).resolve().parents[1]
 SCRIPT = REPO / "scripts" / "render_alert_policies.py"
@@ -37,6 +37,7 @@ class BuildPoliciesTests(unittest.TestCase):
         condition = policy["conditions"][0]["conditionMatchedLog"]
         self.assertIn('resource.labels.job_name="example-publisher"', condition["filter"])
         self.assertIn(f"jsonPayload.{LOG_KEY}.worker:*", condition["filter"])
+        self.assertIn(f"jsonPayload.{ERROR_KEY}:*", condition["filter"])
         self.assertIn("severity=ERROR", condition["filter"])
         # Log-match conditions require a notification rate limit.
         self.assertEqual(policy["alertStrategy"]["notificationRateLimit"]["period"], "21600s")
@@ -47,6 +48,8 @@ class BuildPoliciesTests(unittest.TestCase):
         self.assertLessEqual(seconds, int(23.5 * 3600))
         self.assertIn('job_name="example-publisher"', absent["filter"])
         self.assertIn("completed_execution_count", absent["filter"])
+        self.assertIn('metric.labels.result="succeeded"', absent["filter"])
+        self.assertEqual(absent["aggregations"][0]["perSeriesAligner"], "ALIGN_DELTA")
 
     def test_invalid_identifiers_are_refused(self):
         bad = [
@@ -55,6 +58,8 @@ class BuildPoliciesTests(unittest.TestCase):
             {**ARGS, "channel": "notificationChannels/123"},
             {**ARGS, "channel": 'projects/x"; DROP/notificationChannels/1'},
             {**ARGS, "provider_job": 'job" OR resource.type:*'},
+            {**ARGS, "provider_job": "example-provider\n"},
+            {**ARGS, "channel": ARGS["channel"] + "\n"},
         ]
         for args in bad:
             with self.assertRaises(ValueError):

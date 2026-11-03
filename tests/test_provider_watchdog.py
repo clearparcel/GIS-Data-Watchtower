@@ -5,7 +5,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from clearparcel.datawatch.provider_watchdog import LOG_KEY, overdue_workers, run_provider_watchdog
+from unittest.mock import patch
+
+from clearparcel.datawatch import public_publish
+from clearparcel.datawatch.provider_watchdog import ERROR_KEY, LOG_KEY, overdue_workers, run_provider_watchdog
 from clearparcel.datawatch.public_publish import publish_public_snapshot
 from clearparcel.datawatch.storage import LocalStorage
 
@@ -34,6 +37,10 @@ class OverdueWorkersTests(unittest.TestCase):
         self.assertEqual(findings[0]["worker"], "cloud")
         self.assertEqual(findings[0]["age_minutes"], 26 * 60 + 1)
         self.assertEqual(findings[0]["threshold_minutes"], 1560)
+
+    def test_age_exactly_at_threshold_is_not_overdue(self):
+        findings, _ = overdue_workers(_agg(cloud={"last_report_at": "2026-11-02T10:00:00+00:00"}), now=NOW)
+        self.assertEqual(findings, [])
 
     def test_checked_at_is_used_when_last_report_at_is_absent(self):
         findings, _ = overdue_workers(_agg(cloud={"checked_at": "2026-11-03T05:00:00+00:00"}), now=NOW)
@@ -86,6 +93,17 @@ class RunProviderWatchdogTests(unittest.TestCase):
         self.assertEqual(summary, {"checked": 1, "overdue": ["cloud"]})
         self.assertEqual(_lines(stream)[0][LOG_KEY]["threshold_minutes"], 30)
 
+    def test_empty_worker_list_falls_back_to_all_current_workers(self):
+        summary = run_provider_watchdog(_agg(cloud={"last_report_at": "2026-11-01T00:00:00+00:00"}), io.StringIO(),
+                                        now=NOW, environ={"WATCHTOWER_WATCHDOG_WORKERS": " , "})
+        self.assertEqual(summary, {"checked": 1, "overdue": ["cloud"]})
+
+    def test_internal_failure_is_logged_with_a_fixed_key(self):
+        stream = io.StringIO()
+        summary = run_provider_watchdog(_agg(cloud={}), stream, now="not-a-datetime", environ={})
+        self.assertEqual(summary["error"], "watchdog_failed")
+        self.assertEqual(_lines(stream), [{"severity": "ERROR", ERROR_KEY: "watchdog_failed"}])
+
     def test_invalid_threshold_falls_back_to_default(self):
         stream = io.StringIO()
         run_provider_watchdog(_agg(cloud={"last_report_at": "2026-11-01T00:00:00+00:00"}), stream, now=NOW,
@@ -115,14 +133,40 @@ class RunProviderWatchdogTests(unittest.TestCase):
 
 
 class PublisherIntegrationTests(unittest.TestCase):
-    def _publish(self, aggregate, **kwargs):
+    def _publish(self, aggregate, with_files=False, **kwargs):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             (root / "source").mkdir()
             (root / "dest").mkdir()
-            (root / "source" / "aggregate-state.json").write_text(json.dumps(aggregate), encoding="utf-8")
-            return publish_public_snapshot(LocalStorage(root / "source"), LocalStorage(root / "dest"),
-                                           workdir=root / "work", **kwargs)
+            source_text = json.dumps(aggregate)
+            (root / "source" / "aggregate-state.json").write_text(source_text, encoding="utf-8")
+            result = publish_public_snapshot(LocalStorage(root / "source"), LocalStorage(root / "dest"),
+                                             workdir=root / "work", **kwargs)
+            if not with_files:
+                return result
+            published = json.loads((root / "dest" / "aggregate-state.json").read_text(encoding="utf-8"))
+            unchanged = (root / "source" / "aggregate-state.json").read_text(encoding="utf-8") == source_text
+            return result, published, unchanged
+
+    def test_watchdog_changes_neither_the_snapshot_nor_the_private_aggregate(self):
+        aggregate = _agg(cloud={"overall": "ok", "last_report_at": "2026-10-01T00:00:00+00:00"})
+        _, without, unchanged_a = self._publish(aggregate, with_files=True)
+        _, with_dog, unchanged_b = self._publish(aggregate, with_files=True, watchdog_stream=io.StringIO())
+        without.pop("public_published_at")
+        with_dog.pop("public_published_at")
+        self.assertEqual(without, with_dog)
+        self.assertTrue(unchanged_a and unchanged_b)
+
+    def test_environment_switch_turns_the_watchdog_off(self):
+        env = {"WATCHTOWER_PUBLIC_SOURCE_BUCKET": "src", "WATCHTOWER_PUBLIC_DEST_BUCKET": "dst"}
+        for value, expected in (("0", None), ("1", "stream"), (None, "stream")):
+            environ = dict(env, **({"WATCHTOWER_PROVIDER_WATCHDOG": value} if value is not None else {}))
+            with patch.dict(public_publish.os.environ, environ, clear=True), \
+                    patch.object(public_publish, "GCSStorage"), \
+                    patch.object(public_publish, "publish_public_snapshot", return_value={}) as publish:
+                public_publish.publish_public_snapshot_from_env()
+            stream = publish.call_args.kwargs["watchdog_stream"]
+            self.assertEqual(stream is None, expected is None, value)
 
     def test_overdue_worker_is_logged_and_publication_still_succeeds(self):
         stream = io.StringIO()

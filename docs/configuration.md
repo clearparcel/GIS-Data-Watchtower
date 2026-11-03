@@ -423,8 +423,8 @@ rollback; it never contacts GIS providers.
 
 Before sanitizing, the publisher's provider-run watchdog logs one `ERROR`
 line (`watchtower_provider_run_overdue`) per expected worker whose last
-report is older than the staleness window, so a log-based alert can report
-"no provider run in 26 hours". It never changes the publication result. See
+report is older than the staleness window, missing, unreadable, or ahead of
+the clock, so a log-based alert can report "no provider run in 26 hours". It never changes the publication result. See
 [provider-run alerting](provider-run-alerting-proposal.md).
 
 The anonymous public server (`watchtower public-dashboard`) reads the sanitized
