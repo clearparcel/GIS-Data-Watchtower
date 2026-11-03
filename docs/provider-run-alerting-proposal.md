@@ -42,6 +42,10 @@ Three policies, defined in code in
 | Provider run overdue | Log match: publisher job, `severity=ERROR` with `jsonPayload.watchtower_provider_run_overdue` or `jsonPayload.watchtower_provider_watchdog_error` | At most every 6 hours while open |
 | Publisher absent | Metric absence: publisher `completed_execution_count` with `result="succeeded"`, 1 hour | Once per incident |
 
+`alert_policies.py` now also renders a fourth, informational policy, **weekly
+digest**, which emails the Monday data-freshness digest. It is not an incident
+policy; see the "Weekly digest" section of [configuration](configuration.md).
+
 Exit 1 and 2 stay covered by the source-alert digest. Exit 4 is a deliberate
 refusal logged as a `WARNING` with `watchtower_dispatch_refused`. The original
 policy also caught platform failures that exit with other codes (a task

@@ -13,6 +13,10 @@ county source error):
 3. **Publisher absent** - the publisher itself completed no successful run for
    an hour, which also covers a scheduling stop while the job still exists.
 
+A fourth, informational policy, **weekly digest**, emails the Monday
+``weekly-digest`` run's data-freshness summary (subject and body come from the
+log line). Stale publisher data is never an outage alert.
+
 Deployment identifiers (project, job names, notification channel) are private
 and are supplied only when rendering; nothing here is project-specific.
 """
@@ -21,6 +25,7 @@ from __future__ import annotations
 import re
 
 from clearparcel.datawatch.provider_watchdog import ERROR_KEY, LOG_KEY
+from clearparcel.datawatch.weekly_digest import LOG_KEY as DIGEST_KEY
 
 _JOB = re.compile(r"^[a-z](?:[a-z0-9-]{0,61}[a-z0-9])?$")
 _CHANNEL = re.compile(r"^projects/[a-z][a-z0-9-]{4,28}[a-z0-9]/notificationChannels/[0-9]+$")
@@ -87,6 +92,31 @@ def build_policies(*, provider_job: str, publisher_job: str, channel: str) -> di
                 "No provider worker report within the staleness window (26 hours by default), or the "
                 "watchdog itself failed. Check the scheduler, the provider job's recent executions, "
                 "and the dispatch guard."),
+            "enabled": True,
+        },
+        "weekly-digest": {
+            "displayName": "Watchtower weekly digest",
+            "combiner": "OR",
+            "conditions": [{
+                "displayName": "Weekly digest logged by the provider job",
+                "conditionMatchedLog": {
+                    "filter": (job.format(provider_job)
+                               + f" AND jsonPayload.{DIGEST_KEY}.schema_version=1"),
+                    "labelExtractors": {"subject": "EXTRACT(jsonPayload.message)",
+                                        "body": f"EXTRACT(jsonPayload.{DIGEST_KEY}.body)",
+                                        "digest_id": f"EXTRACT(jsonPayload.{DIGEST_KEY}.digest_id)"},
+                },
+            }],
+            "alertStrategy": {"notificationRateLimit": {"period": "3600s"}, "autoClose": "1800s"},
+            "notificationChannels": [channel],
+            "documentation": {
+                "content": ("**${log.extracted_label.subject}**\n\n```\n${log.extracted_label.body}\n```\n\n"
+                            "Digest ${log.extracted_label.digest_id}. Stale publisher data is informational, not an "
+                            "outage. See `docs/configuration.md` (Data freshness); runbook: "
+                            f"`{RUNBOOK}` in the Watchtower repository."),
+                "mimeType": "text/markdown",
+                "subject": "${log.extracted_label.subject}",
+            },
             "enabled": True,
         },
         "publisher-absent": {

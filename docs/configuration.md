@@ -431,6 +431,29 @@ source page shows the publisher time, age, expected interval and where that
 interval came from. Stale data is not an outage: it never becomes an active
 alert.
 
+### Weekly digest
+
+`watchtower --config <registry> weekly-digest` reads the private aggregate
+(`WATCHTOWER_AGGREGATE_OBJECT`, default `aggregate-state.json`) and the worker
+history from the configured storage, and writes one structured log line,
+`watchtower_weekly_digest` (severity `NOTICE`). It sends no provider requests and
+does not take a provider-run slot. The line carries:
+
+- `message`: the subject, for example
+  `Watchtower weekly digest 2026-W46: 2 stale, 1 unknown` (ISO week in Central
+  time);
+- `body`: plain text under 900 characters listing stale sources oldest first,
+  sources with no publisher time, and sources and workers past the check
+  window (each list cut after eight entries with "and N more");
+- `counts`: the current, stale and unknown totals.
+
+The rendered `weekly-digest` alert policy (see
+`scripts/render_alert_policies.py`) matches that line on the provider job and
+emails the subject and body to the alert channel. In a deployment it runs as a
+Monday-morning execution of the provider job with the command overridden to
+`weekly-digest`; that schedule and the policy are deployment changes made
+separately from this repository.
+
 ## Hosted private dashboard
 
 `watchtower private-dashboard` serves the private dashboard on Cloud Run behind

@@ -18,8 +18,9 @@ class BuildPoliciesTests(unittest.TestCase):
     def setUp(self):
         self.policies = build_policies(**ARGS)
 
-    def test_three_policies_all_routed_to_the_channel(self):
-        self.assertEqual(set(self.policies), {"provider-tool-failure", "provider-run-overdue", "publisher-absent"})
+    def test_four_policies_all_routed_to_the_channel(self):
+        self.assertEqual(set(self.policies), {"provider-tool-failure", "provider-run-overdue", "publisher-absent",
+                                              "weekly-digest"})
         for policy in self.policies.values():
             self.assertEqual(policy["notificationChannels"], [ARGS["channel"]])
             self.assertTrue(policy["enabled"])
@@ -51,6 +52,18 @@ class BuildPoliciesTests(unittest.TestCase):
         self.assertIn('metric.labels.result="succeeded"', absent["filter"])
         self.assertEqual(absent["aggregations"][0]["perSeriesAligner"], "ALIGN_DELTA")
 
+    def test_weekly_digest_matches_the_digest_log_line_of_the_provider_job(self):
+        from clearparcel.datawatch.weekly_digest import LOG_KEY as DIGEST_KEY
+        policy = self.policies["weekly-digest"]
+        condition = policy["conditions"][0]["conditionMatchedLog"]
+        self.assertIn('resource.labels.job_name="example-provider"', condition["filter"])
+        self.assertIn(f"jsonPayload.{DIGEST_KEY}.schema_version=1", condition["filter"])
+        self.assertEqual(set(condition["labelExtractors"]), {"subject", "body", "digest_id"})
+        self.assertEqual(policy["documentation"]["subject"], "${log.extracted_label.subject}")
+        self.assertIn("${log.extracted_label.body}", policy["documentation"]["content"])
+        self.assertNotIn("severity", policy)  # informational, not an incident
+        self.assertIn("notificationRateLimit", policy["alertStrategy"])
+
     def test_invalid_identifiers_are_refused(self):
         bad = [
             {**ARGS, "provider_job": "Bad_Name"},
@@ -75,14 +88,14 @@ class RenderScriptTests(unittest.TestCase):
                                "--publisher-job", ARGS["publisher_job"], "--channel", ARGS["channel"], *extra],
                               capture_output=True, text=True)
 
-    def test_renders_three_files_and_prints_apply_commands(self):
+    def test_renders_every_policy_and_prints_apply_commands(self):
         with tempfile.TemporaryDirectory() as td:
             result = self._run("--output-dir", td)
             self.assertEqual(result.returncode, 0, result.stderr)
             files = sorted(p.name for p in Path(td).iterdir())
             self.assertEqual(files, ["provider-run-overdue.json", "provider-tool-failure.json",
-                                     "publisher-absent.json"])
-            self.assertEqual(result.stdout.count("gcloud monitoring policies create --policy-from-file="), 3)
+                                     "publisher-absent.json", "weekly-digest.json"])
+            self.assertEqual(result.stdout.count("gcloud monitoring policies create --policy-from-file="), 4)
             self.assertIn("not applied", result.stdout)
 
     def test_refuses_to_overwrite_existing_files(self):
