@@ -1,5 +1,15 @@
 # Project status
 
+## v0.3.12 coordinated release and weekly digest — deployed, 2026-11-03
+
+All surfaces run v0.3.12 (`4b8f02b`, tagged `v0.3.12`). Data freshness (when the
+publisher last changed its data, against an expected interval) is shown on the
+private dashboard separately from check freshness, and is never an alert (#197).
+A dedicated job sends the weekly digest every Monday at 7:45 AM Central: stale
+and undated sources and overdue checks, emailed through an informational alert
+policy. The dashboards and existing jobs changed only their image. See
+[the release record](docs/release-v0.3.12.md).
+
 ## v0.3.11 coordinated release — deployed, 2026-11-03
 
 All four surfaces run v0.3.11 (`21eecb7`, tagged `v0.3.11`). The private
