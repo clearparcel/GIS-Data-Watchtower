@@ -1,5 +1,14 @@
 # Project status
 
+## v0.3.11 coordinated release — deployed, 2026-11-03
+
+All four surfaces run v0.3.11 (`21eecb7`, tagged `v0.3.11`). The private
+dashboard now runs `watchtower private-dashboard` from the standard image; the
+out-of-repo wrapper and separate dashboard image are retired. Its overview shows
+alerts derived from source status and freshness, and run history records check
+time, rate limiting and deferral per source (#194). The public dashboard and the
+jobs changed only their image. See [the release record](docs/release-v0.3.11.md).
+
 ## v0.3.10 coordinated release and provider-run alerting — deployed, 2026-11-03
 
 All four surfaces run v0.3.10 (`6be9f09`, tagged `v0.3.10`): the October 31

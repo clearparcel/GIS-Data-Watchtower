@@ -8,9 +8,9 @@
 
 **[Explore the live public dashboard](https://gis-watchtower.clear-parcel.com/)** · **[User guide](docs/user-guide.md)** · **[Documentation index](docs/README.md)**
 
-The current production release is **v0.3.10**, deployed November 3, 2026 to
+The current production release is **v0.3.11**, deployed November 3, 2026 to
 all four surfaces: the public and private dashboards and both Cloud Run jobs.
-See [STATUS.md](STATUS.md) and the [release record](docs/release-v0.3.10.md).
+See [STATUS.md](STATUS.md) and the [release record](docs/release-v0.3.11.md).
 Starting with v0.3.10, each deployed version is tagged and published as a
 GitHub Release; v0.3.0 through v0.3.9 are recorded but not tagged (see the
 [release policy](docs/release-policy.md#source-downloadable-release-and-deployment-are-different-things)). Alert
