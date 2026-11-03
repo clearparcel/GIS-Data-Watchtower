@@ -57,16 +57,34 @@ class BuildDigestTests(unittest.TestCase):
         self.assertEqual(digest["counts"]["stale"], 0)
         self.assertEqual((digest["overdue_checks"], digest["overdue_workers"]), (1, 1))
         self.assertIn("1 source(s) and 1 worker(s) past the check window", digest["body"])
-        self.assertIn("  cloud worker", digest["body"])
+        self.assertIn("Checks overdue:\n  cloud worker\n  a", digest["body"])
+        self.assertTrue(digest["subject"].endswith(", 2 overdue"))
 
     def test_long_lists_are_cut_and_the_body_stays_bounded(self):
         sources = {f"s{i:03d}": {"name": f"County number {i:03d} with a long parcel layer name",
                                  "editing_info": {"lastEditDate": _ms(200 + i)}} for i in range(60)}
         sources.update({f"u{i:03d}": {"name": f"Unknown {i:03d}"} for i in range(30)})
         digest = build_digest(_state(sources), {}, {}, now=NOW)
-        self.assertLessEqual(len(digest["body"]), MAX_BODY)
-        self.assertIn("and 52 more", digest["body"])
-        self.assertLessEqual(digest["body"].count("days since update"), MAX_LISTED)
+        body = digest["body"]
+        self.assertLessEqual(len(body), MAX_BODY)
+        self.assertLessEqual(body.count("days since update"), MAX_LISTED)
+        self.assertRegex(body, r"and 5\d more")
+        self.assertIn("No publisher update time:", body)
+        self.assertIn("0 source(s) and 0 worker(s) past the check window", body)
+
+    def test_summary_lines_and_every_section_survive_a_crowded_week(self):
+        late = NOW - dt.timedelta(days=3)
+        sources = {f"s{i:02d}": {"name": f"Stale county {i:02d} parcels", "editing_info": {"lastEditDate": _ms(300)}}
+                   for i in range(20)}
+        sources.update({f"u{i:02d}": {"name": f"Unknown county {i:02d} parcels"} for i in range(20)})
+        digest = build_digest(_state(sources, checked=late, worker_report=late), {}, {}, now=NOW)
+        body = digest["body"]
+        self.assertLessEqual(len(body), MAX_BODY)
+        self.assertIn("Watchtower checks: 40 source(s) and 1 worker(s) past the check window.", body)
+        for title in ("Stale publisher data", "No publisher update time:", "Checks overdue:"):
+            self.assertIn(title, body)
+        self.assertIn("  cloud worker", body)
+        self.assertTrue(digest["subject"].endswith(", 41 overdue"), digest["subject"])
 
     def test_week_number_uses_central_time(self):
         sunday_night_central = dt.datetime(2026, 11, 9, 4, 30, tzinfo=dt.timezone.utc)  # Sun 10:30 PM CT

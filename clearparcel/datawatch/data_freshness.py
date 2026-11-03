@@ -5,8 +5,10 @@ asks whether Watchtower checked a source recently. A source can be checked
 every day and still publish data that is months old.
 
 The publisher time comes from what a check already observes: an ArcGIS
-``editingInfo.lastEditDate``, an HTTP ``Last-Modified`` header, or a normalized
-``provider_updated_at``. Each source's expected update interval is, in order:
+``editingInfo.lastEditDate``, an HTTP ``Last-Modified`` header, or (for the
+MnGeo county catalog) the newest county acquisition date. When the latest check
+observed none (for example, it failed), the newest time in the source's history
+is used. Each source's expected update interval is, in order:
 
 1. ``expected_update_days`` in the source registry (owner override);
 2. learned from the source's own history once at least three distinct publisher
@@ -29,6 +31,9 @@ DEFAULT_EXPECTED_DAYS = 90
 MIN_DISTINCT_UPDATES = 3
 LEARNED_HEADROOM = 1.5
 MAX_EXPECTED_DAYS = 3650
+# History rows read per source for learning an interval. The dashboard and the
+# weekly digest share it so both classify a source the same way.
+HISTORY_LIMIT = 1000
 FUTURE_TOLERANCE = dt.timedelta(days=1)
 
 
@@ -46,11 +51,14 @@ def publisher_updated_at(record: object) -> str | None:
         stamp = _metadata_date(tracked.get("last_modified"), http=True)
         if stamp:
             return stamp
-    metadata = record.get("public_metadata")
-    if isinstance(metadata, dict):
-        stamp = _metadata_date(metadata.get("provider_updated_at"))
-        if stamp:
-            return stamp
+    catalog = record.get("county_records")
+    if isinstance(catalog, dict):
+        # MnGeo's county catalog: the newest county acquisition date is when
+        # the statewide data last took in a county update.
+        stamps = [provider_edit_timestamp(row.get("acqdate")) for row in catalog.values() if isinstance(row, dict)]
+        stamps = [stamp for stamp in stamps if stamp]
+        if stamps:
+            return max(stamps, key=_parse)
     stamp = record.get("data_updated_at")  # already normalized (history rows)
     return _metadata_date(stamp) if isinstance(stamp, str) else None
 
@@ -77,7 +85,7 @@ def data_freshness(record: object, *, source_config: object = None, history: obj
     """Classify one source's data age."""
     now = (now or dt.datetime.now(dt.timezone.utc)).astimezone(dt.timezone.utc)
     days, basis = expected_interval(source_config, history)
-    stamp = publisher_updated_at(record)
+    stamp = publisher_updated_at(record) or _latest_in_history(history)
     seen = _parse(stamp)
     result = {"data_updated_at": stamp, "expected_days": days, "basis": basis, "age_days": None}
     if seen is None or seen - now > FUTURE_TOLERANCE:
@@ -92,6 +100,12 @@ def summarize(states: object) -> dict:
         state = row.get("state") if isinstance(row, dict) else None
         counts[state if state in counts else "unknown"] += 1
     return counts
+
+
+def _latest_in_history(history: object) -> str | None:
+    times = [(parsed, row["data_updated_at"]) for row in (history or ()) if isinstance(row, dict)
+             for parsed in [_parse(row.get("data_updated_at"))] if parsed]
+    return max(times)[1] if times else None
 
 
 def _parse(value: object) -> dt.datetime | None:

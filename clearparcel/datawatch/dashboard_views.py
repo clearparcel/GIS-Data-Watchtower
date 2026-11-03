@@ -2,7 +2,7 @@ from __future__ import annotations
 from clearparcel.datawatch.csp import SCRIPT_TAG
 
 from clearparcel.datawatch import dashboard as _dashboard
-from clearparcel.datawatch.data_freshness import data_freshness, summarize as summarize_data_freshness
+from clearparcel.datawatch.data_freshness import HISTORY_LIMIT as FRESHNESS_HISTORY_LIMIT, data_freshness, summarize as summarize_data_freshness
 from clearparcel.datawatch.product import PRODUCT_NAME, page_title
 
 
@@ -69,14 +69,17 @@ def render_dashboard(config: dict) -> str:
     freshness_rows = []
     changed_30 = 0
     # One history read per render: run telemetry plus exact-ID source histories.
-    run_history, histories = _dashboard.load_history_index(config, sources.keys(), limit=60)
+    # Freshness learns from the longer window; the cards keep the recent 60.
+    run_history, histories = _dashboard.load_history_index(config, sources.keys(), limit=FRESHNESS_HISTORY_LIMIT)
+    run_history = run_history[-60:]
     for sid, src in sources.items():
-        hist = histories.get(sid, [])
+        full_hist = histories.get(sid, [])
+        hist = full_hist[-60:]
         stats = _dashboard._history_stats(hist)
         if stats["change_age_days"] is not None and stats["change_age_days"] <= 30:
             changed_30 += 1
         meta = config_map.get(sid, {})
-        freshness_rows.append(data_freshness(src, source_config=meta, history=hist))
+        freshness_rows.append(data_freshness(src, source_config=meta, history=full_hist))
         enriched.append((sid, src, meta, stats, hist))
     workers = state.get("workers") or {}
     worker_cards = []
@@ -208,9 +211,11 @@ def render_source(config: dict, source_id: str) -> str:
     src = (state.get("sources") or {}).get(source_id)
     if not src:
         return _dashboard._layout(page_title("Source not found"), '<div class="card"><h2>Source not found</h2><p><a href="/">Return to dashboard</a></p></div>', csrf_token=str(config.get("_csrf_token") or ""))
-    hist = _dashboard.load_history(config, source_filter=source_id, exact=True, limit=60).get("entries", [])
+    full_hist = _dashboard.load_history(config, source_filter=source_id, exact=True,
+                                        limit=FRESHNESS_HISTORY_LIMIT).get("entries", [])
+    hist = full_hist[-60:]
     stats = _dashboard._history_stats(hist)
-    fresh = data_freshness(src, source_config=_dashboard._source_config_map(config).get(source_id, {}), history=hist)
+    fresh = data_freshness(src, source_config=_dashboard._source_config_map(config).get(source_id, {}), history=full_hist)
     meta = _dashboard._source_config_map(config).get(source_id, {})
     provenance = src.get("provenance") or {}
     changes = src.get("changes") or []

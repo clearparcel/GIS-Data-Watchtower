@@ -8,7 +8,9 @@ existing email channel. It never contacts a provider and never claims a
 provider-run slot.
 
 The body is plain text kept under ``MAX_BODY`` characters so it fits the
-policy's extracted label; long lists are cut with "and N more".
+policy's extracted label. The two summary lines (data freshness and overdue
+checks) always come first; long lists are cut with "and N more", shrinking
+further until the body fits.
 """
 from __future__ import annotations
 
@@ -18,7 +20,7 @@ import tempfile
 from pathlib import Path
 
 from clearparcel.datawatch.aggregate import with_freshness
-from clearparcel.datawatch.data_freshness import data_freshness, summarize
+from clearparcel.datawatch.data_freshness import HISTORY_LIMIT, data_freshness, summarize
 
 LOG_KEY = "watchtower_weekly_digest"
 MAX_BODY = 900
@@ -33,7 +35,20 @@ def _name(sid: str, src: dict) -> str:
 def _listed(lines: list[str], limit: int = MAX_LISTED) -> list[str]:
     if len(lines) <= limit:
         return lines
-    return lines[:limit] + [f"  and {len(lines) - limit} more"]
+    return lines[:limit] + [f"  {'and ' if limit else ''}{len(lines) - limit} more"]
+
+
+def _fit(headline: list[str], sections: list[tuple[str, list[str]]]) -> str:
+    """Headline lines always survive; each list shrinks until the body fits."""
+    for limit in (MAX_LISTED, 5, 3, 1, 0):
+        lines = list(headline)
+        for title, items in sections:
+            if items:
+                lines += [title] + _listed(items, limit)
+        body = "\n".join(lines)
+        if len(body) <= MAX_BODY:
+            return body
+    return body[:MAX_BODY - 1] + "…"
 
 
 def build_digest(state: dict, config: dict, histories: dict, *, now: dt.datetime | None = None) -> dict:
@@ -60,24 +75,23 @@ def build_digest(state: dict, config: dict, histories: dict, *, now: dt.datetime
     year, week, _ = local.isocalendar()
     digest_id = f"{year}-W{week:02d}"
 
-    lines = [f"Data freshness: {counts['current']} current, {counts['stale']} stale, "
-             f"{counts['unknown']} unknown of {len(rows)} sources."]
-    if stale:
-        lines.append("Stale publisher data (oldest first):")
-        lines += _listed([f"  {_name(sid, sources[sid])}: {row['age_days']} days since update "
-                          f"(expected within {row['expected_days']})" for sid, row in stale])
-    if unknown:
-        lines.append("No publisher update time:")
-        lines += _listed([f"  {_name(sid, sources[sid])}" for sid in unknown])
-    lines.append(f"Watchtower checks: {len(overdue_checks)} source(s) and {len(overdue_workers)} worker(s) "
-                 "past the check window.")
-    if overdue_workers:
-        lines += _listed([f"  {name} worker" for name in overdue_workers])
-    body = "\n".join(lines)
-    if len(body) > MAX_BODY:
-        body = body[:MAX_BODY - 20].rsplit("\n", 1)[0] + "\n  (list shortened)"
+    headline = [f"Data freshness: {counts['current']} current, {counts['stale']} stale, "
+                f"{counts['unknown']} unknown of {len(rows)} sources.",
+                f"Watchtower checks: {len(overdue_checks)} source(s) and {len(overdue_workers)} worker(s) "
+                "past the check window."]
+    sections = [
+        ("Stale publisher data (oldest first):",
+         [f"  {_name(sid, sources[sid])}: {row['age_days']} days since update "
+          f"(expected within {row['expected_days']})" for sid, row in stale]),
+        ("No publisher update time:", [f"  {_name(sid, sources[sid])}" for sid in unknown]),
+        ("Checks overdue:", [f"  {name} worker" for name in overdue_workers]
+         + [f"  {_name(sid, sources[sid])}" for sid in overdue_checks]),
+    ]
+    body = _fit(headline, sections)
     subject = (f"Watchtower weekly digest {digest_id}: {counts['stale']} stale, "
                f"{counts['unknown']} unknown")
+    if overdue_checks or overdue_workers:
+        subject += f", {len(overdue_checks) + len(overdue_workers)} overdue"
     return {"digest_id": digest_id, "subject": subject, "body": body, "counts": counts,
             "overdue_checks": len(overdue_checks), "overdue_workers": len(overdue_workers)}
 
@@ -106,7 +120,8 @@ def run_weekly_digest(config: dict, storage, stream, *, aggregate_object: str = 
         storage.download(history, root / history)
         storage.download(HISTORY_ARCHIVE, root / HISTORY_ARCHIVE)
         state = load_state(str(aggregate_path))
-        _, histories = load_history_index(history_config, (state.get("sources") or {}).keys(), limit=1000)
+        _, histories = load_history_index(history_config, (state.get("sources") or {}).keys(),
+                                          limit=HISTORY_LIMIT)
     digest = build_digest(state, config, histories, now=now)
     emit_digest(digest, stream)
     return digest

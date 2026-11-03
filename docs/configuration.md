@@ -415,13 +415,17 @@ Check freshness asks whether Watchtower checked a source recently (the 26-hour
 changed its data recently, and is always shown separately.
 
 - **Publisher time.** Taken from what a check already observes: ArcGIS
-  `editingInfo.lastEditDate`, then an HTTP `Last-Modified` header, then a
-  normalized provider update time. Each run's history records it per source as
-  `data_updated_at`.
+  `editingInfo.lastEditDate`, then an HTTP `Last-Modified` header, then (for
+  the MnGeo county catalog) the newest county acquisition date. Each run's
+  history records it per source as `data_updated_at`. When the latest check
+  observed no time (for example, because it failed), the newest time in the
+  source's history is used.
 - **Expected interval.** A source's optional `expected_update_days` (whole days,
   1–3650; anything else fails registry validation) wins. Otherwise, once its
   history holds at least three distinct publisher times, the interval is the
-  median gap between them plus 50%. Otherwise it is 90 days.
+  median gap between them plus 50%. Otherwise it is 90 days. The dashboard and
+  the weekly digest both learn from the same window (the newest 1,000 history
+  rows per source).
 - **States.** `current`, `stale` (older than the expected interval) or `unknown`
   (no publisher time, or one more than a day in the future). Unknown is never
   shown as current.
@@ -441,11 +445,19 @@ does not take a provider-run slot. The line carries:
 
 - `message`: the subject, for example
   `Watchtower weekly digest 2026-W46: 2 stale, 1 unknown` (ISO week in Central
-  time);
-- `body`: plain text under 900 characters listing stale sources oldest first,
-  sources with no publisher time, and sources and workers past the check
-  window (each list cut after eight entries with "and N more");
+  time), ending with `, N overdue` when checks are overdue;
+- `body`: plain text under 900 characters. It always starts with two summary
+  lines (data freshness counts and overdue checks), then lists stale sources
+  oldest first, sources with no publisher time, and workers and sources past
+  the check window. Each list is cut after eight entries with "and N more",
+  and cut further if the body would exceed the limit;
 - `counts`: the current, stale and unknown totals.
+
+The digest reads only the history in the configured storage, so a local-only
+source (whose history stays on the local worker) learns no interval there; it
+uses its `expected_update_days` or the 90-day default. Provider-terms
+follow-ups join the digest when the private dashboard reads them from the CRM
+([#185](https://github.com/clearparcel/GIS-Data-Watchtower/issues/185)).
 
 The rendered `weekly-digest` alert policy (see
 `scripts/render_alert_policies.py`) matches that line on the provider job and

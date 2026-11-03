@@ -31,6 +31,12 @@ class PublisherTimeTests(unittest.TestCase):
         rec = {"tracked_values": {"last_modified": "Mon, 02 Nov 2026 15:00:00 GMT"}}
         self.assertEqual(publisher_updated_at(rec), "2026-11-02T15:00:00+00:00")
 
+    def test_mngeo_catalog_uses_the_newest_county_acquisition_date(self):
+        rec = {"county_records": {"Aitkin": {"acqdate": _ms(_days_ago(40))}, "Anoka": {"acqdate": _ms(_days_ago(6))},
+                                  "Becker": {"acqdate": None}, "Bad": "x"}}
+        self.assertEqual(publisher_updated_at(rec), _days_ago(6).isoformat())
+        self.assertIsNone(publisher_updated_at({"county_records": {"A": {"acqdate": None}}}))
+
     def test_invalid_values_are_not_times(self):
         for rec in ({"editing_info": {"lastEditDate": "1700000000000"}}, {"editing_info": {"lastEditDate": True}},
                     {"tracked_values": {"last_modified": "yesterday"}}, {}, None, "x"):
@@ -67,6 +73,12 @@ class DataFreshnessTests(unittest.TestCase):
         self.assertEqual(future["state"], "unknown")
         near = data_freshness({"editing_info": {"lastEditDate": _ms(NOW + dt.timedelta(hours=2))}}, now=NOW)
         self.assertEqual(near["state"], "current")
+
+    def test_failed_check_falls_back_to_the_newest_time_in_history(self):
+        history = [{"data_updated_at": _days_ago(d).isoformat()} for d in (50, 12)] + [{"status": "error"}]
+        result = data_freshness({"status": "error"}, history=history, now=NOW)
+        self.assertEqual((result["state"], result["age_days"]), ("current", 12))
+        self.assertEqual(data_freshness({}, history=[{"status": "error"}], now=NOW)["state"], "unknown")
 
     def test_configured_interval_drives_staleness(self):
         rec = {"editing_info": {"lastEditDate": _ms(_days_ago(10))}}
@@ -128,6 +140,34 @@ class OverviewDisplayTests(unittest.TestCase):
         self.assertIn("1 with no publisher update time", card)
         # Stale data is not an outage: the alert panel still shows all clear.
         self.assertIn("No active alerts.", page)
+
+    def test_dashboard_learns_from_the_same_window_as_the_digest(self):
+        from clearparcel.datawatch.dashboard_views import render_source
+        from clearparcel.datawatch.weekly_digest import build_digest
+        now = dt.datetime.now(dt.timezone.utc)
+        stamp = now.isoformat()
+        # Daily runs; the publisher updated every 20 days, last 40 days ago. Only
+        # one distinct update falls inside the newest 60 rows.
+        rows = []
+        for day in range(120, -1, -1):
+            updated = now - dt.timedelta(days=40 + 20 * max(0, (day - 40) // 20 + 1)) if day > 40 else \
+                now - dt.timedelta(days=40)
+            rows.append({"generated_at": (now - dt.timedelta(days=day)).isoformat(),
+                         "sources": {"m": {"status": "ok", "data_updated_at": updated.isoformat()}}})
+        state = {"schema_version": 2, "generated_at": stamp, "overall": "ok", "counts": {"ok": 1},
+                 "workers": {"cloud": {"overall": "ok", "last_report_at": stamp}},
+                 "sources": {"m": {"id": "m", "name": "Monthly", "status": "ok", "worker": "cloud",
+                                   "checked_at": stamp,
+                                   "editing_info": {"lastEditDate": _ms(now - dt.timedelta(days=40))}}}}
+        with tempfile.TemporaryDirectory() as td:
+            history = Path(td) / "h.jsonl"
+            history.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
+            config = {"_render_state": state, "state_file": str(Path(td) / "s.json"), "history_file": str(history)}
+            page = render_source(config, "m")
+            _, histories = watch.load_history_index(config, ["m"], limit=1000)
+        digest = build_digest(state, {}, histories, now=now)
+        self.assertEqual(digest["counts"]["stale"], 1)
+        self.assertIn("Data stale · 40 days old · expected within 30 days", page)
 
     def test_source_page_shows_age_interval_and_basis(self):
         from clearparcel.datawatch.dashboard_views import render_source
