@@ -19,13 +19,14 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--provider-job", required=True, help="Cloud Run job name of the provider run")
     parser.add_argument("--publisher-job", required=True, help="Cloud Run job name of the public publisher")
+    parser.add_argument("--digest-job", help="Cloud Run job name that runs weekly-digest (default: the provider job)")
     parser.add_argument("--channel", required=True,
                         help="projects/<project>/notificationChannels/<id> of the existing alert channel")
     parser.add_argument("--output-dir", type=Path, required=True, help="New private folder outside the repo")
     args = parser.parse_args(argv)
     try:
         policies = build_policies(provider_job=args.provider_job, publisher_job=args.publisher_job,
-                                  channel=args.channel)
+                                  channel=args.channel, digest_job=args.digest_job)
         out = args.output_dir.resolve()
         if out == REPO or REPO in out.parents:
             raise ValueError("output folder must be outside the public repository")

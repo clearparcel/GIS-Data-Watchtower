@@ -460,11 +460,14 @@ follow-ups join the digest when the private dashboard reads them from the CRM
 ([#185](https://github.com/clearparcel/GIS-Data-Watchtower/issues/185)).
 
 The rendered `weekly-digest` alert policy (see
-`scripts/render_alert_policies.py`) matches that line on the provider job and
-emails the subject and body to the alert channel. In a deployment it runs as a
-Monday-morning execution of the provider job with the command overridden to
-`weekly-digest`; that schedule and the policy are deployment changes made
-separately from this repository.
+`scripts/render_alert_policies.py`) matches that line on the digest job and
+emails the subject and body to the alert channel. The digest job defaults to
+the provider job; pass `--digest-job` when a dedicated job runs it. A dedicated
+Cloud Run job with fixed `weekly-digest` arguments (same image, configuration
+and storage settings as the provider job, no provider settings needed) is
+preferred: its scheduler needs only permission to run that job, not to
+override a job's arguments. The schedule and the policy are deployment changes
+made separately from this repository.
 
 ## Hosted private dashboard
 
