@@ -142,3 +142,17 @@ When a current factual statement conflicts with older prose, reconcile the docum
 - Flag concrete regressions, unsafe side effects, security/data-boundary violations, and material gaps in behavior validation. Include file/line, impact, evidence, and uncertainty.
 - Verify published-memory revision/freshness and preserve existing project-specific invariants. Draft or historical context cannot prove current production state.
 - An AI review does not grant merge, deployment, credentials, or memory-publication authority.
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in this repo's GitHub Issues, worked through the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default five-role vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one `CONTEXT.md` and `docs/adr/` at the repo root, created as terms and decisions get settled. See `docs/agents/domain.md`.
