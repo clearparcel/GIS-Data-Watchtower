@@ -68,5 +68,6 @@ Per the [activation runbook](provider-run-alerting-proposal.md):
 - The public site shows v0.3.10 and its health check passes.
 - The first scheduled publisher run on v0.3.10 published normally; the watchdog
   checked the cloud worker and found it current.
-- Remaining: a signed-in check of the private dashboard, and the first daily
-  provider run on v0.3.10.
+- The owner's signed-in check of the private dashboard passed on the read-only
+  identity: the overview rendered current data with no permission errors.
+- Remaining: the first daily provider run on v0.3.10.

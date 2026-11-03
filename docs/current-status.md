@@ -13,8 +13,8 @@ footer shows v0.3.10.
 Provider-run alerting is active: tool failure (exit 3), no provider run
 reported in 26 hours (publisher watchdog), and publisher absent for 1 hour.
 Synthetic tests opened both log-based incidents; the old "any non-zero exit"
-policy is disabled. Pending: a signed-in private-dashboard check and the first
-daily provider run on v0.3.10. See [the release record](release-v0.3.10.md)
+policy is disabled. The signed-in private-dashboard check passed on the
+read-only identity. Pending: the first daily provider run on v0.3.10. See [the release record](release-v0.3.10.md)
 and [provider-run alerting](provider-run-alerting-proposal.md).
 
 ## v0.3.9 coordinated release — deployed, 2026-10-29
