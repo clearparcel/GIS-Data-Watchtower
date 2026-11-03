@@ -417,6 +417,15 @@ rollback; it never contacts GIS providers.
 | `WATCHTOWER_PUBLIC_DEST_PREFIX` | Object prefix in the destination bucket | empty |
 | `WATCHTOWER_PUBLIC_DEST_OBJECT` | Sanitized snapshot object name | `aggregate-state.json` |
 | `WATCHTOWER_PUBLIC_PUBLISH_WORKDIR` | Parent of the unique temporary directory each publication uses | `/tmp/watchtower-public-publish` |
+| `WATCHTOWER_PROVIDER_WATCHDOG` | `0` turns off the provider-run watchdog | on |
+| `WATCHTOWER_WATCHDOG_WORKERS` | Comma-separated workers the watchdog expects to report | every current worker in the aggregate |
+| `WATCHTOWER_WORKER_STALE_MINUTES` | Watchdog staleness window | `1560` |
+
+Before sanitizing, the publisher's provider-run watchdog logs one `ERROR`
+line (`watchtower_provider_run_overdue`) per expected worker whose last
+report is older than the staleness window, so a log-based alert can report
+"no provider run in 26 hours". It never changes the publication result. See
+[provider-run alerting](provider-run-alerting-proposal.md).
 
 The anonymous public server (`watchtower public-dashboard`) reads the sanitized
 snapshot through the ordinary storage settings (`WATCHTOWER_STORAGE`,

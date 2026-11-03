@@ -1,8 +1,9 @@
-# Provider-run alerting: separating tool failures from source errors (proposal)
+# Provider-run alerting: separating tool failures from source errors
 
-**Status: proposal, not applied.** Drafted October 24, 2026 after the
-October 24 audit. No alert policy, job setting or schedule has been changed.
-Each step below needs owner approval before it touches the hosted project.
+**Status: approved by the owner on November 3, 2026; implemented, not yet
+activated.** No alert policy, job setting or schedule has been changed. Each
+activation step below needs owner approval before it touches the hosted
+project. Tracked in [Apply the provider-run alerting proposal](https://github.com/clearparcel/GIS-Data-Watchtower/issues/180).
 
 ## Why
 
@@ -16,10 +17,9 @@ does not succeed" ([v0.3.3 record](release-v0.3.3.md)) fires on all of them.
 From October 20 to 24, all five daily 05:00 runs exited 2. That is
 consistent with the single county source error shown publicly at the time,
 not with a crash. Under the current policy, each of those runs would trigger
-a "provider job failed" notification for what may be one source condition
-(mailbox receipt was not verified). The source-alert digest
-([alert routing](alert-routing.md)) already reports that condition per source,
-with incident keys and recovery. Meanwhile:
+a "provider job failed" notification for what may be one source condition.
+The source-alert digest ([alert routing](alert-routing.md)) already reports
+that condition per source, with incident keys and recovery. Meanwhile:
 
 - a genuine Watchtower failure (exit 3) looks the same as a single county
   error in the inbox;
@@ -27,42 +27,106 @@ with incident keys and recovery. Meanwhile:
   deleted, or dispatch fails, sends nothing. None of the five current policies
   has an absent-run condition.
 
-## Proposed changes
+## Design
 
-1. **Alert on tool failure only (exit 3).** Replace or narrow the
-   execution-failure condition to a log-based condition on the provider job's
-   own container exit, for example:
+The job's exit codes stay unchanged. They're part of the CLI contract, and
+`operations-triage.md` and the run receipts rely on them. Routing decides what
+is urgent; the job doesn't hide source errors.
+
+Three policies, defined in code in
+[`clearparcel/datawatch/alert_policies.py`](../clearparcel/datawatch/alert_policies.py):
+
+| Policy | Condition | Notifies |
+| --- | --- | --- |
+| Provider tool failure | Log match: provider job, `textPayload:"Container called exit(3)"` | At most hourly |
+| Provider run overdue | Log match: publisher job, `severity=ERROR` with `jsonPayload.watchtower_provider_run_overdue` | At most every 6 hours while open |
+| Publisher absent | Metric absence: publisher `completed_execution_count`, 1 hour | Once per incident |
+
+Exit 1 and 2 stay covered by the source-alert digest. Exit 4 is a deliberate
+refusal logged as a `WARNING` with `watchtower_dispatch_refused`.
+
+### Why the no-run alert is a watchdog, not a metric-absence condition
+
+The original proposal used a 26-hour metric-absence condition on the provider
+job's completed executions. Cloud Monitoring caps a metric-absence duration at
+[23.5 hours](https://docs.cloud.google.com/monitoring/alerts/metric-absence),
+which is shorter than one daily cycle, so such a condition would open every
+day before the next run. Google's long-lookback PromQL alerting could express
+26 hours but was still a preview feature in 2026, so it is not used for the
+only "nothing ran" alarm.
+
+Instead, the public publisher, which already runs every few minutes and
+already reads the private aggregate, runs a **provider-run watchdog**
+([`provider_watchdog.py`](../clearparcel/datawatch/provider_watchdog.py)).
+When an expected worker's `last_report_at` (or `checked_at`) is older than
+`WATCHTOWER_WORKER_STALE_MINUTES` (default 1560, that is 26 hours: one daily
+run plus the 23-hour spacing guard and daylight-saving shifts), it writes one
+`ERROR` line per overdue worker:
+
+```json
+{"severity":"ERROR","watchtower_provider_run_overdue":{"worker":"cloud","threshold_minutes":1560,"reason":"overdue","last_report_at":"…","age_minutes":1601}}
+```
+
+`reason` is `overdue`, `missing` (an expected worker is absent from the
+aggregate), `no_report_time`, or `clock_skew`. The line carries no URLs,
+diagnostics or telemetry. The watchdog never polls a provider, never changes
+the publication result, and never raises. Because the watchdog lives in the
+publisher, the **publisher absent** policy covers the case where the publisher
+itself (or all scheduling in the project) stops; 1 hour fits well under the
+23.5-hour cap.
+
+Watchdog settings on the publisher job:
+
+| Variable | Meaning | Default |
+| --- | --- | --- |
+| `WATCHTOWER_PROVIDER_WATCHDOG` | `0` turns the watchdog off | on |
+| `WATCHTOWER_WATCHDOG_WORKERS` | Comma-separated workers that must report | every current (non-retired) worker in the aggregate |
+| `WATCHTOWER_WORKER_STALE_MINUTES` | Staleness window, shared with the dashboards | `1560` |
+
+Set `WATCHTOWER_WATCHDOG_WORKERS=cloud` in production so a historical worker
+can never page and a missing cloud worker always does.
+
+## Activation (each step needs owner approval)
+
+Run from the authoritative machine, with deployment identifiers kept in the
+private owner notes, never in this repository.
+
+1. **Deploy** the publisher image that contains the watchdog, with
+   `WATCHTOWER_WATCHDOG_WORKERS=cloud`. Confirm the next publications log no
+   `watchtower_provider_run_overdue` line while the provider is current.
+2. **Render** the policies into a private folder outside the repository:
 
    ```text
-   resource.type="cloud_run_job"
-   resource.labels.job_name="<provider-job>"
-   textPayload:"Container called exit(3)"
+   python scripts/render_alert_policies.py --provider-job <provider-job> \
+     --publisher-job <publisher-job> \
+     --channel projects/<project>/notificationChannels/<id> --output-dir <private-folder>
    ```
 
-   Verify the exact system log text against one recorded exit-3 execution
-   before relying on it. Exit 1 and 2 stay covered by the source-alert digest.
-   Exit 4 is a deliberate refusal and is logged as a `WARNING` with
-   `watchtower_dispatch_refused`, so it can get its own low-urgency condition
-   if wanted.
-2. **Alert when no provider run completes.** Add a metric-absence condition on
-   `run.googleapis.com/job/completed_execution_count` for the provider job,
-   with a 26-hour duration. That window covers one daily run plus the
-   23-hour spacing guard and daylight-saving shifts. It fires when the
-   scheduler, dispatch or job stops producing runs, independent of their
-   outcome.
-3. **Keep the job's exit codes unchanged.** They're part of the CLI contract,
-   and `operations-triage.md` and the run receipts rely on them.
-   Routing decides what is urgent; the job doesn't hide source errors.
+   The owner approves the three rendered files: exact filters, durations and
+   channel.
+3. **Verify the exit-3 text** against a synthetic tool failure: a one-off
+   provider-job execution with an invalid `--config`, which makes no provider
+   request. Confirm the system log line reads `Container called exit(3).`; if
+   the platform wording differs, change the filter in `alert_policies.py`
+   first.
+4. **Create** the policies with
+   `gcloud monitoring policies create --policy-from-file=<file>` for each file.
+5. **Test the overdue alert** with a one-off publisher execution that sets
+   `WATCHTOWER_WORKER_STALE_MINUTES=1`. The watchdog logs an overdue line for
+   the cloud worker and the overdue policy should email within minutes. This
+   makes no provider request; the snapshot it publishes is the ordinary one.
+6. **Confirm the exit-3 policy** fires on the step 3 execution (or repeat it).
+7. **Retire the old policy**: disable the original "provider job execution did
+   not succeed" policy once steps 5 and 6 have both emailed.
+8. **Record** the change, the first ordinary provider run after activation, and
+   that the Monday after it produced no false alert, in `STATUS.md`.
 
-## Acceptance before activation
+The publisher-absent policy is not tested by stopping the publisher, because
+that would halt public publication. Its filter is checked in review and by
+`tests/test_alert_policies.py`.
 
-- Draft both conditions with placeholders in the private owner notes, and
-  have the owner approve the exact filters, durations and channel.
-- Confirm the exit-3 filter matches a synthetic tool-failure execution, for
-  example a one-off execution with an invalid `--config`. That makes no
-  provider request.
-- Confirm the absence condition opens in a test project or with a shortened
-  duration, then restore the 26-hour duration.
-- Record the change, its rollback (re-enable the original execution-failure
-  condition), and the first ordinary run after activation in a release or
-  status record.
+## Rollback
+
+Re-enable the original execution-failure policy, then disable or delete the
+three new policies. To silence the watchdog without a deploy, set
+`WATCHTOWER_PROVIDER_WATCHDOG=0` on the publisher job.

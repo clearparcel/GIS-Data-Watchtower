@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime as dt
 import json
 import os
+import sys
 import tempfile
 from pathlib import Path
 
@@ -11,6 +12,7 @@ from clearparcel.datawatch import strict_json
 from clearparcel.datawatch.public_projection import validate_snapshot_structure
 from clearparcel.datawatch.storage import GCSStorage, StorageBackend, StorageConflictError, gcs_object_identity
 from clearparcel.datawatch.aggregate import CLOCK_SKEW_TOLERANCE_SECONDS, _parse_time
+from clearparcel.datawatch.provider_watchdog import run_provider_watchdog
 
 
 _FORBIDDEN_PUBLIC_KEYS = {
@@ -132,8 +134,13 @@ def publish_public_snapshot(
     source_object: str = "aggregate-state.json",
     destination_object: str = "aggregate-state.json",
     workdir: str | Path,
+    watchdog_stream=None,
 ) -> dict:
-    """Read the unified aggregate, sanitize it, and publish only the public representation."""
+    """Read the unified aggregate, sanitize it, and publish only the public representation.
+
+    With ``watchdog_stream`` set, the provider-run watchdog checks the private
+    aggregate's worker report times first and logs overdue workers to it.
+    """
     # Before any read or write: the destination must never be the private input.
     _refuse_alias(_identity(source, source_object), _identity(destination, destination_object))
     root = Path(workdir)
@@ -147,6 +154,7 @@ def publish_public_snapshot(
             raise FileNotFoundError(f"source aggregate not found: {source_object}")
 
         raw = strict_json.loads(raw_path.read_text(encoding="utf-8"))
+        watchdog = run_provider_watchdog(raw, watchdog_stream) if watchdog_stream is not None else None
         public = sanitize_public_render_state(raw)
         validate_public_state(public)
         # The same contract the public reader applies: a snapshot it would
@@ -178,7 +186,7 @@ def publish_public_snapshot(
                 if attempt == 7:
                     raise
 
-        return {
+        summary = {
             "published": published,
             "reason": "published" if published else "superseded",
             "public_published_at": public.get("public_published_at"),
@@ -188,6 +196,9 @@ def publish_public_snapshot(
             "worker_count": len(public.get("workers") or {}),
             "destination_object": destination_object,
         }
+        if watchdog is not None:
+            summary["provider_watchdog"] = watchdog
+        return summary
 
 
 def publish_public_snapshot_from_env() -> dict:
@@ -212,4 +223,5 @@ def publish_public_snapshot_from_env() -> dict:
         source_object=source_object,
         destination_object=destination_object,
         workdir=os.environ.get("WATCHTOWER_PUBLIC_PUBLISH_WORKDIR", "/tmp/watchtower-public-publish"),
+        watchdog_stream=None if os.environ.get("WATCHTOWER_PROVIDER_WATCHDOG", "1").strip() == "0" else sys.stderr,
     )

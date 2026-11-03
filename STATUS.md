@@ -1,5 +1,15 @@
 # Project status
 
+## Provider-run alerting — approved and implemented, not yet activated, 2026-11-03
+
+The owner approved the provider-run alerting proposal. Alerts move from
+"any non-zero exit" to exit 3 (tool failure) only, plus a "no provider run in
+26 hours" alert. Cloud Monitoring caps metric absence at 23.5 hours, so that
+alert comes from a new watchdog in the public publisher, backed by a 1-hour
+publisher-absence policy. The three policies are defined in code and rendered
+with private identifiers at activation. No hosted policy, job or schedule has
+changed. See [provider-run alerting](docs/provider-run-alerting-proposal.md).
+
 ## v0.3.9 coordinated release — deployed, 2026-10-29
 
 All four surfaces run v0.3.9 (`0526041`, Cloud Build `08d5ecf8`) with the
