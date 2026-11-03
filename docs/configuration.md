@@ -29,7 +29,11 @@ normal daily schedule or authorize another provider request.
 
 Cloud jobs persist both `history.jsonl` and its one retained rotated file,
 `history.jsonl.1`, using independent conditional object writes. The history is
-bounded to those two generations. The PowerShell helper installs editable and
+bounded to those two generations. Each run's per-source summary records
+`status`, `checked_at` (the provider-check time; a deferred source keeps its
+previous check time), `rate_limited` and `deferred`, along with timing, counts
+and changes. Rows written before November 2026 lack the last three fields;
+readers return them as `null`. The PowerShell helper installs editable and
 GCS dependencies under `constraints.txt`; update that lock deliberately when
 refreshing the supported runtime set.
 
@@ -400,6 +404,37 @@ refused before it claims a slot. An override (`--override-min-interval "reason"`
 since the previous one) so cadence reviews can see it. A stored previous run
 more than two minutes in the future refuses runs (exit 4), and an unreadable
 guard record stops them (exit 3), until an operator reviews it.
+
+## Hosted private dashboard
+
+`watchtower private-dashboard` serves the private dashboard on Cloud Run behind
+Identity-Aware Proxy. It replaces the earlier out-of-repo hosted wrapper and uses
+the same server, routes, security headers and Content Security Policy as
+`watchtower dashboard`, with these differences:
+
+- **Read-only.** No "Check now" form, and every POST returns 405; it never
+  contacts a provider.
+- **Synced state.** It copies the unified aggregate and `history.jsonl` from
+  Watchtower storage on request and in the background, at most once per sync
+  interval, keeping the last good copy if a read fails. The first sync must
+  succeed or the server does not start.
+- **Upstream authentication.** IAP on the Cloud Run service authenticates every
+  request, so the server binds all interfaces without Basic auth. This trust is
+  accepted only inside a Cloud Run service (`K_SERVICE` set); anywhere else the
+  usual password rule applies.
+
+| Variable | Purpose | Default |
+| --- | --- | --- |
+| `WATCHTOWER_GCS_BUCKET` | Bucket holding the aggregate and history (required) | — |
+| `WATCHTOWER_GCS_PREFIX` | Object prefix in that bucket | empty |
+| `WATCHTOWER_AGGREGATE_OBJECT` | Aggregate object name | `aggregate-state.json` |
+| `WATCHTOWER_CONFIG` | Mounted source registry | `/secrets/data_sources.json` |
+| `WATCHTOWER_PRIVATE_SYNC_SECONDS` | Minimum seconds between storage reads | `30` (5–3600) |
+| `PORT` | Listen port (set by Cloud Run) | `8080` |
+
+Run it from the standard Watchtower image with the argument
+`private-dashboard`; no separate dashboard image or wrapper file is needed. The
+service's identity needs only read access to the bucket and the registry secret.
 
 ## Public publisher and public server
 

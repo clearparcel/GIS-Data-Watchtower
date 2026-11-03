@@ -15,15 +15,43 @@ def _county_direct_parcels(source_id: str, source: dict) -> bool:
         return True
     return source_id.endswith("-parcels-direct")
 
+def derive_aggregate_alerts(state: dict) -> list[dict] | None:
+    """Alert list for a hybrid aggregate, which carries none of its own.
+
+    Worker alerts are derived from each source's current status, and the
+    aggregate keeps those statuses, so the same rule applies here. Overdue
+    reporting is added on top: an empty list (all clear) is returned only when
+    every source is healthy and no worker or source is past its freshness
+    window. Returns ``None`` (status unknown) when the state has no workers.
+    """
+    workers = state.get("workers")
+    if not isinstance(workers, dict) or not workers:
+        return None
+    from clearparcel.datawatch.watch import _build_alerts
+    sources = state.get("sources") or {}
+    alerts, _ = _build_alerts({}, sources, set(), str(state.get("generated_at") or ""))
+    for name in sorted(workers):
+        if (workers.get(name) or {}).get("stale"):
+            alerts.append({"severity": "warn", "source": f"worker:{name}", "name": f"{str(name).title()} worker",
+                           "type": "worker_overdue",
+                           "message": "Worker has not reported within the freshness window"})
+    for sid, src in sources.items():
+        if src.get("stale") and not src.get("worker_stale") and src.get("status") not in ("warn", "error"):
+            alerts.append({"severity": "warn", "source": sid, "name": src.get("name"), "type": "check_overdue",
+                           "message": "Latest check is older than the freshness window"})
+    return alerts
+
+
 def render_dashboard(config: dict) -> str:
     state = _dashboard._dashboard_state(config)
     sources = state.get("sources", {})
     counts = state.get("counts", {})
-    # The hybrid aggregate carries no alert list, so a missing key means alert
-    # status is unknown; only an explicit empty list may be shown as all clear.
+    # A worker state carries its own alert list. The hybrid aggregate does not,
+    # so its alerts are derived from source status and freshness; without any
+    # worker data the status stays unknown rather than all clear.
     alerts = state.get("active_alerts")
     if not isinstance(alerts, list):
-        alerts = None
+        alerts = derive_aggregate_alerts(state)
     config_map = _dashboard._source_config_map(config)
     enriched = []
     changed_30 = 0

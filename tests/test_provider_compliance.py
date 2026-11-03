@@ -99,6 +99,28 @@ class RateLimitTests(ProviderComplianceBase):
         self.assertEqual(second["deferred"]["reason"], "provider-rate-limit")
         self.assertEqual(report["sources"]["other"]["status"], "ok")
 
+    def test_history_records_check_time_rate_limit_and_deferral(self):
+        def check(source, timeout):
+            if source["id"] == "first":
+                raise watch.ProviderRateLimitError("120")
+            return _ok(source, timeout)
+
+        config = self.config(self.sources())
+        with patch.object(watch, "_source_check", side_effect=check):
+            report = watch.check_sources(config, save=True, execution_profile="cloud")
+        rows = [json.loads(line) for line in (self.root / "history.jsonl").read_text(encoding="utf-8").splitlines()]
+        sources = rows[-1]["sources"]
+        self.assertTrue(sources["first"]["rate_limited"])
+        self.assertFalse(sources["first"]["deferred"])
+        self.assertTrue(sources["second"]["deferred"])
+        self.assertFalse(sources["second"]["rate_limited"])
+        self.assertFalse(sources["other"]["rate_limited"] or sources["other"]["deferred"])
+        for sid in ("first", "other"):
+            self.assertEqual(sources[sid]["checked_at"], report["sources"][sid]["checked_at"])
+        entries = watch.load_history(config, source_filter="second", exact=True, limit=5)["entries"]
+        self.assertTrue(entries[0]["deferred"])
+        self.assertIn("checked_at", entries[0])
+
     def test_backoff_persists_and_expires(self):
         config = self.config(self.sources())
 

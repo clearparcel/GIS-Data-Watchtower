@@ -2704,6 +2704,11 @@ def _check_sources_unlocked(
                 sid: {
                     "name": rec.get("name"),
                     "status": rec.get("status"),
+                    # The provider-check time (a deferred record keeps the previous
+                    # check's time) and why a source was not checked this run.
+                    "checked_at": rec.get("checked_at"),
+                    "rate_limited": rec.get("rate_limited") is True,
+                    "deferred": bool(rec.get("deferred")),
                     "elapsed_ms": rec.get("elapsed_ms"),
                     "attempts": rec.get("attempts"),
                     "feature_count": rec.get("feature_count"),
@@ -2861,6 +2866,10 @@ def _history_entry(item: dict, sid: str, rec) -> dict:
         "source": sid,
         "name": rec.get("name"),
         "status": rec.get("status"),
+        # Absent (None) in rows written before these fields were recorded.
+        "checked_at": rec.get("checked_at"),
+        "rate_limited": rec.get("rate_limited"),
+        "deferred": rec.get("deferred"),
         "elapsed_ms": rec.get("elapsed_ms"),
         "attempts": rec.get("attempts"),
         "feature_count": rec.get("feature_count"),

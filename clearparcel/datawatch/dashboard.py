@@ -974,10 +974,39 @@ def refresh_providers(config: dict, execution_profile) -> dict | None:
     return check_sources(config, save=True, execution_profile=execution_profile)
 
 
-def serve(config: dict, host: str = "127.0.0.1", port: int = 8765) -> None:
-    auth_password, auth_username = _dashboard_auth(config, host)
-    execution_profile = _dashboard_execution_profile(config)
-    csrf_token = secrets.token_urlsafe(32)
+TRUSTED_FRONTENDS = ("cloud-run-iap",)
+
+
+def _trusted_frontend_auth(trusted_frontend: str) -> tuple[None, str]:
+    """Accept an upstream authenticator instead of Basic auth, only where it exists.
+
+    ``cloud-run-iap``: Identity-Aware Proxy enforced on the Cloud Run service
+    itself authenticates every request (run.app URLs and any load balancer in
+    front). It is accepted only inside a Cloud Run service, so a local or
+    wildcard bind can never use it to skip the password requirement.
+    """
+    if trusted_frontend not in TRUSTED_FRONTENDS:
+        raise RuntimeError(f"unsupported trusted frontend: {trusted_frontend!r}")
+    if not os.environ.get("K_SERVICE"):
+        raise RuntimeError("cloud-run-iap trust is only valid inside a Cloud Run service")
+    return None, ""
+
+
+def serve(config: dict, host: str = "127.0.0.1", port: int = 8765, *, read_only: bool = False,
+          before_request=None, trusted_frontend: str | None = None) -> None:
+    """Serve the private dashboard.
+
+    ``read_only`` removes the refresh form and refuses every POST, so the server
+    can never start a provider check. ``before_request`` is called (errors
+    ignored) before each GET, for example to sync hosted state. ``trusted_frontend``
+    replaces Basic auth with an upstream authenticator; see ``_trusted_frontend_auth``.
+    """
+    if trusted_frontend is not None:
+        auth_password, auth_username = _trusted_frontend_auth(trusted_frontend)
+    else:
+        auth_password, auth_username = _dashboard_auth(config, host)
+    execution_profile = None if read_only else _dashboard_execution_profile(config)
+    csrf_token = "" if read_only else secrets.token_urlsafe(32)
     config["_csrf_token"] = csrf_token
     refresh_lock = threading.Lock()
     refresh_state = {"last_started": 0.0}
@@ -1056,6 +1085,11 @@ def serve(config: dict, host: str = "127.0.0.1", port: int = 8765) -> None:
         def do_GET(self):
             if self._require_auth():
                 return
+            if before_request is not None:
+                try:
+                    before_request()
+                except Exception:  # noqa: BLE001 - serve the last synced state
+                    pass
             parsed = urllib.parse.urlparse(self.path)
             if dispatch_brand_asset(self, parsed.path):
                 return
@@ -1095,6 +1129,8 @@ def serve(config: dict, host: str = "127.0.0.1", port: int = 8765) -> None:
         def do_POST(self):
             if self._require_auth():
                 return
+            if read_only:
+                return self._send(405, "Read-only dashboard", "text/plain; charset=utf-8")
             if urllib.parse.urlparse(self.path).path != "/refresh":
                 return self._send(404, "Not found", "text/plain; charset=utf-8")
             if self.headers.get("Transfer-Encoding"):
