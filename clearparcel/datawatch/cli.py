@@ -64,6 +64,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument('--output', type=Path, required=True)
     p = sub.add_parser("dashboard", help="Serve the private dashboard")
     p.add_argument("--host", default="127.0.0.1"); p.add_argument("--port", type=int, default=8765)
+    sub.add_parser("private-dashboard",
+                   help="Serve the hosted read-only private dashboard (Cloud Run behind IAP; settings from the environment)")
     p = sub.add_parser("public-dashboard", help="Serve the read-only sanitized public dashboard")
     p.add_argument("--host", default="0.0.0.0"); p.add_argument("--port", type=int, default=8080)
     p = sub.add_parser("public-publish", help="Publish a sanitized public aggregate to production storage")
@@ -127,6 +129,9 @@ def _record_run_evidence(config: dict, config_path, started_at: str, exit_code: 
 def main() -> int:
     args = build_parser().parse_args()
     try:
+        if args.command == "private-dashboard":
+            from clearparcel.datawatch.private_dashboard import serve_private_from_env
+            serve_private_from_env(); return 0
         if args.command == "public-dashboard":
             from clearparcel.datawatch.public_dashboard import serve_public
             serve_public(host=args.host, port=args.port); return 0

@@ -355,7 +355,8 @@ def _layout(title: str, body: str, *, refresh_seconds: int = 30, static: bool = 
     body = _accessible_tables(body)
     refresh_meta = _refresh_script(refresh_seconds)
     refresh_label = f"Dashboard view refreshes every {int(refresh_seconds)}s" if auto_refresh else "Interactive view · reload for latest saved data"
-    refresh_form = "" if static else (
+    # No token means no refresh endpoint (the read-only hosted dashboard), so no form.
+    refresh_form = "" if static or not csrf_token else (
         '<form method="post" action="/refresh" class="refresh-form">'
         f'<input type="hidden" name="csrf_token" value="{_esc(csrf_token)}">'
         '<button>Check now</button></form>'

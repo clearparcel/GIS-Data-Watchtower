@@ -54,7 +54,7 @@ class MergeTests(unittest.TestCase):
 
 
 class AggregateOverviewAlertTests(unittest.TestCase):
-    """The private overview must not report an all-clear from aggregate state."""
+    """The private overview derives aggregate alerts and never claims an unearned all-clear."""
 
     def render(self, state):
         import tempfile
@@ -64,13 +64,59 @@ class AggregateOverviewAlertTests(unittest.TestCase):
             return render_dashboard({"_render_state": state, "state_file": str(Path(tmp) / "state.json"),
                                      "history_file": str(Path(tmp) / "history.jsonl")})
 
-    def test_aggregate_without_alert_data_is_unavailable_not_all_clear(self):
-        state = merge({}, report(0, {"a": "ok", "b": "warn", "c": "error"}), "cloud")
-        self.assertNotIn("active_alerts", state)
+    def alerts_card(self, state):
         page = self.render(state)
+        start = page.index('id="alerts"')
+        return page[start:page.index("</div>", start)]
+
+    @staticmethod
+    def current(statuses):
+        now = dt.datetime.now(dt.timezone.utc)
+        stamp = (now - dt.timedelta(minutes=5)).isoformat()
+        partial = {"generated_at": stamp, "overall": "ok", "scope": {"type": "fleet"},
+                   "sources": {sid: {"id": sid, "status": st, "checked_at": stamp} for sid, st in statuses.items()}}
+        return aggregate.merge_states({}, partial, "cloud", now=now)
+
+    def test_aggregate_alerts_are_derived_from_source_status(self):
+        state = self.current({"a": "ok", "b": "warn", "c": "error"})
+        self.assertNotIn("active_alerts", state)
+        card = self.alerts_card(state)
+        self.assertNotIn("Alert status unavailable.", card)
+        self.assertNotIn("No active alerts.", card)
+        self.assertIn("<strong>b</strong>", card)
+        self.assertIn("<strong>c</strong>", card)
+        self.assertNotIn("<strong>a</strong>", card)
+
+    def test_healthy_current_aggregate_is_all_clear(self):
+        page = self.render(self.current({"a": "ok", "b": "ok"}))
+        self.assertIn("No active alerts.", page)
+
+    def test_overdue_worker_blocks_the_all_clear(self):
+        state = merge({}, report(0, {"a": "ok"}), "cloud")  # reported in October: long past the window
+        page = self.render(state)
+        self.assertNotIn("No active alerts.", page)
+        self.assertIn("Cloud worker", page)
+        self.assertIn("has not reported within the freshness window", page)
+
+    def test_overdue_source_under_a_current_worker_is_an_alert(self):
+        state = self.current({"a": "ok", "b": "ok"})
+        old = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=3)).isoformat()
+        state["sources"]["b"]["checked_at"] = old
+        card = self.alerts_card(state)
+        self.assertNotIn("No active alerts.", card)
+        self.assertIn("<strong>b</strong>", card)
+        self.assertIn("older than the freshness window", card)
+
+    def test_unannotated_state_is_annotated_before_deriving(self):
+        from clearparcel.datawatch.dashboard_views import derive_aggregate_alerts
+        state = merge({}, report(0, {"a": "ok"}), "cloud")  # October report, no freshness flags
+        alerts = derive_aggregate_alerts(state)
+        self.assertTrue(any(a["type"] == "worker_overdue" for a in alerts))
+
+    def test_state_without_worker_data_is_unavailable_not_all_clear(self):
+        page = self.render({"schema_version": 2, "overall": "ok", "counts": {}, "sources": {}})
         self.assertIn("Alert status unavailable.", page)
         self.assertNotIn("No active alerts.", page)
-        self.assertNotIn("No current Watchtower alert requires attention.", page)
 
     def test_explicit_empty_alert_list_is_still_all_clear(self):
         state = merge({}, report(0, {"a": "ok"}), "cloud")
