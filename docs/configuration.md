@@ -77,6 +77,9 @@ Optional common controls include:
 - `timeout_seconds`
 - `retries`
 - `prefer_curl`
+- `expected_update_days`: how often the publisher is expected to update this
+  source's data, in whole days (1–3650). Overrides the learned or default
+  interval; see [data freshness](#data-freshness).
 - `execution_profiles`: for example `["cloud"]`, `["local"]`, or `["any"]`.
   A worker polls an assigned source only when it declares a matching profile
   through `--execution-profile` or `WATCHTOWER_EXECUTION_PROFILE` (the
@@ -404,6 +407,29 @@ refused before it claims a slot. An override (`--override-min-interval "reason"`
 since the previous one) so cadence reviews can see it. A stored previous run
 more than two minutes in the future refuses runs (exit 4), and an unreadable
 guard record stops them (exit 3), until an operator reviews it.
+
+## Data freshness
+
+Check freshness asks whether Watchtower checked a source recently (the 26-hour
+`source_stale_minutes` window). **Data freshness** asks whether the publisher
+changed its data recently, and is always shown separately.
+
+- **Publisher time.** Taken from what a check already observes: ArcGIS
+  `editingInfo.lastEditDate`, then an HTTP `Last-Modified` header, then a
+  normalized provider update time. Each run's history records it per source as
+  `data_updated_at`.
+- **Expected interval.** A source's optional `expected_update_days` (whole days,
+  1–3650; anything else fails registry validation) wins. Otherwise, once its
+  history holds at least three distinct publisher times, the interval is the
+  median gap between them plus 50%. Otherwise it is 90 days.
+- **States.** `current`, `stale` (older than the expected interval) or `unknown`
+  (no publisher time, or one more than a day in the future). Unknown is never
+  shown as current.
+
+The private overview's **Data freshness** card counts the three states, and each
+source page shows the publisher time, age, expected interval and where that
+interval came from. Stale data is not an outage: it never becomes an active
+alert.
 
 ## Hosted private dashboard
 
