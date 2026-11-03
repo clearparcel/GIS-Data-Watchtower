@@ -64,6 +64,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument('--output', type=Path, required=True)
     p = sub.add_parser("dashboard", help="Serve the private dashboard")
     p.add_argument("--host", default="127.0.0.1"); p.add_argument("--port", type=int, default=8765)
+    sub.add_parser("weekly-digest",
+                   help="Log the weekly data-freshness digest from saved state (no provider requests)")
     sub.add_parser("private-dashboard",
                    help="Serve the hosted read-only private dashboard (Cloud Run behind IAP; settings from the environment)")
     p = sub.add_parser("public-dashboard", help="Serve the read-only sanitized public dashboard")
@@ -196,6 +198,12 @@ def main() -> int:
             save_json(args.output, merged); print(json.dumps(merged, indent=2)); return 0
         if args.command == "dashboard":
             serve(config, host=args.host, port=args.port); return 0
+        if args.command == "weekly-digest":
+            from clearparcel.datawatch.cloud_job import _aggregate_object, job_storage
+            from clearparcel.datawatch.weekly_digest import run_weekly_digest
+            run_weekly_digest(config, job_storage(config, args.config), sys.stdout,
+                              aggregate_object=_aggregate_object(config) or "aggregate-state.json")
+            return 0
         if args.command == "cloud-job":
             from clearparcel.datawatch.cloud_job import job_profile, preflight_cloud_job, run_cloud_job
             from clearparcel.datawatch.dispatch_guard import configured_min_hours

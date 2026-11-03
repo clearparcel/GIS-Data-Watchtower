@@ -2,6 +2,7 @@ from __future__ import annotations
 from clearparcel.datawatch.csp import SCRIPT_TAG
 
 from clearparcel.datawatch import dashboard as _dashboard
+from clearparcel.datawatch.data_freshness import HISTORY_LIMIT as FRESHNESS_HISTORY_LIMIT, data_freshness, summarize as summarize_data_freshness
 from clearparcel.datawatch.product import PRODUCT_NAME, page_title
 
 
@@ -14,6 +15,11 @@ def _county_direct_parcels(source_id: str, source: dict) -> bool:
     if source.get("category") == "Parcels" and source.get("county_slug"):
         return True
     return source_id.endswith("-parcels-direct")
+
+
+_DATA_STATE_LABELS = {"current": "Current", "stale": "Data stale", "unknown": "Data age unknown"}
+_DATA_BASIS_LABELS = {"configured": "set in the source registry", "observed": "learned from this source's updates",
+                      "default": "default until enough updates are seen"}
 
 def derive_aggregate_alerts(state: dict) -> list[dict] | None:
     """Alert list for a hybrid aggregate, which carries none of its own.
@@ -60,15 +66,20 @@ def render_dashboard(config: dict) -> str:
         alerts = derive_aggregate_alerts(state)
     config_map = _dashboard._source_config_map(config)
     enriched = []
+    freshness_rows = []
     changed_30 = 0
     # One history read per render: run telemetry plus exact-ID source histories.
-    run_history, histories = _dashboard.load_history_index(config, sources.keys(), limit=60)
+    # Freshness learns from the longer window; the cards keep the recent 60.
+    run_history, histories = _dashboard.load_history_index(config, sources.keys(), limit=FRESHNESS_HISTORY_LIMIT)
+    run_history = run_history[-60:]
     for sid, src in sources.items():
-        hist = histories.get(sid, [])
+        full_hist = histories.get(sid, [])
+        hist = full_hist[-60:]
         stats = _dashboard._history_stats(hist)
         if stats["change_age_days"] is not None and stats["change_age_days"] <= 30:
             changed_30 += 1
         meta = config_map.get(sid, {})
+        freshness_rows.append(data_freshness(src, source_config=meta, history=full_hist))
         enriched.append((sid, src, meta, stats, hist))
     workers = state.get("workers") or {}
     worker_cards = []
@@ -91,6 +102,7 @@ def render_dashboard(config: dict) -> str:
 <div><span class="muted">Run time</span><strong>{_dashboard._esc(duration_text)}</strong></div>
 <div><span class="muted">Last success</span><strong style="font-size:13px">{_dashboard._format_time_pair(worker.get("last_success_at"))}</strong></div>
 </div></div>""")
+    data_counts = summarize_data_freshness(freshness_rows)
     body = f"""<div class="grid primary-grid">
 <div class="card"><div class="muted">Overall health</div><div class="metric {_dashboard._status_class(state.get('overall','unknown'))}">{_dashboard._esc(_dashboard._health_status(state.get('overall','unknown')))}</div><span class="subtext">Combined health of all cloud and local source checks.</span></div>
 <div class="card"><div class="muted">Monitored sources</div><div class="metric">{len(sources)}</div><span class="subtext">Sources currently included across the cloud and local workers.</span></div>
@@ -101,6 +113,7 @@ def render_dashboard(config: dict) -> str:
 <div class="grid worker-grid">{''.join(worker_cards) or '<div class="card muted">Worker metadata has not been reported yet.</div>'}</div>
 <div class="activity-strip">
 <div class="card" id="changes"><div class="muted">Sources changed — 30 days</div><div class="metric">{changed_30}</div><span class="subtext">Sources where Watchtower detected a data change during the last 30 days.</span></div>
+<div class="card" id="data-freshness"><div class="muted">Data freshness</div><div class="metric">{data_counts['stale']} stale</div><span class="subtext">{data_counts['current']} current · {data_counts['unknown']} with no publisher update time. Based on when each publisher last changed its data, not on Watchtower check time.</span></div>
 <div class="card"><div class="muted">Dashboard data updated</div><strong>{_dashboard._format_time_pair(state.get('generated_at'))}</strong><span class="subtext">When Watchtower last combined the cloud and local worker results.</span><br><a href="/counties">View all 87 Minnesota county dashboards →</a></div>
 </div>"""
     if alerts:
@@ -198,8 +211,11 @@ def render_source(config: dict, source_id: str) -> str:
     src = (state.get("sources") or {}).get(source_id)
     if not src:
         return _dashboard._layout(page_title("Source not found"), '<div class="card"><h2>Source not found</h2><p><a href="/">Return to dashboard</a></p></div>', csrf_token=str(config.get("_csrf_token") or ""))
-    hist = _dashboard.load_history(config, source_filter=source_id, exact=True, limit=60).get("entries", [])
+    full_hist = _dashboard.load_history(config, source_filter=source_id, exact=True,
+                                        limit=FRESHNESS_HISTORY_LIMIT).get("entries", [])
+    hist = full_hist[-60:]
     stats = _dashboard._history_stats(hist)
+    fresh = data_freshness(src, source_config=_dashboard._source_config_map(config).get(source_id, {}), history=full_hist)
     meta = _dashboard._source_config_map(config).get(source_id, {})
     provenance = src.get("provenance") or {}
     changes = src.get("changes") or []
@@ -240,6 +256,8 @@ def render_source(config: dict, source_id: str) -> str:
 <dt>Mapped extent</dt><dd><code>{_dashboard._esc(src.get('spatial_extent','Not reported'))}</code></dd>
 <dt>Last checked</dt><dd>{_dashboard._format_time_pair(provenance.get('observed_at') or src.get('checked_at'))}</dd>
 <dt>Publisher modified</dt><dd>{_dashboard._esc(provenance.get('publisher_modified') or 'Not reported')}</dd>
+<dt>Data last updated by publisher</dt><dd>{_dashboard._format_time_pair(fresh['data_updated_at']) if fresh['data_updated_at'] else 'Not reported'}</dd>
+<dt>Data freshness</dt><dd>{_dashboard._esc(_DATA_STATE_LABELS[fresh['state']])}{f" · {fresh['age_days']} days old" if fresh['age_days'] is not None else ''} · expected within {fresh['expected_days']} days ({_dashboard._esc(_DATA_BASIS_LABELS[fresh['basis']])})</dd>
 <dt>Source address</dt><dd><code>{_dashboard._esc(provenance.get('source_url') or src.get('url'))}</code></dd>
 <dt>Structure comparison ID</dt><dd><code>{_dashboard._esc(src.get('schema_hash'))}</code></dd>
 <dt>Observation comparison ID</dt><dd><code>{_dashboard._esc(src.get('observation_fingerprint'))}</code></dd>

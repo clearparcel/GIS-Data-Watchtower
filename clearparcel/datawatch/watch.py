@@ -22,6 +22,7 @@ import urllib.request
 import xml.etree.ElementTree as ET
 import xml.parsers.expat
 from pathlib import Path
+from clearparcel.datawatch.data_freshness import publisher_updated_at as _publisher_updated_at, valid_expected_days as _valid_expected_days
 from clearparcel.datawatch.public_values import provider_edit_timestamp
 from clearparcel.datawatch.transport import RequestDeadline, PinnedURL, resolve_addresses, effective_proxy, guarded_opener
 from clearparcel.datawatch.file_lock import FileLock, atomic_write
@@ -2709,6 +2710,8 @@ def _check_sources_unlocked(
                     "checked_at": rec.get("checked_at"),
                     "rate_limited": rec.get("rate_limited") is True,
                     "deferred": bool(rec.get("deferred")),
+                    # When the publisher last changed the data (learns update intervals).
+                    "data_updated_at": _publisher_updated_at(rec),
                     "elapsed_ms": rec.get("elapsed_ms"),
                     "attempts": rec.get("attempts"),
                     "feature_count": rec.get("feature_count"),
@@ -2759,6 +2762,9 @@ def validate_source_registry(sources: object) -> None:
             )
         seen[key] = (index, source_id)
         _validate_dispatch_options(source, f"source {source_id!r}")
+        if "expected_update_days" in source and not _valid_expected_days(source["expected_update_days"]):
+            raise InvalidSourceRegistryError(
+                f"source {source_id!r} expected_update_days must be a whole number of days from 1 to 3650")
 
 
 _DISPATCH_INT_OPTIONS = ("timeout_seconds", "retries")
@@ -2870,6 +2876,7 @@ def _history_entry(item: dict, sid: str, rec) -> dict:
         "checked_at": rec.get("checked_at"),
         "rate_limited": rec.get("rate_limited"),
         "deferred": rec.get("deferred"),
+        "data_updated_at": rec.get("data_updated_at"),
         "elapsed_ms": rec.get("elapsed_ms"),
         "attempts": rec.get("attempts"),
         "feature_count": rec.get("feature_count"),
