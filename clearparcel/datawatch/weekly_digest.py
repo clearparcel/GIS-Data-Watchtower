@@ -171,5 +171,5 @@ def _terms_snapshot(environ=None) -> dict | None:
     cache = cache_from_env(environ)
     if cache is None:
         return None
-    cache.refresh()
+    cache.refresh()  # never raises: a failure becomes the snapshot's last_error
     return cache.snapshot()

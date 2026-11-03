@@ -1,5 +1,6 @@
 import contextlib
 import datetime as dt
+import http.client
 import io
 import json
 import tempfile
@@ -88,6 +89,21 @@ class ParseTests(unittest.TestCase):
         self.assertNotIn("person@example.gov", json.dumps(status))
         self.assertNotIn("Fee quote", json.dumps(status))
 
+    def test_malformed_values_are_dropped_not_crashed_on(self):
+        row = _row("Odd County", due="2026-13-45", stage=["in-discussion"], latestOutcome={"x": 1},
+                   sent="2026-10-01T09:00:00Z", reply="2026-10-02T09:00:00")
+        row["openInquiry"]["purposes"] = 7
+        provider = parse_status({"providers": [row]}, ORIGIN)["providers"][0]
+        self.assertIsNone(provider["open_inquiry"]["stage"])
+        self.assertIsNone(provider["open_inquiry"]["follow_up_due_on"])
+        self.assertEqual(provider["open_inquiry"]["purposes"], [])
+        self.assertIsNone(provider["latest_outcome"])
+        self.assertIsNone(provider["last_reply_at"])  # no time zone: dropped, so comparisons stay aware
+        self.assertIn("Odd County", render_terms_body({"status": {"providers": [provider]}, "fetched_at": None,
+                                                       "last_error": None}, now=NOW))
+        self.assertIsNone(parse_status({"providers": [_row("D", due="2026-11-03\n")]}, ORIGIN)
+                          ["providers"][0]["open_inquiry"]["follow_up_due_on"])
+
     def test_rejects_an_unexpected_shape(self):
         for payload in (None, [], {"providers": "x"}):
             with self.assertRaises(TermsStatusError):
@@ -111,6 +127,8 @@ class FetchTests(unittest.TestCase):
             FakeOpener(FakeResponse(b"<html>Sign in</html>", content_type="text/html")),
             FakeOpener(FakeResponse(b"{not json")),
             FakeOpener(FakeResponse(b"x" * 1_000_001)),
+            FakeOpener(http.client.IncompleteRead(b"partial")),
+            FakeOpener(FakeResponse(b'{"providers": {"not": "a list"}}')),
         ]
         for opener in cases:
             with self.assertRaises(TermsStatusError) as caught:
@@ -159,6 +177,28 @@ class CacheTests(unittest.TestCase):
         clock[0] = 899; cache.maybe_refresh()
         clock[0] = 900; cache.maybe_refresh()
         self.assertEqual(len(calls), 2)
+
+
+class FailureTests(unittest.TestCase):
+    def test_any_fetch_failure_is_recorded_and_never_raises(self):
+        def broken():
+            raise RuntimeError("secret-value in a message")
+
+        cache = TermsCache(broken)
+        self.assertFalse(cache.refresh())
+        self.assertEqual(cache.snapshot()["last_error"], "CRM terms status failed (RuntimeError)")
+
+    def test_digest_still_sends_when_the_crm_breaks(self):
+        from clearparcel.datawatch import weekly_digest
+        env = {URL_ENV: TERMS_URL, CLIENT_ID_ENV: "id", CLIENT_SECRET_ENV: "secret-value"}
+        from clearparcel.datawatch import provider_terms
+        with patch.object(provider_terms.urllib.request, "build_opener",
+                          lambda *a: FakeOpener(http.client.IncompleteRead(b"partial"))):
+            snap = weekly_digest._terms_snapshot(env)
+        self.assertIn("IncompleteRead", snap["last_error"])
+        digest = build_digest({}, {}, {}, now=NOW, terms=snap)
+        self.assertIn("Provider terms: CRM not reachable", digest["body"])
+        self.assertNotIn("secret-value", json.dumps(digest))
 
 
 class DerivedViewTests(unittest.TestCase):

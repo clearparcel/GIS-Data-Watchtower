@@ -530,9 +530,10 @@ monitoring decision from them.
   decision and inquiry dates, gate-change link, and the last email and reply
   times. No email text, subjects, addresses, contact names or notes.
 - **Cached.** The dashboard reads the CRM in the background, at most every 15
-  minutes, never on a page request. The last good copy is kept in memory and
-  on the instance's disk and shown with its age while the CRM is unreachable;
-  before the first successful read the view says so.
+  minutes, never on a page request. The last good copy is kept for the life of
+  the serving instance and shown with its age while the CRM is unreachable; a
+  new instance that starts while the CRM is down says it has no copy yet until
+  its first successful read. The rest of the dashboard is unaffected either way.
 - **View.** Overdue follow-ups first (by the US Central calendar date), then
   the soonest follow-up, then the longest wait for a reply; each provider
   links to its CRM record. Archived providers with a stop request stay counted.

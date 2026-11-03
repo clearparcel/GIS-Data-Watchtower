@@ -16,7 +16,8 @@ Boundaries kept here:
   ``REFRESH_SECONDS``, a short timeout and a size cap.
 - **Cached.** The last good response is kept in memory and, when a cache path
   is given, on local disk, so the dashboard still renders it (marked with its
-  age) while the CRM is unreachable. A failed fetch never replaces it.
+  age) while the CRM is unreachable. A failed fetch, of any kind, never
+  replaces it and never raises out of ``refresh``.
 
 Environment: ``WATCHTOWER_CRM_TERMS_URL`` (the private CRM's HTTPS terms status
 URL; deployment configuration, not kept in this public repository),
@@ -26,6 +27,7 @@ URL; deployment configuration, not kept in this public repository),
 from __future__ import annotations
 
 import datetime as dt
+import http.client
 import json
 import os
 import re
@@ -56,7 +58,7 @@ PURPOSES = {"watchtower-monitoring": "Watchtower monitoring", "clearparcel-minne
 OUTCOMES = {"full": "Full", "details-and-count": "Details and count only", "none": "None",
             "hold-for-terms": "Hold for terms", "stop-requested": "Stop requested"}
 
-_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+_DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
 _GATE_PREFIX = "https://github.com/clearparcel/GIS-Data-Watchtower/"
 
 
@@ -69,13 +71,28 @@ def _text(value, limit: int = 200) -> str | None:
 
 
 def _timestamp(value) -> str | None:
-    if not isinstance(value, str):
+    """An instant with a time zone, as sent; anything else (dates, naive times) is dropped."""
+    if not isinstance(value, str) or len(value) > 40:
         return None
     try:
-        dt.datetime.fromisoformat(value.replace("Z", "+00:00"))
+        parsed = dt.datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return value if parsed.tzinfo is not None and "T" in value else None
+
+
+def _date(value) -> str | None:
+    if not isinstance(value, str) or not _DATE.fullmatch(value):
+        return None
+    try:
+        dt.date.fromisoformat(value)
     except ValueError:
         return None
     return value
+
+
+def _choice(value, allowed: dict) -> str | None:
+    return value if isinstance(value, str) and value in allowed else None
 
 
 def _url(value, prefix: str) -> str | None:
@@ -89,23 +106,23 @@ def _provider(row, crm_origin: str | None) -> dict | None:
     inquiry = row.get("openInquiry")
     open_inquiry = None
     if isinstance(inquiry, dict):
-        due = inquiry.get("followUpDueOn")
+        purposes = inquiry.get("purposes")
         open_inquiry = {
-            "stage": inquiry.get("stage") if inquiry.get("stage") in STAGES else None,
-            "purposes": [p for p in inquiry.get("purposes") or [] if p in PURPOSES][:3],
-            "follow_up_due_on": due if isinstance(due, str) and _DATE.match(due) else None,
+            "stage": _choice(inquiry.get("stage"), STAGES),
+            "purposes": [p for p in purposes if _choice(p, PURPOSES)][:3] if isinstance(purposes, list) else [],
+            "follow_up_due_on": _date(inquiry.get("followUpDueOn")),
             "opened_at": _timestamp(inquiry.get("openedAt")),
             "updated_at": _timestamp(inquiry.get("updatedAt")),
         }
     return {
         "organization_id": _text(row["organizationId"], 64),
         "name": _text(row["name"]),
-        "organization_type": row.get("organizationType") if row.get("organizationType") in ("county", "agency") else None,
+        "organization_type": _choice(row.get("organizationType"), {"county": 1, "agency": 1}),
         "archived": row.get("archived") is True,
         "crm_url": _url(row.get("crmUrl"), f"{crm_origin}/organizations/") if crm_origin else None,
         "terms_stopped": row.get("termsStopped") is True,
         "open_inquiry": open_inquiry,
-        "latest_outcome": row.get("latestOutcome") if row.get("latestOutcome") in OUTCOMES else None,
+        "latest_outcome": _choice(row.get("latestOutcome"), OUTCOMES),
         "latest_decided_at": _timestamp(row.get("latestDecidedAt")),
         "watchtower_gate_url": _url(row.get("watchtowerGateUrl"), _GATE_PREFIX),
         "last_email_at": _timestamp(row.get("lastEmailAt")),
@@ -153,7 +170,7 @@ def fetch_status(url: str, client_id: str, client_secret: str, *, opener=None,
             raw = response.read(MAX_BYTES + 1)
     except urllib.error.HTTPError as exc:
         raise TermsStatusError(f"CRM terms status returned HTTP {exc.code}") from None
-    except (urllib.error.URLError, TimeoutError, OSError) as exc:
+    except (urllib.error.URLError, http.client.HTTPException, TimeoutError, OSError, ValueError) as exc:
         raise TermsStatusError(f"CRM terms status unreachable ({type(exc).__name__})") from None
     if status != 200:
         raise TermsStatusError(f"CRM terms status returned HTTP {status}")
@@ -162,9 +179,15 @@ def fetch_status(url: str, client_id: str, client_secret: str, *, opener=None,
     if len(raw) > MAX_BYTES:
         raise TermsStatusError("CRM terms status response was too large")
     try:
-        return parse_status(json.loads(raw.decode("utf-8")), crm_origin(url))
-    except (UnicodeDecodeError, json.JSONDecodeError):
+        payload = json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError, RecursionError):
         raise TermsStatusError("CRM terms status was not valid JSON") from None
+    try:
+        return parse_status(payload, crm_origin(url))
+    except TermsStatusError:
+        raise
+    except Exception as exc:  # noqa: BLE001 - a malformed response is a failed read, never a crash
+        raise TermsStatusError(f"CRM terms status could not be read ({type(exc).__name__})") from None
 
 
 def _now() -> dt.datetime:
@@ -221,6 +244,9 @@ class TermsCache:
             status = self._fetch()
         except TermsStatusError as exc:
             self.last_error = str(exc)
+            return False
+        except Exception as exc:  # noqa: BLE001 - record any failure; never the response content
+            self.last_error = f"CRM terms status failed ({type(exc).__name__})"
             return False
         self.status, self.fetched_at, self.last_error = status, self.last_attempt_at, None
         try:
