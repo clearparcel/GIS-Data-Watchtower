@@ -1,9 +1,9 @@
 # Provider-run alerting: separating tool failures from source errors
 
-**Status: approved by the owner on November 3, 2026; implemented, not yet
-activated.** No alert policy, job setting or schedule has been changed. Each
-activation step below needs owner approval before it touches the hosted
-project. Tracked in [Apply the provider-run alerting proposal](https://github.com/clearparcel/GIS-Data-Watchtower/issues/180).
+**Status: activated November 3, 2026 with v0.3.10** (owner-approved). All
+steps below were completed except the first ordinary-run confirmation in step 8;
+see the [v0.3.10 release record](release-v0.3.10.md). Keep these steps for
+rebuilding the policies or activating them in another project. Tracked in [Apply the provider-run alerting proposal](https://github.com/clearparcel/GIS-Data-Watchtower/issues/180).
 
 ## Why
 
