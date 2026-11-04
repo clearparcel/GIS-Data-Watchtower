@@ -1115,6 +1115,9 @@ def serve(config: dict, host: str = "127.0.0.1", port: int = 8765, *, read_only:
                 return
             if parsed.path == "/counties":
                 return self._send(200, render_counties(config))
+            if parsed.path == "/terms":
+                from clearparcel.datawatch.dashboard_terms import render_terms
+                return self._send(200, render_terms(config))
             if parsed.path == "/county":
                 slug = urllib.parse.parse_qs(parsed.query).get("slug", [""])[0]
                 status = 200 if any(c.get("slug") == slug for c in _load_counties()) else 404

@@ -445,19 +445,25 @@ does not take a provider-run slot. The line carries:
 
 - `message`: the subject, for example
   `Watchtower weekly digest 2026-W46: 2 stale, 1 unknown` (ISO week in Central
-  time), ending with `, N overdue` when checks are overdue;
-- `body`: plain text under 900 characters. It always starts with two summary
-  lines (data freshness counts and overdue checks), then lists stale sources
-  oldest first, sources with no publisher time, and workers and sources past
-  the check window. Each list is cut after eight entries with "and N more",
+  time), ending with `, N overdue` when checks are overdue and
+  `, N terms follow-up(s) overdue` when terms follow-ups are;
+- `body`: plain text under 900 characters. It always starts with the summary
+  lines (data freshness counts, overdue checks and, when the CRM link is
+  configured, provider-terms follow-ups), then lists terms follow-ups that are
+  overdue, due this week or unanswered for 14+ days, stale sources oldest
+  first, sources with no publisher time, and workers and sources past the
+  check window. Each list is cut after eight entries with "and N more",
   and cut further if the body would exceed the limit;
 - `counts`: the current, stale and unknown totals.
 
 The digest reads only the history in the configured storage, so a local-only
 source (whose history stays on the local worker) learns no interval there; it
-uses its `expected_update_days` or the 90-day default. Provider-terms
-follow-ups join the digest when the private dashboard reads them from the CRM
-([#185](https://github.com/clearparcel/GIS-Data-Watchtower/issues/185)).
+uses its `expected_update_days` or the 90-day default.
+
+Provider-terms follow-ups come from one read of the CRM's read-only terms
+status (see [Provider terms](#provider-terms)) when the digest job has the CRM
+credential; without it the terms lines are left out, and if the CRM cannot be
+read the digest still sends with a "CRM not reachable" line.
 
 The rendered `weekly-digest` alert policy (see
 `scripts/render_alert_policies.py`) matches that line on the digest job and
@@ -503,7 +509,43 @@ the same server, routes, security headers and Content Security Policy as
 
 Run it from the standard Watchtower image with the argument
 `private-dashboard`; no separate dashboard image or wrapper file is needed. The
-service's identity needs only read access to the bucket and the registry secret.
+service's identity needs only read access to the bucket and the registry secret
+(and the CRM terms secret below, when the Provider terms view is on).
+
+### Provider terms
+
+The private dashboard's **Provider terms** view (`/terms`) and the weekly
+digest show where each county and state agency stands on data-use terms, read
+from the private CRM's `GET /api/terms/status`
+([#185](https://github.com/clearparcel/GIS-Data-Watchtower/issues/185)). The
+CRM owns those records; Watchtower only reads them and never changes a
+monitoring decision from them.
+
+- **Credential.** A Cloudflare Access service token used only for this route
+  (the CRM refuses it everywhere else) and separate from any CI credential. The
+  secret lives in Secret Manager and reaches the service and the digest job as
+  an environment variable; it is never in the repository or the registry.
+- **What crosses over.** Each provider row is reduced to an allow-list: name,
+  type, CRM record link, stage, purposes, follow-up date, outcome, stop flag,
+  decision and inquiry dates, gate-change link, and the last email and reply
+  times. No email text, subjects, addresses, contact names or notes.
+- **Cached.** The dashboard reads the CRM in the background, at most every 15
+  minutes, never on a page request. The last good copy is kept for the life of
+  the serving instance and shown with its age while the CRM is unreachable; a
+  new instance that starts while the CRM is down says it has no copy yet until
+  its first successful read. The rest of the dashboard is unaffected either way.
+- **View.** Overdue follow-ups first (by the US Central calendar date), then
+  the soonest follow-up, then the longest wait for a reply; each provider
+  links to its CRM record. Archived providers with a stop request stay counted.
+
+| Variable | Purpose | Default |
+| --- | --- | --- |
+| `WATCHTOWER_CRM_TERMS_URL` | The CRM's terms status URL (HTTPS only; deployment configuration) | — (view off) |
+| `WATCHTOWER_CRM_ACCESS_CLIENT_ID` | Access service-token client ID | — (view off) |
+| `WATCHTOWER_CRM_ACCESS_CLIENT_SECRET` | Access service-token secret, from Secret Manager | — (view off) |
+
+All three must be set; record links are kept only when they point at the same
+CRM as the terms URL.
 
 ## Public publisher and public server
 

@@ -18,7 +18,9 @@ dashboard (same routes, security headers, CSP and connection limits as
 Environment: ``WATCHTOWER_GCS_BUCKET`` (required), ``WATCHTOWER_GCS_PREFIX``,
 ``WATCHTOWER_AGGREGATE_OBJECT`` (default ``aggregate-state.json``),
 ``WATCHTOWER_CONFIG`` (default ``/secrets/data_sources.json``), ``PORT``
-(default 8080) and ``WATCHTOWER_PRIVATE_SYNC_SECONDS``.
+(default 8080) and ``WATCHTOWER_PRIVATE_SYNC_SECONDS``. The Provider terms view
+also reads ``WATCHTOWER_CRM_ACCESS_CLIENT_ID`` and
+``WATCHTOWER_CRM_ACCESS_CLIENT_SECRET`` (see ``provider_terms``).
 """
 from __future__ import annotations
 
@@ -124,6 +126,9 @@ def prepare_private_dashboard(environ=None, *, storage=None, workdir: Path | Non
     config["history_file"] = str(history_path)
     # Never let a registry path point the hosted server at another local state file.
     config["state_file"] = str(root / "unused-state.json")
+    # CRM terms status (#185): read-only, cached locally, refreshed in the background.
+    from clearparcel.datawatch.provider_terms import cache_from_env
+    config["_terms_cache"] = cache_from_env(environ, cache_path=root / "provider-terms.json")
     port = int(environ.get("PORT", "8080"))
     return config, sync, port
 
@@ -141,6 +146,18 @@ def serve_private_from_env() -> None:
                 pass
 
     threading.Thread(target=background, name="watchtower-private-sync", daemon=True).start()
+    terms = config.get("_terms_cache")
+    if terms is not None:
+        def terms_background():
+            # The CRM is fetched off the request path, so a slow or down CRM never delays a page.
+            while True:
+                try:
+                    terms.maybe_refresh()
+                except Exception:  # noqa: BLE001 - keep the last good copy
+                    pass
+                time.sleep(60)
+
+        threading.Thread(target=terms_background, name="watchtower-terms-sync", daemon=True).start()
     serve(config, host="0.0.0.0", port=port, read_only=True, before_request=sync.maybe_sync,
           trusted_frontend="cloud-run-iap")
 

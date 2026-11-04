@@ -371,6 +371,7 @@ def _layout(title: str, body: str, *, refresh_seconds: int = 30, static: bool = 
             "changes": '<path d="M4 16l5-5 4 4 7-8"/><path d="M15 7h5v5"/>',
             "alerts": '<path d="M12 3l9 17H3L12 3z"/><path d="M12 9v5M12 17h.01"/>',
             "export": '<path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 21h16"/>',
+            "terms": '<path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4"/><path d="M9 12h7M9 16h7"/>',
             "menu": '<path d="M4 7h16M4 12h16M4 17h16"/>',
         }
         return f'<svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">{paths.get(kind, paths["overview"])}</svg>'
@@ -560,6 +561,7 @@ code{{font-size:12px;overflow-wrap:anywhere}}
 <a href="/">{icon("overview")}<span>Overview</span></a>
 <a href="/counties">{icon("counties")}<span>Minnesota Counties</span></a>
 <a href="/mngac">{icon("mngac")}<span>MN GAC Completeness</span></a>
+{'' if static else f'<a href="/terms">{icon("terms")}<span>Provider Terms</span></a>'}
 <a href="/#datasets">{icon("sources")}<span>Data Sources</span></a>
 <a href="/#changes">{icon("changes")}<span>Recent Changes</span></a>
 <a href="/#alerts">{icon("alerts")}<span>Alerts</span></a>
