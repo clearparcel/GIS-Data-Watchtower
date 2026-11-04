@@ -45,8 +45,13 @@ private record for #181):
    build-source buckets; a probe build passed.*
 3. Add an independent backup: object versioning with a noncurrent-version
    lifecycle rule, and/or a daily copy to another region or project.
-   *Pending owner decision (#181); the approach is set out in
-   [#190](https://github.com/clearparcel/GIS-Data-Watchtower/issues/190).*
+   *Versioning done 2026-11-03 (#181): the state storage keeps object
+   versions, and a lifecycle rule deletes superseded versions 90 days after
+   they are replaced; the 7-day soft delete is unchanged. The daily copy to
+   another project and region is deferred by owner decision (approach in
+   [#190](https://github.com/clearparcel/GIS-Data-Watchtower/issues/190)).
+   Watchtower's conditional writes are unaffected: they compare against the
+   live object's generation as before.*
 4. Move the alert delivery configuration from a job environment variable to
    Secret Manager.
    *Done 2026-11-03 (#181): byte-identical value, readable only by the provider

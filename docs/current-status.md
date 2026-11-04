@@ -99,10 +99,13 @@ polled. See [the release record](release-v0.3.7.md).
 
 A read-only check restored every operational object into isolated storage
 byte for byte, and the publisher replay reproduced the live public snapshot.
-Protection is only a 7-day soft delete, with no versioning or independent
-copy. The access review found least-privilege bucket roles and no service
-account keys, with seven recommended changes pending owner decision. See
-[the review](backup-access-review-2026-10-20.md).
+At the time, protection was only a 7-day soft delete. Since November 3,
+2026 (#181), the state storage also keeps object versions, deleting
+superseded versions 90 days after they are replaced; an independent copy in
+another project and region is deferred by owner decision. The access review
+found least-privilege bucket roles and no service account keys; its
+recommended changes were decided and applied on November 3 (one moved to
+#205). See [the review](backup-access-review-2026-10-20.md).
 
 ## v0.3.6 coordinated release — deployed, 2026-10-20
 
