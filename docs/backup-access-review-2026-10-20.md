@@ -32,7 +32,8 @@ readable only by the provider job; the private dashboard is behind
 Identity-Aware Proxy for the owner only; the jobs can be started only by the
 scheduler identity and the owner.
 
-Recommended changes (pending owner decision, none made):
+Recommended changes (owner decisions recorded below; evidence is in the
+private record for #181):
 
 1. Give the read-only private dashboard its own read-only identity instead of
    the provider job's (which can write state and read the registry).
@@ -40,13 +41,25 @@ Recommended changes (pending owner decision, none made):
    2026-11-03 (read access to Watchtower storage and the mounted registry,
    no write access). Signed-in check passed the same day.*
 2. Narrow the project's default compute identity, which can read every bucket.
+   *Done 2026-11-03 (#181): it keeps build access and reads only the two
+   build-source buckets; a probe build passed.*
 3. Add an independent backup: object versioning with a noncurrent-version
    lifecycle rule, and/or a daily copy to another region or project.
+   *Pending owner decision (#181); the approach is set out in
+   [#190](https://github.com/clearparcel/GIS-Data-Watchtower/issues/190).*
 4. Move the alert delivery configuration from a job environment variable to
    Secret Manager.
+   *Done 2026-11-03 (#181): byte-identical value, readable only by the provider
+   job's identity.*
 5. Remove a retired integration account's Cloud Run viewer access.
+   *Done 2026-11-03 (#181).*
 6. Enable Data Access audit logs for Secret Manager and Cloud Storage.
+   *Done 2026-11-03 (#181). Storage reads by the two read-only dashboards are
+   exempt, so their routine polling doesn't drown out other access.*
 7. Longer term, separate Watchtower from unrelated integrations in the same
-   project.
+   project. *Moved to its own ticket (#205).*
 8. Housekeeping: disable superseded registry versions, remove October 4
    validation leftovers, and add lifecycle rules to build-source buckets.
+   *Done 2026-11-03 (#181): superseded registry versions disabled (current
+   version unchanged), the retired October preview service, bucket and identity
+   removed, and build uploads now expire after 30 days.*
