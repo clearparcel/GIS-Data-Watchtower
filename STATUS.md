@@ -1,5 +1,16 @@
 # Project status
 
+## v0.3.13 provider terms view and digest follow-ups — deployed, 2026-11-03
+
+All surfaces run v0.3.13 (`d1ee22d`, tagged `v0.3.13`). The private dashboard
+has a **Provider Terms** page: each county and state agency's data-use terms
+status, read-only from the private CRM with a dedicated credential that the CRM
+allows only that one read, overdue follow-ups first, cached while the CRM is
+unreachable (#201, closes #185). The weekly digest adds a provider-terms line and
+follow-up lists. Only the private dashboard and the digest job gained settings;
+the public dashboard and the other jobs changed only their image. See
+[the release record](docs/release-v0.3.13.md).
+
 ## v0.3.12 coordinated release and weekly digest — deployed, 2026-11-03
 
 All surfaces run v0.3.12 (`4b8f02b`, tagged `v0.3.12`). Data freshness (when the
