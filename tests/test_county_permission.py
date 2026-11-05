@@ -62,6 +62,21 @@ class OutreachRecordTests(unittest.TestCase):
         self.assertFalse(permission["stop_requested"])
         self.assertIsNone(permission["contacted_date"])
 
+    def test_candidate_check_scope_is_validated_separately_from_county_permission(self):
+        data = research_copy()
+        washington = next(row for row in data["counties"] if row["county"] == "Washington")
+        validate_parcel_access(data)
+        permission = CountyPermission.from_record(washington)
+        self.assertIsNone(permission["reply"])
+        self.assertIsNone(permission["scope"])
+        self.assertEqual(permission["check_scope"], "details-and-count")
+        for update in ({"check_scope": "full"}, {"decision": "not-assessed"}):
+            broken = research_copy()
+            row = next(item for item in broken["counties"] if item["county"] == "Washington")
+            row["monitoring"].update(update)
+            with self.subTest(update=update), self.assertRaises(ValueError):
+                validate_parcel_access(broken)
+
 
 class CheckRuleTests(unittest.TestCase):
     def config(self, root, sources):
@@ -224,6 +239,26 @@ class CheckRuleTests(unittest.TestCase):
         for key in CountyPermission.EXTRA_QUERIES:
             self.assertNotIn(key, parcels)
         self.assertIn("parcel_quality", sources[0])
+
+    def test_washington_candidate_runs_only_metadata_and_count(self):
+        source = {"id": "washington-parcels", "name": "Washington parcels",
+                  "adapter": "arcgis_layer", "category": "Parcels", "county_slug": "washington",
+                  "url": "https://maps.co.washington.mn.us/arcgis/rest/services/GISViewer/Parcels/MapServer/0",
+                  "count": True, "parcel_quality": True, "geometry_sample": True,
+                  "gac_completeness": {"standard": "parcel"}}
+        result, checked = self.checked_sources([source])
+        self.assertNotIn("washington-parcels", result["skipped_sources"])
+        self.assertEqual(len(checked), 1)
+        self.assertTrue(checked[0]["count"])
+        for key in CountyPermission.EXTRA_QUERIES:
+            self.assertNotIn(key, checked[0])
+        permission = CountyPermission.from_record(load_parcel_access()["Washington"])
+        blocked = dict(source, adapter="arcgis_county_catalog")
+        self.assertEqual(CountyPermission.skip_reason(blocked, permission), "awaiting-permission")
+        self.assertEqual(CountyPermission.note_for_source(source, permission),
+                         "Limited check: service details and a record count only.")
+        regional = dict(source, url="https://arcgis.metc.state.mn.us/data1/rest/services/parcels/Parcels/FeatureServer/6")
+        self.assertIsNone(CountyPermission.note_for_source(regional, permission))
 
     def test_layer_check_does_not_run_the_extra_queries_after_they_are_removed(self):
         full = {"url": "https://county.example/0", "county_slug": "todd", "category": "Parcels",

@@ -19651,24 +19651,29 @@
     },
     {
       "county": "Washington",
-      "review_date": "2026-10-06",
+      "review_date": "2026-11-05",
       "research_complete": true,
       "official_county_url": "https://www.washingtoncountymn.gov/",
       "parcel_page_url": "https://www.co.washington.mn.us/surveyor",
       "download_or_service_url": "https://arcgis.metc.state.mn.us/data1/rest/services/parcels/Parcels/FeatureServer/6",
       "viewer_url": null,
-      "fee_policy_url": null,
+      "fee_policy_url": "https://www.washingtoncountymn.gov/AgendaCenter/ViewFile/Minutes/11182014-420",
       "parcel_dataset_fee": null,
       "fee_product": null,
-      "evidence_note": "County Maps page and Survey Division explicitly provide free county tax-parcel data via GeoCommons/Metro Regional Parcel Dataset. Official Commons Metropolitan 7-County Parcel Polygons item explicitly publishes individual county polygon sublayers free without license or fees, public domain under Chapter13. Exact Washington County Parcels FeatureServer/6 reports esriGeometryPolygon. Distinct county subdataset qualifies separately from statewide inclusion; advertised regional FGDB download contains all7 counties and is not a native Washington-only product. No counts/dates borrowed from regional compilation.",
+      "evidence_note": "County Maps page and Survey Division explicitly provide free county tax-parcel data via GeoCommons/Metro Regional Parcel Dataset. Official Commons Metropolitan 7-County Parcel Polygons item explicitly publishes individual county polygon sublayers free without license or fees, public domain under Chapter13. Exact Washington County Parcels FeatureServer/6 reports esriGeometryPolygon. Distinct county subdataset qualifies separately from statewide inclusion; advertised regional FGDB download contains all7 counties and is not a native Washington-only product. No counts/dates borrowed from regional compilation. County Resolution 2014-143 permits no-cost public geospatial downloads subject to the GIS data usage agreement; requested or alternate delivery may carry charges. The separate county-operated public parcel layer reports polygon geometry and supports metadata and count queries. County GIS staff described typical monthly updates.",
       "source_authority": "county-authorized-provider",
       "usable_direct_machine_readable_source": true,
       "monitoring": {
-        "decision": "not-assessed",
-        "reason": "Published product availability is separate from unattended monitoring permission; discovery does not activate polling.",
+        "decision": "candidate-low-frequency",
+        "reason": "Owner assessed the county-operated public parcel service on 2026-11-05 for a once-daily read of layer metadata and one record count, without feature records or quality queries. The county supplied the service in response to this proposed scope, but did not explicitly approve automated checks. The open-data resolution does not address this specific use. Activation still requires a separately controlled source registry, cadence review, and release.",
         "terms_urls": [
-          "https://www.arcgis.com/sharing/rest/content/items/136b28bd0d874076b702ca55b9aafffc?f=pjson"
-        ]
+          "https://www.washingtoncountymn.gov/AgendaCenter/ViewFile/Minutes/11182014-420",
+          "https://www.washingtoncountymn.gov/92/Maps",
+          "https://www.washingtoncountymn.gov/574/Products-Fees",
+          "https://maps.co.washington.mn.us/arcgis/rest/services/GISViewer/Parcels/MapServer/0?f=pjson"
+        ],
+        "contacted_date": "2026-11-05",
+        "check_scope": "details-and-count"
       },
       "evidence": [
         {
@@ -19700,6 +19705,26 @@
           "url": "https://gis.data.mn.gov/maps/136b28bd0d874076b702ca55b9aafffc/about",
           "authority": "county-authorized-provider",
           "finding": "County Maps page and Survey Division explicitly provide free county tax-parcel data via GeoCommons/Metro Regional Parcel Dataset. Official Commons Metropolitan 7-County Parcel Polygons item explicitly publishes individual county polygon sublayers free without license or fees, public domain under Chapter13. Exact Washington County Parcels FeatureServer/6 reports esriGeometryPolygon. Distinct county subdataset qualifies separately from statewide inclusion; advertised regional FGDB download contains all7 counties and is not a native Washington-only product. No counts/dates borrowed from regional compilation."
+        },
+        {
+          "url": "https://www.washingtoncountymn.gov/AgendaCenter/ViewFile/Minutes/11182014-420",
+          "authority": "county",
+          "finding": "Resolution 2014-143 authorizes no-cost public geospatial downloads subject to the GIS data usage agreement and reserves fees for special requests or other forms."
+        },
+        {
+          "url": "https://www.washingtoncountymn.gov/92/Maps",
+          "authority": "county",
+          "finding": "County Maps page says tax parcels, address points, and road centerlines are available free through MnGeo Commons; this does not describe county-server monitoring terms."
+        },
+        {
+          "url": "https://www.washingtoncountymn.gov/574/Products-Fees",
+          "authority": "county",
+          "finding": "County product-fee page distinguishes standard public data access from charged products and custom delivery."
+        },
+        {
+          "url": "https://maps.co.washington.mn.us/arcgis/rest/services/GISViewer/Parcels/MapServer/0?f=pjson",
+          "authority": "county",
+          "finding": "County-operated Parcels MapServer layer 0 exposes polygon layer metadata and a count-capable query endpoint; no feature rows were read."
         }
       ],
       "review_log": {
@@ -19729,26 +19754,32 @@
         },
         "arcgis_services": {
           "status": "reviewed",
-          "note": "Reviewed official distribution/product evidence and published item disclaimer within bounded scope. Independent category blockers remain explicit; no absence or polling permission inferred.",
+          "note": "Reviewed the county-operated public Parcels MapServer layer 0 as a separate service from the regional county subdataset.",
           "urls": [
             "https://www.co.washington.mn.us/surveyor",
-            "https://www.arcgis.com/sharing/rest/content/items/136b28bd0d874076b702ca55b9aafffc?f=pjson"
+            "https://www.arcgis.com/sharing/rest/content/items/136b28bd0d874076b702ca55b9aafffc?f=pjson",
+            "https://maps.co.washington.mn.us/arcgis/rest/services/GISViewer/Parcels/MapServer/0?f=pjson"
           ]
         },
         "data_policy": {
           "status": "reviewed",
-          "note": "Reviewed official distribution/product evidence and published item disclaimer within bounded scope. Independent category blockers remain explicit; no absence or polling permission inferred.",
+          "note": "Reviewed the public free/open resolution and current county pages; specific automated monitoring terms remain unstated.",
           "urls": [
             "https://www.co.washington.mn.us/surveyor",
-            "https://www.arcgis.com/sharing/rest/content/items/136b28bd0d874076b702ca55b9aafffc?f=pjson"
+            "https://www.arcgis.com/sharing/rest/content/items/136b28bd0d874076b702ca55b9aafffc?f=pjson",
+            "https://www.washingtoncountymn.gov/AgendaCenter/ViewFile/Minutes/11182014-420",
+            "https://www.washingtoncountymn.gov/92/Maps",
+            "https://www.washingtoncountymn.gov/574/Products-Fees"
           ]
         },
         "fee_schedule": {
           "status": "reviewed",
-          "note": "Public downloadable parcel product verified through official distribution/metadata. No parcel fee inferred from unrelated viewing, maps, deeds or labor products; absence of fees not asserted exhaustively.",
+          "note": "Standard public geospatial downloads are no-cost under the resolution; special requests and alternate delivery may have fees.",
           "urls": [
             "https://www.co.washington.mn.us/surveyor",
-            "https://www.arcgis.com/sharing/rest/content/items/136b28bd0d874076b702ca55b9aafffc?f=pjson"
+            "https://www.arcgis.com/sharing/rest/content/items/136b28bd0d874076b702ca55b9aafffc?f=pjson",
+            "https://www.washingtoncountymn.gov/AgendaCenter/ViewFile/Minutes/11182014-420",
+            "https://www.washingtoncountymn.gov/574/Products-Fees"
           ]
         },
         "request_forms": {
@@ -19759,10 +19790,11 @@
           ]
         },
         "resolutions_ordinances": {
-          "status": "not-applicable",
-          "note": "No request or resolution was needed or submitted to inspect published parcel distribution and metadata. Adoption of an open-data resolution is not asserted; advertised/current product evidence is used.",
+          "status": "reviewed",
+          "note": "Reviewed the county board's public Resolution 2014-143; it does not expressly address automated metadata/count checks.",
           "urls": [
-            "https://www.co.washington.mn.us/surveyor"
+            "https://www.co.washington.mn.us/surveyor",
+            "https://www.washingtoncountymn.gov/AgendaCenter/ViewFile/Minutes/11182014-420"
           ]
         },
         "authorized_portals": {
@@ -19788,7 +19820,7 @@
         "source_url": "https://www.arcgis.com/sharing/rest/content/items/69148d3959194a05a23964cc60f6517b?f=pjson",
         "verified_date": "2026-10-06"
       },
-      "comments": "County Maps page and Survey Division explicitly provide free county tax-parcel data via GeoCommons/Metro Regional Parcel Dataset. Official Commons Metropolitan 7-County Parcel Polygons item explicitly publishes individual county polygon sublayers free without license or fees, public domain under Chapter13. Exact Washington County Parcels FeatureServer/6 reports esriGeometryPolygon. Distinct county subdataset qualifies separately from statewide inclusion; advertised regional FGDB download contains all7 counties and is not a native Washington-only product. No counts/dates borrowed from regional compilation.",
+      "comments": "County Maps page and Survey Division explicitly provide free county tax-parcel data via GeoCommons/Metro Regional Parcel Dataset. Official Commons Metropolitan 7-County Parcel Polygons item explicitly publishes individual county polygon sublayers free without license or fees, public domain under Chapter13. Exact Washington County Parcels FeatureServer/6 reports esriGeometryPolygon. Distinct county subdataset qualifies separately from statewide inclusion; advertised regional FGDB download contains all7 counties and is not a native Washington-only product. No counts/dates borrowed from regional compilation. County-operated viewer parcel service reviewed separately on 2026-11-05; bounded daily details/count check is a candidate, not an observed active check. The county reports typical monthly updates; specific automated-use permission was not expressly stated.",
       "source_inventory": {
         "mngac_public_parcels": {
           "review_status": "reviewed",
@@ -19857,12 +19889,16 @@
         "county_arcgis_rest": {
           "review_status": "reviewed",
           "availability": "yes",
-          "review_date": "2026-10-06",
-          "finding": "County Maps page and Survey Division explicitly provide free county tax-parcel data via GeoCommons/Metro Regional Parcel Dataset. Official Commons Metropolitan 7-County Parcel Polygons item explicitly publishes individual county polygon sublayers free without license or fees, public domain under Chapter13. Exact Washington County Parcels FeatureServer/6 reports esriGeometryPolygon. Distinct county subdataset qualifies separately from statewide inclusion; advertised regional FGDB download contains all7 counties and is not a native Washington-only product. No counts/dates borrowed from regional compilation.",
+          "review_date": "2026-11-05",
+          "finding": "County Maps page and Survey Division explicitly provide free county tax-parcel data via GeoCommons/Metro Regional Parcel Dataset. Official Commons Metropolitan 7-County Parcel Polygons item explicitly publishes individual county polygon sublayers free without license or fees, public domain under Chapter13. Exact Washington County Parcels FeatureServer/6 reports esriGeometryPolygon. Distinct county subdataset qualifies separately from statewide inclusion; advertised regional FGDB download contains all7 counties and is not a native Washington-only product. No counts/dates borrowed from regional compilation. A separate county-operated GISViewer/Parcels MapServer/0 publishes parcel polygon metadata; county staff reported typical monthly updates. Its bounded daily metadata/count monitoring is a candidate, distinct from the regional FeatureServer/6.",
           "evidence": [
             "https://www.co.washington.mn.us/surveyor",
             "https://arcgis.metc.state.mn.us/data1/rest/services/parcels/Parcels/FeatureServer/6?f=pjson",
-            "https://www.arcgis.com/sharing/rest/content/items/136b28bd0d874076b702ca55b9aafffc?f=pjson"
+            "https://www.arcgis.com/sharing/rest/content/items/136b28bd0d874076b702ca55b9aafffc?f=pjson",
+            "https://www.washingtoncountymn.gov/AgendaCenter/ViewFile/Minutes/11182014-420",
+            "https://www.washingtoncountymn.gov/92/Maps",
+            "https://www.washingtoncountymn.gov/574/Products-Fees",
+            "https://maps.co.washington.mn.us/arcgis/rest/services/GISViewer/Parcels/MapServer/0?f=pjson"
           ],
           "sources": [
             {
@@ -19883,6 +19919,27 @@
                 "https://www.co.washington.mn.us/surveyor",
                 "https://arcgis.metc.state.mn.us/data1/rest/services/parcels/Parcels/FeatureServer/6?f=pjson",
                 "https://www.arcgis.com/sharing/rest/content/items/136b28bd0d874076b702ca55b9aafffc?f=pjson"
+              ],
+              "geometry_type": "esriGeometryPolygon"
+            },
+            {
+              "inventory_id": "washington:county_arcgis_rest:2",
+              "name": "Washington County public viewer parcels",
+              "authority": "county",
+              "dataset_type": "County-operated parcel polygon REST layer",
+              "layer_id": 0,
+              "approved_public_links": [
+                {
+                  "label": "Official parcel service",
+                  "href": "https://maps.co.washington.mn.us/arcgis/rest/services/GISViewer/Parcels/MapServer/0?f=pjson"
+                }
+              ],
+              "review_date": "2026-11-05",
+              "monitoring_decision": "candidate-low-frequency",
+              "evidence": [
+                "https://www.washingtoncountymn.gov/AgendaCenter/ViewFile/Minutes/11182014-420",
+                "https://www.washingtoncountymn.gov/92/Maps",
+                "https://maps.co.washington.mn.us/arcgis/rest/services/GISViewer/Parcels/MapServer/0?f=pjson"
               ],
               "geometry_type": "esriGeometryPolygon"
             }

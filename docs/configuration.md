@@ -695,6 +695,11 @@ or viewer-only findings; free statewide access does not override a direct fee.
   `hold-for-terms`. The data file is read on every run. Public pages say when
   a county-server check is paused or awaiting permission; that state is not
   shown as a failed check.
+  A separately assessed `candidate-low-frequency` source may instead set
+  `check_scope: "details-and-count"` without claiming a county reply of
+  `permitted`. This applies the same metadata/count limit to a county-operated
+  server. It does not activate a source, approve a provider schedule, or replace
+  the private registry and release checks.
 - A run whose source filter matches nothing is an empty run (exit 2), and the
   shared aggregate refuses any report with no source observations except an
   explicit fleet drain. A fleet report whose inventory shrink is refused

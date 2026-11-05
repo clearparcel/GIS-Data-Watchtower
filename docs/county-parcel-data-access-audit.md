@@ -719,6 +719,16 @@ statewide compilation and from the regional aggregate. Its advertised FGDB packa
 all seven counties; no native Washington-only archive or product counts/dates are inferred.
 This verified county-specific regional subdataset qualifies as a distinct repository resource.
 
+On 2026-11-05, a separate county-operated [GISViewer/Parcels MapServer layer 0](https://maps.co.washington.mn.us/arcgis/rest/services/GISViewer/Parcels/MapServer/0?f=pjson)
+was added to the research inventory. Its public metadata identifies parcel polygons and
+supports a count query. County GIS staff reported that the public viewer parcel service
+is typically updated monthly. The county's [Resolution 2014-143](https://www.washingtoncountymn.gov/AgendaCenter/ViewFile/Minutes/11182014-420)
+authorizes free public geospatial downloads subject to a GIS data usage agreement, while
+reserving fees for special requests and other forms. The resolution does not expressly
+address automated metadata/count checks. The owner's requested once-daily check is a
+bounded monitoring candidate; a private source registry entry, cadence check, and release
+remain separate from this research update. No parcel records were downloaded.
+
 All eight bounded layer metadata reads report **esriGeometryPolygon**. No feature queries,
 archive bodies, viewer scraping, private registry reads or source activation occurred.
 Rendered scoped Commons searches for Swift, Traverse, Wilkin and Yellow Medicine did not
