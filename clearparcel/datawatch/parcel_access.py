@@ -89,6 +89,10 @@ class CountyPermission:
             raise ValueError("Invalid outreach reply")
         if "scope" in monitoring and monitoring["scope"] not in CountyPermission.SCOPES:
             raise ValueError("Invalid permitted scope")
+        if "check_scope" in monitoring and monitoring["check_scope"] != "details-and-count":
+            raise ValueError("Invalid candidate check scope")
+        if "check_scope" in monitoring and monitoring.get("decision") != "candidate-low-frequency":
+            raise ValueError("Candidate check scope requires a low-frequency decision")
         if "stop_requested" in monitoring and type(monitoring["stop_requested"]) is not bool:
             raise ValueError("stop_requested must be boolean")
         reply = monitoring.get("reply")
@@ -120,7 +124,9 @@ class CountyPermission:
         decision = monitoring.get("decision")
         if decision not in MONITORING_DECISIONS:
             decision = None
+        check_scope = monitoring.get("check_scope") if decision == "candidate-low-frequency" else None
         return {"contacted_date": contacted, "reply": reply, "scope": scope,
+                "check_scope": check_scope,
                 "stop_requested": stop, "terms_decision": decision}
 
     @staticmethod
@@ -149,8 +155,8 @@ class CountyPermission:
     def is_county_operated(source: dict) -> bool:
         """The request goes to a server the county itself runs.
 
-        ArcGIS Online, the Geospatial Commons, and MnGeo (``gisdata.mn.gov``,
-        including enterprise) are not the county's server.
+        ArcGIS Online, the Geospatial Commons, MnGeo (``gisdata.mn.gov``,
+        including enterprise), and the Metropolitan Council are not the county's server.
         """
         host = CountyPermission._hostname(source)
         if not host:
@@ -158,6 +164,8 @@ class CountyPermission:
         if host == "arcgis.com" or host.endswith(".arcgis.com"):
             return False
         if host == "gisdata.mn.gov" or host.endswith(".gisdata.mn.gov"):
+            return False
+        if host == "metc.state.mn.us" or host.endswith(".metc.state.mn.us"):
             return False
         return True
 
@@ -193,7 +201,9 @@ class CountyPermission:
     def _is_limited(source: dict, permission: dict | None) -> bool:
         """details-and-count applies to this source's server (see ``constrain``)."""
         return bool(permission and not permission.get("stop_requested")
-                    and permission.get("scope") == "details-and-count"
+                    and (permission.get("scope") == "details-and-count"
+                         or (permission.get("terms_decision") == "candidate-low-frequency"
+                             and permission.get("check_scope") == "details-and-count"))
                     and (CountyPermission.is_county_operated(source) or CountyPermission.is_county_agol_service(source)))
 
     @staticmethod
@@ -250,6 +260,8 @@ class CountyPermission:
             return "County-direct parcel checks are paused until terms are settled."
         if permission.get("scope") == "details-and-count" and permission.get("reply") == "permitted":
             return "Limited check: service details and a record count only."
+        if permission.get("terms_decision") == "candidate-low-frequency" and permission.get("check_scope") == "details-and-count":
+            return "Limited check: service details and a record count only."
         if permission.get("terms_decision") == "not-assessed" or permission.get("scope") == "none":
             return "Awaiting county permission. Watchtower is not automatically checking this county's own GIS server."
         return None
@@ -268,8 +280,12 @@ class CountyPermission:
     def note_for_source(source: dict, permission: dict | None) -> str | None:
         if CountyPermission.skip_reason(source, permission):
             return CountyPermission.public_note(permission)
-        if (permission and permission.get("scope") == "details-and-count" and permission.get("reply") == "permitted"
-                and str((source or {}).get("county_slug") or "").strip() and not permission.get("stop_requested")):
+        if not permission or permission.get("stop_requested") or not str((source or {}).get("county_slug") or "").strip():
+            return None
+        county_permitted = permission.get("scope") == "details-and-count" and permission.get("reply") == "permitted"
+        candidate_limited = (permission.get("terms_decision") == "candidate-low-frequency"
+                             and CountyPermission._is_limited(source, permission))
+        if county_permitted or candidate_limited:
             return CountyPermission.public_note(permission)
         return None
 
@@ -410,7 +426,7 @@ def validate_parcel_access(data: dict) -> None:
             raise ValueError("Direct source must have a usable URL")
         monitoring = record["monitoring"]
         if (not isinstance(monitoring, dict) or not {"decision", "reason", "terms_urls"}
-                <= set(monitoring) <= {"decision", "reason", "terms_urls", "contacted_date", "reply", "scope", "stop_requested"}):
+                <= set(monitoring) <= {"decision", "reason", "terms_urls", "contacted_date", "reply", "scope", "check_scope", "stop_requested"}):
             raise ValueError("Invalid monitoring assessment")
         CountyPermission.validate_outreach(monitoring)
         if monitoring["decision"] not in {"candidate-low-frequency", "hold-for-terms", "not-appropriate", "not-assessed"}:

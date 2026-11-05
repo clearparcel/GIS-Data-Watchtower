@@ -65,7 +65,7 @@ class ParcelAccessSchemaTests(unittest.TestCase):
         names = ('Swift', 'Traverse', 'Wabasha', 'Waseca', 'Washington', 'Wilkin', 'Wright', 'Yellow Medicine')
         for name in names:
             record = records[name]
-            self.assertEqual(record['review_date'], '2026-10-06')
+            self.assertEqual(record['review_date'], '2026-11-05' if name == 'Washington' else '2026-10-06')
             self.assertTrue(all(c['review_status'] != 'pending' for c in record['source_inventory'].values()))
         self.assertEqual(records['Swift']['county_direct_classification'], 'fee-based-parcel-data')
         self.assertIn('450', records['Swift']['parcel_dataset_fee'])
@@ -79,6 +79,7 @@ class ParcelAccessSchemaTests(unittest.TestCase):
         for name in ('Wabasha', 'Waseca', 'Washington', 'Wright'):
             self.assertEqual(records[name]['source_inventory']['mngeo_public_repository']['availability'], 'yes')
         self.assertEqual(records['Washington']['source_inventory']['county_arcgis_rest']['sources'][0]['layer_id'], 6)
+        self.assertEqual(records['Washington']['source_inventory']['county_arcgis_rest']['sources'][1]['layer_id'], 0)
 
     def test_sherburne_stevens_batch_records_official_products_and_blockers(self):
         records = load_parcel_access()
@@ -127,7 +128,9 @@ class ParcelAccessSchemaTests(unittest.TestCase):
                 category = record['source_inventory'][key]
                 with self.subTest(county=record['county'], category=key):
                     self.assertNotEqual(category['review_status'], 'pending')
-                    self.assertEqual(category['review_date'], '2026-10-06')
+                    self.assertEqual(category['review_date'],
+                                     '2026-11-05' if record['county'] == 'Washington' and key == 'county_arcgis_rest'
+                                     else '2026-10-06')
                     self.assertTrue(category['evidence'])
                     self.assertTrue(set(category['evidence']) <= urls)
                     if category['review_status'] == 'blocked':
