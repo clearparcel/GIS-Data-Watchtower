@@ -1,5 +1,11 @@
 # Project status
 
+## v0.3.14 release candidate — proposed, 2026-11-05
+
+Version 0.3.14 is the candidate for the bounded Washington County parcel check
+recorded below. Production still runs v0.3.13. The county source remains
+inactive until the private registry, release, and worker validation are complete.
+
 ## Washington County parcel service — proposed, 2026-11-05
 
 The county-operated GISViewer/Parcels MapServer layer 0 is now a research
