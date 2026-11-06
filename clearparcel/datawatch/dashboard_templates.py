@@ -2,12 +2,14 @@ from __future__ import annotations
 from clearparcel.datawatch.csp import SCRIPT_TAG
 
 import html
+import os
 import re
 
 from clearparcel.datawatch.build_info import application_identity
 from clearparcel.datawatch.analytics import posthog_html
 from clearparcel.datawatch.brand_assets import asset_src, favicon_html
 from clearparcel.datawatch.product import PRODUCT_NAME, page_label
+from clearparcel.datawatch.public_values import safe_public_url
 
 
 def _esc(value) -> str:
@@ -375,6 +377,11 @@ def _layout(title: str, body: str, *, refresh_seconds: int = 30, static: bool = 
             "menu": '<path d="M4 7h16M4 12h16M4 17h16"/>',
         }
         return f'<svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">{paths.get(kind, paths["overview"])}</svg>'
+    editor_url = safe_public_url(os.environ.get("WATCHTOWER_COUNTY_ADMIN_URL", ""))
+    editor_link = (
+        f'<a href="{_esc(editor_url)}">{icon("counties")}<span>County editor</span></a>'
+        if editor_url and editor_url.startswith("https://") else ""
+    )
     page_title = page_label(title)
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -546,7 +553,7 @@ code{{font-size:12px;overflow-wrap:anywhere}}
   .mngac-controls label,.mngac-controls select{{width:100%}}
   .mngac-map-panel{{padding:6px}}
   .definition-list{{grid-template-columns:1fr;gap:2px}} .definition-list dd{{margin-bottom:8px}}
-  .mobile-nav{{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));width:100%;position:fixed;bottom:0;left:0;right:0;height:62px;background:var(--navy);border-top:1px solid #ffffff18;z-index:50;padding-bottom:env(safe-area-inset-bottom)}}
+  .mobile-nav{{display:grid;grid-template-columns:repeat({6 if editor_link else 5},minmax(0,1fr));width:100%;position:fixed;bottom:0;left:0;right:0;height:62px;background:var(--navy);border-top:1px solid #ffffff18;z-index:50;padding-bottom:env(safe-area-inset-bottom)}}
   .mobile-nav a{{color:#b9d1e2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:10px;font-weight:600}}
   .mobile-nav a:hover{{text-decoration:none;color:#fff}} .mobile-nav .nav-icon{{width:18px;height:18px}}
 }}
@@ -560,6 +567,7 @@ code{{font-size:12px;overflow-wrap:anywhere}}
 <aside class="sidebar"><div class="side-brand"><strong>{_esc(PRODUCT_NAME)}</strong></div><nav>
 <a href="/">{icon("overview")}<span>Overview</span></a>
 <a href="/counties">{icon("counties")}<span>Minnesota Counties</span></a>
+{editor_link}
 <a href="/mngac">{icon("mngac")}<span>MN GAC Completeness</span></a>
 {'' if static else f'<a href="/terms">{icon("terms")}<span>Provider Terms</span></a>'}
 <a href="/#datasets">{icon("sources")}<span>Data Sources</span></a>
@@ -572,6 +580,7 @@ code{{font-size:12px;overflow-wrap:anywhere}}
 <main id="main-content" tabindex="-1">{body}<footer class="app-footnote">{_esc(PRODUCT_NAME)}</footer></main>
 </section></div>
 <nav class="mobile-nav" aria-label="Mobile navigation">
+{editor_link}
 <a href="/">{icon("overview")}<span>Overview</span></a><a href="/counties">{icon("counties")}<span>Counties</span></a><a href="/mngac">{icon("mngac")}<span>MN GAC</span></a><a href="/#datasets">{icon("sources")}<span>Sources</span></a><a href="/snapshot.xlsx">{icon("export")}<span>Export</span></a>
 </nav>
 </body></html>"""
