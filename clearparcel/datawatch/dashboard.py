@@ -371,9 +371,11 @@ def _load_county_contacts() -> dict:
 
 
 def _county_profiles(config: dict, state: dict, research: dict) -> dict:
-    return compose_county_profiles(state, research, now=dt.datetime.now(dt.timezone.utc), freshness_policy=FreshnessPolicy(
+    from .county_directory_view import with_published_directory
+    profiles = compose_county_profiles(state, research, now=dt.datetime.now(dt.timezone.utc), freshness_policy=FreshnessPolicy(
         source_stale_minutes=int(config.get('source_stale_minutes', 1560)),
         worker_stale_minutes=int(config.get('worker_stale_minutes', 1560))))
+    return with_published_directory(profiles, config.get("_county_directory") or {})
 
 
 def _county_status(config: dict, county: dict, state: dict, *, profiles: dict | None = None, research: dict | None = None) -> dict:
@@ -597,7 +599,10 @@ def _county_snapshot(config: dict, slug: str, *, include_mngac: bool = True, sta
             "contacts": [{**person, "title": person.get("role")} for person in directory["contacts"]],
             "authority": "county_directory",
         }
-        directory_fields = {"county_directory": directory}
+        directory_fields = {"county_directory": directory,
+                            "access_field_basis": {"county_directory.access": "published_county_settings",
+                                                   "parcel_access": "packaged_research_and_statewide_observation",
+                                                   "parcel_source_profile.access": "packaged_research"}}
     return {
         "county": county["name"],
         "parcel_source_profile": profiles[slug],

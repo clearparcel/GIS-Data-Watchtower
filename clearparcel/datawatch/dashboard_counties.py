@@ -7,6 +7,7 @@ from clearparcel.datawatch.county_profile_panel import profile_time
 from clearparcel.datawatch.public_values import county_metadata_dates
 from clearparcel.datawatch.gac_standards import standard_field_counts
 from clearparcel.datawatch.product import page_title
+from .county_directory_view import render_published_directory, published_access_summary, RESEARCH_NOTICE
 
 
 def render_counties(config: dict) -> str:
@@ -31,12 +32,16 @@ def render_counties(config: dict) -> str:
     mngac = _dashboard._mngac_data(state)
     for x in counties:
         status_counts[x["status"]] = status_counts.get(x["status"], 0) + 1
+    def access_summary(info):
+        directory = profiles[info["slug"]].get("county_directory")
+        return published_access_summary(directory) if directory is not None else "Research: " + _dashboard.access_label(info.get("parcel_access"))
+
     rows = "".join(
         f'<tr data-name="{_dashboard._esc(x["name"].lower())}" data-status="{_dashboard._esc(x["status"])}">'
         f'<td><a href="/county?slug={_dashboard.urllib.parse.quote(x["slug"])}"><strong>{_dashboard._esc(x["name"])} County</strong></a></td>'
         f'<td><span class="pill {_dashboard._esc(x["status"])}">{_dashboard._esc(_dashboard._friendly_status(x["status"]))}</span>'
         f'<br><span class="subtext">{_dashboard._esc(_dashboard._monitoring_path_label(x))}</span></td>'
-        f'<td><strong>{_dashboard._esc(_dashboard.access_label(x.get("parcel_access")))}</strong></td>'
+        f'<td><strong>{_dashboard._esc(access_summary(x))}</strong></td>'
         f'<td><strong>{_dashboard._esc(_dashboard.statewide_access_label(x.get("parcel_access"), live_available=(x.get("statewide_record") is not None) if mngac else None))}</strong></td>'
         f'<td>{len(x["sources"])}</td></tr>'
         for x in counties
@@ -51,7 +56,7 @@ def render_counties(config: dict) -> str:
     body = f'<div class="grid"><div class="card"><div class="muted">Minnesota counties</div><div class="metric">{len(counties)}</div><span class="subtext">Counties represented in the statewide county dashboard index.</span></div><div class="card"><div class="muted">Counties with a monitoring path</div><div class="metric">{active_count}</div><span class="subtext">Observed through a county-direct source, MnGeo Plan Parcels Open, or both. {overdue_count} of these {"is" if overdue_count == 1 else "are"} overdue for a new check.</span></div><div class="card"><div class="muted">County-direct checks</div><div class="metric">{direct_count}</div><span class="subtext">Counties with at least one county-specific monitoring path, including any overdue for a new check.</span></div><div class="card"><div class="muted">MnGeo open coverage</div><div class="metric">{mngeo_count}</div><span class="subtext">Counties represented in the current Plan Parcels Open observation.</span></div></div>' + mngac_card + \
         f'<div class="grid"><div class="card">{_dashboard._bar_chart([( _dashboard._friendly_status(k), v) for k,v in sorted(status_counts.items())], title="County monitoring coverage")}<span class="subtext">A county is actively checked when Watchtower observes it through a county-specific source, the statewide MnGeo open-parcels source, or both, and its latest check is within the freshness window; otherwise it shows as check overdue.</span></div><div class="card">{_dashboard._bar_chart(list(age_buckets.items()), title="MnGeo parcel update age")}<span class="subtext">Age of the county acquisition/update date reported in the MnGeo parcel catalog; this is not Watchtower check time. {_dashboard._esc(catalog_notice)}</span></div></div><div class="card"><h2>Minnesota county dashboards</h2><p class="muted">Monitoring coverage, county-direct parcel access, and statewide open access are separate. A county can require payment for its county-supplied dataset while also being freely available through MnGeo Plan Parcels Open.</p><p class="subtext">Use Export in the page toolbar for statewide Excel, CSV, or JSON.</p>' \
         '<div class="filters"><input id="cq" aria-label="Filter counties" placeholder="Filter counties…"><select id="cs" aria-label="Filter by county monitoring coverage"><option value="">All coverage types</option><option value="ok">Actively checked</option><option value="overdue">Check overdue</option><option value="catalog">MnGeo catalog only</option><option value="needs-source">No active parcel monitoring</option><option value="not-configured">No source information yet</option><option value="warn">Needs attention</option><option value="error">Check failed</option></select></div>' \
-        f'<table id="counties"><thead><tr><th>County</th><th>Monitoring coverage<br><span class="subtext">Health and active monitoring path</span></th><th>County-direct access<br><span class="subtext">Evidence-backed county access</span></th><th>Statewide open access<br><span class="subtext">Current MnGeo Plan Parcels Open coverage</span></th><th>County-direct sources<br><span class="subtext">County-specific sources actively checked</span></th></tr></thead><tbody>{rows}</tbody></table></div>' \
+        f'<table id="counties"><thead><tr><th>County</th><th>Monitoring coverage<br><span class="subtext">Health and active monitoring path</span></th><th>Parcel data access<br><span class="subtext">Published settings, or packaged research when unpublished</span></th><th>Statewide open access<br><span class="subtext">Current MnGeo Plan Parcels Open coverage</span></th><th>County-direct sources<br><span class="subtext">County-specific sources actively checked</span></th></tr></thead><tbody>{rows}</tbody></table></div>' \
         f"{SCRIPT_TAG}" "function filterCounties(){const q=document.getElementById('cq').value.toLowerCase(),s=document.getElementById('cs').value;document.querySelectorAll('#counties tbody tr').forEach(r=>r.style.display=(!q||r.dataset.name.includes(q))&&(!s||r.dataset.status===s)?'':'none')}document.getElementById('cq').addEventListener('input',filterCounties);document.getElementById('cs').addEventListener('change',filterCounties);</script>"
     body += f'<div class="card"><h2>Parcel source research</h2>{_dashboard.research_summary(profiles)}</div>'
     return _dashboard._layout(page_title("Minnesota Counties"), '<p><a href="/">← Watchtower overview</a></p>'+body, static=bool(config.get("_public_mode")), csrf_token=str(config.get("_csrf_token") or ""))
@@ -65,7 +70,7 @@ def render_county(config: dict, slug: str) -> str:
     research = _dashboard.load_parcel_access()
     profiles = _dashboard._county_profiles(config, state, research)
     info = _dashboard._county_status(config, county, state, profiles=profiles, research=research)
-    complete_profile = _dashboard.render_county_profile_body(profiles[slug])
+    complete_profile = _dashboard.render_county_profile_body(profiles[slug], include_directory=False)
     mngac_html = _dashboard._render_county_mngac(state, county)
     gac_summary_html = _dashboard._render_county_gac_summaries(state, county)
     parcel_access = info.get("parcel_access")
@@ -170,66 +175,16 @@ def render_county(config: dict, slug: str) -> str:
     verified_text = f' Verified {_dashboard._esc(contact_record.get("verified"))}.' if contact_record.get("verified") else ""
     contacts_html = f'<div class="card"><h2>County GIS contacts</h2><p class="muted"><strong>Contact source:</strong> {contact_source}. {contact_source_note}{verified_text}</p><table class="contacts-table"><thead><tr><th>Name</th><th>Title</th><th>Department</th><th>Phone</th><th>Email</th></tr></thead><tbody>{contact_rows}</tbody></table></div>'
     directory = (config.get("_county_directory") or {}).get(profiles[slug].get("county", {}).get("fips"))
+    published_html = ""
     if directory is not None:
-        contacts_html = _render_published_directory(directory)
+        published_html = render_published_directory(directory)
+        contacts_html = ""
+        parcel_access_detail = ('<details class="card"><summary>Packaged parcel-access research</summary>'
+                                f'<p>{RESEARCH_NOTICE}</p>' + parcel_access_detail + '</details>')
     export_links = f'<p><a href="/county-snapshot.csv?slug={_dashboard.urllib.parse.quote(slug)}">Download county snapshot (CSV)</a> · <a href="/county-snapshot.xlsx?slug={_dashboard.urllib.parse.quote(slug)}">Download county snapshot (Excel)</a> · <a href="/county-snapshot.json?slug={_dashboard.urllib.parse.quote(slug)}">Download county snapshot (JSON)</a></p>'
     if config.get("_county_pdf_enabled"):
         export_links += f'<p><a href="/county-profile.pdf?slug={_dashboard.urllib.parse.quote(slug)}">Download county profile PDF</a></p>'
-    body = f'<p><a href="/counties">← Minnesota counties</a></p>{export_links}<div class="grid"><div class="card"><div class="muted">County</div><h2>{_dashboard._esc(county["name"])} County</h2></div><div class="card"><div class="muted">Monitoring coverage</div><div class="metric {_dashboard._esc(info["status"])}">{_dashboard._esc(_dashboard._friendly_status(info["status"]).upper())}</div></div><div class="card"><div class="muted">Monitoring path</div><div class="metric" style="font-size:20px">{_dashboard._esc(_dashboard._monitoring_path_label(info))}</div></div><div class="card"><div class="muted">County-direct sources</div><div class="metric">{len(info["sources"])}</div></div></div><div class="grid">{source_cards}</div><br>{parcel_access_detail}<br>{mngac_html}<br>{gac_summary_html}<br><div class="card county-complete-profile">{complete_profile}</div><br>{contacts_html}'
+    body = f'<p><a href="/counties">← Minnesota counties</a></p>{export_links}<div class="grid"><div class="card"><div class="muted">County</div><h2>{_dashboard._esc(county["name"])} County</h2></div><div class="card"><div class="muted">Monitoring coverage</div><div class="metric {_dashboard._esc(info["status"])}">{_dashboard._esc(_dashboard._friendly_status(info["status"]).upper())}</div></div><div class="card"><div class="muted">Monitoring path</div><div class="metric" style="font-size:20px">{_dashboard._esc(_dashboard._monitoring_path_label(info))}</div></div><div class="card"><div class="muted">County-direct sources</div><div class="metric">{len(info["sources"])}</div><span class="subtext">Monitored sources; editing access settings does not add a monitoring source.</span></div></div><div class="grid">{source_cards}</div><br>{published_html}{parcel_access_detail}<br>{mngac_html}<br>{gac_summary_html}<br><div class="card county-complete-profile">{complete_profile}</div><br>{contacts_html}'
     return _dashboard._layout(page_title(f'{county["name"]} County'), body,
                               refresh_seconds=10 if config.get("_directory_refresh") else 30,
                               static=bool(config.get("_public_mode")), csrf_token=str(config.get("_csrf_token") or ""))
-
-
-def _render_published_directory(directory: dict) -> str:
-    esc = _dashboard._esc
-
-    def link(value, label):
-        url = _dashboard._safe_url(value)
-        return f'<a href="{esc(url)}" rel="noopener">{esc(label)}</a>' if url else ""
-
-    def paragraph(value):
-        return esc(value or "").replace("\n", "<br>")
-
-    contacts = []
-    for person in directory["contacts"]:
-        contact = [esc(person.get(key) or "—") for key in ("name", "role", "department", "phone", "email")]
-        contact.extend([link(person.get("website"), "Website"), link(person.get("source_url"), "Public source"),
-                        esc(person.get("verified_on") or "—")])
-        contacts.append("<tr>" + "".join(f"<td>{value}</td>" for value in contact) + "</tr>")
-    contact_table = (
-        '<table class="contacts-table"><thead><tr><th>Name</th><th>Role</th><th>Department</th>'
-        '<th>Phone</th><th>Email</th><th>Website</th><th>Source</th><th>Verified</th></tr></thead><tbody>'
-        + "".join(contacts) + "</tbody></table>" if contacts else "<p>No contact is currently listed.</p>"
-    )
-    access = []
-    for key, name in (("parcel_polygons", "Parcel Polygons"), ("road_centerlines", "Road Centerlines"),
-                      ("address_points", "Address Points")):
-        item = directory["access"][key]
-        classification = {"open": "Open GIS Data", "fee": "Fee Based GIS Data", "unknown": "Unknown"}[item["classification"]]
-        methods = []
-        for method in item["methods"]:
-            label = {"mngeo_open": "MnGeo open", "direct_rest": "Direct REST", "direct_download": "Direct Download",
-                     "other": method.get("description") or "Other"}[method["kind"]]
-            methods.append(f'<li>{link(method["url"], label)} · {esc(method["scope"])} · {esc(method["evidence_date"])}</li>')
-        method_list = "<ul>" + "".join(methods) + "</ul>" if methods else ""
-        restriction = item["restrictions"]
-        note = {
-            "unreviewed": "Use restrictions not yet reviewed",
-            "reviewed_none": "No use restrictions recorded; confirm provider terms.",
-            "restricted": paragraph(restriction.get("text")),
-        }[restriction["status"]]
-        reviewed = f' · Reviewed {esc(restriction["reviewed_on"])}' if restriction.get("reviewed_on") else ""
-        access.append(
-            f'<h3>{name}</h3><p><strong>{classification}</strong></p>{method_list}'
-            f'<p>{paragraph(item.get("county_direct_note"))}</p>'
-            f'<p>{note} {link(restriction.get("url"), "Official restrictions")}{reviewed}</p>'
-        )
-    policy = directory["policy"]
-    return (
-        '<div class="card"><h2>County GIS contacts</h2>'
-        f'<p>Published revision {esc(directory["public_revision"])} · {esc(directory["published_at"])}</p>{contact_table}</div>'
-        '<div class="card"><h2>County GIS data access</h2>' + "".join(access)
-        + f'<h3>County GIS policy</h3><p>{paragraph(policy.get("text") or "No policy text published.")}</p>'
-        f'<p>{link(policy.get("url"), "Official county policy")}</p></div>'
-    )

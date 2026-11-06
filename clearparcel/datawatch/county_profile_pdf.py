@@ -13,7 +13,7 @@ from xml.sax.saxutils import escape, quoteattr
 
 from .public_values import safe_public_url
 
-_TEMPLATE_VERSION = 1
+_TEMPLATE_VERSION = 2
 _MAX_SNAPSHOT_BYTES = 2 * 1024 * 1024
 _MAX_PDF_BYTES = 4 * 1024 * 1024
 _OPERATIONAL_FIELDS = {"worker", "execution_profile", "monitoring_assessment", "permission"}
@@ -39,13 +39,19 @@ def _sections(snapshot):
     summary["county_profile_url"] = "https://gis-watchtower.clear-parcel.com/county?" + urlencode({"slug": slug})
     summary["public_revision"] = directory.get("public_revision")
     summary["directory_published_at"] = directory.get("published_at")
+    profile = snapshot.get("parcel_source_profile")
+    if directory and profile:
+        profile = {key: value for key, value in profile.items() if key != "county_directory"}
+        profile["packaged_access_research"] = profile.pop("access", {})
+    if directory:
+        access = {"basis": "Packaged research; current settings are in County GIS data access.", **access}
     sections = {
         "County overview": summary,
         "County GIS contacts": directory.get("contacts", snapshot.get("contacts", [])),
         "County GIS data access": directory.get("access"),
         "County GIS policy": directory.get("policy"),
-        "Parcel access research": access,
-        "County monitoring and source inventories": snapshot.get("parcel_source_profile"),
+        "Packaged parcel access research": access,
+        "County monitoring and source inventories": profile,
         "Monitored county sources": snapshot.get("direct_sources"),
     }
     standards = snapshot.get("gac") or {}

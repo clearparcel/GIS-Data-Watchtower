@@ -42,6 +42,7 @@ from clearparcel.datawatch.county_map_status import MAP_STATUSES, county_map_sta
 from clearparcel.datawatch import strict_json
 from clearparcel.datawatch.storage import LocalStorage, StorageConflictError, backend_from_env
 from clearparcel.datawatch.county_directory_store import read_public_directory
+from .county_directory_view import with_published_directory
 from clearparcel.datawatch.county_admin_hosted import hosted_public_county_bucket
 from clearparcel.datawatch.county_profile_pdf import county_profile_pdf
 from clearparcel.datawatch.public_values import sanitize_source_metadata
@@ -759,7 +760,8 @@ def serve_public(host: str = "0.0.0.0", port: int = 8080, *, county_directory_ro
                     except storage_errors:
                         return self._send(503, "County directory temporarily unavailable.", "text/plain; charset=utf-8")
                     revision = cache._directory_key(view["summary"]["content_revision"], directory)
-                    view = {**view, "summary": {**view["summary"], "content_revision": revision}}
+                    view = {**view, "summary": {**view["summary"], "content_revision": revision},
+                            "profiles": with_published_directory(view["profiles"], directory)}
                     config = {**config, "_county_directory": directory, "_directory_refresh": True,
                               "_county_pdf_enabled": pdf_enabled}
                 self._render_revision = view["summary"]["content_revision"]
