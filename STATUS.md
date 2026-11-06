@@ -4,7 +4,8 @@
 
 The candidate waits for a successful ClamAV readiness scan before accepting
 HTTP traffic and allows the editor scan request to cover cold startup.
-Production promotion remains pending staging verification.
+Staging verified startup ordering and clean/encrypted PDF verdicts.
+Production promotion remains pending.
 
 ## v0.4.0 county directory and administration
 
