@@ -1,9 +1,8 @@
 # County directory contract, version 1
 
-The first implementation slice defines the editable public content and its
-publication allowlist. The routes, persistence, migration, attachments, and
-public consumers described below are integration requirements for subsequent
-slices.
+The offline implementation provides the public projection, versioned private
+saves, explicit publication, and a readback status. Routes, migration,
+attachments, and public dashboard and PDF integration remain subsequent work.
 
 ## County identity and public content
 
@@ -39,23 +38,34 @@ permission, terms holds, polling cadence, and worker provenance.
 
 ## Save and publication
 
-- A county write uses a server-resolved identity, expected private revision,
-  and opaque idempotency key scoped to the county. An identical replay returns
-  the recorded result. Reject reuse with a different payload. Retain request
-  results through the supported retry window, including after newer saves.
-- Validate before the conditional private write. Save the private revision
-  and pending publication intent in the same object. Private-only saves leave
-  the public revision unchanged and preserve an existing pending intent.
+- `CountyDirectoryStore.save` takes a complete private draft, server-resolved
+  identity, expected private revision, and opaque request ID scoped to the
+  county. A missing record starts at revision 0. Each successful new save
+  advances the private revision. The last 128 receipts per county support
+  identical replay after newer saves and reject reuse with a different
+  expected revision or draft. The editor must use a fresh ID for a new action.
+- The save validates the public projection before the conditional private
+  write. The same object holds the draft, receipt, and durable desired public
+  revision and fingerprint. A private-only change advances only the private
+  revision and preserves any pending public intent.
 - Store each private county record separately. The sanitized public directory
   uses a separate object from both private storage and the routine monitoring
   aggregate. Each public county entry adds a public revision and publication
-  time to the allowlisted content. On a directory write conflict, reread and
-  merge only the target county if its public revision is still older. Read
-  back the result before confirming it.
-- The authenticated status response distinguishes validation failure,
-  revision conflict, private-only save, pending publication, and confirmed
-  publication. Until confirmation, retain a retryable intent. If a write
-  landed but readback failed, reconcile the stored revision on retry.
+  time to the allowlisted content. The injected storage backends must use
+  separate namespaces. Deployment must restrict public readers to the
+  public object and reserve public writes for the county publisher.
+- `publish` reconstructs the allowlisted content from the saved draft and
+  verifies the fingerprint before writing. On a directory write conflict,
+  reread and merge only the target county if its public revision is still
+  older. Confirm only a readback with the desired public revision and the
+  expected content. `read_public_directory` needs only the public backend.
+- The future authenticated Apply handler should call `save` and then request
+  `publish`. It must handle validation failure, revision conflict, private-only
+  save, pending publication, and confirmed publication. Use the receipt's
+  public revision to distinguish a confirmed save from a superseded one.
+  A publisher or operator can call `publish` again after an interrupted save
+  or readback. The store retains the desired revision and derives pending
+  status from the public object. The offline store has no background worker.
 - Compose the public profile and PDF with one confirmed directory revision
   and one identified public monitoring/research snapshot. Key PDF caching
   by county, public revision, snapshot identity, freshness bucket when used,
@@ -68,8 +78,8 @@ The existing trusted-frontend dashboard requires read-only mode. Keep that
 invariant. Add an independently authorized write path with verified
 administrator identity, origin and CSRF checks, and bounded request bodies.
 Cover directory reads, writes, status, uploads, and downloads with explicit
-authorization. Keep attachment
-objects and metadata in protected storage, identified by opaque IDs. Bind each
+authorization. Keep attachment objects and metadata in protected storage,
+identified by opaque IDs. Bind each
 read to its county and record and verify authorization before returning data.
 Start with the specification's proposed 20 MB per-file PDF limit. Validate
 content server-side, quarantine until scanning succeeds, and keep failures and
@@ -82,6 +92,8 @@ America/Chicago. Recording a correspondence event never sends mail.
 `tests/test_county_directory.py` exercises all 87 identities, empty contacts,
 an inactive contact, a direct fee alongside a statewide open product, missing
 classifications, long policy text, and private markers at multiple nesting
-levels. Later slices must exercise durable replay, simultaneous editors,
-stale publishers, restart recovery, authorized attachment reads, maximum
-standards tables, and HTML, JSON, CSV/XLSX, PDF, and log privacy.
+levels. `tests/test_county_directory_store.py` exercises durable replay,
+interleaved editors and publishers, restarts, ambiguous writes, and the
+public JSON boundary with local storage. Later slices must exercise authorized
+attachment reads, maximum standards tables, and privacy in integrated outputs
+and logs.
