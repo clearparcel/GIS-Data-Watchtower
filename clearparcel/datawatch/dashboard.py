@@ -590,6 +590,14 @@ def _county_snapshot(config: dict, slug: str, *, include_mngac: bool = True, sta
             "covered_counties": mngac_data.get("covered_counties"),
             "county": mngac_county,
         }
+    directory = (config.get("_county_directory") or {}).get(profiles[slug].get("county", {}).get("fips"))
+    directory_fields = {}
+    if directory is not None:
+        contact = {
+            "contacts": [{**person, "title": person.get("role")} for person in directory["contacts"]],
+            "authority": "county_directory",
+        }
+        directory_fields = {"county_directory": directory}
     return {
         "county": county["name"],
         "parcel_source_profile": profiles[slug],
@@ -638,6 +646,7 @@ def _county_snapshot(config: dict, slug: str, *, include_mngac: bool = True, sta
         "contact_source": contact.get("authority"),
         "contact_source_url": contact.get("source_url"),
         "contact_verified": contact.get("verified"),
+        **directory_fields,
         "mngac": mngac_payload,
         "gac": gac_payload,
         **_snapshot_time_fields(dt.datetime.now(dt.timezone.utc).isoformat(), "snapshot_created"),

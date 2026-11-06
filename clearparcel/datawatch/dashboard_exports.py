@@ -108,10 +108,22 @@ def _snapshot_csv(snapshot: dict) -> str:
               "address_record_count","address_mandatory_population_percent","address_ng911_participant","address_gac_public_opt_in","address_submitted_at",
               "road_record_count","road_mandatory_population_percent","road_ng911_participant","road_gac_public_opt_in","road_submitted_at"]
     fields += ["profile_" + key for key in SUMMARY_FIELDS]
+    directory = snapshot.get("county_directory")
+    directory_fields = {}
+    if directory is not None:
+        directory_fields = {
+            "public_directory_revision": directory["public_revision"],
+            "county_policy": directory["policy"].get("text"),
+            "county_policy_url": directory["policy"].get("url"),
+            "public_access": json.dumps(directory["access"], ensure_ascii=True),
+            "public_contacts": json.dumps(directory["contacts"], ensure_ascii=True),
+        }
+        fields.extend(directory_fields)
     writer = csv.DictWriter(out, fieldnames=fields)
     writer.writeheader()
     for row in [snapshot]:
         writer.writerow({key: _csv_safe(value) for key, value in {
+            **directory_fields,
             **{"profile_" + key: value for key, value in county_profile_summary(row.get("parcel_source_profile") or {}).items()},
             "county": row.get("county"), "status": row.get("status"),
             "actively_monitored": row.get("actively_monitored"),
@@ -340,6 +352,7 @@ def _snapshot_xlsx(snapshot: dict) -> bytes:
     county_rows = [["County","Status","Actively monitored","Monitoring path","County-direct access","Statewide open access","County-direct source count","Parcel dataset fee","Fee product","MnGeo acquisition date","Catalog refresh date","County metadata publication date","County metadata content date","Public data approved","Parcel data URL","Parcel viewer URL","Contact names","Contact source","Contact source URL","Contact verified"]]
     source_rows = [["County","Source","Status","Record count","Worker","Reporting","Stale source","Stale worker","Last successful check","Last checked"]]
     contact_rows = [["County","Name","Title","Department","Phone","Email","Contact source","Contact source URL","Verified"]]
+    directory_rows = [["County", "Public revision", "Field", "Value"]]
     rows = snapshot.get("counties") if "counties" in snapshot else [snapshot]
     for row in rows:
         county = row.get("county") or ""
@@ -357,11 +370,22 @@ def _snapshot_xlsx(snapshot: dict) -> bytes:
             if "sources" not in snapshot:
                 source_rows.append([county,source.get("name"),source.get("status"),source.get("feature_count"),source.get("worker"),source.get("reporting"),bool(source.get("stale")),bool(source.get("worker_stale")),source.get("last_success_at"),source.get("checked_at")])
         for contact in row.get("contacts", []):
-            contact_rows.append([county,contact.get("name"),contact.get("title"),contact.get("department"),contact.get("phone"),contact.get("email"),row.get("contact_source"),row.get("contact_source_url"),row.get("contact_verified")])
+            contact_rows.append([county,contact.get("name"),contact.get("title"),contact.get("department"),contact.get("phone"),contact.get("email"),row.get("contact_source"),contact.get("source_url") or row.get("contact_source_url"),contact.get("verified_on") or row.get("contact_verified")])
+        directory = row.get("county_directory")
+        if directory is not None:
+            values = {"Policy text": directory["policy"].get("text", ""),
+                      "Policy URL": directory["policy"].get("url", ""),
+                      "Public access": json.dumps(directory["access"], ensure_ascii=True),
+                      "Public contacts": json.dumps(directory["contacts"], ensure_ascii=True)}
+            for label, value in values.items():
+                for start in range(0, max(len(value), 1), 16_000):
+                    directory_rows.append([county, directory["public_revision"], label, value[start:start + 16_000]])
     if "sources" in snapshot:
         for source in snapshot.get("sources", []):
             source_rows.append([source.get("county"),source.get("name"),source.get("status"),source.get("feature_count"),source.get("worker"),source.get("reporting"),bool(source.get("stale")),bool(source.get("worker_stale")),source.get("last_success_at"),source.get("checked_at")])
     sheets=[("Counties",county_rows),("Sources",source_rows),("Contacts",contact_rows)]
+    if len(directory_rows) > 1:
+        sheets.append(("County directory", directory_rows))
     sheets.extend(_mngac_xlsx_sheets(snapshot))
     sheets.extend(_gac_xlsx_sheets(snapshot))
     profiles = {row["parcel_source_profile"]["county"]["slug"]: row["parcel_source_profile"] for row in rows if row.get("parcel_source_profile")}

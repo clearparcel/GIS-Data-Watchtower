@@ -26,6 +26,9 @@ The [authority reconciliation runbook](docs/monitoring-authority-reconciliation.
 checks supplied monitoring-approval evidence without activating sources.
 The [isolated restore rehearsal](docs/isolated-restore-rehearsal.md) exercises
 synthetic aggregate recovery and concurrent publishing in temporary local storage.
+The [county directory contract and preview](docs/county-directory-contract.md)
+describes how to exercise GIS contact editing, public publication, private
+attachment quarantine, and county profile PDFs against local storage.
 
 ![Live Watchtower overview with source health, county coverage, and a Minnesota county map](docs/images/watchtower-overview.png)
 
