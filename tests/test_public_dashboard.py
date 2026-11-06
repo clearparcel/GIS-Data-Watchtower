@@ -514,6 +514,19 @@ class PublicDashboardTests(unittest.TestCase):
             self.assertIn('<a href="/#datasets" class="active" aria-current="page"><span class="tab-long">Data Sources</span>', page)
             self.assertNotIn(raw["sources"]["county-parcels-direct"]["checked_at"], page)
 
+    def test_county_editor_link_is_private_and_requires_a_safe_https_url(self):
+        url = "https://county-editor.example.org/"
+        with patch.dict("os.environ", {"WATCHTOWER_COUNTY_ADMIN_URL": url}):
+            private = _layout("Private dashboard", "", static=False)
+            self.assertEqual(private.count(f'href="{url}"'), 2)
+            self.assertIn("repeat(6,minmax(0,1fr))", private)
+            for bundle in (False, True):
+                self.assertNotIn(url, _layout("Public dashboard", "", static=True, static_bundle=bundle))
+        for unsafe in ("", "http://county-editor.example.org/", "javascript:alert(1)",
+                       "https://user:secret@county-editor.example.org/"):
+            with patch.dict("os.environ", {"WATCHTOWER_COUNTY_ADMIN_URL": unsafe}):
+                self.assertNotIn("County editor", _layout("Private dashboard", "", static=False))
+
     def test_private_layout_does_not_use_public_v2_shell(self):
         page = _layout("Private dashboard", "<p>private</p>", static=False)
         self.assertIn('class="sidebar"', page)

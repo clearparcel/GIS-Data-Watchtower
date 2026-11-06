@@ -504,6 +504,7 @@ the same server, routes, security headers and Content Security Policy as
 | `WATCHTOWER_GCS_PREFIX` | Object prefix in that bucket | empty |
 | `WATCHTOWER_AGGREGATE_OBJECT` | Aggregate object name | `aggregate-state.json` |
 | `WATCHTOWER_CONFIG` | Mounted source registry | `/secrets/data_sources.json` |
+| `WATCHTOWER_COUNTY_ADMIN_URL` | HTTPS county editor URL; adds a link to private desktop/mobile navigation. The editor keeps its own authentication. | unset (link hidden) |
 | `WATCHTOWER_PRIVATE_SYNC_SECONDS` | Minimum seconds between storage reads | `30` (5–3600) |
 | `PORT` | Listen port (set by Cloud Run) | `8080` |
 
