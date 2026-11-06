@@ -1,5 +1,11 @@
 # Project status
 
+## Scanner readiness fix — candidate
+
+The candidate waits for a successful ClamAV readiness scan before accepting
+HTTP traffic and allows the editor scan request to cover cold startup.
+Production promotion remains pending staging verification.
+
 ## v0.4.0 county directory and administration
 
 The public dashboard and separate, IAP-protected county editor went live on

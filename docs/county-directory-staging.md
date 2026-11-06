@@ -53,7 +53,12 @@ needs neither a bucket mount nor an HTTP ingress port. Check attachment volume
 retention and deletion before storing real records.
 
 The editor accepts a scan verdict only when the daemon reports a signature
-database at most 72 hours old. Scanner startup, signature updates, or scan
+database at most 72 hours old. Before opening the HTTP listener, the scanner
+waits up to 90 seconds for a clean empty-stream scan with current signatures;
+each readiness attempt has a two-second deadline. The existing TCP startup
+probe therefore cannot pass while ClamAV is still loading. The editor allows
+120 seconds for the scanner response, covering startup plus the bounded scan.
+A failed startup exits without accepting traffic. Scanner signature updates or scan
 failures leave files in quarantine. The Retry scan control is available for
 linked pending attachments. Encrypted and over-limit files produce a rejection.
 
