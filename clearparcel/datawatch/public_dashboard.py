@@ -42,6 +42,7 @@ from clearparcel.datawatch.county_map_status import MAP_STATUSES, county_map_sta
 from clearparcel.datawatch import strict_json
 from clearparcel.datawatch.storage import LocalStorage, StorageConflictError, backend_from_env
 from clearparcel.datawatch.county_directory_store import read_public_directory
+from clearparcel.datawatch.county_admin_hosted import hosted_public_county_bucket
 from clearparcel.datawatch.county_profile_pdf import county_profile_pdf
 from clearparcel.datawatch.public_values import sanitize_source_metadata
 from clearparcel.datawatch.build_info import application_identity
@@ -453,6 +454,10 @@ class _PublicStateCache:
         self.history_path.touch(exist_ok=True)
         self.storage = backend_from_env(self.root)
         self.directory_storage = None
+        self.directory_refresh_seconds = 0
+        self._directory_lock = threading.Lock()
+        self._directory_value = {}
+        self._directory_read_at = None
         self.object_name = os.environ.get("WATCHTOWER_AGGREGATE_OBJECT", "aggregate-state.json")
         self.refresh_seconds = max(5, min(int(os.environ.get("WATCHTOWER_PUBLIC_REFRESH_SECONDS", "30")), 300))
         self._last_refresh = 0.0
@@ -543,7 +548,14 @@ class _PublicStateCache:
             return self._ensure_snapshot()
 
     def directory(self) -> dict:
-        return read_public_directory(self.directory_storage) if self.directory_storage is not None else {}
+        if self.directory_storage is None:
+            return {}
+        with self._directory_lock:
+            now = time.monotonic()
+            if self._directory_read_at is None or now - self._directory_read_at >= self.directory_refresh_seconds:
+                self._directory_value = read_public_directory(self.directory_storage)
+                self._directory_read_at = now
+            return self._directory_value
 
     @staticmethod
     def _directory_key(state_key: str, directory: dict) -> str:
@@ -620,12 +632,24 @@ def _public_request_timeout_seconds() -> int:
 
 def serve_public(host: str = "0.0.0.0", port: int = 8080, *, county_directory_root: Path | None = None) -> None:
     cache = _PublicStateCache()
+    hosted_bucket = hosted_public_county_bucket(os.environ)
+    storage_errors = (OSError, ValueError, StorageConflictError)
     if county_directory_root is not None:
+        if hosted_bucket is not None:
+            raise ValueError("select either a local or hosted county directory")
         cache.directory_storage = LocalStorage(county_directory_root)
+    if hosted_bucket is not None:
+        from google.api_core.exceptions import GoogleAPICallError
+        from google.auth.exceptions import GoogleAuthError
+        from .storage import GCSStorage
+        cache.directory_storage = GCSStorage(hosted_bucket)
+        cache.directory_refresh_seconds = 4
+        storage_errors += (GoogleAPICallError, GoogleAuthError)
+    directory_enabled = county_directory_root is not None or hosted_bucket is not None
     cache.refresh(force=True)
     max_connections = max(1, min(int(os.environ.get("WATCHTOWER_PUBLIC_MAX_CONNECTIONS", "64")), 256))
     max_publication_age_seconds = _publication_max_age_seconds()
-    pdf_enabled = county_directory_root is not None and importlib.util.find_spec("reportlab") is not None
+    pdf_enabled = directory_enabled and importlib.util.find_spec("reportlab") is not None
     pdf_slots = threading.BoundedSemaphore(2)
 
     class Handler(BaseHTTPRequestHandler):
@@ -672,7 +696,7 @@ def serve_public(host: str = "0.0.0.0", port: int = 8080, *, county_directory_ro
             self.send_header("Content-Type", content_type)
             self.send_header("Content-Disposition", f'attachment; filename="{filename}"')
             self.send_header("Content-Length", str(len(raw)))
-            self.send_header("Cache-Control", "no-cache" if county_directory_root is not None else "public, max-age=30")
+            self.send_header("Cache-Control", "no-cache" if directory_enabled else "public, max-age=30")
             self.send_header("X-Content-Type-Options", "nosniff")
             self.send_header("X-Robots-Tag", "noindex, nofollow")
             self.end_headers()
@@ -696,7 +720,7 @@ def serve_public(host: str = "0.0.0.0", port: int = 8080, *, county_directory_ro
                 if cache.stale:
                     snapshot = {**snapshot, "snapshot_note": "Showing the last available monitoring snapshot."}
                 raw = county_profile_pdf(snapshot)
-            except (OSError, ValueError, RuntimeError, ImportError):
+            except storage_errors + (RuntimeError, ImportError):
                 return self._send(503, "County PDF temporarily unavailable.", "text/plain; charset=utf-8")
             finally:
                 pdf_slots.release()
@@ -729,10 +753,10 @@ def serve_public(host: str = "0.0.0.0", port: int = 8080, *, county_directory_ro
             config = cache.config
             if parsed.path in {"/api/summary", "/api/county-profile", "/", "/counties", "/county", "/mngac", "/source"}:
                 view = cache.view()
-                if county_directory_root is not None:
+                if directory_enabled:
                     try:
                         directory = cache.directory()
-                    except (OSError, ValueError, StorageConflictError):
+                    except storage_errors:
                         return self._send(503, "County directory temporarily unavailable.", "text/plain; charset=utf-8")
                     revision = cache._directory_key(view["summary"]["content_revision"], directory)
                     view = {**view, "summary": {**view["summary"], "content_revision": revision}}
@@ -748,7 +772,7 @@ def serve_public(host: str = "0.0.0.0", port: int = 8080, *, county_directory_ro
                     county_snapshot=cache.county_snapshot, statewide_xlsx=cache.snapshot_xlsx,
                 ):
                     return
-            except (OSError, ValueError, StorageConflictError):
+            except storage_errors:
                 return self._send(503, "Snapshot temporarily unavailable.", "text/plain; charset=utf-8")
             if parsed.path == "/":
                 return self._send(200, render_public_dashboard(config))

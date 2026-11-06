@@ -2,8 +2,9 @@
 
 The local preview provides a GIS Contacts editor, versioned private saves,
 publication with readback, private attachment quarantine, and a public profile
-with HTML, JSON, CSV, XLSX, and PDF output. Hosted integration and migration
-from a verified deployed snapshot remain separate work.
+with HTML, JSON, CSV, XLSX, and PDF output. See the
+[hosted staging checklist](county-directory-staging.md) for service
+bindings, verified migration, and rollout acceptance.
 
 ## County identity and public content
 

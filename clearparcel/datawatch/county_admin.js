@@ -37,6 +37,7 @@ const attachmentCache = new Map();
 
 let counties = [];
 let csrf;
+let scannerEnabled = false;
 let selected = "";
 let draft;
 let revision;
@@ -265,11 +266,26 @@ function attachmentField(parent, title, ids, kind, eventId, attach, detach) {
         const url = path() + "/attachments/" + encodeURIComponent(id);
         const show = meta => {
             row.replaceChildren();
-            if (meta.status === "clean") {
+            const linked = !attachmentCache.has(id);
+            if (meta.status === "clean" && linked) {
                 node("a", meta.filename, row).href = url;
             } else {
-                const status = {pending: "Quarantined, awaiting scan", rejected: "Rejected by scan"};
+                const status = {pending: "Quarantined, awaiting scan", rejected: "Rejected by scan", clean: "Scan passed, apply to link"};
                 row.textContent = (meta.filename || "Private file") + " · " + (status[meta.status] || "Status unavailable");
+            }
+            if (scannerEnabled && linked && meta.status === "pending") {
+                button(row, "Retry scan", async () => {
+                    lock(true);
+                    try {
+                        const result = await request(url + "/scan", {});
+                        if (result.code === 200 || result.code === 202) show(result);
+                        else message.textContent = "The private scan could not be retried.";
+                    } catch {
+                        message.textContent = "The private scan could not be retried.";
+                    } finally {
+                        lock(false);
+                    }
+                });
             }
             button(row, "Detach", () => { detach(id); changed(); render(); });
             lock(busy);
@@ -313,7 +329,9 @@ function attachmentField(parent, title, ids, kind, eventId, attach, detach) {
             attach(result.id);
             changed();
             render();
-            message.textContent = "File saved to private quarantine. Apply to link it to this county record.";
+            message.textContent = result.status === "pending"
+                ? "File saved to private quarantine. Apply to link it to this county record."
+                : "Private upload saved. Apply to link it to this county record.";
         } catch {
             message.textContent = "The upload could not be confirmed. Retry this file.";
         } finally {
@@ -427,6 +445,10 @@ form.addEventListener("submit", async event => {
             revision = result.revision;
             dirty = false;
             pendingRequest = null;
+            if (attachmentCache.size) {
+                attachmentCache.clear();
+                render();
+            }
             if (result.status !== "saved_private") publicationState(result);
             const directory = await request("/api/counties");
             if (directory.code === 200) {
@@ -457,6 +479,7 @@ window.addEventListener("beforeunload", event => {
 request("/api/counties").then(directory => {
     if (directory.code !== 200) throw new Error("Unavailable");
     csrf = directory.csrf_token;
+    scannerEnabled = directory.scanner_enabled === true;
     counties = directory.counties;
     list();
 }).catch(() => { message.textContent = "The county directory is temporarily unavailable."; });

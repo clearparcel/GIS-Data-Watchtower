@@ -1,0 +1,5 @@
+FROM clamav/clamav:1.5.4@sha256:6d87c712e3391e13c1ba6e05dfb074d4b1ddb5a6834b23bb9da990d2a4ef042a
+COPY deploy/county-scanner/clamd.conf /etc/clamav/clamd.conf
+ENV TZ=Etc/UTC CLAMAV_NO_MILTERD=true FRESHCLAM_CHECKS=12
+USER clamav
+ENTRYPOINT ["/init-unprivileged"]

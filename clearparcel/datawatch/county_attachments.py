@@ -145,6 +145,7 @@ class CountyAttachments:
                 if type(verdict) is not bool:
                     raise ValueError("scanner returned no authoritative verdict")
                 meta["status"] = "clean" if verdict else "rejected"
+                meta["scanned_at"] = dt.datetime.now(dt.UTC).isoformat()
                 _write(path, meta, data)
                 self._storage.upload_if_version(key, path, version)
             return meta

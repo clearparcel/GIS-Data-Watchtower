@@ -6,9 +6,12 @@
 
 The local preview supports editing all 87 county records, revision-checked
 saves, retryable publication, private PDF quarantine, and public county
-profile downloads. The preview uses separate local storage roots. Hosted
-administration, scanner integration, and migration from a verified deployed
-snapshot remain open. See the [county directory preview](county-directory-contract.md).
+profile downloads. The staging candidate adds a separate signed-IAP editor
+and a Cloud Run IAM scanner with no county bucket permissions. The November 6
+public export matched all 87 packaged county identities and 116 contacts.
+Cloud staging service bindings and live acceptance remain open. See the
+[county directory preview](county-directory-contract.md) and
+[staging acceptance](county-directory-staging.md).
 
 ## Washington County parcel service — proposed, 2026-11-05
 

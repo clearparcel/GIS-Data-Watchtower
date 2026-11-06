@@ -68,6 +68,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--private-root", type=Path, required=True)
     p.add_argument("--public-root", type=Path, required=True)
     p.add_argument("--port", type=int, default=8766)
+    sub.add_parser("county-admin-hosted", help="Serve the signed-IAP Cloud Run county editor")
+    sub.add_parser("county-scanner-hosted", help="Serve the Cloud Run IAM county attachment scanner")
+    p = sub.add_parser("county-migration-verify", help="Compare the seed with a saved public county snapshot")
+    p.add_argument("--snapshot", required=True, type=Path)
     sub.add_parser("weekly-digest",
                    help="Log the weekly data-freshness digest from saved state (no provider requests)")
     sub.add_parser("private-dashboard",
@@ -140,6 +144,20 @@ def main() -> int:
             from clearparcel.datawatch.county_admin import serve_county_admin
             serve_county_admin(private_root=args.private_root, public_root=args.public_root, port=args.port)
             return 0
+        if args.command == "county-admin-hosted":
+            from clearparcel.datawatch.county_admin_hosted import serve_hosted_county_admin
+            serve_hosted_county_admin()
+            return 0
+        if args.command == "county-scanner-hosted":
+            from clearparcel.datawatch.county_scanner_service import serve_county_scanner
+            serve_county_scanner()
+            return 0
+        if args.command == "county-migration-verify":
+            from clearparcel.datawatch.county_migration import MAX_SNAPSHOT_BYTES, verify_county_migration
+            with args.snapshot.open("rb") as stream:
+                report = verify_county_migration(stream.read(MAX_SNAPSHOT_BYTES + 1))
+            print(json.dumps(report, indent=2))
+            return EXIT_OK if report["ready"] else EXIT_WARN
         if args.command == "private-dashboard":
             from clearparcel.datawatch.private_dashboard import serve_private_from_env
             serve_private_from_env(); return 0

@@ -1,4 +1,4 @@
-"""Opt-in, loopback-only county directory administration."""
+"""County administration with explicit local or signed hosted authentication."""
 
 from __future__ import annotations
 
@@ -7,6 +7,7 @@ import hmac
 import json
 import re
 import secrets
+import threading
 from http.server import BaseHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import parse_qs
@@ -23,6 +24,7 @@ _MAX_BODY = 256 * 1024
 _COUNTY_ROUTE = re.compile(r"/api/counties/([a-z0-9-]+)(/publication)?")
 _ATTACHMENT_UPLOAD = re.compile(r"/api/counties/([a-z0-9-]+)/attachments\?(.+)")
 _ATTACHMENT_READ = re.compile(r"/api/counties/([a-z0-9-]+)/attachments/([a-f0-9]{32})(/status)?")
+_ATTACHMENT_SCAN = re.compile(r"/api/counties/([a-z0-9-]+)/attachments/([a-f0-9]{32})/scan")
 _STORE_FAILURES = (OSError, ValueError, StorageConflictError)
 _ASSETS = {
     "/": ("county_admin.html", "text/html; charset=utf-8"),
@@ -39,12 +41,18 @@ def _status_payload(status: PublicationStatus) -> dict:
     }
 
 
-def create_county_admin_server(store: CountyDirectoryStore, *, port: int, username: str, password: str,
-                               attachments: CountyAttachments | None = None):
-    if not username or ":" in username or not password:
+def create_county_admin_server(store: CountyDirectoryStore, *, port: int, username: str | None = None,
+                               password: str | None = None, attachments: CountyAttachments | None = None,
+                               hosted_auth=None, scanner=None, backend_errors=()):
+    if hosted_auth is None and (not username or ":" in username or not password):
         raise ValueError("County administration requires a username and password")
+    if hosted_auth is not None and (username is not None or password is not None):
+        raise ValueError("hosted and local authentication cannot be combined")
     expected = f"{username}:{password}".encode("utf-8")
     token = secrets.token_urlsafe(32)
+    scan_slots = threading.BoundedSemaphore(2)
+    store_failures = _STORE_FAILURES + backend_errors
+    backend_failures = (OSError, StorageConflictError) + backend_errors
     counties = county_identities()
     drafts = packaged_county_drafts(counties)
     assets = {route: (Path(__file__).with_name(name).read_bytes(), content_type)
@@ -61,7 +69,7 @@ def create_county_admin_server(store: CountyDirectoryStore, *, port: int, userna
                 "search_terms": [contact[field] for contact in contacts for field in ("name", "email")
                                  if isinstance(contact.get(field), str)],
             })
-        return {"counties": summary, "csrf_token": token}
+        return summary
 
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, format, *args):
@@ -90,12 +98,22 @@ def create_county_admin_server(store: CountyDirectoryStore, *, port: int, userna
 
         @property
         def _host(self):
-            return f"{_HOST}:{self.server.server_port}"
+            return hosted_auth.host if hosted_auth is not None else f"{_HOST}:{self.server.server_port}"
 
         def _authorized(self):
             if self._one("Host") != self._host:
                 self._send(403, {"status": "request_rejected"})
                 return False
+            if hosted_auth is not None:
+                try:
+                    self._csrf = hosted_auth.authorize(self._one("X-Goog-IAP-JWT-Assertion"))
+                except OSError:
+                    self._send(503, {"status": "identity_unavailable"})
+                    return False
+                if self._csrf is None:
+                    self._send(403, {"status": "authentication_required"})
+                    return False
+                return True
             authorization = self._one("Authorization") or ""
             if authorization.startswith("Basic "):
                 try:
@@ -103,6 +121,7 @@ def create_county_admin_server(store: CountyDirectoryStore, *, port: int, userna
                 except ValueError:
                     credentials = b""
                 if hmac.compare_digest(credentials, expected):
+                    self._csrf = token
                     return True
             self._send(401, {"status": "authentication_required"})
             return False
@@ -125,8 +144,8 @@ def create_county_admin_server(store: CountyDirectoryStore, *, port: int, userna
                 return
             if self.path == "/api/counties":
                 try:
-                    self._send(200, directory())
-                except _STORE_FAILURES:
+                    self._send(200, {"counties": directory(), "csrf_token": self._csrf, "scanner_enabled": scanner is not None})
+                except store_failures:
                     self._send(503, {"status": "storage_unavailable"})
                 return
             target = self._target()
@@ -140,16 +159,17 @@ def create_county_admin_server(store: CountyDirectoryStore, *, port: int, userna
                     private = store.read_private(county)
                     body = {"county": county, "revision": private.revision,
                             "draft": drafts[county["slug"]] if private.draft is None else private.draft}
-            except _STORE_FAILURES:
+            except store_failures:
                 self._send(503, {"status": "storage_unavailable"})
                 return
             self._send(200, body)
 
         def _read_body(self, content_type, maximum):
             request_token = self._one("X-Watchtower-CSRF") or ""
-            if (self._one("Origin") != f"http://{self._host}"
+            origin = hosted_auth.origin if hosted_auth is not None else f"http://{self._host}"
+            if (self._one("Origin") != origin
                     or self.headers.get_all("Sec-Fetch-Site", []) not in ([], ["same-origin"])
-                    or not hmac.compare_digest(request_token.encode("utf-8"), token.encode("utf-8"))):
+                    or not hmac.compare_digest(request_token.encode("utf-8"), self._csrf.encode("utf-8"))):
                 self._send(403, {"status": "request_rejected"})
                 return None
             if self._one("Content-Type") is None or self.headers.get_content_type() != content_type:
@@ -205,10 +225,50 @@ def create_county_admin_server(store: CountyDirectoryStore, *, port: int, userna
             except ValueError:
                 self._send(400, {"status": "invalid_attachment"})
                 return
-            except (OSError, StorageConflictError):
+            except backend_failures:
                 self._send(503, {"status": "storage_unavailable"})
                 return
+            meta = self._try_scan(county["fips"], meta)
             self._send(201, {key: meta[key] for key in ("id", "status", "filename")})
+
+        def _try_scan(self, fips, meta):
+            if scanner is None or meta["status"] != "pending" or not scan_slots.acquire(blocking=False):
+                return meta
+            try:
+                return attachments.scan(fips, meta["id"], scanner) or meta
+            except store_failures:
+                return meta
+            finally:
+                scan_slots.release()
+
+        def _linked_attachment(self, county, attachment_id):
+            fips = county["fips"]
+            draft = store.read_private(county).draft or {}
+            refs = [(kind, event) for ref, kind, event in draft_attachment_refs(draft) if ref == attachment_id]
+            meta = attachments.info(fips, attachment_id) if refs else None
+            return meta if meta is not None and (meta["kind"], meta["event_id"]) in refs else None
+
+        def _scan_attachment(self, match):
+            if attachments is None or scanner is None or (county := counties.get(match[1])) is None:
+                self._send(404, {"status": "not_found"})
+                return
+            body = self._read_mutation()
+            if body is None:
+                return
+            if body:
+                self._send(400, {"status": "invalid_request"})
+                return
+            try:
+                meta = self._linked_attachment(county, match[2])
+            except store_failures:
+                self._send(503, {"status": "storage_unavailable"})
+                return
+            if meta is None:
+                self._send(404, {"status": "not_found"})
+                return
+            meta = self._try_scan(county["fips"], meta)
+            self._send(202 if meta["status"] == "pending" else 200,
+                       {key: meta[key] for key in ("id", "status", "filename")})
 
         def _read_attachment(self, match):
             if attachments is None or (county := counties.get(match[1])) is None:
@@ -217,10 +277,8 @@ def create_county_admin_server(store: CountyDirectoryStore, *, port: int, userna
             fips = county["fips"]
             attachment_id = match[2]
             try:
-                draft = store.read_private(county).draft or {}
-                refs = [(kind, event) for ref, kind, event in draft_attachment_refs(draft) if ref == attachment_id]
-                meta = attachments.info(fips, attachment_id) if refs else None
-                if meta is None or (meta["kind"], meta["event_id"]) not in refs:
+                meta = self._linked_attachment(county, attachment_id)
+                if meta is None:
                     self._send(404, {"status": "not_found"})
                     return
                 if match[3]:
@@ -229,7 +287,7 @@ def create_county_admin_server(store: CountyDirectoryStore, *, port: int, userna
                 if meta["status"] != "clean" or (download := attachments.download(fips, attachment_id)) is None:
                     self._send(423, {"status": "attachment_unavailable"})
                     return
-            except _STORE_FAILURES:
+            except store_failures:
                 self._send(503, {"status": "storage_unavailable"})
                 return
             metadata, data = download
@@ -240,7 +298,7 @@ def create_county_admin_server(store: CountyDirectoryStore, *, port: int, userna
                                                "target_revision": receipt.publication_revision}
             try:
                 status = store.publish(county)
-            except _STORE_FAILURES:
+            except store_failures:
                 self._send(202, {**body, "status": "pending"})
                 return
             if receipt is None:
@@ -257,6 +315,9 @@ def create_county_admin_server(store: CountyDirectoryStore, *, port: int, userna
                 return
             if match := _ATTACHMENT_UPLOAD.fullmatch(self.path):
                 self._upload_attachment(match)
+                return
+            if match := _ATTACHMENT_SCAN.fullmatch(self.path):
+                self._scan_attachment(match)
                 return
             if (target := self._target()) is None:
                 return
@@ -287,7 +348,7 @@ def create_county_admin_server(store: CountyDirectoryStore, *, port: int, userna
             except ValueError:
                 self._send(400, {"status": "invalid_draft"})
                 return
-            except (OSError, StorageConflictError):
+            except backend_failures:
                 self._send(503, {"status": "storage_unavailable"})
                 return
             if receipt.publication_revision is None:
@@ -295,7 +356,9 @@ def create_county_admin_server(store: CountyDirectoryStore, *, port: int, userna
             else:
                 self._publish(county, receipt)
 
-    return _BoundedThreadingHTTPServer((_HOST, port), Handler, max_connections=16, request_timeout=10)
+    bind = "0.0.0.0" if hosted_auth is not None else _HOST
+    return _BoundedThreadingHTTPServer((bind, port), Handler, max_connections=16,
+                                       request_timeout=50 if hosted_auth is not None else 10)
 
 
 def serve_county_admin(*, private_root: Path, public_root: Path, port: int) -> None:
