@@ -64,12 +64,17 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument('--output', type=Path, required=True)
     p = sub.add_parser("dashboard", help="Serve the private dashboard")
     p.add_argument("--host", default="127.0.0.1"); p.add_argument("--port", type=int, default=8765)
+    p = sub.add_parser("county-admin", help="Serve loopback-only county administration with local storage")
+    p.add_argument("--private-root", type=Path, required=True)
+    p.add_argument("--public-root", type=Path, required=True)
+    p.add_argument("--port", type=int, default=8766)
     sub.add_parser("weekly-digest",
                    help="Log the weekly data-freshness digest from saved state (no provider requests)")
     sub.add_parser("private-dashboard",
                    help="Serve the hosted read-only private dashboard (Cloud Run behind IAP; settings from the environment)")
     p = sub.add_parser("public-dashboard", help="Serve the read-only sanitized public dashboard")
     p.add_argument("--host", default="0.0.0.0"); p.add_argument("--port", type=int, default=8080)
+    p.add_argument("--county-directory-root", type=Path, help="Optional local sanitized county directory root")
     p = sub.add_parser("public-publish", help="Publish a sanitized public aggregate to production storage")
     p.add_argument("--json", action="store_true")
     p = sub.add_parser("alert-test", help="Send one owner-approved synthetic alert digest (no provider checks)")
@@ -131,12 +136,16 @@ def _record_run_evidence(config: dict, config_path, started_at: str, exit_code: 
 def main() -> int:
     args = build_parser().parse_args()
     try:
+        if args.command == "county-admin":
+            from clearparcel.datawatch.county_admin import serve_county_admin
+            serve_county_admin(private_root=args.private_root, public_root=args.public_root, port=args.port)
+            return 0
         if args.command == "private-dashboard":
             from clearparcel.datawatch.private_dashboard import serve_private_from_env
             serve_private_from_env(); return 0
         if args.command == "public-dashboard":
             from clearparcel.datawatch.public_dashboard import serve_public
-            serve_public(host=args.host, port=args.port); return 0
+            serve_public(host=args.host, port=args.port, county_directory_root=args.county_directory_root); return 0
         if args.command == "public-publish":
             from clearparcel.datawatch.public_publish import publish_public_snapshot_from_env
             result = publish_public_snapshot_from_env()

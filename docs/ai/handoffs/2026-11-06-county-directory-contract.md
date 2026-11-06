@@ -43,15 +43,39 @@ passed.
 
 ## Open integration work
 
-- The trusted-frontend dashboard requires read-only mode. Establish the
-  administrator write boundary before wiring Apply and attachments. Connect
-  the publisher to Apply and an authorized retry mechanism.
+- Establish the hosted administrator write boundary while preserving the
+  trusted-frontend dashboard's read-only requirement. The separate local
+  editor already exercises authenticated Apply, retry, and attachments.
+- Select and validate the hosted scanner, attachment retention, and private
+  and public service permissions. Preview uploads remain quarantined.
+- Reconcile the packaged starting values with a verified deployed public
+  snapshot and prepare migration exceptions before enabling hosted editing.
 - GitHub reported strict required checks on `main` and auto-merge disabled.
   The checked-in CI workflow has no deploy job. External deployment triggers
   and staging identity, storage, scanner, and rollback remain unverified.
-- No PDF renderer is declared in the package or installed by the Dockerfile
-  explicitly. Prove pagination, selectable text, clickable links, and the
-  container dependency before committing to a renderer.
+- Run the exact candidate through hosted CI and container smoke checks.
+
+## Local end-to-end integration
+
+The implementation continues from
+`c0ed67df9d0c9bd54f98bcb4f569d0664dc6d98a`. The user directed continued
+implementation and declined another model review. This slice adds the
+loopback editor, packaged starting values, upload quarantine, an opt-in
+sanitized public reader, revision-aware exports, and the county profile PDF.
+It uses the same published CCE pin and historical `needs-review` record
+documented above. The prior bounded review applies only to the earlier
+public projection.
+
+Local tests ran 994 cases with Node 24 required, three skips, and no
+failures. The existing Provider Terms fixture emitted the same HTTP 403
+cleanup warning. Compilation, status synchronization, and diff checks
+passed. Chromium verified the synthetic editing and publication path at
+desktop and mobile widths. An already-open county profile showed the second
+publication after 12.7 seconds in that run. All 87 county reports opened
+and yielded selectable text with synthetic monitoring data. A long policy
+and standards fixture confirmed pagination and a clickable official link.
+The constrained Python dependency audit reported no known vulnerabilities.
+The local Docker daemon was unavailable for a container smoke test.
 
 This slice was authorized as local implementation. Merge, staging,
 production rollout, and authoritative provider changes require their own

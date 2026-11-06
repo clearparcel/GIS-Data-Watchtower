@@ -3,6 +3,7 @@ from clearparcel.datawatch.csp import SCRIPT_TAG
 
 import datetime as dt
 import hashlib
+import importlib.util
 import json
 import os
 import threading
@@ -39,7 +40,9 @@ from clearparcel.datawatch.county_profile_panel import render_inline_county_pane
 from clearparcel.datawatch.direct_gac_schema import direct_schema_assessment
 from clearparcel.datawatch.county_map_status import MAP_STATUSES, county_map_status, status_legend, status_patterns
 from clearparcel.datawatch import strict_json
-from clearparcel.datawatch.storage import backend_from_env
+from clearparcel.datawatch.storage import LocalStorage, StorageConflictError, backend_from_env
+from clearparcel.datawatch.county_directory_store import read_public_directory
+from clearparcel.datawatch.county_profile_pdf import county_profile_pdf
 from clearparcel.datawatch.public_values import sanitize_source_metadata
 from clearparcel.datawatch.build_info import application_identity
 from clearparcel.datawatch.gac_standards import normalize_standard_key, standard_field_counts
@@ -449,6 +452,7 @@ class _PublicStateCache:
         self.history_path = self.root / "history-empty.jsonl"
         self.history_path.touch(exist_ok=True)
         self.storage = backend_from_env(self.root)
+        self.directory_storage = None
         self.object_name = os.environ.get("WATCHTOWER_AGGREGATE_OBJECT", "aggregate-state.json")
         self.refresh_seconds = max(5, min(int(os.environ.get("WATCHTOWER_PUBLIC_REFRESH_SECONDS", "30")), 300))
         self._last_refresh = 0.0
@@ -526,9 +530,10 @@ class _PublicStateCache:
         ).hexdigest()
 
     def _ensure_snapshot(self) -> dict:
-        key = self._state_key(self.public_path.read_bytes())
+        directory = self.directory()
+        key = self._directory_key(self._state_key(self.public_path.read_bytes()), directory)
         if key != self._snapshot_key:
-            self._snapshot_value = _statewide_snapshot(self.config)
+            self._snapshot_value = _statewide_snapshot({**self.config, "_county_directory": directory})
             self._xlsx_value = None
             self._snapshot_key = key
         return self._snapshot_value
@@ -536,6 +541,15 @@ class _PublicStateCache:
     def snapshot(self) -> dict:
         with self._export_lock:
             return self._ensure_snapshot()
+
+    def directory(self) -> dict:
+        return read_public_directory(self.directory_storage) if self.directory_storage is not None else {}
+
+    @staticmethod
+    def _directory_key(state_key: str, directory: dict) -> str:
+        if not directory:
+            return state_key
+        return hashlib.sha256(state_key.encode("ascii") + json.dumps(directory, sort_keys=True).encode("ascii")).hexdigest()
 
     def county_snapshot(self, slug: str) -> dict | None:
         """County export, computed once per published state.
@@ -546,9 +560,11 @@ class _PublicStateCache:
         """
         with self._county_lock:
             state_bytes = self.public_path.read_bytes()
-            key = self._state_key(state_bytes)
+            directory = self.directory()
+            key = self._directory_key(self._state_key(state_bytes), directory)
             if key != self._county_key:
-                config = {**self.config, "_render_state": strict_json.loads(state_bytes.decode("utf-8-sig"))}
+                config = {**self.config, "_render_state": strict_json.loads(state_bytes.decode("utf-8-sig")),
+                          "_county_directory": directory}
                 state = _dashboard_state(config)
                 research = load_parcel_access()
                 self._county_inputs = {"config": config, "state": state, "research": research,
@@ -602,11 +618,15 @@ def _public_request_timeout_seconds() -> int:
     return max(2, min(value, 60))
 
 
-def serve_public(host: str = "0.0.0.0", port: int = 8080) -> None:
+def serve_public(host: str = "0.0.0.0", port: int = 8080, *, county_directory_root: Path | None = None) -> None:
     cache = _PublicStateCache()
+    if county_directory_root is not None:
+        cache.directory_storage = LocalStorage(county_directory_root)
     cache.refresh(force=True)
     max_connections = max(1, min(int(os.environ.get("WATCHTOWER_PUBLIC_MAX_CONNECTIONS", "64")), 256))
     max_publication_age_seconds = _publication_max_age_seconds()
+    pdf_enabled = county_directory_root is not None and importlib.util.find_spec("reportlab") is not None
+    pdf_slots = threading.BoundedSemaphore(2)
 
     class Handler(BaseHTTPRequestHandler):
         def _send(self, status: int, content: str, content_type: str = "text/html; charset=utf-8"):
@@ -652,7 +672,7 @@ def serve_public(host: str = "0.0.0.0", port: int = 8080) -> None:
             self.send_header("Content-Type", content_type)
             self.send_header("Content-Disposition", f'attachment; filename="{filename}"')
             self.send_header("Content-Length", str(len(raw)))
-            self.send_header("Cache-Control", "public, max-age=30")
+            self.send_header("Cache-Control", "no-cache" if county_directory_root is not None else "public, max-age=30")
             self.send_header("X-Content-Type-Options", "nosniff")
             self.send_header("X-Robots-Tag", "noindex, nofollow")
             self.end_headers()
@@ -662,6 +682,25 @@ def serve_public(host: str = "0.0.0.0", port: int = 8080) -> None:
         def do_HEAD(self):
             # Same status and headers as GET (uptime checks often use HEAD); no body.
             return self.do_GET()
+
+        def _county_pdf(self, query):
+            if not pdf_enabled:
+                return self._send(404, "Not found", "text/plain; charset=utf-8")
+            slug = urllib.parse.parse_qs(query).get("slug", [""])[0]
+            if not pdf_slots.acquire(blocking=False):
+                return self._send(503, "County PDF generation is busy.", "text/plain; charset=utf-8")
+            try:
+                snapshot = cache.county_snapshot(slug)
+                if snapshot is None:
+                    return self._send(404, "County not found", "text/plain; charset=utf-8")
+                if cache.stale:
+                    snapshot = {**snapshot, "snapshot_note": "Showing the last available monitoring snapshot."}
+                raw = county_profile_pdf(snapshot)
+            except (OSError, ValueError, RuntimeError, ImportError):
+                return self._send(503, "County PDF temporarily unavailable.", "text/plain; charset=utf-8")
+            finally:
+                pdf_slots.release()
+            return self._send_bytes(200, raw, "application/pdf", f"{slug}-watchtower.pdf")
 
         def do_GET(self):
             parsed = urllib.parse.urlparse(self.path)
@@ -685,22 +724,32 @@ def serve_public(host: str = "0.0.0.0", port: int = 8080) -> None:
             except Exception:
                 return self._send(503, "Dashboard data is temporarily unavailable.", "text/plain; charset=utf-8")
 
+            if parsed.path == "/county-profile.pdf":
+                return self._county_pdf(parsed.query)
             config = cache.config
             if parsed.path in {"/api/summary", "/api/county-profile", "/", "/counties", "/county", "/mngac", "/source"}:
                 view = cache.view()
+                if county_directory_root is not None:
+                    try:
+                        directory = cache.directory()
+                    except (OSError, ValueError, StorageConflictError):
+                        return self._send(503, "County directory temporarily unavailable.", "text/plain; charset=utf-8")
+                    revision = cache._directory_key(view["summary"]["content_revision"], directory)
+                    view = {**view, "summary": {**view["summary"], "content_revision": revision}}
+                    config = {**config, "_county_directory": directory, "_directory_refresh": True,
+                              "_county_pdf_enabled": pdf_enabled}
                 self._render_revision = view["summary"]["content_revision"]
                 config = {**config, "_render_state": view["state"]}
                 if dispatch_public_details(self, parsed.path, parsed.query, view):
                     return
-            if dispatch_snapshot_exports(
-                self,
-                parsed.path,
-                parsed.query,
-                statewide_snapshot=cache.snapshot,
-                county_snapshot=cache.county_snapshot,
-                statewide_xlsx=cache.snapshot_xlsx,
-            ):
-                return
+            try:
+                if dispatch_snapshot_exports(
+                    self, parsed.path, parsed.query, statewide_snapshot=cache.snapshot,
+                    county_snapshot=cache.county_snapshot, statewide_xlsx=cache.snapshot_xlsx,
+                ):
+                    return
+            except (OSError, ValueError, StorageConflictError):
+                return self._send(503, "Snapshot temporarily unavailable.", "text/plain; charset=utf-8")
             if parsed.path == "/":
                 return self._send(200, render_public_dashboard(config))
             if parsed.path == "/counties":

@@ -82,12 +82,21 @@ def _read_directory(storage: StorageBackend, path: Path) -> tuple[dict, str | in
     counties = document.get("counties")
     if not isinstance(counties, dict):
         raise ValueError("invalid stored county directory")
-    for entry in counties.values():
+    for fips, entry in counties.items():
         if (
             not isinstance(entry, dict) or type(entry.get("public_revision")) is not int
             or entry["public_revision"] <= 0 or not isinstance(entry.get("published_at"), str)
         ):
             raise ValueError("invalid stored public county revision")
+        content = {key: value for key, value in entry.items() if key not in ("public_revision", "published_at")}
+        try:
+            county = entry["county"]
+            if (not isinstance(county, dict) or not all(isinstance(county.get(key), str) for key in ("fips", "slug", "name"))
+                    or not re.fullmatch(r"27[0-9]{3}", fips)
+                    or content != project_public_county(county, {**content, "fips": fips})):
+                raise ValueError
+        except (KeyError, ValueError):
+            raise ValueError("invalid stored public county content") from None
     return counties, version
 
 

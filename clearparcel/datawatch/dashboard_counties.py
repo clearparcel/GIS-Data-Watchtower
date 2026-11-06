@@ -169,6 +169,67 @@ def render_county(config: dict, slug: str) -> str:
         contact_source_note = "MnGeo is the current contact source; an official-county verification result is not recorded yet."
     verified_text = f' Verified {_dashboard._esc(contact_record.get("verified"))}.' if contact_record.get("verified") else ""
     contacts_html = f'<div class="card"><h2>County GIS contacts</h2><p class="muted"><strong>Contact source:</strong> {contact_source}. {contact_source_note}{verified_text}</p><table class="contacts-table"><thead><tr><th>Name</th><th>Title</th><th>Department</th><th>Phone</th><th>Email</th></tr></thead><tbody>{contact_rows}</tbody></table></div>'
+    directory = (config.get("_county_directory") or {}).get(profiles[slug].get("county", {}).get("fips"))
+    if directory is not None:
+        contacts_html = _render_published_directory(directory)
     export_links = f'<p><a href="/county-snapshot.csv?slug={_dashboard.urllib.parse.quote(slug)}">Download county snapshot (CSV)</a> · <a href="/county-snapshot.xlsx?slug={_dashboard.urllib.parse.quote(slug)}">Download county snapshot (Excel)</a> · <a href="/county-snapshot.json?slug={_dashboard.urllib.parse.quote(slug)}">Download county snapshot (JSON)</a></p>'
+    if config.get("_county_pdf_enabled"):
+        export_links += f'<p><a href="/county-profile.pdf?slug={_dashboard.urllib.parse.quote(slug)}">Download county profile PDF</a></p>'
     body = f'<p><a href="/counties">← Minnesota counties</a></p>{export_links}<div class="grid"><div class="card"><div class="muted">County</div><h2>{_dashboard._esc(county["name"])} County</h2></div><div class="card"><div class="muted">Monitoring coverage</div><div class="metric {_dashboard._esc(info["status"])}">{_dashboard._esc(_dashboard._friendly_status(info["status"]).upper())}</div></div><div class="card"><div class="muted">Monitoring path</div><div class="metric" style="font-size:20px">{_dashboard._esc(_dashboard._monitoring_path_label(info))}</div></div><div class="card"><div class="muted">County-direct sources</div><div class="metric">{len(info["sources"])}</div></div></div><div class="grid">{source_cards}</div><br>{parcel_access_detail}<br>{mngac_html}<br>{gac_summary_html}<br><div class="card county-complete-profile">{complete_profile}</div><br>{contacts_html}'
-    return _dashboard._layout(page_title(f'{county["name"]} County'), body, static=bool(config.get("_public_mode")), csrf_token=str(config.get("_csrf_token") or ""))
+    return _dashboard._layout(page_title(f'{county["name"]} County'), body,
+                              refresh_seconds=10 if config.get("_directory_refresh") else 30,
+                              static=bool(config.get("_public_mode")), csrf_token=str(config.get("_csrf_token") or ""))
+
+
+def _render_published_directory(directory: dict) -> str:
+    esc = _dashboard._esc
+
+    def link(value, label):
+        url = _dashboard._safe_url(value)
+        return f'<a href="{esc(url)}" rel="noopener">{esc(label)}</a>' if url else ""
+
+    def paragraph(value):
+        return esc(value or "").replace("\n", "<br>")
+
+    contacts = []
+    for person in directory["contacts"]:
+        contact = [esc(person.get(key) or "—") for key in ("name", "role", "department", "phone", "email")]
+        contact.extend([link(person.get("website"), "Website"), link(person.get("source_url"), "Public source"),
+                        esc(person.get("verified_on") or "—")])
+        contacts.append("<tr>" + "".join(f"<td>{value}</td>" for value in contact) + "</tr>")
+    contact_table = (
+        '<table class="contacts-table"><thead><tr><th>Name</th><th>Role</th><th>Department</th>'
+        '<th>Phone</th><th>Email</th><th>Website</th><th>Source</th><th>Verified</th></tr></thead><tbody>'
+        + "".join(contacts) + "</tbody></table>" if contacts else "<p>No contact is currently listed.</p>"
+    )
+    access = []
+    for key, name in (("parcel_polygons", "Parcel Polygons"), ("road_centerlines", "Road Centerlines"),
+                      ("address_points", "Address Points")):
+        item = directory["access"][key]
+        classification = {"open": "Open GIS Data", "fee": "Fee Based GIS Data", "unknown": "Unknown"}[item["classification"]]
+        methods = []
+        for method in item["methods"]:
+            label = {"mngeo_open": "MnGeo open", "direct_rest": "Direct REST", "direct_download": "Direct Download",
+                     "other": method.get("description") or "Other"}[method["kind"]]
+            methods.append(f'<li>{link(method["url"], label)} · {esc(method["scope"])} · {esc(method["evidence_date"])}</li>')
+        method_list = "<ul>" + "".join(methods) + "</ul>" if methods else ""
+        restriction = item["restrictions"]
+        note = {
+            "unreviewed": "Use restrictions not yet reviewed",
+            "reviewed_none": "No use restrictions recorded; confirm provider terms.",
+            "restricted": paragraph(restriction.get("text")),
+        }[restriction["status"]]
+        reviewed = f' · Reviewed {esc(restriction["reviewed_on"])}' if restriction.get("reviewed_on") else ""
+        access.append(
+            f'<h3>{name}</h3><p><strong>{classification}</strong></p>{method_list}'
+            f'<p>{paragraph(item.get("county_direct_note"))}</p>'
+            f'<p>{note} {link(restriction.get("url"), "Official restrictions")}{reviewed}</p>'
+        )
+    policy = directory["policy"]
+    return (
+        '<div class="card"><h2>County GIS contacts</h2>'
+        f'<p>Published revision {esc(directory["public_revision"])} · {esc(directory["published_at"])}</p>{contact_table}</div>'
+        '<div class="card"><h2>County GIS data access</h2>' + "".join(access)
+        + f'<h3>County GIS policy</h3><p>{paragraph(policy.get("text") or "No policy text published.")}</p>'
+        f'<p>{link(policy.get("url"), "Official county policy")}</p></div>'
+    )

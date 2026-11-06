@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GIS Contacts · Watchtower</title>
+<link rel="stylesheet" href="/county-admin.css">
+<script src="/county-admin.js" defer></script>
+<header>
+  <p>GIS Data Watchtower · Administration</p>
+  <h1>GIS Contacts</h1>
+</header>
+<main>
+  <aside aria-label="Minnesota counties">
+    <label for="county-search">Find a county</label>
+    <input type="search" id="county-search" placeholder="County, contact, or email">
+    <label for="counties">Select a county</label>
+    <select id="counties" size="12"></select>
+  </aside>
+  <section aria-labelledby="county-title">
+    <h2 id="county-title">County details</h2>
+    <p id="status" role="status" aria-live="polite"></p>
+    <form id="editor" hidden>
+      <div id="fields"></div>
+      <div class="actions">
+        <button type="submit" id="apply">Apply</button>
+        <button type="button" id="discard">Discard</button>
+        <button type="button" id="retry" hidden>Retry publication</button>
+      </div>
+    </form>
+  </section>
+</main>
+</html>

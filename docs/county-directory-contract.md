@@ -1,8 +1,9 @@
 # County directory contract, version 1
 
-The offline implementation provides the public projection, versioned private
-saves, explicit publication, and a readback status. Routes, migration,
-attachments, and public dashboard and PDF integration remain subsequent work.
+The local preview provides a GIS Contacts editor, versioned private saves,
+publication with readback, private attachment quarantine, and a public profile
+with HTML, JSON, CSV, XLSX, and PDF output. Hosted integration and migration
+from a verified deployed snapshot remain separate work.
 
 ## County identity and public content
 
@@ -59,13 +60,15 @@ permission, terms holds, polling cadence, and worker provenance.
   reread and merge only the target county if its public revision is still
   older. Confirm only a readback with the desired public revision and the
   expected content. `read_public_directory` needs only the public backend.
-- The future authenticated Apply handler should call `save` and then request
-  `publish`. It must handle validation failure, revision conflict, private-only
+- The authenticated Apply handler calls `save` and then requests `publish`.
+  It handles validation failure, revision conflict, private-only
   save, pending publication, and confirmed publication. Use the receipt's
   public revision to distinguish a confirmed save from a superseded one.
   A publisher or operator can call `publish` again after an interrupted save
   or readback. The store retains the desired revision and derives pending
-  status from the public object. The offline store has no background worker.
+  status from the public object. The local editor attempts a retry after a
+  pending response and exposes an authenticated Retry publication control.
+  The offline store has no background worker.
 - Compose the public profile and PDF with one confirmed directory revision
   and one identified public monitoring/research snapshot. Key PDF caching
   by county, public revision, snapshot identity, freshness bucket when used,
@@ -74,18 +77,55 @@ permission, terms holds, polling cadence, and worker provenance.
 
 ## Attachments and private endpoints
 
-The existing trusted-frontend dashboard requires read-only mode. Keep that
-invariant. Add an independently authorized write path with verified
-administrator identity, origin and CSRF checks, and bounded request bodies.
-Cover directory reads, writes, status, uploads, and downloads with explicit
-authorization. Keep attachment objects and metadata in protected storage,
-identified by opaque IDs. Bind each
-read to its county and record and verify authorization before returning data.
-Start with the specification's proposed 20 MB per-file PDF limit. Validate
-content server-side, quarantine until scanning succeeds, and keep failures and
-pending files private. Confirm storage isolation and scanning before enabling
-uploads. Record correspondence times with a UTC offset and display them in
-America/Chicago. Recording a correspondence event never sends mail.
+The hosted trusted-frontend dashboard requires read-only mode. The separate
+local editor binds to `127.0.0.1`, requires Basic authentication, and enforces
+the bound Host, same-origin mutations, a CSRF token, and bounded request bodies.
+All county reads and writes use the server's county identities.
+
+Each private PDF has a 20 MB limit, an opaque ID, a county and record
+association, a content checksum, and durable quarantine metadata. A download
+requires both an authenticated request for a saved reference and a clean verdict
+from an injected trusted scanner. The preview has no live scanner, so uploaded
+files stay pending. Structural signature checks are the intake filter. A
+production scanner and an attachment retention policy remain release
+requirements. Correspondence times are validated in America/Chicago and
+stored with their UTC offset. Recording an event never sends mail.
+
+## Local synthetic preview
+
+Install the optional PDF renderer and prepare a new local fixture directory.
+Use synthetic edits and test PDFs for the preview.
+
+```powershell
+python -m pip install --constraint constraints.txt -e '.[pdf]'
+python scripts/prepare_cloud_development.py --output datawatch/county-preview/fixture
+```
+
+Set `CLEARPARCEL_WATCHTOWER_DASHBOARD_PASSWORD` for the editor process and
+optionally set `CLEARPARCEL_WATCHTOWER_DASHBOARD_USER`. Then start the editor.
+
+```powershell
+python -m clearparcel.datawatch.cli county-admin --private-root datawatch/county-preview/private --public-root datawatch/county-preview/directory
+```
+
+Open `http://127.0.0.1:8766`. The initial values come from the packaged
+contact and parcel research. Apply saves the selected county and requests
+publication. The public reader needs only the directory root and the
+synthetic monitoring objects. In a separate shell run the following.
+
+```powershell
+$env:WATCHTOWER_STORAGE = 'local'
+$env:WATCHTOWER_STORAGE_ROOT = 'datawatch/county-preview/fixture/objects'
+$env:WATCHTOWER_AGGREGATE_OBJECT = 'aggregate-state.json'
+$env:WATCHTOWER_PUBLIC_WORKDIR = 'datawatch/county-preview/cache'
+python -m clearparcel.datawatch.cli public-dashboard --host 127.0.0.1 --county-directory-root datawatch/county-preview/directory
+```
+
+Visit a county profile at `http://127.0.0.1:8080/county?slug=fillmore`.
+The optional directory reader includes confirmed content in county
+snapshots, invalidates the export caches on directory changes, and uses the
+existing browser refresh controls with a 10-second check on county pages.
+PDF generation is bounded and keyed by the public snapshot and template.
 
 ## Synthetic checks
 
@@ -94,6 +134,8 @@ an inactive contact, a direct fee alongside a statewide open product, missing
 classifications, long policy text, and private markers at multiple nesting
 levels. `tests/test_county_directory_store.py` exercises durable replay,
 interleaved editors and publishers, restarts, ambiguous writes, and the
-public JSON boundary with local storage. Later slices must exercise authorized
-attachment reads, maximum standards tables, and privacy in integrated outputs
-and logs.
+public JSON boundary with local storage. The local acceptance suite also
+exercises authenticated attachment reads, public HTML and exports, long
+policy pagination, clickable links, and searchable standards tables.
+Production storage and scanner permissions, rollout, and acceptance remain
+separate.
