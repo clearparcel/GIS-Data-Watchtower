@@ -10,8 +10,12 @@ and production image checks passed.
   continued to report 24 monitored sources with cloud worker provenance.
   A live Fillmore profile and its JSON, CSV, XLSX, and PDF exports loaded
   successfully.
-- The approved pilot signed in and opened a county record. The first
-  production county edit and attachment check remain pending.
+- The approved pilot signed in through IAP and published a note linking to
+  Fillmore County’s GIS disclaimer as public revision 1. The profile and
+  its JSON, CSV, XLSX, and PDF exports showed the approved policy text
+  without the private attachment or its metadata. A synthetic PDF stayed
+  quarantined while the scanner started, passed on retry, and was downloaded
+  from the private editor with a matching SHA-256 checksum.
 - Staging verified publication and recovery, public export privacy,
   scanner outage and recovery, and attachment quarantine and rejection.
   The final v0.4.0 artifact also passed staging publication, stale-save
@@ -20,3 +24,14 @@ and production image checks passed.
 The existing read-only private dashboard, provider jobs, and schedules were
 outside this release. Production rollback details are in the private
 deployment record.
+
+
+## Scanner readiness correction — November 6
+
+PR #214 corrected the startup race between HTTP readiness and ClamAV
+initialization. The tested application image was promoted to the production
+editor and scanner HTTP container. Production logs confirm that ClamAV
+initialized before HTTP readiness. A clean synthetic PDF passed and an
+encrypted PDF was rejected without manual retry; authenticated editor access
+and unsigned-access protections passed. IAM, runtime settings, storage
+configuration and the ClamAV sidecar were preserved.
