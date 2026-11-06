@@ -1,11 +1,11 @@
 # Project status
 
-## Scanner readiness fix — candidate
+## Scanner readiness fix — deployed, 2026-11-06
 
-The candidate waits for a successful ClamAV readiness scan before accepting
-HTTP traffic and allows the editor scan request to cover cold startup.
-Staging verified startup ordering and clean/encrypted PDF verdicts.
-Production promotion remains pending.
+The production scanner waits for a successful ClamAV readiness scan before
+accepting HTTP traffic, and the editor scan request covers cold startup.
+Staging and production verified startup ordering and clean/encrypted PDF
+verdicts. The authenticated editor and unsigned-access checks also passed.
 
 ## v0.4.0 county directory and administration
 

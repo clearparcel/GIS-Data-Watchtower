@@ -24,3 +24,14 @@ and production image checks passed.
 The existing read-only private dashboard, provider jobs, and schedules were
 outside this release. Production rollback details are in the private
 deployment record.
+
+
+## Scanner readiness correction — November 6
+
+PR #214 corrected the startup race between HTTP readiness and ClamAV
+initialization. The tested application image was promoted to the production
+editor and scanner HTTP container. Production logs confirm that ClamAV
+initialized before HTTP readiness. A clean synthetic PDF passed and an
+encrypted PDF was rejected without manual retry; authenticated editor access
+and unsigned-access protections passed. IAM, runtime settings, storage
+configuration and the ClamAV sidecar were preserved.
