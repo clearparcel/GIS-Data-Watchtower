@@ -1,9 +1,9 @@
 # Versioning and release policy
 
-The current recorded production release is **v0.3.12**, deployed November 3
-to both dashboards and all jobs (see the [release record](release-v0.3.12.md)).
-Rollback targets are the v0.3.11 dashboard revisions and the v0.3.11 job image,
-recorded in the private deployment record. Older release records are in the
+The current public dashboard release is **v0.4.0**, deployed November 6 with
+the protected county editor and scanner. See the
+[release record](release-v0.4.0.md) for the production scope. Rollback targets
+are recorded in the private deployment record. Older release records are in the
 [archive](README.md#historical-engineering-and-release-records). Daily cloud
 provider polling was separately approved and activated on October 10;
 application publication does not reschedule it. Future runtime changes
@@ -77,9 +77,9 @@ Public page footers display **only the semantic application version** (for examp
 
 The source commit and build environment **remain inside immutable `build_info.json` and release/provenance records**, and may continue to inform optional analytics. They are intentionally not shown in the public footer. Container builds still require `WATCHTOWER_BUILD_REVISION` (full commit SHA) and `WATCHTOWER_BUILD_ENVIRONMENT` (`preview` or `production`). The production source package and visible version must agree. Build only from a clean, committed checkout; do not infer revision identity from the runtime Git state.
 
-**The public site reports v0.3.12 as of November 3, 2026.** The next coordinated
+**The public site reports v0.4.0 as of November 6, 2026.** The next coordinated
 application-code release must be strictly newer. The
-[release record](release-v0.3.12.md) identifies the deployed artifact and
+[release record](release-v0.4.0.md) identifies the deployed source and
 verification limits. Always recheck live identity before promotion.
 
 ## Security fixes
