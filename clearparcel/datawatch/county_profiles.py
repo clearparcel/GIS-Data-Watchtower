@@ -124,12 +124,18 @@ def _catalog_product_match(item: dict, catalog: dict) -> bool:
         or re.search(r'/[^/]+\.(?:zip|gpkg|fgdb|gdb)$', path, re.IGNORECASE))
 
 
-def compose_county_profiles(state: dict, research: dict[str, dict], *, now: dt.datetime,
-                            freshness_policy: FreshnessPolicy) -> dict[str, dict]:
-    """Join approved evidence and observations without activating discoveries."""
+def county_identities() -> dict[str, dict]:
+    """Return the canonical county identities keyed by slug."""
     counties = json.loads(Path(__file__).with_name('minnesota_counties.json').read_text(encoding='utf-8'))['counties']
     boundaries = json.loads(Path(__file__).with_name('minnesota_county_boundaries.json').read_text(encoding='utf-8'))['counties']
     fips = {county['name']: '27' + county['fips'] for county in boundaries}
+    return {county['slug']: {**county, 'fips': fips[county['name']]} for county in counties}
+
+
+def compose_county_profiles(state: dict, research: dict[str, dict], *, now: dt.datetime,
+                            freshness_policy: FreshnessPolicy) -> dict[str, dict]:
+    """Join approved evidence and observations without activating discoveries."""
+    counties = county_identities().values()
     sources = {sid: source for sid, source in (state.get('sources') or {}).items() if isinstance(source, dict)}
     statewide = next(((sid, source) for sid, source in sources.items()
                       if source.get('category') == 'Parcels' and isinstance(source.get('mngac_completeness'), dict)
@@ -190,7 +196,7 @@ def compose_county_profiles(state: dict, research: dict[str, dict], *, now: dt.d
         decision = (record.get('monitoring') or {}).get('decision')
         permission = CountyPermission.from_record(record) if record.get('monitoring') else None
         profiles[slug] = {
-            'schema_version': 1, 'county': {**county, 'fips': fips[name]},
+            'schema_version': 1, 'county': county,
             'monitoring': {'active': bool(active), 'paths': paths, 'health': health, 'reporting': reporting,
                 'active_parcel_source_count': len(active), 'last_checked_at': _latest(s.get('checked_at') for s in active.values()),
                 'last_success_at': _latest(s.get('last_success_at') for s in active.values()),

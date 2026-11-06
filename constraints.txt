@@ -22,3 +22,6 @@ pyasn1==0.6.5
 typing-extensions==4.16.0
 tzdata==2026.5
 pycparser==3.0
+reportlab==5.1.0
+Pillow==13.0.0
+pypdf==7.0.0

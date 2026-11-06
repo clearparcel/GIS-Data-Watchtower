@@ -1,5 +1,16 @@
 # Project status
 
+## County directory administration preview
+
+The local preview supports editing all 87 county records, revision-checked
+saves, retryable publication, private PDF quarantine, and public county
+profile downloads. The staging candidate adds a separate signed-IAP editor
+and a Cloud Run IAM scanner with no county bucket permissions. The November 6
+public export matched all 87 packaged county identities and 116 contacts.
+Cloud staging service bindings and live acceptance remain open. See the
+[county directory preview](docs/county-directory-contract.md) and
+[staging acceptance](docs/county-directory-staging.md).
+
 ## Washington County parcel service — proposed, 2026-11-05
 
 The county-operated GISViewer/Parcels MapServer layer 0 is now a research
