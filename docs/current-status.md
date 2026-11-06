@@ -8,7 +8,8 @@ The public dashboard and separate, IAP-protected county editor went live on
 November 6, 2026. The public dashboard serves county profile HTML, JSON, CSV,
 XLSX, and PDF. Live checks matched all 87 county identities and 116 contacts
 and confirmed the pilot could open a county record. The first production
-county edit and attachment check remain pending. See the
+edit published Fillmore County revision 1. A synthetic PDF passed scanning
+and was verified through the private editor. See the
 [release record](release-v0.4.0.md) and
 [county directory contract](county-directory-contract.md).
 
