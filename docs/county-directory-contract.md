@@ -140,3 +140,22 @@ exercises authenticated attachment reads, public HTML and exports, long
 policy pagination, clickable links, and searchable standards tables.
 Production storage and scanner permissions, rollout, and acceptance remain
 separate.
+
+## Public access display precedence
+
+Confirmed directory settings lead the county page and supply the county list
+and map/overview profile. A county without a published directory retains the
+packaged research fallback. The parcel summary names the selected methods, so
+MnGeo-only availability is never presented as county-direct REST access.
+
+The old parcel-access card is retained under a collapsed Packaged parcel-access
+research section when a directory exists. Inventory findings and monitoring
+permissions remain research/observation data, with a separate heading and
+explanation. Public notes are labeled Administrator note and preserved verbatim.
+
+JSON keeps the existing research fields for compatibility and adds
+`access_field_basis` to identify them. CSV and Excel summaries add published
+parcel, road, and address access plus the confirmed directory revision; existing
+classification columns are identified as packaged research. PDF sections
+likewise distinguish published access from packaged research. None of these
+presentation changes writes a county record or enables monitoring.

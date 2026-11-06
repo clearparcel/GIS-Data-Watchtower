@@ -16,6 +16,8 @@ class CountyProfilePdfTests(unittest.TestCase):
             "parcel_source_profile": {
                 "county": {"name": "Synthetic Échantillon", "slug": "synthetic", "fips": "27001"},
                 "monitoring": {"reporting": "current"},
+                "access": {"public_classification": "Historical finding"},
+                "county_directory": {"correspondence": "PRIVATE_SENTINEL"},
                 "direct_gac_schema": [{"field": "SCHEMA_LAST_FIELD"}],
             },
             "county_directory": {
@@ -35,7 +37,8 @@ class CountyProfilePdfTests(unittest.TestCase):
         self.assertGreater(len(reader.pages), 2)
         extracted = "\n".join(page.extract_text() for page in reader.pages)
         for expected in ("Échantillon", "POLICY_END", "ROAD_FIELD_089", "SCHEMA_LAST_FIELD",
-                         "Example contact", "Public source", "Public revision"):
+                         "Example contact", "Public source", "Public revision",
+                         "Packaged parcel access research", "Packaged access research", "Historical finding"):
             self.assertIn(expected, extracted)
         self.assertNotIn("PRIVATE_SENTINEL", extracted)
         links = [annotation.get_object().get("/A", {}).get("/URI")

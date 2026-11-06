@@ -8,6 +8,7 @@ import math
 from zoneinfo import ZoneInfo
 from urllib.parse import urlsplit
 from .public_values import safe_public_url
+from .county_directory_view import render_published_directory, published_access_summary, RESEARCH_NOTICE
 
 GROUPS = (("mngac_public_parcels", "MN GAC Public Parcels"), ("mngeo_public_repository", "MnGeo Public County Repository"), ("county_arcgis_rest", "County ArcGIS REST"), ("county_download", "County Website Download"))
 # Sequential bins with about 2:1 luminance contrast between neighbours; "no data"
@@ -74,13 +75,18 @@ def _links(items: list[dict]) -> str:
             links.append(f'<a href="{_esc(url)}" target="_blank" rel="noopener">{_esc(item.get("label") or item.get("authority") or url)}</a>')
     return " · ".join(links) or "Not available"
 
-def render_county_profile_body(profile: dict) -> str:
+def render_county_profile_body(profile: dict, *, include_directory: bool = True) -> str:
     """Render one complete composed profile using escaped scalar values."""
     county, monitoring = profile.get("county", {}), profile.get("monitoring", {})
     access, research = profile.get("access", {}), profile.get("research", {})
+    directory = profile.get("county_directory")
     body = f'<h2 id="county-profile-title">{_esc(county.get("name"))} County</h2>'
     body += '<p>' + _esc(" · ".join(monitoring.get("paths") or []) or "No active parcel monitoring") + ' · ' + _esc(monitoring.get("health")) + ' · ' + _esc(monitoring.get("reporting")) + '</p>'
-    body += '<div class="profile-summary">' + _rows([("Active monitoring", "Yes" if monitoring.get("active") else "No"), ("County-direct access", access.get("public_classification")), ("Active parcel sources", monitoring.get("active_parcel_source_count")), ("Latest county Watchtower check", profile_time(monitoring.get("last_checked_at")))]) + '</div>'
+    body += '<div class="profile-summary">' + _rows([("Active monitoring", "Yes" if monitoring.get("active") else "No"), (("Published parcel access", published_access_summary(directory)) if directory is not None else ("County-direct access", access.get("public_classification"))), ("Active parcel sources", monitoring.get("active_parcel_source_count")), ("Latest county Watchtower check", profile_time(monitoring.get("last_checked_at")))]) + '</div>'
+    if directory is not None and include_directory:
+        body += render_published_directory(directory)
+    if directory is not None:
+        body += f'<p class="subtext">{RESEARCH_NOTICE}</p>'
     if monitoring.get("permission_note"):
         body += '<p class="permission-note">' + _esc(monitoring.get("permission_note")) + '</p>'
     body += render_direct_schema_findings(profile.get('direct_gac_schema') or [])
@@ -96,7 +102,8 @@ def render_county_profile_body(profile: dict) -> str:
             body += _rows([("Inventory ID", source.get("inventory_id")), ("Observed source ID", source.get("monitored_source_id")), ("Authority", source.get("authority")), ("Dataset type", source.get("dataset_type")), ("Layer ID", source.get("layer_id")), ("Geometry type", source.get("geometry_type")), ("Feature count", f"{count:,}" if isinstance(count, int) else count), ("Count basis", source.get("feature_count_basis")), ("Provider update", profile_time(source.get("provider_updated_at"))), ("MnGeo acquisition", profile_time(source.get("county_acquired_at"))), ("County metadata publication", profile_time(source.get("county_metadata_published_at"))), ("County metadata content date", profile_time(source.get("county_metadata_content_at"))), ("Catalog refresh", profile_time(source.get("catalog_refreshed_at"))), ("Watchtower check", profile_time(source.get("checked_at"))), ("Successful observation", profile_time(source.get("last_success_at"))), ("Health", source.get("health")), ("Reporting", source.get("reporting")), ("Execution profile", source.get("execution_profile")), ("Monitoring decision", source.get("monitoring_decision")), ("File type", file.get("type")), ("File size (bytes)", file.get("size_bytes")), ("ETag", file.get("etag")), ("File last modified", profile_time(file.get("last_modified")))])
             body += '<p>Official product links: ' + _links(source.get("approved_public_links") or []) + '</p></article>'
         body += '</section>'
-    body += '<section><h3>Access and research evidence</h3>' + _rows([("County-direct classification", access.get("detailed_classification")), ("Dataset fee", access.get("dataset_fee")), ("Fee product", access.get("fee_product")), ("Monitoring decision", access.get("monitoring_decision")), ("Research status", "Complete" if research.get("complete") else "Research incomplete"), ("Research review", profile_time(research.get("review_date"))), ("Successful county observation", profile_time(monitoring.get("last_success_at"))), ("Aggregate generated", profile_time(monitoring.get("aggregate_generated_at")))])
+    research_heading = 'Packaged access and research evidence' if directory is not None else 'Access and research evidence'
+    body += f'<section><h3>{research_heading}</h3>' + _rows([("County-direct classification", access.get("detailed_classification")), ("Dataset fee", access.get("dataset_fee")), ("Fee product", access.get("fee_product")), ("Monitoring decision", access.get("monitoring_decision")), ("Research status", "Complete" if research.get("complete") else "Research incomplete"), ("Research review", profile_time(research.get("review_date"))), ("Successful county observation", profile_time(monitoring.get("last_success_at"))), ("Aggregate generated", profile_time(monitoring.get("aggregate_generated_at")))])
     body += _evidence_details(research.get("evidence_links") or access.get("evidence_links") or []) + '</section>'
     if profile.get("comments"):
         body += '<section><h3>Research notes</h3><details class="profile-evidence"><summary>Read detailed research notes</summary><ul>' + ''.join('<li>' + _esc(note.strip()) + '</li>' for comment in profile['comments'] for note in comment.split(' · ') if note.strip()) + '</ul></details></section>'
