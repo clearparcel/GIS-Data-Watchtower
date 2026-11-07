@@ -140,7 +140,7 @@ def _render(template, payload):
         y = 582 - i * 28
         para(' | '.join(filter(None, (p['name'], p['role'] or p['title'], p['department']))), 60, y, 492, 15, 10)
         para(' | '.join(filter(None, (p['phone'], p['email']))), 60, y - 14, 492, 13, 9, muted)
-    link('County GIS website / all contacts', data['contacts'][0]['source_url'] or data['contacts'][0]['website'] if data['contacts'] else data['url'], 60, 500)
+    link('County GIS contacts and website online', data['url'], 60, 500)
     if data['contact_count'] > 3: text(f"{data['contact_count'] - 3} additional contacts online", 335, 490, 8, muted)
     text('DATA ACCESS', 44, 461, 9, green, True)
     for key, title, y, height in (('parcel_polygons', 'Parcel Polygons', 288, 154), ('road_centerlines', 'Road Centerlines', 193, 78), ('address_points', 'Address Points', 98, 78)):
