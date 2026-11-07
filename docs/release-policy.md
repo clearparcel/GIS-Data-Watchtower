@@ -1,8 +1,8 @@
 # Versioning and release policy
 
-The current public dashboard release is **v0.4.1**, deployed November 6.
+The current public dashboard release is **v0.4.2**, deployed November 6.
 This release updated the public dashboard only. See the
-[release record](release-v0.4.1.md) for the production scope. Rollback targets
+[release record](release-v0.4.2.md) for the production scope. Rollback targets
 are recorded in the private deployment record. Older release records are in the
 [archive](README.md#historical-engineering-and-release-records). Daily cloud
 provider polling was separately approved and activated on October 10;
@@ -58,7 +58,7 @@ records that predate this rule are accepted as public as written
 ### Source, downloadable release and deployment are different things
 
 - **Supported source** is `main`; its version is `[project].version` in `pyproject.toml`.
-- **Latest downloadable release** is the newest GitHub Release, v0.4.1.
+- **Latest downloadable release** is the newest GitHub Release, v0.4.2.
   Versions v0.3.0 through v0.3.9 were recorded and deployed from `main` without
   a Git tag or GitHub Release, so they do not appear on the Releases page.
 - **Operational deployment** is what the dated `docs/release-vX.Y.Z.md` records
@@ -77,9 +77,9 @@ Public page footers display **only the semantic application version** (for examp
 
 The source commit and build environment **remain inside immutable `build_info.json` and release/provenance records**, and may continue to inform optional analytics. They are intentionally not shown in the public footer. Container builds still require `WATCHTOWER_BUILD_REVISION` (full commit SHA) and `WATCHTOWER_BUILD_ENVIRONMENT` (`preview` or `production`). The production source package and visible version must agree. Build only from a clean, committed checkout; do not infer revision identity from the runtime Git state.
 
-**The public site reports v0.4.1 as of November 6, 2026.** The next coordinated
+**The public site reports v0.4.2 as of November 6, 2026.** The next coordinated
 application-code release must be strictly newer. The
-[release record](release-v0.4.1.md) identifies the deployed source and
+[release record](release-v0.4.2.md) identifies the deployed source and
 verification limits. Always recheck live identity before promotion.
 
 ## Security fixes
