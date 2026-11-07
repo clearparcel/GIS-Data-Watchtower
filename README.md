@@ -9,7 +9,9 @@
 **[Explore the live public dashboard](https://gis-watchtower.clear-parcel.com/)** · **[User guide](docs/user-guide.md)** · **[Documentation index](docs/README.md)**
 
 The public dashboard currently runs **v0.4.2**, deployed November 6, 2026.
-The internal dashboard v0.4.3 release candidate is being prepared. The public and internal UI changes in this branch have not been deployed.
+The internal dashboard runs **v0.4.3**, deployed November 7, 2026.
+The shared public UI changes are merged and await a separate public rollout.
+See the [internal release record](docs/release-v0.4.3.md).
 The [internal UI guide](docs/internal-dashboard-ui.md) describes attention lists, saved changes, reading-safe updates, terms filters and scoped downloads.
 See [STATUS.md](STATUS.md) for each service’s release state and the
 [public dashboard release record](docs/release-v0.4.2.md).

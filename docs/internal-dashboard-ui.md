@@ -1,7 +1,8 @@
-# Internal dashboard UI candidate
+# Internal dashboard UI
 
-Prepared November 7, 2026; not deployed. This follows the plain-language public
-UI candidate in PR #221. The private hosted dashboard remains read-only.
+Deployed to the internal dashboard with v0.4.3 on November 7, 2026. This builds
+on the shared presentation changes in PR #221, which are merged and await a
+separate public rollout. The private hosted dashboard remains read-only.
 
 ## Daily review
 
@@ -68,5 +69,7 @@ cache. Browser checks cover desktop/tablet/phone layouts, navigation, filters,
 source change links, downloads and refresh reading holds. Repository regressions
 cover exact source identity, event deduplication/caps, measured zero, escaping,
 export allowlists/formula handling, private-route authentication and POST refusal.
-The authenticated live internal deployment and its current build were not
-reverified. The pull request records final check results and its exact head.
+The live revision identity, settings and IAM were checked after promotion, and
+the owner confirmed the updated signed-in UI. Additional monitoring-data and
+request-log rechecks were interrupted by the workstation connection loss. See
+[the release record](release-v0.4.3.md) for the exact deployed source and limits.
