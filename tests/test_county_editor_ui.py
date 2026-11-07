@@ -51,7 +51,9 @@ vm.runInContext("selected='invented';draft={contacts:[],access:{},policy:{},corr
 const submit=()=>listeners.get('#editor:submit')({preventDefault(){}});
 '''
         ending = "\nconsole.log('OK');})().catch(error=>{console.error(error);process.exitCode=1});"
-        result = subprocess.run(["node", "-e", "const SOURCE=" + json.dumps(source) + ";\n" + harness + scenario + ending], capture_output=True, text=True)
+        # Keep the fixture off argv: Windows limits the complete command line.
+        script = "const SOURCE=" + json.dumps(source) + ";\n" + harness + scenario + ending
+        result = subprocess.run(["node"], input=script, capture_output=True, encoding="utf-8")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout.strip(), "OK")
 
