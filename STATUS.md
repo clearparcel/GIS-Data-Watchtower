@@ -1,5 +1,13 @@
 # Project status
 
+## Internal UI v0.4.3 release — preparation, 2026-11-07
+
+The owner authorized deployment of the internal UI candidate. The release
+candidate advances the application version and explicitly installs the current
+Debian zlib runtime package to resolve the existing container scan blocker.
+CI scans remain required. Production promotion, authenticated checks and the
+release receipt are pending; the public site remains v0.4.2.
+
 ## Internal dashboard workflow — prepared for review, 2026-11-07
 
 The internal UI candidate puts linked failures and overdue reports first,
