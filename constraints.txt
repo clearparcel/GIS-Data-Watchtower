@@ -1,6 +1,6 @@
 # Resolved 2026-10-07 for the Watchtower runtime.
 # Refresh deliberately when dependencies are upgraded; CI installs through this file.
-google-cloud-storage==3.16.0
+google-cloud-storage==3.17.1
 google-api-core==2.41.0
 google-auth==2.60.0
 google-cloud-core==2.8.0
