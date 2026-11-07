@@ -29,7 +29,7 @@ class CountyEditorUiTests(unittest.TestCase):
     def run_ui(self, scenario):
         if not shutil.which("node") and os.environ.get("WATCHTOWER_REQUIRE_NODE") != "1":
             self.skipTest("Node required for executable county-editor regression")
-        source = (Path(__file__).resolve().parents[1] / "clearparcel/datawatch/county_admin.js").read_text()
+        source = (Path(__file__).resolve().parents[1] / "clearparcel/datawatch/county_admin.js").read_text(encoding="utf-8")
         harness = r'''
 const assert=require('node:assert/strict'),vm=require('node:vm');
 const nodes=new Map(),listeners=new Map(),calls=[];let confirmResult=false,failList=false,failSave=false;
