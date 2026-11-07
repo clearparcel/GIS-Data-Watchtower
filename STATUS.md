@@ -1,13 +1,14 @@
 # Project status
 
-## v0.4.1 county access display consistency — candidate
+## v0.4.1 county access display consistency — deployed
 
 Published county-editor settings now lead the county page and populate the
 county list, map/overview profile, and export summaries. Packaged parcel-access
 research remains separately labeled for provenance and monitoring decisions.
 Apply does not change monitoring sources, permissions, or administrator notes.
-The candidate includes refresh, export, and privacy regression checks; production
-promotion remains pending.
+The public dashboard was deployed November 6, 2026. Live Aitkin page, index,
+map profile, and JSON/CSV/Excel/PDF checks passed; its saved directory and the
+monitoring snapshot were unchanged. See the [release record](docs/release-v0.4.1.md).
 
 ## Scanner readiness fix — candidate
 
