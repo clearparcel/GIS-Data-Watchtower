@@ -159,3 +159,13 @@ parcel, road, and address access plus the confirmed directory revision; existing
 classification columns are identified as packaged research. PDF sections
 likewise distinguish published access from packaged research. None of these
 presentation changes writes a county record or enables monitoring.
+
+## County PDF summary
+
+The county PDF is a fixed three-page summary with the Watchtower logo/name.
+Page one shows up to three contacts, selected access methods, and a link to all
+contacts and evidence. Page two summarizes policy, restrictions, public notes,
+and monitoring. Page three summarizes statewide MN GAC observations, scan scope,
+and selected mandatory-field gaps. Long content is visibly shortened and linked
+to the full profile. Private records and detailed field tables are excluded.
+JSON, CSV and Excel remain available for full public detail.
