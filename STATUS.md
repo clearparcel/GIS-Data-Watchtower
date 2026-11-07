@@ -1,11 +1,12 @@
 # Project status
 
-## v0.4.2 county PDF summaries — candidate
+## v0.4.2 county PDF summaries — deployed
 
 County PDF downloads now use the approved three-page summary: contacts and
 access; policy, restrictions and monitoring; MN GAC field summaries. Each page
 uses the GIS Data Watchtower logo and name. Long text links to the full online
-profile. Missing observations remain unknown. Production promotion is pending.
+profile. Missing observations remain unknown. The public dashboard serves the
+new PDF as of November 6, 2026. See the [release record](docs/release-v0.4.2.md).
 
 ## v0.4.1 county access display consistency — deployed
 
