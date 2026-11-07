@@ -1,6 +1,6 @@
 # Project status
 
-## County access display consistency — candidate
+## v0.4.1 county access display consistency — candidate
 
 Published county-editor settings now lead the county page and populate the
 county list, map/overview profile, and export summaries. Packaged parcel-access
