@@ -349,21 +349,22 @@ def _public_layout_v2(title: str, body: str, *, refresh_seconds: int = 30, publi
 </main>{SCRIPT_TAG}(function(){{const row=document.querySelector('.public-tabs'),active=row&&row.querySelector('a.active');if(active&&row.scrollWidth>row.clientWidth&&active.offsetLeft+active.offsetWidth>row.clientWidth)row.scrollLeft=active.offsetLeft-12;}})();</script>{SCRIPT_TAG}(function(){{const menu=document.querySelector('.public-export');if(!menu)return;document.addEventListener('keydown',e=>{{if(e.key==='Escape'&&menu.open){{menu.open=false;menu.querySelector('summary').focus()}}}});document.addEventListener('click',e=>{{if(menu.open&&!menu.contains(e.target))menu.open=false}});}})();</script></body></html>"""
 
 def _layout(title: str, body: str, *, refresh_seconds: int = 30, static: bool = False, csrf_token: str = "", public_summary: bool = True,
-            static_bundle: bool = False) -> str:
+            static_bundle: bool = False, active_section: str | None = None,
+            download_scope: tuple[str, str] | None = None) -> str:
     if static:
         return _public_layout_v2(title, body, refresh_seconds=refresh_seconds, public_summary=public_summary,
                                  static_bundle=static_bundle)
     auto_refresh = int(refresh_seconds or 0) > 0
     body = _accessible_tables(body)
     refresh_meta = _refresh_script(refresh_seconds)
-    refresh_label = f"Dashboard view refreshes every {int(refresh_seconds)}s" if auto_refresh else "Interactive view · reload for latest saved data"
+    refresh_label = f"View updates every {int(refresh_seconds)}s; provider checks run separately" if auto_refresh else "Reload for the latest saved results"
     # No token means no refresh endpoint (the read-only hosted dashboard), so no form.
     refresh_form = "" if static or not csrf_token else (
         '<form method="post" action="/refresh" class="refresh-form">'
         f'<input type="hidden" name="csrf_token" value="{_esc(csrf_token)}">'
         '<button>Check now</button></form>'
     )
-    side_context = "Public read-only view" if static else "Private dashboard"
+    side_context = "Internal dashboard" if csrf_token else "Internal · view only"
     def icon(kind: str) -> str:
         paths = {
             "overview": '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
@@ -382,6 +383,41 @@ def _layout(title: str, body: str, *, refresh_seconds: int = 30, static: bool = 
         f'<a href="{_esc(editor_url)}">{icon("counties")}<span>County editor</span></a>'
         if editor_url and editor_url.startswith("https://") else ""
     )
+    lower = page_label(title).casefold()
+    active = active_section or ("overview" if title == PRODUCT_NAME else
+        "mngac" if "gac" in lower or "completeness" in lower else
+        "counties" if "county" in lower or "counties" in lower else
+        "terms" if "provider terms" in lower else "sources")
+    def nav_link(key, href, label):
+        selected = ' aria-current="page"' if key == active else ''
+        return f'<a href="{_esc(href)}"{selected}>{icon(key)}<span>{_esc(label)}</span></a>'
+    desktop_nav = ''.join(nav_link(*item) + (editor_link if item[0] == "counties" else '') for item in [
+        ("overview", "/", "Overview"), ("counties", "/counties", "Counties"),
+        ("mngac", "/mngac", "Data completeness"), ("terms", "/terms", "Provider Terms"),
+        ("sources", "/sources", "Data sources"), ("changes", "/changes", "Recent changes"),
+        ("alerts", "/alerts", "Alerts"), ("export", "/downloads", "Downloads")])
+    mobile_nav = ''.join(nav_link(*item) for item in [
+        ("overview", "/", "Overview"), ("counties", "/counties", "Counties"),
+        ("mngac", "/mngac", "Data completeness"), ("sources", "/sources", "Sources")])
+    more_links = ''.join(nav_link(*item) for item in [
+        ("terms", "/terms", "Provider Terms"), ("changes", "/changes", "Recent changes"),
+        ("alerts", "/alerts", "Alerts"), ("export", "/downloads", "Downloads")]) + editor_link
+    more_current = ' current-section' if active in {"terms", "changes", "alerts", "export"} else ''
+    scope_links = ''
+    if download_scope:
+        from urllib.parse import urlencode
+        kind, value = download_scope
+        query = urlencode({"slug" if kind == "county" else "id": value})
+        base = "county-snapshot" if kind == "county" else "source-snapshot"
+        scope_links = f'<strong>This {_esc(kind)}</strong>' + ''.join(
+            f'<a href="/{base}.{ext}?{_esc(query)}">{label}</a>' for ext, label in
+            (("xlsx", "Excel spreadsheet (.xlsx)"), ("csv", "Summary (CSV)"), ("json", "Summary data (JSON)")))
+    download_links = scope_links + '<strong>All monitoring data</strong><a href="/snapshot.xlsx">Excel spreadsheet (.xlsx)</a><a href="/snapshot.csv">Source checks (CSV)</a><a href="/snapshot.json">Summary data (JSON)</a><a href="/downloads">More downloads and scope options</a>'
+    identity = application_identity()
+    version = "v" + identity["version"] if identity["version"] != "unknown" else "Version unavailable"
+    build = identity["revision"][:7] or "not recorded"
+    if active == "mngac":
+        body = '<p>Data completeness uses standards from the Minnesota Geospatial Advisory Council (MN GAC). It measures whether fields contain values; it does not establish data accuracy or permission to use the data.</p>' + body
     page_title = page_label(title)
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -553,7 +589,7 @@ code{{font-size:12px;overflow-wrap:anywhere}}
   .mngac-controls label,.mngac-controls select{{width:100%}}
   .mngac-map-panel{{padding:6px}}
   .definition-list{{grid-template-columns:1fr;gap:2px}} .definition-list dd{{margin-bottom:8px}}
-  .mobile-nav{{display:grid;grid-template-columns:repeat({6 if editor_link else 5},minmax(0,1fr));width:100%;position:fixed;bottom:0;left:0;right:0;height:62px;background:var(--navy);border-top:1px solid #ffffff18;z-index:50;padding-bottom:env(safe-area-inset-bottom)}}
+  .mobile-nav{{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));width:100%;position:fixed;bottom:0;left:0;right:0;height:62px;background:var(--navy);border-top:1px solid #ffffff18;z-index:50;padding-bottom:env(safe-area-inset-bottom)}}
   .mobile-nav a{{color:#b9d1e2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:10px;font-weight:600}}
   .mobile-nav a:hover{{text-decoration:none;color:#fff}} .mobile-nav .nav-icon{{width:18px;height:18px}}
 }}
@@ -561,26 +597,35 @@ code{{font-size:12px;overflow-wrap:anywhere}}
   .primary-grid{{grid-template-columns:1fr}}
   .bar-row{{grid-template-columns:100px minmax(60px,1fr) 40px}}
 }}
-{_TABLE_CSS}</style></head><body>
-<a class="skip-link" href="#main-content">Skip to content</a><header><h1>{_esc(PRODUCT_NAME)}</h1><div class="actions"><span>{_esc(refresh_label)}</span>{refresh_form}{'<button type="button" id="refresh-pause">Pause refresh</button>' if auto_refresh else ''}</div></header>
+
+.internal-heading{{min-width:0}}.internal-heading small{{font-size:11px;color:#bed4e4}}.internal-heading h1{{line-height:1.2}}
+.sidebar nav a[aria-current="page"],.mobile-nav a[aria-current="page"]{{background:#ffffff18;color:#fff;box-shadow:inset 3px 0 #75c9f1}}
+.mobile-more summary{{cursor:pointer;list-style:none;height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:2px;color:#b9d1e2;font-size:10px;font-weight:600}}
+.mobile-more nav{{position:fixed;bottom:72px;right:10px;max-width:calc(100vw - 20px);width:260px;background:var(--navy);border:1px solid #ffffff30;border-radius:10px;padding:8px;box-shadow:var(--shadow)}}
+.mobile-more nav a{{flex-direction:row;justify-content:start;font-size:14px;gap:10px;padding:12px}}.mobile-more.current-section summary{{color:#fff;background:#ffffff18}}
+.export-pop strong{{display:block;color:var(--muted);font-size:12px;padding:8px 12px}}.change-entry{{border-top:1px solid var(--line);padding:14px 0;overflow-wrap:anywhere}}.change-entry h3{{margin:0 0 6px}}.change-values{{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:8px 0}}.change-values div{{min-width:0}}.change-values dt{{color:var(--muted);font-size:12px;font-weight:600}}.change-values dd{{margin:4px 0;overflow-wrap:anywhere}}
+.change-entry[hidden],.ops-table tr[hidden]{{display:none!important}}.filters label{{display:grid;gap:4px}}.filters button{{align-self:end}}.reading-update{{margin:8px 0}}.reading-update button{{margin-left:8px}}.ops-table td,.ops-table th{{white-space:normal;overflow-wrap:anywhere}}.ops-table tbody th{{font:inherit;text-transform:none;letter-spacing:normal;color:var(--text);background:transparent}}.ops-table tbody th .subtext{{font-size:11px}}.source-issue{{border-left:4px solid var(--err)}}.source-issue.warn{{border-color:var(--warn)}}.section-nav{{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 20px}}.section-nav a{{padding:8px 12px;background:var(--card);border:1px solid var(--line);border-radius:8px}}.breadcrumb{{margin:0 0 16px}}.terms-summary{{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:700px){{.terms-summary{{grid-template-columns:repeat(2,minmax(0,1fr))}}}}
+@media(max-width:700px){{header .internal-heading h1{{font-size:16px}}header .internal-heading small{{font-size:10px}}header .internal-heading{{max-width:calc(100% - 116px)}}.mobile-more{{min-width:0}}.ops-table thead{{display:none}}.ops-table,.ops-table tbody,.ops-table tr,.ops-table td,.ops-table th{{display:block;width:100%}}.ops-table tr{{padding:12px 0;border-bottom:1px solid var(--line)}}.ops-table td{{border:0;padding:4px 0}}.ops-table td::before{{content:attr(data-label) ": ";font-weight:700;color:var(--muted)}}.ops-table th{{border:0;padding:4px 0}}.change-values{{grid-template-columns:1fr}}}}
+{_TABLE_CSS}
+@media(max-width:700px){{
+ .table-scroll table.ops-table,.table-scroll table.ops-table tbody,.table-scroll table.ops-table tr,.table-scroll table.ops-table td,.table-scroll table.ops-table th{{display:block!important;width:100%!important;min-width:0!important}}
+ .table-scroll table.ops-table thead{{display:none!important}}
+ .table-scroll table.ops-table td{{border:0;padding:4px 0;white-space:normal!important}}
+ .table-scroll table.ops-table td[data-label]::before{{content:attr(data-label) ": "!important;font-weight:700;color:var(--muted)}}
+ .table-scroll table.ops-table tr[hidden]{{display:none!important}}
+ .table-scroll table.ops-table th{{border:0;white-space:normal!important;padding:4px 0}}
+ .table-scroll table:not(.ops-table) td::before{{content:none!important}}
+ .table-scroll:has(table.ops-table){{overflow:visible}}
+}}
+</style></head><body>
+<a class="skip-link" href="#main-content">Skip to content</a><header><div class="internal-heading"><h1>{_esc(PRODUCT_NAME)}</h1><small>{side_context}</small></div><div class="actions"><span>{_esc(refresh_label)}</span>{refresh_form}{'<button type="button" id="refresh-pause">Pause refresh</button>' if auto_refresh else ''}</div></header>
 <div class="app-shell">
-<aside class="sidebar"><div class="side-brand"><strong>{_esc(PRODUCT_NAME)}</strong></div><nav>
-<a href="/">{icon("overview")}<span>Overview</span></a>
-<a href="/counties">{icon("counties")}<span>Minnesota Counties</span></a>
-{editor_link}
-<a href="/mngac">{icon("mngac")}<span>MN GAC Completeness</span></a>
-{'' if static else f'<a href="/terms">{icon("terms")}<span>Provider Terms</span></a>'}
-<a href="/#datasets">{icon("sources")}<span>Data Sources</span></a>
-<a href="/#changes">{icon("changes")}<span>Recent Changes</span></a>
-<a href="/#alerts">{icon("alerts")}<span>Alerts</span></a>
-<a href="/snapshot.xlsx">{icon("export")}<span>Export</span></a>
+<aside class="sidebar"><div class="side-brand"><strong>{_esc(PRODUCT_NAME)}</strong></div><nav aria-label="Main navigation">{desktop_nav}
 </nav><div class="side-note">{side_context}<br><small>Central Time primary</small></div></aside>
 <section class="content-shell">
-<div class="pagebar" role="region" aria-label="Page title and export"><div class="pagebar-title">{_esc(page_title)}</div><div class="page-actions"><details class="export-menu"><summary>Export</summary><div class="export-pop"><a href="/snapshot.xlsx">Download Excel spreadsheet (.xlsx)</a><a href="/county-profiles.csv">County profiles (CSV)</a><a href="/parcel-sources.csv">Parcel sources (CSV)</a><a href="/snapshot.csv">Source checks (CSV)</a><a href="/snapshot.json">Raw data (JSON)</a></div></details></div></div>
-<main id="main-content" tabindex="-1">{body}<footer class="app-footnote">{_esc(PRODUCT_NAME)}</footer></main>
+<div class="pagebar" role="region" aria-label="Page title and downloads"><div class="pagebar-title">{_esc(page_title)}</div><div class="page-actions"><details class="export-menu" id="download-menu"><summary>Download</summary><div class="export-pop">{download_links}</div></details></div></div>
+<main id="main-content" tabindex="-1"><div id="refresh-status" role="status"></div>{body}<footer class="app-footnote">{_esc(PRODUCT_NAME)} · {_esc(version)} · Build {_esc(build)} · {side_context}</footer></main>
 </section></div>
-<nav class="mobile-nav" aria-label="Mobile navigation">
-{editor_link}
-<a href="/">{icon("overview")}<span>Overview</span></a><a href="/counties">{icon("counties")}<span>Counties</span></a><a href="/mngac">{icon("mngac")}<span>MN GAC</span></a><a href="/#datasets">{icon("sources")}<span>Sources</span></a><a href="/snapshot.xlsx">{icon("export")}<span>Export</span></a>
-</nav>
+<nav class="mobile-nav" aria-label="Mobile navigation">{mobile_nav}<details class="mobile-more{more_current}" id="mobile-more"><summary>{icon("menu")}<span>More</span></summary><nav aria-label="More pages">{more_links}</nav></details></nav>
+{SCRIPT_TAG}(function(){{document.addEventListener('keydown',e=>{{if(e.key==='Escape')document.querySelectorAll('.export-menu[open],.mobile-more[open]').forEach(d=>{{d.open=false;d.querySelector('summary').focus()}})}});document.addEventListener('click',e=>{{document.querySelectorAll('.export-menu[open],.mobile-more[open]').forEach(d=>{{if(!d.contains(e.target))d.open=false}})}});function revealHash(){{if(!location.hash)return;let id;try{{id=decodeURIComponent(location.hash.slice(1))}}catch(e){{return}}const target=document.getElementById(id);if(target){{if(target.tagName==='DETAILS')target.open=true;let p=target.parentElement;while(p){{if(p.tagName==='DETAILS')p.open=true;p=p.parentElement}}target.scrollIntoView();}}}}window.addEventListener('hashchange',revealHash);revealHash();}})();</script>
 </body></html>"""

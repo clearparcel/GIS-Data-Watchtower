@@ -519,7 +519,7 @@ class PublicDashboardTests(unittest.TestCase):
         with patch.dict("os.environ", {"WATCHTOWER_COUNTY_ADMIN_URL": url}):
             private = _layout("Private dashboard", "", static=False)
             self.assertEqual(private.count(f'href="{url}"'), 2)
-            self.assertIn("repeat(6,minmax(0,1fr))", private)
+            self.assertIn("repeat(5,minmax(0,1fr))", private)
             for bundle in (False, True):
                 self.assertNotIn(url, _layout("Public dashboard", "", static=True, static_bundle=bundle))
         for unsafe in ("", "http://county-editor.example.org/", "javascript:alert(1)",

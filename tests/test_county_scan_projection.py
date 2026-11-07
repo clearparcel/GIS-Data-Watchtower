@@ -110,7 +110,10 @@ class CountyScanProjectionTests(unittest.TestCase):
                         config = {"_public_mode": public}
                         profile = dashboard.render_county(config, county["slug"])
                         results = dashboard.render_mngac(config, "parcel", county=county["slug"])
-                        for page in (profile, results):
+                        if not public:
+                            self.assertIn('/mngac?county=' + county["name"].replace(' ', '+') + '&amp;view=county', profile)
+                            self.assertNotIn('id="county-mngac-fields"', profile)
+                        for page in (profile, results) if public else (results,):
                             if county["name"] in represented:
                                 self.assertIn("Field exists in source: Present<br>Values checked: Scanned", field_row(page, field))
                             else:
@@ -142,7 +145,9 @@ class CountyScanProjectionTests(unittest.TestCase):
                 config = {"_public_mode": public}
                 profile = dashboard.render_county(config, "cass")
                 results = dashboard.render_mngac(config, "parcel", county="cass")
-                for page in (profile, results):
+                if not public:
+                    self.assertIn('/mngac?county=Cass&amp;view=county', profile)
+                for page in (profile, results) if public else (results,):
                     with self.subTest(public=public, profile=page is profile):
                         row = field_row(page, field)
                         self.assertIn("Field exists in source: Present<br>Values checked: Scanned", row)
@@ -164,7 +169,7 @@ class CountyScanProjectionTests(unittest.TestCase):
                 population_scanned=flag, present_in_source_schema=flag)
             for state in (state_for(data), sanitize_public_render_state(state_for(data))):
                 with patch.object(dashboard, "_dashboard_state", return_value=state):
-                    for page in (dashboard.render_county({}, "cass"),
+                    for page in (dashboard.render_county({"_public_mode": True}, "cass"),
                                  dashboard.render_mngac({}, "parcel", county="cass")):
                         row = field_row(page, field)
                         self.assertIn("Field exists in source: Missing" if flag is False else "Field exists in source: Unknown", row)

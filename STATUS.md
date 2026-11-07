@@ -1,5 +1,17 @@
 # Project status
 
+## Internal dashboard workflow — prepared for review, 2026-11-07
+
+The internal UI candidate puts linked failures and overdue reports first,
+adds saved change evidence and source-specific checks, preserves reading state
+during refresh, completes mobile navigation, and adds Provider Terms action
+filters and scoped downloads. County profiles use shorter sections and link
+one detailed field-results view. It builds on the public UI candidate below.
+Authentication, read-only hosting, provider permissions and polling are preserved.
+Validation uses synthetic local observations; the live internal build was not
+reverified and no service was deployed. See the [UI guide](docs/internal-dashboard-ui.md)
+and [implementation handoff](docs/ai/handoffs/2026-11-07-internal-ui.md).
+
 ## Plain-language public UI — prepared for review, 2026-11-07
 
 The candidate simplifies county search and access columns, separates recent
