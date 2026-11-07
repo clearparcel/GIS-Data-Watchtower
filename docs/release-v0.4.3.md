@@ -38,10 +38,11 @@ The read-only internal dashboard alone was updated. The public website remains
 v0.4.2. Provider jobs, polling permissions and schedules were unchanged.
 Private artifact and operational evidence is retained in the deployment records.
 
-## Verification limits
+## Verification scope
 
-The workstation connection stopped responding during additional monitoring-data
-and request-log reads. Those rechecks and the final combined private receipt
-remain pending. No new provider checks were run and no new provider-health
-conclusion is claimed. The signed-in visual check was supplied by the owner;
-the assistant could not inspect that browser session directly.
+Read-only follow-up checks verified saved source results and worker provenance.
+The bounded post-rollout request-log sample contained successful responses and
+no server errors. No new provider polling was run; source results describe saved
+observations. The signed-in visual check was supplied by the owner; the assistant
+could not inspect that browser session directly. The final private promotion
+receipt is retained with the validation evidence.

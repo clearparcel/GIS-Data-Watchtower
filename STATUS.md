@@ -8,8 +8,9 @@ The internal dashboard was updated from merged source
 revision identity were verified, and the owner confirmed the updated signed-in
 UI. Non-image runtime settings and IAM match the rollback baseline. The
 previous revision is retained. The public site remains v0.4.2; provider jobs
-and schedules were not updated. Additional monitoring-data and request-log
-rechecks remain unverified after the workstation connection stopped responding.
+and schedules were not updated. Saved source results and worker provenance were
+rechecked; bounded live request logs showed successful responses and no server
+errors.
 See the [release record](docs/release-v0.4.3.md).
 
 ## Internal dashboard workflow — included in v0.4.3

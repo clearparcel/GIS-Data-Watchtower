@@ -34,8 +34,10 @@ unchanged, anonymous access still required Google sign-in, and the owner
 confirmed the new signed-in UI.
 
 Private evidence was saved on the authoritative workstation before and after
-promotion. Its connection stopped responding during additional monitoring-data
-and request-log reads, which remain unverified. The final combined private
-receipt and temporary auth-log cleanup should be completed when that connection
-is available. No rollback was needed. This public documentation follow-up does
-not change application code or deployment settings.
+promotion. After its connection stopped responding, the owner-requested alternate
+connection completed read-only checks of saved source results, worker provenance
+and live request logs. Those checks passed, and the combined private promotion
+receipt was saved with the validation evidence. Copy that receipt to the
+authoritative archive and remove the temporary auth log when its connection is
+available. No provider polling was run and no rollback was needed. This public
+documentation follow-up changes no application code or deployment settings.

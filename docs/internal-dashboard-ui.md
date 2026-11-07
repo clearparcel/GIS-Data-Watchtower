@@ -70,6 +70,7 @@ source change links, downloads and refresh reading holds. Repository regressions
 cover exact source identity, event deduplication/caps, measured zero, escaping,
 export allowlists/formula handling, private-route authentication and POST refusal.
 The live revision identity, settings and IAM were checked after promotion, and
-the owner confirmed the updated signed-in UI. Additional monitoring-data and
-request-log rechecks were interrupted by the workstation connection loss. See
-[the release record](release-v0.4.3.md) for the exact deployed source and limits.
+the owner confirmed the updated signed-in UI. Follow-up read-only checks verified
+saved source results, worker provenance and successful live requests without
+server errors in the checked sample. See [the release record](release-v0.4.3.md)
+for the exact deployed source and verification scope.
