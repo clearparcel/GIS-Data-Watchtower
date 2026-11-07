@@ -1,32 +1,105 @@
 <!doctype html>
 <html lang="en">
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>GIS Contacts · Watchtower</title>
-<link rel="stylesheet" href="/county-admin.css">
-<script src="/county-admin.js" defer></script>
-<header>
-  <p>GIS Data Watchtower · Administration</p>
-  <h1>GIS Contacts</h1>
-</header>
-<main>
-  <aside aria-label="Minnesota counties">
-    <label for="county-search">Find a county</label>
-    <input type="search" id="county-search" placeholder="County, contact, or email">
-    <label for="counties">Select a county</label>
-    <select id="counties" size="12"></select>
-  </aside>
-  <section aria-labelledby="county-title">
-    <h2 id="county-title">County details</h2>
-    <p id="status" role="status" aria-live="polite"></p>
-    <form id="editor" hidden>
-      <div id="fields"></div>
-      <div class="actions">
-        <button type="submit" id="apply">Apply</button>
-        <button type="button" id="discard">Discard</button>
-        <button type="button" id="retry" hidden>Retry publication</button>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>County information editor · Watchtower</title>
+  <link rel="stylesheet" href="/county-admin.css" />
+  <script src="/county-admin.js" defer></script>
+  <a class="skip" href="#county-title">Skip to county details</a>
+  <header>
+    <a href="https://gis-watchtower.clear-parcel.com/">← Back to Watchtower</a>
+    <h1>County information editor</h1>
+    <p>
+      Manage public contacts, data access and policy, with private
+      correspondence and files.
+    </p>
+  </header>
+  <main>
+    <aside aria-label="Minnesota counties">
+      <label for="counties">Choose a county</label>
+      <select
+        id="counties"
+        size="12"
+        aria-describedby="county-results"
+        disabled
+      ></select>
+      <details class="county-search" open>
+        <summary>Find a county or contact</summary>
+        <label for="county-search">Search county, contact or email</label>
+        <input
+          type="search"
+          id="county-search"
+          placeholder="Search counties…"
+        />
+        <button type="button" id="clear-search">Clear search</button>
+        <p id="county-results" role="status">Loading counties…</p>
+        <button type="button" id="refresh-directory">
+          Refresh county list
+        </button>
+      </details>
+    </aside>
+    <section class="workspace" aria-labelledby="county-title">
+      <div class="county-heading">
+        <h2 id="county-title" tabindex="-1">Choose a county to begin</h2>
+        <a
+          id="public-page"
+          aria-label="View public county page (opens in a new tab)"
+          hidden
+          target="_blank"
+          rel="noopener"
+          >View public page</a
+        >
+        <p id="status" role="status" aria-live="polite">
+          Select a county to view or edit its information.
+        </p>
+        <nav id="sections" aria-label="Editor sections" hidden>
+          <a href="#contacts">Contacts</a
+          ><a href="#data-access">Data access</a> <a href="#policy">Policy</a
+          ><a href="#correspondence">Private correspondence</a>
+        </nav>
       </div>
-    </form>
-  </section>
-</main>
+      <form id="editor" hidden novalidate>
+        <div
+          class="editor-scroll"
+        role="region"
+          tabindex="0"
+          aria-label="County information fields"
+        >
+          <section
+            id="errors"
+            class="error-summary"
+            tabindex="-1"
+            hidden
+            aria-label="Please correct these fields"
+          ></section>
+          <section
+            id="conflict"
+            class="notice"
+            hidden
+            aria-label="Record changed elsewhere"
+          ></section>
+          <div id="fields"></div>
+        </div>
+        <div class="actions">
+          <p id="save-status" role="status" aria-live="polite">
+            No unsaved changes.
+          </p>
+          <p class="save-help">
+            Saving publishes changed public fields. Correspondence and PDFs stay
+            private.
+          </p>
+          <div class="action-buttons">
+            <button type="submit" id="apply">Save changes</button>
+            <button type="button" id="review">Review changes</button>
+            <button type="button" id="discard">Discard unsaved changes</button>
+            <button type="button" id="retry" hidden>Retry publication</button>
+          </div>
+          <details id="change-review" hidden>
+            <summary>Changes to review</summary>
+            <div id="change-summary"></div>
+          </details>
+        </div>
+      </form>
+    </section>
+  </main>
 </html>

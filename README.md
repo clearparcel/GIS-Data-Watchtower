@@ -36,6 +36,8 @@ The [county directory contract](docs/county-directory-contract.md) describes
 GIS contact editing, public publication, private attachment quarantine, and
 county profile PDFs. The [v0.4.0 release record](docs/release-v0.4.0.md) covers
 the public dashboard and the protected production editor.
+The [county editor guide](docs/county-editor-guide.md) describes the prepared
+section navigation, change review, save recovery and private-file workflow.
 
 ![Live Watchtower overview with source health, county coverage, and a Minnesota county map](docs/images/watchtower-overview.png)
 

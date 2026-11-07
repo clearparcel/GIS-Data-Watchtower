@@ -1,5 +1,18 @@
 # Project status
 
+## County information editor improvements — prepared, 2026-11-07
+
+The candidate replaces the long contacts form with section navigation, compact
+dataset summaries and a separate save area that does not cover editing controls.
+Save changes explains public publication and private records; a change review,
+discard confirmation and contact-removal undo help protect edits. Confirmed saves
+survive list-refresh failures, ambiguous writes retain their retry request, and
+validation feedback identifies fields. Private uploads explain linking and file
+checks, retain selected files during form updates and show progress locally.
+Conflict comparisons preserve the draft, and repeated Central times request an
+occurrence only when needed. These changes await merge and release. See the
+[editor guide](docs/county-editor-guide.md).
+
 ## Internal UI review fixes — prepared, 2026-11-07
 
 The candidate preserves paused refresh and open sections when a change link

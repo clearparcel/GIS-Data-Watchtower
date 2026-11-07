@@ -15,6 +15,7 @@ from urllib.parse import parse_qs
 from .county_attachments import CountyAttachments, MAX_ATTACHMENT_BYTES, draft_attachment_refs
 from .county_directory_store import CountyDirectoryStore, CountyRevisionConflict, PublicationStatus
 from .county_directory_seed import packaged_county_drafts
+from .county_admin_validation import editor_validation_errors
 from .county_profiles import county_identities
 from .dashboard import _BoundedThreadingHTTPServer, _dashboard_auth, _validated_content_length
 from .storage import LocalStorage, StorageConflictError
@@ -66,7 +67,7 @@ def create_county_admin_server(store: CountyDirectoryStore, *, port: int, userna
             contacts = [contact for contact in draft.get("contacts", []) if not contact.get("removed")]
             summary.append({
                 **county, "contact_count": len(contacts),
-                "search_terms": [contact[field] for contact in contacts for field in ("name", "email")
+                "search_terms": [contact[field] for contact in contacts for field in ("name", "email", "department", "role")
                                  if isinstance(contact.get(field), str)],
             })
         return summary
@@ -346,7 +347,7 @@ def create_county_admin_server(store: CountyDirectoryStore, *, port: int, userna
                 self._send(409, {"status": "revision_conflict"})
                 return
             except ValueError:
-                self._send(400, {"status": "invalid_draft"})
+                self._send(400, {"status": "invalid_draft", "errors": editor_validation_errors(body["draft"])})
                 return
             except backend_failures:
                 self._send(503, {"status": "storage_unavailable"})
