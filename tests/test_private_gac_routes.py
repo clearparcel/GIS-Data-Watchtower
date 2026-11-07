@@ -77,7 +77,7 @@ class PrivateGACRoutesTests(unittest.TestCase):
                                       html.unescape(page))
             _, statewide, _ = self.request(
                 f"/mngac?standard={key}&view=statewide&county=douglas", key=key)
-            heading = "Statewide MN GAC field completeness" if key == "parcel" else "Statewide field completeness"
+            heading = "Statewide data completeness" if key == "parcel" else "Statewide field completeness"
             self.assertTrue(heading in statewide, f"{key}: statewide heading missing")
             self.assertIn("99.00%", statewide)
             self.assertIn(f"standard={key}&view=county&county=douglas",

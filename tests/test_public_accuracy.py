@@ -6,6 +6,7 @@ from html.parser import HTMLParser
 from unittest.mock import patch
 
 from clearparcel.datawatch import dashboard, dashboard_views, public_dashboard
+from tests.html_text import metric
 from clearparcel.datawatch.county_profile_panel import profile_time
 from clearparcel.datawatch.dashboard import render_mngac
 from clearparcel.datawatch.dashboard_exports import _gac_xlsx_sheets, _xlsx_sheet_xml
@@ -157,8 +158,8 @@ class OverdueStatusTests(unittest.TestCase):
             "id": "mn-wabasha-parcels", "county_slug": "wabasha", "category": "Parcels", "status": "ok",
             "checked_at": old, "last_report_at": old, "last_success_at": old}}}
         page = render_counties({"_render_state": state, "state_file": "unused.json"})
-        self.assertIn("Counties with a monitoring path", page)
-        self.assertIn("1 of these is overdue for a new check.", page)
+        self.assertEqual(metric(page, "Counties being checked"), "0")
+        self.assertIn("Checks overdue: 1.", page)
         self.assertNotIn("Counties actively checked", page)
 
     def test_recent_check_is_actively_checked(self):

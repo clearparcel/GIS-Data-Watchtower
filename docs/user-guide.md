@@ -4,13 +4,13 @@
 
 **Audience:** Minnesota county and municipal staff, GIS practitioners, researchers, and other people exploring publicly available geospatial data.
 
-**Screenshots:** Captured from the actual public dashboard on **October 12, 2026**. Source counts, timestamps, and measurements may differ today.
+**Screenshots:** Captured from the actual public dashboard on **October 12, 2026**. They predate the plain-language UI updates prepared in this branch. Navigation labels, source counts, timestamps, and measurements may differ.
 
 ## Before you begin
 
 ClearParcel GIS Data Watchtower is a **free, public, read-only** view of GIS monitoring observations and county data-access research. It helps locate evidence and understand data availability, freshness, and field population. It does **not** establish legal boundaries, ownership, source-data licensing rights, or a county's full compliance with a data standard.
 
-The four top navigation sections are **Overview**, **Minnesota Counties**, **MN GAC**, and **Data Sources**. The top-right **Export** menu offers downloadable summaries.
+The four top navigation sections are **Overview**, **Counties**, **Data completeness**, and **Data sources**. The top-right **Export** menu offers downloadable summaries.
 
 ## 1. Get oriented on Overview
 
@@ -18,12 +18,12 @@ Open the [dashboard](https://gis-watchtower.clear-parcel.com/). The summary card
 
 | Card | What it means |
 | --- | --- |
-| Dataset/service entries monitored | Number of configured monitored entries, **not** unique counties or providers |
-| Entries healthy at last check | How many entries had a healthy recorded check; check dates and warnings separately |
-| Minnesota counties | County profiles in the statewide directory (87), not a promise that every county has the same data |
-| Counties with parcel observations | Number of **unique** counties observed through statewide, county-direct, or both monitoring paths; overlap counts once |
-| Parcel all-field population | Record-weighted population across all 91 MN GAC Parcel Standard fields in the observed statewide source |
-| Parcel mandatory-field population | Separate population statistic for the seven Mandatory parcel fields |
+| Data sources monitored | Datasets or services included in monitoring; a source can cover multiple counties |
+| Sources passing their last check | Sources whose last recorded check succeeded; this does not confirm data accuracy |
+| Sources needing attention | Sources with warnings or failures in their latest results |
+| Counties with parcel observations | Unique counties observed through statewide data, county sources, or both; overlap counts once |
+
+**Dashboard updated** shows when the public results were published. **Latest source check** shows the newest source attempt, including failures. Other sources can have older checks. A dashboard update does not run a new provider check. Detailed comparisons and field-gap tables are available under **Data completeness → Statewide overview → Compare data types and missing fields**.
 
 ![Live overview: summary cards, map selectors, and Minnesota county map](images/watchtower-overview.png)
 
@@ -35,7 +35,7 @@ On Overview, select a county on the interactive map or use **Find a county**.
 
 The panel beside the map updates for that county. Depending on the evidence, it can show parcel counts, MN GAC field-population percentages, monitoring status, county-direct access, latest check time, and audited direct-feed schema findings.
 
-Use **Open county profile** for detailed county evidence, or **Explore county MN GAC fields** to inspect that county's standard fields. Use **Minnesota Counties** to browse the complete 87-county directory.
+Use **Open county profile** for detailed county evidence, or **Explore county data completeness** to inspect that county's standard fields. Use **Counties** to browse the complete 87-county directory.
 
 ![Actual county selection with Olmsted County and its separate monitoring and standard-field observations](images/watchtower-county.png)
 
@@ -43,7 +43,7 @@ Use **Open county profile** for detailed county evidence, or **Explore county MN
 
 ### Change the map question
 
-The Overview **Map view** selector includes **MN GAC / open-data status**, **Monitoring paths**, and **MN GAC all-field population**:
+The Overview **Map view** selector includes **Data availability and standards**, **Sources used for checks**, and **Completeness across all standard fields**:
 
 - **MN GAC / open-data status:** Is standardized public data available, is a checked direct feed structurally different, is its schema unassessed, or is access/policy unresolved?
 - **Monitoring paths:** Is the county represented through a statewide source, a county-direct source, both, or neither in the current observations?
@@ -53,9 +53,9 @@ Map colors and patterns must be read with their legend. They are **not** ranking
 
 **Keyboard and screen readers:** the first Tab on every page offers **Skip to content**, and each county map starts with **Skip county map** so you can move past its 87 county targets. Every county on a map has a text label, data tables are captioned with their section heading, and automatic refresh can be paused with the **Pause refresh** button in the header.
 
-## 3. Compare standard fields under MN GAC
+## 3. Compare data completeness
 
-Choose **MN GAC** in the top navigation. Switch between **Parcels**, **Address Points**, and **Road Centerlines**.
+Choose **Data completeness** in the top navigation. The standards are defined by the Minnesota Geospatial Advisory Council (MN GAC). Switch between **Parcels**, **Address Points**, and **Road Centerlines**.
 
 - **County results:** Type or select a county, or choose it on the county map, to inspect its fields and available metrics.
 - **Statewide overview:** Compare the selected standard's recorded statewide findings.
@@ -72,7 +72,11 @@ Read the [MN GAC methodology](gac-standards.md) and [parcel-specific explanation
 
 ## 4. Browse county access and contacts
 
-The **Minnesota Counties** section combines county profiles, access evidence, observations, and contact provenance.
+The **Counties** section lists **County**, **Data from the county**, **Free statewide copy**, and **Check status**. Search by county name or filter check status. A county may charge for its own data while a free statewide copy is available.
+
+The **Counties being checked** card counts counties with recent source checks and monitoring reports. Coverage with overdue checks is stated separately. Open a county profile for source names, contacts, access links, and dates. **Connect in GIS software** opens a service connection; **Download parcel data** opens the published download page. Access-information update time records when the directory was published, not when the underlying dataset was updated.
+
+Field names, schema findings, earlier research and calculation notes are available in expandable **Technical details** or **How this is measured** sections. Required fields keep their official category values in exports and filters.
 
 Watchtower keeps three separate concepts:
 
@@ -86,19 +90,19 @@ County GIS contact details prefer verifiable **official county government source
 
 See the [county access evidence and classifications](county-parcel-data-access-audit.md).
 
-## 5. Inspect Data Sources and freshness
+## 5. Inspect data sources and check times
 
-Choose **Data Sources** to review monitored dataset/service entries, recorded health, providers/categories, and check timestamps.
+Choose **Data sources** to review monitored dataset/service entries, recorded health, providers/categories, and check timestamps.
 
 | Term | Practical meaning |
 | --- | --- |
-| **OK / healthy** | The latest recorded check for that entry succeeded |
+| **Source responding** | The latest recorded check for that entry succeeded |
 | **Warning / error** | The latest observation found a limitation or failed; inspect its time and context |
 | **Unknown / unavailable** | An observation is missing or unsupported; not proof of health or failure |
 | **Provider observation / last check** | When Watchtower last checked the external service |
-| **Public publication time** | When the collected sanitized snapshot was published to this website |
-| **Current / overdue public publication** | Whether the public snapshot meets its freshness threshold; independent of provider health |
-| **Check overdue (county coverage)** | The county's last result was healthy or unknown, but a monitoring path (or the worker reporting it) has not reported within the freshness window (26 hours by default). The county still has a monitoring path and is counted in "Counties with a monitoring path", but its coverage shows "Check overdue" instead of "Actively checked" until a new check arrives |
+| **Dashboard updated** | When the collected sanitized snapshot was published to this website |
+| **Dashboard update status** | Whether the public snapshot meets its freshness threshold; independent of provider health |
+| **Check overdue (county coverage)** | The county's last result was healthy or unknown, but a monitoring path (or the worker reporting it) has not reported within the freshness window (26 hours by default). The county still has a source for checks, but is excluded from "Counties being checked" until checks and monitoring reports are recent again |
 | **County acquisition / catalog refresh date** | Calendar dates reported by the MnGeo parcel catalog, shown as dates (no time of day); not a Watchtower check time |
 
 **Timing:** The approved cloud provider job currently runs daily at **5:00 a.m. America/Chicago**. The sanitized public site is published on a separate **10-minute** cadence. A recently refreshed page can therefore show an older provider observation.
@@ -109,7 +113,7 @@ Check the actual source timestamp before comparing measurements or reporting an 
 
 Use **Export** or available county/standard export controls. The public app supports summary output in **JSON**, **CSV**, and **Excel (.xlsx)**; exact content depends on the view.
 
-Summary products can include county profiles, parcel-source categories, monitored-source status, and MN GAC field statistics. Exports are **derived/public monitoring facts**, not bulk parcel downloads.
+The UI uses plain-language labels; machine-readable keys and existing export category names are unchanged. Summary products can include county profiles, parcel-source categories, monitored-source status, and MN GAC field statistics. Exports are **derived/public monitoring facts**, not bulk parcel downloads.
 
 - An unknown/blank date, count, or percentage is **not** a measured zero; the site and exports show "—" or leave the cell blank.
 - Excel text cells are written as plain text. CSV text that begins with `=`, `+`, `-` or `@` is prefixed with an apostrophe so spreadsheets do not run it as a formula.

@@ -187,7 +187,8 @@ class PublicCacheValidationTests(unittest.TestCase):
         cache = public_dashboard._PublicStateCache()
         cache.refresh(force=True)
         page = public_dashboard.render_public_dashboard(cache.config)
-        self.assertIn('<div class="metric ok">—</div><span class="subtext">— had issues', page)
+        self.assertIn('Sources passing their last check</div><div class="metric ok">—</div>', page)
+        self.assertIn('Sources needing attention</div><div class="metric">—</div>', page)
 
 
 if __name__ == "__main__":

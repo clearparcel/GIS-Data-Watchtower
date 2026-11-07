@@ -5,10 +5,10 @@ import html
 
 
 MAP_STATUSES = {
-    'standard': ('MN GAC data available', '#56b4e9', None),
-    'different': ('Direct feed differs from MN GAC', '#e69f00', 'schema-lines'),
+    'standard': ('Standard-format data available', '#56b4e9', None),
+    'different': ('County source uses different fields', '#e69f00', 'schema-lines'),
     'closed': ('No confirmed open parcel data', '#596577', 'closed-crosses'),
-    'open-unassessed': ('Open data, schema unassessed', '#a88ac9', None),
+    'open-unassessed': ('Open data; fields not checked', '#a88ac9', None),
     'unresolved': ('Open-data status unresolved', '#151d2b', 'unresolved-dots'),
 }
 

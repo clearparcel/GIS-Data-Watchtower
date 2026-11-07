@@ -73,9 +73,9 @@ class CountyScanProjectionTests(unittest.TestCase):
             before = copy.deepcopy(data)
             with patch.object(dashboard, "_dashboard_state", return_value=state_for(data)):
                 page = dashboard.render_mngac({}, key, county="cass")
-                self.assertIn("<td>Scanned</td><td>0</td>", field_row(page, field))
+                self.assertIn("Values checked: Scanned</p></details></td><td>Required</td><td>0</td>", field_row(page, field))
                 self.assertIn("0.00%", field_row(page, field))
-                self.assertIn("<td>Present</td><td>Not scanned</td>", field_row(page, unscanned))
+                self.assertIn("Field exists in source: Present<br>Values checked: Not scanned", field_row(page, unscanned))
                 self.assertNotIn("0.00%", field_row(page, unscanned))
                 unavailable = dashboard.render_mngac({}, key, county="aitkin")
                 self.assertIn("not represented in the current saved observation", unavailable)
@@ -112,7 +112,7 @@ class CountyScanProjectionTests(unittest.TestCase):
                         results = dashboard.render_mngac(config, "parcel", county=county["slug"])
                         for page in (profile, results):
                             if county["name"] in represented:
-                                self.assertIn("<td>Present</td><td>Scanned</td>", field_row(page, field))
+                                self.assertIn("Field exists in source: Present<br>Values checked: Scanned", field_row(page, field))
                             else:
                                 self.assertIn("not represented", page)
                                 self.assertNotIn(f"<code>{field}</code>", page)
@@ -145,7 +145,7 @@ class CountyScanProjectionTests(unittest.TestCase):
                 for page in (profile, results):
                     with self.subTest(public=public, profile=page is profile):
                         row = field_row(page, field)
-                        self.assertIn("<td>Present</td><td>Scanned</td>", row)
+                        self.assertIn("Field exists in source: Present<br>Values checked: Scanned", row)
                         self.assertIn("51,689", row)
                         self.assertIn("100.00%", row)
                 payload = dashboard._county_snapshot(config, "cass")
@@ -167,8 +167,8 @@ class CountyScanProjectionTests(unittest.TestCase):
                     for page in (dashboard.render_county({}, "cass"),
                                  dashboard.render_mngac({}, "parcel", county="cass")):
                         row = field_row(page, field)
-                        self.assertIn("<td>Missing</td>" if flag is False else "<td>Unknown</td>", row)
-                        self.assertIn("<td>Not scanned</td>" if flag is False else "<td>No data</td>", row)
+                        self.assertIn("Field exists in source: Missing" if flag is False else "Field exists in source: Unknown", row)
+                        self.assertIn("Values checked: Not scanned" if flag is False else "Values checked: No data", row)
                         self.assertNotIn("100.00%", row)
 
     def test_xlsx_does_not_claim_a_scan_from_statewide_metadata_alone(self):

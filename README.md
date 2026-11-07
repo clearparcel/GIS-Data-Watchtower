@@ -1,6 +1,6 @@
 # ClearParcel GIS Data Watchtower
 
-**Explore the availability, freshness, and field population of Minnesota public GIS data.**
+**Find Minnesota public GIS data, see when sources were checked, and explore data completeness.**
 
 [![CI](https://github.com/clearparcel/GIS-Data-Watchtower/actions/workflows/watchtower-ci.yml/badge.svg)](https://github.com/clearparcel/GIS-Data-Watchtower/actions/workflows/watchtower-ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -8,9 +8,10 @@
 
 **[Explore the live public dashboard](https://gis-watchtower.clear-parcel.com/)** · **[User guide](docs/user-guide.md)** · **[Documentation index](docs/README.md)**
 
-The current production release is **v0.3.12**, deployed November 3, 2026 to
-the public and private dashboards and the Cloud Run jobs, including the weekly digest.
-See [STATUS.md](STATUS.md) and the [release record](docs/release-v0.3.12.md).
+The public dashboard currently runs **v0.4.2**, deployed November 6, 2026.
+The plain-language UI changes in this branch are prepared for review and have not been deployed.
+See [STATUS.md](STATUS.md) for each service’s release state and the
+[public dashboard release record](docs/release-v0.4.2.md).
 Starting with v0.3.10, each deployed version is tagged and published as a
 GitHub Release; v0.3.0 through v0.3.9 are recorded but not tagged (see the
 [release policy](docs/release-policy.md#source-downloadable-release-and-deployment-are-different-things)). Alert
@@ -45,9 +46,9 @@ It monitors selected public ArcGIS, WMS/WFS, and other supported GIS services, r
 
 | Public view | What it helps answer |
 | --- | --- |
-| **Overview** | How many service entries are monitored? Which had warnings? How many Minnesota counties have parcel observations? |
-| **Minnesota Counties** | What access, statewide availability, county contacts, and monitoring evidence are recorded for a county? |
-| **MN GAC** | How frequently are standard parcel, address-point, and road-centerline fields populated in available statewide data? |
+| **Overview** | Which sources need attention? Which counties have parcel observations? When were sources checked and the dashboard updated? |
+| **Counties** | What access, statewide availability, county contacts, and monitoring evidence are recorded for a county? |
+| **Data completeness** | How often do standard parcel, address, and road fields contain values in available statewide data? |
 | **Data Sources** | Which public GIS sources are checked, and what were their latest recorded statuses and observation times? |
 | **Exports** | How can I reuse published summary evidence as JSON, CSV, or Excel without downloading private operational data or raw parcel-owner records? |
 
@@ -64,8 +65,8 @@ See the [illustrated public user guide](docs/user-guide.md) for step-by-step ins
 
 1. Open the **[public dashboard](https://gis-watchtower.clear-parcel.com/)**.
 2. On **Overview**, select a county on the map or with **Find a county**. The adjacent panel provides recorded monitoring and field-population details.
-3. Select **Open county profile** for source, contact, and access evidence, or **Explore county MN GAC fields** for field-by-field results.
-4. Use **MN GAC** to switch between **Parcels**, **Address Points**, and **Road Centerlines** and compare counties.
+3. Select **Open county profile** for source, contact, and access evidence, or **Explore county data completeness** for field-by-field results.
+4. Use **Data completeness** to switch between **Parcels**, **Address Points**, and **Road Centerlines** and compare counties.
 5. Use **Export** or page-specific export controls to obtain a dated, reusable summary.
 
 ![Live public dashboard with Olmsted County selected and separate monitoring and field-population evidence](docs/images/watchtower-county.png)

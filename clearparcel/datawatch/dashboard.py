@@ -266,6 +266,7 @@ def _mngac_county_record(state: dict, county_name: str) -> tuple[dict | None, di
 
 
 def _mngac_field_rows(county_stats: dict) -> str:
+    from .dashboard_copy import requirement_label, technical_field_details
     schema = _load_mngac_schema()
     rows = []
     field_stats = county_stats.get("fields") or {}
@@ -280,10 +281,11 @@ def _mngac_field_rows(county_stats: dict) -> str:
         rows.append(
             f'<tr data-name="{_esc((str(spec.get("label") or "") + " " + field).lower())}" '
             f'data-inclusion="{_esc(spec.get("inclusion") or "")}">'
-            f'<td><strong>{_esc(spec.get("label"))}</strong><br><code>{_esc(field)}</code></td>'
-            f'<td>{_esc(spec.get("section_name"))}</td><td>{_esc(spec.get("inclusion"))}</td>'
-            f'<td>{"Present" if present is True else "Missing" if present is False else "Unknown"}</td>'
-            f'<td>{"Scanned" if scanned is True else "Not scanned" if scanned is False else "No data"}</td>'
+            f'<td><strong>{_esc(spec.get("label"))}</strong>'
+            + technical_field_details(field, spec.get("section_name"),
+                "Present" if present is True else "Missing" if present is False else "Unknown",
+                "Scanned" if scanned is True else "Not scanned" if scanned is False else "No data")
+            + f'</td><td>{_esc(requirement_label(spec.get("inclusion") or ""))}</td>'
             f'<td>{_esc(f"{populated:,}" if isinstance(populated, int) else "—")}</td>'
             f'<td>{_esc(f"{total:,}" if isinstance(total, int) else "—")}</td>'
             f'<td><strong>{_esc(f"{pct:.2f}%" if isinstance(pct, (int,float)) else "—")}</strong></td></tr>'
@@ -460,9 +462,9 @@ def _county_status(config: dict, county: dict, state: dict, *, profiles: dict | 
 def _monitoring_path_label(info: dict) -> str:
     paths = set(info.get("monitoring_paths") or [])
     if paths == {"county-direct", "mngeo-open"}:
-        return "County-direct + MnGeo open parcels"
+        return "County data + statewide MnGeo data"
     if "county-direct" in paths:
-        return "County-direct source"
+        return "County’s own data source"
     if "mngeo-open" in paths:
         return "MnGeo Plan Parcels Open"
     if info.get("status") == "catalog":
@@ -713,8 +715,8 @@ def _coverage_status(value: str) -> str:
     return {
         "ok": "Actively checked",
         "overdue": "Check overdue",
-        "catalog": "MnGeo catalog only",
-        "needs-source": "No active parcel monitoring",
+        "catalog": "MnGeo listing only",
+        "needs-source": "Not currently checked",
         "not-configured": "No source information yet",
         "warn": "Needs attention",
         "error": "Check failed",

@@ -51,7 +51,7 @@ a:focus-visible,button:focus-visible,summary:focus-visible,input:focus-visible,s
 .status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:currentColor;margin-right:7px}.pill{display:inline-flex;align-items:center;height:24px;padding:4px 9px;border:1px solid var(--line);border-radius:999px;font-size:10px;text-transform:uppercase;font-weight:800}.pill.ok{border-color:#2d7155}.pill.warn,.pill.catalog,.pill.overdue,.pill.paused,.pill.awaiting-permission{border-color:#705b2d}.pill.error{border-color:#773944}
 .section-head{display:flex;align-items:end;justify-content:space-between;gap:16px;margin:28px 2px 12px}.section-head h2{margin:0;font-size:18px}.section-head p,.section-head span{margin:3px 0 0;color:var(--muted);font-size:11px}.section-head>a{font-size:11px;font-weight:700}
 .activity-strip{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px}.worker-card{display:grid;grid-template-columns:1fr;gap:10px 18px}.worker-card h3{margin:0}.worker-meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.worker-meta div{min-width:90px}.worker-meta .muted,.worker-meta span{display:block;font-size:9px}.worker-meta strong{display:block;margin-top:3px;font-size:13px;overflow-wrap:anywhere}
-.summary-v2{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;margin-bottom:30px}.summary-v2 .card{padding:16px 18px}.summary-v2 .metric{font-size:24px}.summary-v2 .muted{font-size:11px}
+.summary-v2{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:30px}.summary-v2 .card{padding:16px 18px}.summary-v2 .metric{font-size:24px}.summary-v2 .muted{font-size:11px}
 .hero-panel{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(300px,.75fr);gap:14px;margin-bottom:26px}.hero-copy{padding:22px}.hero-copy h2{font-size:24px;margin:0 0 8px}.hero-copy p{color:#c4cede;max-width:720px;margin:0 0 18px}.hero-actions{display:flex;gap:8px;flex-wrap:wrap}.hero-actions a{display:inline-flex;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:#121a27;color:#c4d1e5;font-weight:700}.hero-actions a.primary{border-color:#315078;color:#dceaff;background:#101827}
 .hero-stat{display:grid;grid-template-columns:1fr 1fr;gap:8px}.hero-stat>div{background:var(--panel2);border:1px solid #ffffff0d;border-radius:10px;padding:13px}.hero-stat small{display:block;color:var(--muted);font-size:9px;letter-spacing:.07em;text-transform:uppercase}.hero-stat b{display:block;font-size:19px;margin-top:4px}
 table{width:100%;border-collapse:collapse;background:transparent}th,td{padding:11px 12px;border-bottom:1px solid #1b2535;text-align:left;vertical-align:top}th{font-size:9px;text-transform:uppercase;color:var(--muted);letter-spacing:.08em;background:#0d131e}td{color:#c4cede}td strong{color:var(--text)}
@@ -62,7 +62,7 @@ table{width:100%;border-collapse:collapse;background:transparent}th,td{padding:1
 .mngac-layout{display:grid;grid-template-columns:minmax(360px,1.35fr) minmax(260px,.65fr);gap:14px;align-items:start}.mngac-map-panel{background:#0b111b;border:1px solid var(--line);border-radius:11px;padding:10px;min-width:0}.mngac-map{display:block;width:100%;height:auto;max-height:690px}.mngac-county{fill:#1b2636;stroke:#51647e;stroke-width:1.1;vector-effect:non-scaling-stroke;cursor:pointer;transition:fill .12s ease,stroke .12s ease,stroke-width .12s ease}.mngac-county:hover,.mngac-county:focus{stroke:#d7e8ff;stroke-width:2.2;outline:none}.mngac-county.selected{stroke:#fff;stroke-width:3}.mngac-detail{min-height:220px}.mngac-detail h3{margin-bottom:4px}.mngac-kpi{font-size:25px;font-weight:800}.mngac-legend{display:flex;flex-wrap:wrap;gap:7px 12px;margin:10px 0 0;font-size:10px;color:var(--muted)}.mngac-legend span{display:inline-flex;align-items:center;gap:5px}.mngac-swatch{width:13px;height:13px;border-radius:3px;border:1px solid #ffffff33;display:inline-block}.mngac-note{border-left:3px solid var(--blue);padding:10px 12px;background:#0e1622;border-radius:0 8px 8px 0;color:#aeb9ca;margin:12px 0}.mngac-table-wrap{overflow-x:auto}.mngac-field-select{background:none;color:var(--blue);padding:0;border:0;text-align:left;font:inherit;cursor:pointer}.mngac-field-select:hover{text-decoration:underline}
 code{font-size:11px;color:#b9c6d8}.technical summary,.diagnostics summary{cursor:pointer;font-weight:700;color:var(--blue);padding:4px 0}.diagnostics{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);margin:18px 0}.flat-note{padding:20px 4px;color:var(--muted);font-size:12px}
 .public-footnote{margin:30px 2px 0;padding-top:16px;border-top:1px solid var(--line);color:#66778f;font-size:10px;display:flex;justify-content:space-between;gap:20px}.public-footnote strong{color:#8da4c4}.footer-brand{display:inline-flex;vertical-align:middle}.footer-brand img{width:120px;height:42px;object-fit:contain}.profile-evidence{margin:12px 0;padding:12px;border:1px solid var(--line);border-radius:8px}.profile-evidence summary{cursor:pointer;color:var(--blue);font-weight:600}.profile-evidence li{margin:12px 0;overflow-wrap:anywhere}.profile-evidence p{max-width:80ch}.county-complete-profile section{border-top:1px solid var(--line);padding-top:16px;margin-top:20px}.county-complete-profile dl{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:12px}.county-complete-profile dd{margin:4px 0}.county-complete-profile dt{color:var(--muted);font-size:12px}
-@media(max-width:1050px){.summary-v2{grid-template-columns:repeat(3,minmax(0,1fr))}.primary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.hero-panel{grid-template-columns:1fr}.mngac-layout{grid-template-columns:1fr}.definition-grid{grid-template-columns:1fr}}
+@media(max-width:1050px){.summary-v2{grid-template-columns:repeat(2,minmax(0,1fr))}.primary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.hero-panel{grid-template-columns:1fr}.mngac-layout{grid-template-columns:1fr}.definition-grid{grid-template-columns:1fr}}
 @media(max-width:760px){.public-header{height:74px;padding:13px 14px}.public-header h1{font-size:20px}.brand-eyebrow{font-size:8px}.public-main{padding:0 12px 76px}.public-tabs{top:74px;overflow-x:auto;margin:0 -12px 18px;padding:0 12px}.public-tabs a{padding:12px 10px 10px}.public-tools{margin-left:4px}.summary-v2{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.grid,.primary-grid,.worker-grid,.activity-strip{grid-template-columns:1fr;gap:9px}.card{padding:14px}.hero-copy{padding:16px}.hero-copy h2{font-size:21px}.hero-stat{grid-template-columns:1fr 1fr}.section-head{margin-top:22px}.section-head span{display:none}.filters{display:grid;grid-template-columns:1fr}.filters input,.filters select{width:100%;min-width:0}#counties thead,#datasets thead,.contacts-table thead,.history-table thead,#mngac-fields thead,#county-mngac-fields thead{display:none}#counties,#counties tbody,#counties tr,#counties td,#datasets,#datasets tbody,#datasets tr,#datasets td,.contacts-table,.contacts-table tbody,.contacts-table tr,.contacts-table td,.history-table,.history-table tbody,.history-table tr,.history-table td,#mngac-fields,#mngac-fields tbody,#mngac-fields tr,#mngac-fields td,#county-mngac-fields,#county-mngac-fields tbody,#county-mngac-fields tr,#county-mngac-fields td{display:block;width:100%}#counties tr,#datasets tr,.contacts-table tr,.history-table tr,#mngac-fields tr,#county-mngac-fields tr{padding:10px 0;border-bottom:1px solid #1b2535}#counties td,#datasets td,.contacts-table td,.history-table td,#mngac-fields td,#county-mngac-fields td{border:0;padding:4px 2px;white-space:normal;overflow-wrap:anywhere}.worker-card{grid-template-columns:1fr}.worker-meta{display:grid;grid-template-columns:1fr 1fr}.definition-list{grid-template-columns:1fr;gap:2px}.definition-list dd{margin-bottom:8px}.mngac-controls label,.mngac-controls select{width:100%}.public-footnote{flex-direction:column;gap:4px}}
 @media(max-width:430px){.summary-v2{grid-template-columns:1fr 1fr}.summary-v2 .card{padding:12px}.summary-v2 .metric{font-size:21px}.hero-stat{grid-template-columns:1fr 1fr}.public-export summary{padding:7px 8px}.page-kicker{padding-top:18px}.page-kicker h2{font-size:23px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
@@ -286,15 +286,15 @@ def _public_layout_v2(title: str, body: str, *, refresh_seconds: int = 30, publi
     watchtower_logo_src = asset_src("watchtower-logo", hosted=hosted)
     brand_href = "index.html" if static_bundle else "/"
     lower = title.lower()
-    active = "mngac" if "gac" in lower else "sources" if "source" in lower else "counties" if "county" in lower or "counties" in lower else "overview"
+    active = "mngac" if "gac" in lower or "completeness" in lower else "sources" if "source" in lower else "counties" if "county" in lower or "counties" in lower else "overview"
     tabs = ([
         ("overview", "index.html", "Overview"),
         ("state", "state.json", "Sanitized state JSON"),
     ] if static_bundle else [
         ("overview", "/", "Overview"),
-        ("counties", "/counties", "Minnesota Counties"),
-        ("mngac", "/mngac", "MN GAC"),
-        ("sources", "/#datasets", "Data Sources"),
+        ("counties", "/counties", "Counties"),
+        ("mngac", "/mngac", "Data completeness"),
+        ("sources", "/#datasets", "Data sources"),
     ])
     short_labels = {"Minnesota Counties": "Counties", "Data Sources": "Sources", "Sanitized state JSON": "State JSON"}
     if static_bundle:
@@ -308,19 +308,19 @@ def _public_layout_v2(title: str, body: str, *, refresh_seconds: int = 30, publi
     )
     page_name = page_label(title)
     subtitle = {
-        "overview": "Availability, freshness, and structure of Minnesota public GIS data.",
+        "overview": "Find Minnesota GIS data, see when it was checked, and explore what information is available.",
         "state": "Sanitized, read-only Watchtower state for offline review.",
-        "counties": "County profiles, parcel availability, monitoring coverage, and GIS contact references.",
-        "mngac": "Field population across Minnesota GAC parcel, address-point, and road-centerline standards.",
-        "sources": "Public source health and high-level structural observations.",
+        "counties": "Find parcel data, compare access options, and see when sources were last checked.",
+        "mngac": "See how often standard data fields contain values. Uses Minnesota Geospatial Advisory Council (MN GAC) standards for parcels, addresses, and roads.",
+        "sources": "See whether a data source responded and when Watchtower last checked it.",
     }.get(active, "Minnesota public GIS data, summarized for practical exploration.")
     export_label = "Files" if static_bundle else "Export"
     export_links = (
         '<a href="index.html">Overview</a><a href="state.json">Sanitized state JSON</a>'
         if static_bundle else
-        '<a href="/snapshot.xlsx">Excel (.xlsx)</a><a href="/county-profiles.csv">County profiles (CSV)</a>'
-        '<a href="/parcel-sources.csv">Parcel sources (CSV)</a><a href="/snapshot.csv">Monitored sources (CSV)</a>'
-        '<a href="/snapshot.json">JSON</a>'
+        '<a href="/snapshot.xlsx">Download Excel spreadsheet (.xlsx)</a><a href="/county-profiles.csv">County profiles (CSV)</a>'
+        '<a href="/parcel-sources.csv">Parcel sources (CSV)</a><a href="/snapshot.csv">Source checks (CSV)</a>'
+        '<a href="/snapshot.json">Raw data (JSON)</a>'
     )
     analytics_script = posthog_html(
         page=page_name,
@@ -337,7 +337,7 @@ def _public_layout_v2(title: str, body: str, *, refresh_seconds: int = 30, publi
     <img class="public-brand-logo" src="{watchtower_logo_src}" width="54" height="54" alt="" decoding="async">
     <div class="public-brand-title"><div class="brand-eyebrow" aria-hidden="true">{_esc(PRODUCT_NAME)}</div><h1>{_esc(PRODUCT_NAME)}</h1></div>
   </a>
-  <div class="live-state"><span class="live-dot" aria-hidden="true"></span><span class="live-label"><span class="live-long">PUBLIC · READ ONLY</span><span class="live-short">READ ONLY</span></span>{'<button type="button" id="refresh-pause">Pause refresh</button>' if refresh_seconds else ''}</div>
+  <div class="live-state"><span class="live-dot" aria-hidden="true"></span><span class="live-label">Public · read only</span>{'<button type="button" id="refresh-pause">Pause refresh</button>' if refresh_seconds else ''}</div>
 </header>
 <main class="public-main">
   <div class="public-nav-row"><nav class="public-tabs" aria-label="Watchtower views">{nav}</nav>
@@ -576,7 +576,7 @@ code{{font-size:12px;overflow-wrap:anywhere}}
 <a href="/snapshot.xlsx">{icon("export")}<span>Export</span></a>
 </nav><div class="side-note">{side_context}<br><small>Central Time primary</small></div></aside>
 <section class="content-shell">
-<div class="pagebar" role="region" aria-label="Page title and export"><div class="pagebar-title">{_esc(page_title)}</div><div class="page-actions"><details class="export-menu"><summary>Export</summary><div class="export-pop"><a href="/snapshot.xlsx">Excel (.xlsx)</a><a href="/county-profiles.csv">County profiles (CSV)</a><a href="/parcel-sources.csv">Parcel sources (CSV)</a><a href="/snapshot.csv">Monitored sources (CSV)</a><a href="/snapshot.json">JSON</a></div></details></div></div>
+<div class="pagebar" role="region" aria-label="Page title and export"><div class="pagebar-title">{_esc(page_title)}</div><div class="page-actions"><details class="export-menu"><summary>Export</summary><div class="export-pop"><a href="/snapshot.xlsx">Download Excel spreadsheet (.xlsx)</a><a href="/county-profiles.csv">County profiles (CSV)</a><a href="/parcel-sources.csv">Parcel sources (CSV)</a><a href="/snapshot.csv">Source checks (CSV)</a><a href="/snapshot.json">Raw data (JSON)</a></div></details></div></div>
 <main id="main-content" tabindex="-1">{body}<footer class="app-footnote">{_esc(PRODUCT_NAME)}</footer></main>
 </section></div>
 <nav class="mobile-nav" aria-label="Mobile navigation">

@@ -5,9 +5,9 @@ from clearparcel.datawatch import dashboard as _dashboard
 from clearparcel.datawatch.dashboard_summary import catalog_summary
 from clearparcel.datawatch.county_profile_panel import profile_time
 from clearparcel.datawatch.public_values import county_metadata_dates
-from clearparcel.datawatch.gac_standards import standard_field_counts
 from clearparcel.datawatch.product import page_title
-from .county_directory_view import render_published_directory, published_access_summary, RESEARCH_NOTICE
+from .dashboard_copy import statewide_copy_label, source_status_label
+from .county_directory_view import render_published_directory, county_access_summary, RESEARCH_NOTICE
 
 
 def render_counties(config: dict) -> str:
@@ -34,32 +34,50 @@ def render_counties(config: dict) -> str:
         status_counts[x["status"]] = status_counts.get(x["status"], 0) + 1
     def access_summary(info):
         directory = profiles[info["slug"]].get("county_directory")
-        return published_access_summary(directory) if directory is not None else "Research: " + _dashboard.access_label(info.get("parcel_access"))
+        return county_access_summary(directory) if directory is not None else _dashboard.access_label(info.get("parcel_access")).replace("County-direct parcel access not yet researched", "County access not yet confirmed").replace("Parcel-access research pending", "County access not yet confirmed")
 
-    rows = "".join(
-        f'<tr data-name="{_dashboard._esc(x["name"].lower())}" data-status="{_dashboard._esc(x["status"])}">'
-        f'<td><a href="/county?slug={_dashboard.urllib.parse.quote(x["slug"])}"><strong>{_dashboard._esc(x["name"])} County</strong></a></td>'
-        f'<td><span class="pill {_dashboard._esc(x["status"])}">{_dashboard._esc(_dashboard._friendly_status(x["status"]))}</span>'
-        f'<br><span class="subtext">{_dashboard._esc(_dashboard._monitoring_path_label(x))}</span></td>'
-        f'<td><strong>{_dashboard._esc(access_summary(x))}</strong></td>'
-        f'<td><strong>{_dashboard._esc(_dashboard.statewide_access_label(x.get("parcel_access"), live_available=(x.get("statewide_record") is not None) if mngac else None))}</strong></td>'
-        f'<td>{len(x["sources"])}</td></tr>'
-        for x in counties
-    )
-    if mngac:
-        mngac_card = (
-            f'<div class="card"><h2>MN GAC field completeness</h2><p><strong>{_dashboard._esc(mngac.get("covered_counties") if isinstance(mngac.get("covered_counties"), int) else "—")} of {len(counties)} counties</strong> are represented in MnGeo Plan Parcels Open for standardized field-population statistics.</p>'
-            f'<p><a href="/mngac">Explore the interactive county map and all {standard_field_counts("parcel")["fields"]} fields →</a></p></div><br>'
-        )
-    else:
-        mngac_card = '<div class="card"><h2>MN GAC field completeness</h2><p class="muted">A statewide completeness observation has not been stored yet.</p><p><a href="/mngac">Open MN GAC completeness →</a></p></div><br>'
-    body = f'<div class="grid"><div class="card"><div class="muted">Minnesota counties</div><div class="metric">{len(counties)}</div><span class="subtext">Counties represented in the statewide county dashboard index.</span></div><div class="card"><div class="muted">Counties with a monitoring path</div><div class="metric">{active_count}</div><span class="subtext">Observed through a county-direct source, MnGeo Plan Parcels Open, or both. {overdue_count} of these {"is" if overdue_count == 1 else "are"} overdue for a new check.</span></div><div class="card"><div class="muted">County-direct checks</div><div class="metric">{direct_count}</div><span class="subtext">Counties with at least one county-specific monitoring path, including any overdue for a new check.</span></div><div class="card"><div class="muted">MnGeo open coverage</div><div class="metric">{mngeo_count}</div><span class="subtext">Counties represented in the current Plan Parcels Open observation.</span></div></div>' + mngac_card + \
-        f'<div class="grid"><div class="card">{_dashboard._bar_chart([( _dashboard._friendly_status(k), v) for k,v in sorted(status_counts.items())], title="County monitoring coverage")}<span class="subtext">A county is actively checked when Watchtower observes it through a county-specific source, the statewide MnGeo open-parcels source, or both, and its latest check is within the freshness window; otherwise it shows as check overdue.</span></div><div class="card">{_dashboard._bar_chart(list(age_buckets.items()), title="MnGeo parcel update age")}<span class="subtext">Age of the county acquisition/update date reported in the MnGeo parcel catalog; this is not Watchtower check time. {_dashboard._esc(catalog_notice)}</span></div></div><div class="card"><h2>Minnesota county dashboards</h2><p class="muted">Monitoring coverage, county-direct parcel access, and statewide open access are separate. A county can require payment for its county-supplied dataset while also being freely available through MnGeo Plan Parcels Open.</p><p class="subtext">Use Export in the page toolbar for statewide Excel, CSV, or JSON.</p>' \
-        '<div class="filters"><input id="cq" aria-label="Filter counties" placeholder="Filter counties…"><select id="cs" aria-label="Filter by county monitoring coverage"><option value="">All coverage types</option><option value="ok">Actively checked</option><option value="overdue">Check overdue</option><option value="catalog">MnGeo catalog only</option><option value="needs-source">No active parcel monitoring</option><option value="not-configured">No source information yet</option><option value="warn">Needs attention</option><option value="error">Check failed</option></select></div>' \
-        f'<table id="counties"><thead><tr><th>County</th><th>Monitoring coverage<br><span class="subtext">Health and active monitoring path</span></th><th>Parcel data access<br><span class="subtext">Published settings, or packaged research when unpublished</span></th><th>Statewide open access<br><span class="subtext">Current MnGeo Plan Parcels Open coverage</span></th><th>County-direct sources<br><span class="subtext">County-specific sources actively checked</span></th></tr></thead><tbody>{rows}</tbody></table></div>' \
-        f"{SCRIPT_TAG}" "function filterCounties(){const q=document.getElementById('cq').value.toLowerCase(),s=document.getElementById('cs').value;document.querySelectorAll('#counties tbody tr').forEach(r=>r.style.display=(!q||r.dataset.name.includes(q))&&(!s||r.dataset.status===s)?'':'none')}document.getElementById('cq').addEventListener('input',filterCounties);document.getElementById('cs').addEventListener('change',filterCounties);</script>"
-    body += f'<div class="card"><h2>Parcel source research</h2>{_dashboard.research_summary(profiles)}</div>'
-    return _dashboard._layout(page_title("Minnesota Counties"), '<p><a href="/">← Watchtower overview</a></p>'+body, static=bool(config.get("_public_mode")), csrf_token=str(config.get("_csrf_token") or ""))
+    checked_count = sum(1 for x in counties if x["actively_monitored"]
+                        and (x.get("profile") or {}).get("monitoring", {}).get("reporting") == "current")
+    rows = []
+    for info in counties:
+        monitoring = info["profile"].get("monitoring") or {}
+        checked = profile_time(monitoring.get("last_checked_at"))
+        overdue = '<br><span class="subtext">Latest check overdue</span>' if monitoring.get("reporting") == "overdue" else ""
+        statewide = statewide_copy_label(
+            info.get("parcel_access"), (info.get("statewide_record") is not None) if mngac else None)
+        rows.append(
+            f'<tr data-name="{_dashboard._esc(info["name"].lower())}" data-status="{_dashboard._esc(info["status"])}">'
+            f'<td><a href="/county?slug={_dashboard.urllib.parse.quote(info["slug"])}"><strong>{_dashboard._esc(info["name"])} County</strong></a></td>'
+            f'<td>{_dashboard._esc(access_summary(info))}</td><td>{_dashboard._esc(statewide)}</td>'
+            f'<td><span class="pill {_dashboard._esc(info["status"])}">{_dashboard._esc(_dashboard._friendly_status(info["status"]))}</span>'
+            f'{overdue}<br><span class="subtext">Last checked: {_dashboard._esc(checked)}</span></td></tr>')
+    coverage = mngac.get("covered_counties") if mngac else None
+    coverage = coverage if isinstance(coverage, int) else "—"
+    mngac_card = (
+        f'<div class="card"><h2>Data completeness</h2><p><strong>{coverage} of {len(counties)} counties</strong> '
+        'have parcel data in the latest statewide results. Completeness measures how often standard fields contain values.</p>'
+        '<p><a href="/mngac">Explore county data completeness →</a></p></div>')
+    body = f'''
+<div class="grid">
+  <div class="card"><div class="muted">Minnesota counties</div><div class="metric">{len(counties)}</div><span class="subtext">Find a county below to open its data links and contacts.</span></div>
+  <div class="card"><div class="muted">Counties being checked</div><div class="metric">{checked_count}</div><span class="subtext">Counties with a source for checks: {active_count}. Checks overdue: {overdue_count}.</span></div>
+  <div class="card"><div class="muted">Counties checked directly</div><div class="metric">{direct_count}</div><span class="subtext">Checks use the county’s own data source. Includes any overdue checks.</span></div>
+  <div class="card"><div class="muted">Counties in the statewide parcel dataset</div><div class="metric">{mngeo_count}</div><span class="subtext">Included in the latest MnGeo statewide parcel results.</span></div>
+</div>
+<div class="card"><h2>Find a county</h2>
+<p>County data may require payment even when a free statewide copy is available. Check status describes Watchtower’s checks, not data accuracy or access rights.</p>
+<div class="filters"><input id="cq" type="search" aria-label="Search counties" placeholder="Search counties…"><select id="cs" aria-label="Filter by check status"><option value="">All check statuses</option><option value="ok">Actively checked</option><option value="overdue">Check overdue</option><option value="catalog">MnGeo listing only</option><option value="needs-source">Not currently checked</option><option value="not-configured">No source information yet</option><option value="warn">Needs attention</option><option value="error">Check failed</option><option value="paused">Paused</option><option value="awaiting-permission">Awaiting permission</option></select></div>
+<table id="counties"><thead><tr><th>County</th><th>Data from the county</th><th>Free statewide copy</th><th>Check status</th></tr></thead><tbody>{"".join(rows)}</tbody></table>
+<p id="counties-no-results" hidden role="status">No counties match. Try another name or check status.</p></div>
+{mngac_card}
+<details class="card profile-evidence"><summary>County checks and data age</summary>
+<div class="grid"><div class="card">{_dashboard._bar_chart([(_dashboard._friendly_status(k), v) for k, v in sorted(status_counts.items())], title="County check status")}<p class="subtext">A county is actively checked when its source check and monitoring report are recent. Older results show as overdue.</p></div>
+<div class="card">{_dashboard._bar_chart(list(age_buckets.items()), title="Age of parcel data listed by MnGeo")}<p class="subtext">Age of the county data date listed by MnGeo, separate from the Watchtower check time. {_dashboard._esc(catalog_notice)}</p></div></div>
+<h3>Parcel source research</h3>{_dashboard.research_summary(profiles)}</details>
+{SCRIPT_TAG}function filterCounties(){{const q=document.getElementById('cq').value.toLowerCase(),s=document.getElementById('cs').value;let visible=0;document.querySelectorAll('#counties tbody tr').forEach(r=>{{const show=(!q||r.dataset.name.includes(q))&&(!s||r.dataset.status===s);r.style.display=show?'':'none';if(show)visible++}});document.getElementById('counties-no-results').hidden=visible>0}}document.getElementById('cq').addEventListener('input',filterCounties);document.getElementById('cs').addEventListener('change',filterCounties);</script>
+'''
+    return _dashboard._layout(page_title("Minnesota county parcel data"), '<p><a href="/">← Watchtower overview</a></p>'+body, static=bool(config.get("_public_mode")), csrf_token=str(config.get("_csrf_token") or ""))
+
 
 
 def render_county(config: dict, slug: str) -> str:
@@ -97,7 +115,7 @@ def render_county(config: dict, slug: str) -> str:
             details.append(f'<strong>County fee applies to:</strong> {_dashboard._esc(parcel_access.get("fee_product"))}')
         service_url = _dashboard._safe_url(parcel_access.get("download_or_service_url"))
         if service_url:
-            details.append(f'<strong>County-direct machine-readable source:</strong> <a href="{_dashboard._esc(service_url)}" target="_blank" rel="noopener">Open source</a>')
+            details.append(f'<strong>County data connection:</strong> <a href="{_dashboard._esc(service_url)}" target="_blank" rel="noopener">Connect in GIS software</a>')
         viewer_url = _dashboard._safe_url(parcel_access.get("viewer_url"))
         if viewer_url:
             details.append(f'<strong>County viewer:</strong> <a href="{_dashboard._esc(viewer_url)}" target="_blank" rel="noopener">Open viewer</a>')
@@ -128,9 +146,9 @@ def render_county(config: dict, slug: str) -> str:
         checked = _dashboard._format_public_time_compact(checked_value) if config.get("_public_mode") else _dashboard._esc(checked_value or "—")
         source_cards += (
             '<div class="card"><h3>MnGeo Plan Parcels Open</h3>'
-            f'<p><strong>Status:</strong> {_dashboard._esc(_dashboard._health_status(src.get("status") or "unknown"))}'
+            f'<p><strong>Status:</strong> {_dashboard._esc((source_status_label if config.get("_public_mode") else _dashboard._health_status)(src.get("status") or "unknown"))}'
             f'<br><strong>County records:</strong> {_dashboard._esc(f"{statewide_record_count:,}")}'
-            f'<br><strong>Monitoring path:</strong> Statewide open parcel source'
+            f'<br><strong>Source used for checks:</strong> Statewide open parcel source'
             f'<br><strong>Last checked:</strong> {checked}</p></div>'
         )
     for src in info["sources"]:
@@ -151,7 +169,7 @@ def render_county(config: dict, slug: str) -> str:
             source_links += f' · <a href="{_dashboard._esc(viewer_url)}" target="_blank" rel="noopener">Viewer</a>'
         source_cards = f'<div class="card"><h3>County parcel update information</h3><p><strong>MnGeo public-data approval:</strong> {_dashboard._esc(approval)}<br><strong>MnGeo acquired county data:</strong> {_dashboard._esc(_dashboard._format_arcgis_date(catalog.get("acqdate")))}{metadata_lines}<br><strong>MnGeo listing refreshed:</strong> {_dashboard._esc(_dashboard._format_arcgis_date(catalog.get("rundate")))}<br><strong>Parcel links:</strong> {source_links}</p></div>'
     elif not source_cards:
-        source_cards = '<div class="card"><h3>No direct county parcel source currently monitored</h3><p>Monitoring coverage is separate from the parcel-data access research shown below.</p></div>'
+        source_cards = '<div class="card"><h3>No direct county parcel source currently monitored</h3><p>Check status is separate from the parcel-data access research shown below.</p></div>'
     contact_record = _dashboard._load_county_contact_records().get(county["name"], {})
     contacts = contact_record.get("contacts", [])
     contact_rows = ""
@@ -179,12 +197,12 @@ def render_county(config: dict, slug: str) -> str:
     if directory is not None:
         published_html = render_published_directory(directory)
         contacts_html = ""
-        parcel_access_detail = ('<details class="card"><summary>Packaged parcel-access research</summary>'
+        parcel_access_detail = ('<details class="card"><summary>Earlier parcel-access research</summary>'
                                 f'<p>{RESEARCH_NOTICE}</p>' + parcel_access_detail + '</details>')
     export_links = f'<p><a href="/county-snapshot.csv?slug={_dashboard.urllib.parse.quote(slug)}">Download county snapshot (CSV)</a> · <a href="/county-snapshot.xlsx?slug={_dashboard.urllib.parse.quote(slug)}">Download county snapshot (Excel)</a> · <a href="/county-snapshot.json?slug={_dashboard.urllib.parse.quote(slug)}">Download county snapshot (JSON)</a></p>'
     if config.get("_county_pdf_enabled"):
         export_links += f'<p><a href="/county-profile.pdf?slug={_dashboard.urllib.parse.quote(slug)}">Download county profile PDF</a></p>'
-    body = f'<p><a href="/counties">← Minnesota counties</a></p>{export_links}<div class="grid"><div class="card"><div class="muted">County</div><h2>{_dashboard._esc(county["name"])} County</h2></div><div class="card"><div class="muted">Monitoring coverage</div><div class="metric {_dashboard._esc(info["status"])}">{_dashboard._esc(_dashboard._friendly_status(info["status"]).upper())}</div></div><div class="card"><div class="muted">Monitoring path</div><div class="metric" style="font-size:20px">{_dashboard._esc(_dashboard._monitoring_path_label(info))}</div></div><div class="card"><div class="muted">County-direct sources</div><div class="metric">{len(info["sources"])}</div><span class="subtext">Monitored sources; editing access settings does not add a monitoring source.</span></div></div><div class="grid">{source_cards}</div><br>{published_html}{parcel_access_detail}<br>{mngac_html}<br>{gac_summary_html}<br><div class="card county-complete-profile">{complete_profile}</div><br>{contacts_html}'
+    body = f'<p><a href="/counties">← Minnesota counties</a></p>{export_links}<div class="grid"><div class="card"><div class="muted">County</div><h2>{_dashboard._esc(county["name"])} County</h2></div><div class="card"><div class="muted">Check status</div><div class="metric {_dashboard._esc(info["status"])}">{_dashboard._esc(_dashboard._friendly_status(info["status"]).upper())}</div></div><div class="card"><div class="muted">Source used for checks</div><div class="metric" style="font-size:20px">{_dashboard._esc(_dashboard._monitoring_path_label(info))}</div></div><div class="card"><div class="muted">County sources checked directly</div><div class="metric">{len(info["sources"])}</div><span class="subtext">Data sources checked directly by Watchtower, separate from the access links below.</span></div></div><div class="grid">{source_cards}</div><br>{published_html}{parcel_access_detail}<br>{mngac_html}<br>{gac_summary_html}<br><div class="card county-complete-profile">{complete_profile}</div><br>{contacts_html}'
     return _dashboard._layout(page_title(f'{county["name"]} County'), body,
                               refresh_seconds=10 if config.get("_directory_refresh") else 30,
                               static=bool(config.get("_public_mode")), csrf_token=str(config.get("_csrf_token") or ""))
