@@ -9,6 +9,7 @@ from zoneinfo import ZoneInfo
 from urllib.parse import urlsplit
 from .public_values import safe_public_url
 from .county_directory_view import render_published_directory, published_access_summary, RESEARCH_NOTICE
+from .dashboard_copy import source_status_label
 
 GROUPS = (("mngac_public_parcels", "MN GAC Public Parcels"), ("mngeo_public_repository", "MnGeo Public County Repository"), ("county_arcgis_rest", "County ArcGIS REST"), ("county_download", "County Website Download"))
 # Sequential bins with about 2:1 luminance contrast between neighbours; "no data"
@@ -81,14 +82,18 @@ def render_county_profile_body(profile: dict, *, include_directory: bool = True)
     access, research = profile.get("access", {}), profile.get("research", {})
     directory = profile.get("county_directory")
     body = f'<h2 id="county-profile-title">{_esc(county.get("name"))} County</h2>'
-    body += '<p>' + _esc(" · ".join(monitoring.get("paths") or []) or "No active parcel monitoring") + ' · ' + _esc(monitoring.get("health")) + ' · ' + _esc(monitoring.get("reporting")) + '</p>'
-    body += '<div class="profile-summary">' + _rows([("Active monitoring", "Yes" if monitoring.get("active") else "No"), (("Published parcel access", published_access_summary(directory)) if directory is not None else ("County-direct access", access.get("public_classification"))), ("Active parcel sources", monitoring.get("active_parcel_source_count")), ("Latest county Watchtower check", profile_time(monitoring.get("last_checked_at")))]) + '</div>'
+    paths = [{"county-direct": "County data source", "mngeo-open": "Statewide MnGeo data"}.get(path, path)
+             for path in monitoring.get("paths") or []]
+    reporting = {"current": "Check is recent", "overdue": "Check overdue"}.get(monitoring.get("reporting"), "Check time unavailable")
+    body += '<p>' + _esc(" · ".join(paths) or "No parcel source currently checked") + ' · ' + _esc(source_status_label(monitoring.get("health"))) + ' · ' + _esc(reporting) + '</p>'
+    body += '<div class="profile-summary">' + _rows([("Source available for checks", "Yes" if monitoring.get("active") else "No"), (("Parcel data access", published_access_summary(directory, plain=True)) if directory is not None else ("County data access", access.get("public_classification"))), ("Sources used for checks", monitoring.get("active_parcel_source_count")), ("Latest county Watchtower check", profile_time(monitoring.get("last_checked_at")))]) + '</div>'
     if directory is not None and include_directory:
         body += render_published_directory(directory)
     if directory is not None:
         body += f'<p class="subtext">{RESEARCH_NOTICE}</p>'
     if monitoring.get("permission_note"):
         body += '<p class="permission-note">' + _esc(monitoring.get("permission_note")) + '</p>'
+    body += '<details class="profile-evidence"><summary>Technical details and source research</summary>'
     body += render_direct_schema_findings(profile.get('direct_gac_schema') or [])
     for key, heading in GROUPS:
         category = profile.get(key, {})
@@ -107,7 +112,7 @@ def render_county_profile_body(profile: dict, *, include_directory: bool = True)
     body += _evidence_details(research.get("evidence_links") or access.get("evidence_links") or []) + '</section>'
     if profile.get("comments"):
         body += '<section><h3>Research notes</h3><details class="profile-evidence"><summary>Read detailed research notes</summary><ul>' + ''.join('<li>' + _esc(note.strip()) + '</li>' for comment in profile['comments'] for note in comment.split(' · ') if note.strip()) + '</ul></details></section>'
-    body += f'<p><a href="/county?slug={_esc(county.get("slug"))}">Open county dashboard →</a></p>'
+    body += f'</details><p><a href="/county?slug={_esc(county.get("slug"))}">Open county dashboard →</a></p>'
     return '<div class="county-profile">' + body + '</div>'
 
 
@@ -222,7 +227,7 @@ def render_inline_county_panel(*, revision: str) -> str:
   const fragments=new Map();let request=0,controller=null;
   function updateInfographics(data){
     document.getElementById('home-county-infographics').hidden=false;
-    for(const [key,id,label] of [['pct','mandatory','Mandatory-field population'],['all_pct','all','All-field population']]){
+    for(const [key,id,label] of [['pct','mandatory','Required fields filled'],['all_pct','all','Completeness across all standard fields']]){
       const value=data?.[key],known=typeof value==='number'&&Number.isFinite(value)&&value>=0&&value<=100;
       const chart=document.getElementById('county-coverage-'+id),text=known?value.toFixed(2)+'%':'Unavailable';
       chart.style.setProperty('--coverage',known?value+'%':'0%');chart.classList.toggle('unavailable',!known);

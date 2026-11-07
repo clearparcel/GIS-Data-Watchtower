@@ -1,14 +1,18 @@
 """Public presentation of confirmed county settings, separate from research."""
 from __future__ import annotations
 
+import datetime as dt
 import html
+from zoneinfo import ZoneInfo
 
 from .public_values import safe_public_url
 
 CLASSIFICATIONS = {"open": "Open GIS Data", "fee": "Fee Based GIS Data", "unknown": "Unknown"}
 METHODS = {"mngeo_open": "MnGeo open", "direct_rest": "Direct REST", "direct_download": "Direct Download", "other": "Other"}
-RESEARCH_NOTICE = ("Packaged research is retained for provenance and monitoring decisions. "
-                   "It is not updated by Apply; current access settings appear above.")
+LINK_LABELS = {"mngeo_open": "Open statewide data (MnGeo)", "direct_rest": "Connect in GIS software",
+               "direct_download": "Download GIS data", "other": "Open data page"}
+RESEARCH_NOTICE = ("Earlier source research and supporting evidence appear below. "
+                   "The latest access information is shown above. Finding a public link does not grant permission for automated checks.")
 
 
 def with_published_directory(profiles: dict, directory: dict) -> dict:
@@ -18,10 +22,31 @@ def with_published_directory(profiles: dict, directory: dict) -> dict:
             for slug, profile in profiles.items()}
 
 
-def published_access_summary(directory: dict, key: str = "parcel_polygons") -> str:
+def published_access_summary(directory: dict, key: str = "parcel_polygons", *, plain: bool = False) -> str:
     item = directory["access"][key]
-    methods = ", ".join(METHODS[method["kind"]] for method in item["methods"])
+    labels = LINK_LABELS if plain else METHODS
+    methods = ", ".join(labels[method["kind"]] for method in item["methods"])
     return CLASSIFICATIONS[item["classification"]] + (" · " + methods if methods else "")
+
+
+def county_access_summary(directory: dict) -> str:
+    """Keep a statewide-only link from implying a county download exists."""
+    item = directory["access"]["parcel_polygons"]
+    direct = [method for method in item["methods"] if method["kind"] != "mngeo_open"]
+    if item["classification"] == "open" and not direct and item["methods"]:
+        return "Only a statewide link is listed"
+    labels = {"open": "Open GIS data", "fee": "Fee-based parcel data", "unknown": "Access not confirmed"}
+    return labels[item["classification"]] + (" · " + ", ".join(LINK_LABELS[m["kind"]] for m in direct) if direct else "")
+
+
+def _updated_time(value: str) -> str:
+    try:
+        instant = dt.datetime.fromisoformat(value.replace("Z", "+00:00"))
+        if instant.tzinfo is not None:
+            return instant.astimezone(ZoneInfo("America/Chicago")).strftime("%b %d, %Y · %I:%M %p %Z")
+    except (ValueError, AttributeError):
+        pass
+    return "Not available"
 
 
 def render_published_directory(directory: dict) -> str:
@@ -53,8 +78,12 @@ def render_published_directory(directory: dict) -> str:
         classification = CLASSIFICATIONS[item["classification"]]
         methods = []
         for method in item["methods"]:
-            label = (method.get("description") or "Other") if method["kind"] == "other" else METHODS[method["kind"]]
-            methods.append(f'<li>{link(method["url"], label)} · {esc(method["scope"])} · {esc(method["evidence_date"])}</li>')
+            label = (method.get("description") or "Open data page") if method["kind"] == "other" else LINK_LABELS[method["kind"]]
+            if method["kind"] == "direct_download" and key == "parcel_polygons":
+                label = "Download parcel data"
+            methods.append(f'<li>{link(method["url"], label)}'
+                           f'<details class="profile-evidence"><summary>Technical details</summary>'
+                           f'<p>{esc(method["scope"])} · Link reviewed: {esc(method["evidence_date"])}</p></details></li>')
         method_list = "<ul>" + "".join(methods) + "</ul>" if methods else ""
         restriction = item["restrictions"]
         note = {
@@ -65,15 +94,15 @@ def render_published_directory(directory: dict) -> str:
         reviewed = f' · Reviewed {esc(restriction["reviewed_on"])}' if restriction.get("reviewed_on") else ""
         access.append(
             f'<h3>{name}</h3><p><strong>{classification}</strong></p>{method_list}'
-            f'<p><strong>Administrator note:</strong> {paragraph(item.get("county_direct_note") or "None recorded")}</p>'
+            f'<p><strong>County access note:</strong> {paragraph(item.get("county_direct_note") or "None recorded")}</p>'
             f'<p>{note} {link(restriction.get("url"), "Official restrictions")}{reviewed}</p>'
         )
     policy = directory["policy"]
     return (
         '<div class="card published-county-access"><h2>County GIS data access</h2>'
-        f'<p>Published revision {esc(directory["public_revision"])} · {esc(directory["published_at"])}</p>'
-        '<p class="subtext">Current settings published from the county editor. '
-        'Access methods do not indicate active Watchtower monitoring or permission to monitor.</p>'
+        f'<p>Access information updated: {esc(_updated_time(directory["published_at"]))}</p>'
+        '<p class="subtext">These links describe how to get data. Watchtower check status is shown separately. '
+        'Confirm the provider’s terms before reuse or automated access.</p>'
         + "".join(access)
         + f'<h3>County GIS policy</h3><p>{paragraph(policy.get("text") or "No policy text published.")}</p>'
         f'<p>{link(policy.get("url"), "Official county policy")}</p></div>'

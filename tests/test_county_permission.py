@@ -361,7 +361,7 @@ class CoverageAndPageTests(unittest.TestCase):
                 patch("clearparcel.datawatch.public_dashboard._dashboard_state", return_value=state):
             page = render_public_source({"state_file": "unused.json"}, "mn-todd-parcels")
         self.assertIn("Limited check: service details and a record count only.", page)
-        self.assertIn("Healthy", page)
+        self.assertIn("Source responding", page)
         self.assertNotIn("Awaiting county permission", page)
 
     def test_configured_sources_that_change_are_county_operated_and_not_assessed(self):

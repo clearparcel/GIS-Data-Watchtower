@@ -90,10 +90,10 @@ class CountyDirectoryPublicTests(unittest.TestCase):
                 page = get("/county?slug=aitkin")[1]
                 index = get("/counties")[1]
                 row = index.split('data-name="aitkin"', 1)[1].split('</tr>', 1)[0]
-                self.assertIn(label, row)
+                self.assertIn({"open": "Open GIS data · Connect in GIS software", "fee": "Fee-based parcel data", "unknown": "Access not confirmed"}[classification], row)
                 self.assertNotIn("not yet researched", row)
-                self.assertIn(label, panel)
-                self.assertLess(page.index("County GIS data access"), page.index("Packaged parcel-access research"))
+                self.assertIn(label.replace("Direct REST", "Connect in GIS software"), panel)
+                self.assertLess(page.index("County GIS data access"), page.index("Earlier parcel-access research"))
                 self.assertEqual(page.count('<h2>County GIS data access</h2>'), 1)
                 for output in (page, panel):
                     self.assertIn("Terms still need review &lt;note&gt;", output)

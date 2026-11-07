@@ -1,5 +1,35 @@
 # Project status
 
+## Internal UI v0.4.3 release — preparation, 2026-11-07
+
+The owner authorized deployment of the internal UI candidate. The release
+candidate advances the application version and explicitly installs the current
+Debian zlib runtime package to resolve the existing container scan blocker.
+CI scans remain required. Production promotion, authenticated checks and the
+release receipt are pending; the public site remains v0.4.2.
+
+## Internal dashboard workflow — prepared for review, 2026-11-07
+
+The internal UI candidate puts linked failures and overdue reports first,
+adds saved change evidence and source-specific checks, preserves reading state
+during refresh, completes mobile navigation, and adds Provider Terms action
+filters and scoped downloads. County profiles use shorter sections and link
+one detailed field-results view. It builds on the public UI candidate below.
+Authentication, read-only hosting, provider permissions and polling are preserved.
+Validation uses synthetic local observations; the live internal build was not
+reverified and no service was deployed. See the [UI guide](docs/internal-dashboard-ui.md)
+and [implementation handoff](docs/ai/handoffs/2026-11-07-internal-ui.md).
+
+## Plain-language public UI — prepared for review, 2026-11-07
+
+The candidate simplifies county search and access columns, separates recent
+checks from overdue coverage, and replaces technical metric labels with data
+completeness language. Public directory pages show a readable update time and
+purposeful source links. Detailed comparisons move to the completeness page;
+field names, schema evidence and earlier research remain in expandable details.
+Stored observations, permissions and export schemas are preserved. Production
+remains on v0.4.2. See the [implementation handoff](docs/ai/handoffs/2026-11-07-plain-language-ui.md).
+
 ## v0.4.2 county PDF summaries — deployed
 
 County PDF downloads now use the approved three-page summary: contacts and

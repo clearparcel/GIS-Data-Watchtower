@@ -135,7 +135,7 @@ class OverviewDisplayTests(unittest.TestCase):
                                      "history_file": str(Path(td) / "h.jsonl")})
         card = page[page.index('id="data-freshness"'):]
         card = card[:card.index("</div></div>") if "</div></div>" in card else 400]
-        self.assertIn("1 stale", card)
+        self.assertIn("1 may be old", card)
         self.assertIn("1 current", card)
         self.assertIn("1 with no publisher update time", card)
         # Stale data is not an outage: the alert panel still shows all clear.
@@ -167,7 +167,7 @@ class OverviewDisplayTests(unittest.TestCase):
             _, histories = watch.load_history_index(config, ["m"], limit=1000)
         digest = build_digest(state, {}, histories, now=now)
         self.assertEqual(digest["counts"]["stale"], 1)
-        self.assertIn("Data stale · 40 days old · expected within 30 days", page)
+        self.assertIn("Publisher data may be old · 40 days old · expected within 30 days", page)
 
     def test_source_page_shows_age_interval_and_basis(self):
         from clearparcel.datawatch.dashboard_views import render_source
@@ -182,7 +182,8 @@ class OverviewDisplayTests(unittest.TestCase):
             page = render_source({"_render_state": state, "state_file": str(Path(td) / "s.json"),
                                   "history_file": str(Path(td) / "h.jsonl"),
                                   "sources": [{"id": "old", "expected_update_days": 30}]}, "old")
-        self.assertIn("Data stale · 40 days old · expected within 30 days (set in the source registry)", page)
+        self.assertIn("Publisher data may be old · 40 days old · expected within 30 days", page)
+        self.assertIn("30 days; set for this source", page)
 
 
 if __name__ == "__main__":

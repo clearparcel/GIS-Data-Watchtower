@@ -88,10 +88,14 @@ def _snapshot_csv(snapshot: dict) -> str:
     out = io.StringIO()
     if "sources" in snapshot:
         fields = ["source_id","source_name","county","status","feature_count","worker","reporting","stale_source","stale_worker","last_success_at","checked_at"]
+        if snapshot.get("export_scope") == "source":
+            fields += ["snapshot_created_utc", "watchtower_last_checked_utc"]
         writer = csv.DictWriter(out, fieldnames=fields)
         writer.writeheader()
         for source in snapshot.get("sources", []):
             writer.writerow({key: _csv_safe(value) for key, value in {
+                **({key: snapshot.get(key) for key in ("snapshot_created_utc", "watchtower_last_checked_utc")}
+                   if snapshot.get("export_scope") == "source" else {}),
                 "source_id": source.get("id"),
                 "source_name": source.get("name"),
                 "county": source.get("county"),
@@ -390,6 +394,9 @@ def _snapshot_xlsx(snapshot: dict) -> bytes:
         for source in snapshot.get("sources", []):
             source_rows.append([source.get("county"),source.get("name"),source.get("status"),source.get("feature_count"),source.get("worker"),source.get("reporting"),bool(source.get("stale")),bool(source.get("worker_stale")),source.get("last_success_at"),source.get("checked_at")])
     sheets=[("Counties",county_rows),("Sources",source_rows),("Contacts",contact_rows)]
+    if snapshot.get("export_scope") == "source":
+        sheets.insert(0, ("Export details", [["Scope", "Source ID", "Export time (UTC)", "Latest check attempt (UTC)"],
+            ["This source", snapshot["sources"][0].get("id"), snapshot.get("snapshot_created_utc"), snapshot.get("watchtower_last_checked_utc")]]))
     if len(directory_rows) > 1:
         sheets.append(("County directory", directory_rows))
     sheets.extend(_mngac_xlsx_sheets(snapshot))

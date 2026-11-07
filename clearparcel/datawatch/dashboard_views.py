@@ -4,6 +4,8 @@ from clearparcel.datawatch.csp import SCRIPT_TAG
 from clearparcel.datawatch import dashboard as _dashboard
 from clearparcel.datawatch.data_freshness import HISTORY_LIMIT as FRESHNESS_HISTORY_LIMIT, data_freshness, summarize as summarize_data_freshness
 from clearparcel.datawatch.product import PRODUCT_NAME, page_title
+from .dashboard_activity import compact_time, render_attention, change_events, render_change_list
+from .dashboard_source import measurement, duration, check_timing, RESULTS
 
 
 def _county_direct_parcels(source_id: str, source: dict) -> bool:
@@ -54,7 +56,7 @@ def derive_aggregate_alerts(state: dict) -> list[dict] | None:
     return alerts
 
 
-def render_dashboard(config: dict) -> str:
+def render_dashboard(config: dict, *, sources_only: bool = False) -> str:
     state = _dashboard._dashboard_state(config)
     sources = state.get("sources", {})
     counts = state.get("counts", {})
@@ -71,6 +73,7 @@ def render_dashboard(config: dict) -> str:
     # One history read per render: run telemetry plus exact-ID source histories.
     # Freshness learns from the longer window; the cards keep the recent 60.
     run_history, histories = _dashboard.load_history_index(config, sources.keys(), limit=FRESHNESS_HISTORY_LIMIT)
+    retained_runs = run_history
     run_history = run_history[-60:]
     for sid, src in sources.items():
         full_hist = histories.get(sid, [])
@@ -88,43 +91,35 @@ def render_dashboard(config: dict) -> str:
         if not worker:
             continue
         worker_status = str(worker.get("overall") or "unknown")
-        worker_health = _dashboard._health_status(worker_status)
+        worker_health = RESULTS.get(worker_status, "Unknown")
         stale = bool(worker.get("stale"))
         worker_telemetry = worker.get("telemetry") or {}
-        duration = worker_telemetry.get("wall_ms")
-        duration_text = f"{duration / 1000.0:.1f}s" if isinstance(duration, (int, float)) else "—"
+        wall_ms = worker_telemetry.get("wall_ms")
+        duration_text = duration(wall_ms)
         source_count = worker.get("source_count")
-        freshness_text = "Reporting overdue" if stale else "Reporting on time"
+        freshness_text = "Monitoring report overdue" if stale else "Monitoring report is recent" if worker.get("last_report_at") or worker.get("checked_at") else "Report time unavailable"
         worker_cards.append(f"""<div class="card worker-card">
-<div><h3><span class="status-dot {_dashboard._status_class(worker_status)}"></span>{_dashboard._esc(worker_name.title())} worker</h3><span class="subtext">{_dashboard._esc(worker_health)} · {_dashboard._esc(freshness_text)}</span></div>
+<div><h3><span class="status-dot {_dashboard._status_class(worker_status)}"></span>{_dashboard._esc(worker_name.title())} monitoring</h3><span class="subtext">{_dashboard._esc(worker_health)} · {_dashboard._esc(freshness_text)}</span></div>
 <div class="worker-meta">
 <div><span class="muted">Sources</span><strong>{_dashboard._esc(source_count if source_count is not None else "—")}</strong></div>
 <div><span class="muted">Run time</span><strong>{_dashboard._esc(duration_text)}</strong></div>
-<div><span class="muted">Last success</span><strong style="font-size:13px">{_dashboard._format_time_pair(worker.get("last_success_at"))}</strong></div>
+<div><span class="muted">Last success</span><strong style="font-size:13px">{compact_time(worker.get("last_success_at"))}</strong></div>
 </div></div>""")
     data_counts = summarize_data_freshness(freshness_rows)
+    source_issues = sum(s.get("status") in {"warn", "error"} for s in sources.values())
+    freshness_label = "Unknown" if data_counts["unknown"] == len(freshness_rows) else str(data_counts["stale"]) + " may be old"
     body = f"""<div class="grid primary-grid">
-<div class="card"><div class="muted">Overall health</div><div class="metric {_dashboard._status_class(state.get('overall','unknown'))}">{_dashboard._esc(_dashboard._health_status(state.get('overall','unknown')))}</div><span class="subtext">Combined health of all cloud and local source checks.</span></div>
+<div class="card"><div class="muted">Latest check results</div><div class="metric {_dashboard._status_class(state.get('overall','unknown'))}">{_dashboard._esc(RESULTS.get(state.get('overall'), 'Unknown'))}</div><span class="subtext">Results of the last recorded checks; check timing is shown separately.</span></div>
 <div class="card"><div class="muted">Monitored sources</div><div class="metric">{len(sources)}</div><span class="subtext">Sources currently included across the cloud and local workers.</span></div>
-<div class="card"><div class="muted">Source issues</div><div class="metric">{counts.get('warn',0) + counts.get('error',0)}</div><span class="subtext">Sources whose latest check reported a warning or error.</span></div>
-<div class="card"><div class="muted">Reporting overdue</div><div class="metric">{state.get('stale_sources',0)}</div><span class="subtext">Sources that have not reported within the configured freshness window · {state.get('stale_workers',0)} worker(s) overdue.</span></div>
+<div class="card"><div class="muted">Source issues</div><div class="metric">{source_issues}</div><span class="subtext">Sources whose latest check reported a warning or error.</span></div>
+<div class="card"><div class="muted">Checks overdue</div><div class="metric">{state.get('stale_sources',0)}</div><span class="subtext">Sources that have not reported within the configured freshness window · {state.get('stale_workers',0)} worker(s) overdue.</span></div>
 </div>
-<div class="section-head"><div><h2>Workers</h2><p>Cloud and local worker health and their most recent successful runs.</p></div></div>
-<div class="grid worker-grid">{''.join(worker_cards) or '<div class="card muted">Worker metadata has not been reported yet.</div>'}</div>
 <div class="activity-strip">
-<div class="card" id="changes"><div class="muted">Sources changed — 30 days</div><div class="metric">{changed_30}</div><span class="subtext">Sources where Watchtower detected a data change during the last 30 days.</span></div>
-<div class="card" id="data-freshness"><div class="muted">Data freshness</div><div class="metric">{data_counts['stale']} stale</div><span class="subtext">{data_counts['current']} current · {data_counts['unknown']} with no publisher update time. Based on when each publisher last changed its data, not on Watchtower check time.</span></div>
-<div class="card"><div class="muted">Dashboard data updated</div><strong>{_dashboard._format_time_pair(state.get('generated_at'))}</strong><span class="subtext">When Watchtower last combined the cloud and local worker results.</span><br><a href="/counties">View all 87 Minnesota county dashboards →</a></div>
+<div class="card"><div class="muted">Sources changed — 30 days</div><div class="metric">{changed_30}</div><span class="subtext">Sources where Watchtower detected a data change during the last 30 days.</span></div>
+<div class="card" id="data-freshness"><div class="muted">Data freshness</div><div class="metric">{freshness_label}</div><span class="subtext">{data_counts['current']} current · {data_counts['unknown']} with no publisher update time. Based on when each publisher last changed its data, not on Watchtower check time.</span></div>
+<div class="card"><div class="muted">Dashboard data updated</div><strong>{compact_time(state.get('generated_at'))}</strong><span class="subtext">When Watchtower last combined the cloud and local worker results.</span><br><a href="/counties">View all 87 Minnesota county dashboards →</a></div>
 </div>"""
-    if alerts:
-        body += '<div class="card" id="alerts"><h2>Active alerts</h2>' + "".join(
-            f'<p class="{_dashboard._status_class(a.get("severity","warn"))}"><strong>{_dashboard._esc(a.get("name") or a.get("source"))}</strong> — {_dashboard._esc(a.get("message"))}</p>'
-            for a in alerts
-        ) + "</div><br>"
-    elif alerts is None:
-        body += '<div class="card" id="alerts"><h2>Active alerts</h2><p class="unknown"><strong>Alert status unavailable.</strong></p><span class="subtext">This dashboard data does not include alert status, so it cannot confirm that no alert needs attention. Review the source issues above.</span></div><br>'
-    else:
-        body += '<div class="card" id="alerts"><h2>Active alerts</h2><p class="ok"><strong>No active alerts.</strong></p><span class="subtext">No current Watchtower alert requires attention.</span></div><br>'
+    body = render_attention(state, alerts) + "<br>" + body
     rows = []
     categories = sorted({str(meta.get("category") or src.get("category") or "Other") for _,src,meta,_,_ in enriched})
     for sid, src, meta, stats, hist in sorted(enriched, key=lambda x: str(x[1].get("name", x[0])).lower()):
@@ -135,36 +130,48 @@ def render_dashboard(config: dict) -> str:
         delta = current_count - prev_count if isinstance(current_count,(int,float)) and isinstance(prev_count,(int,float)) else None
         delta_text = "—" if delta is None else f"{delta:+,}"
         delta_class = "delta-up" if isinstance(delta,(int,float)) and delta > 0 else "delta-down" if isinstance(delta,(int,float)) and delta < 0 else ""
-        rows.append(f"""<tr data-name="{_dashboard._esc((src.get('name') or sid).lower())}" data-category="{_dashboard._esc(category)}" data-status="{_dashboard._esc(src.get('status','unknown'))}">
-<td><a href="/source?{_dashboard.urllib.parse.urlencode({'id':sid})}"><strong>{_dashboard._esc(src.get('name') or sid)}</strong></a><br><span class="muted">{_dashboard._esc(sid)}</span></td>
-<td>{_dashboard._esc(provider)}<br><span class="muted">{_dashboard._esc(category)}</span></td>
-<td><span class="pill {_dashboard._status_class(src.get('status','unknown'))}">{_dashboard._esc(_dashboard._health_status(src.get('status','unknown')))}</span><br><span class="muted">{_dashboard._esc(src.get('reporting','current'))} reporting · {_dashboard._esc(src.get('worker') or 'default')} worker</span></td>
-<td>{_dashboard._esc(f"{current_count:,}" if isinstance(current_count,int) else current_count or '—')}<br><span class="{delta_class}">{_dashboard._esc(delta_text)}</span></td>
-<td>{_dashboard._esc(stats.get('change_age_days') if stats.get('change_age_days') is not None else '—')}</td>
-<td>{_dashboard._esc(stats.get('success_rate') if stats.get('success_rate') is not None else '—')}%<br><span class="muted">{_dashboard._esc(stats.get('consecutive_ok'))} consecutive</span></td>
-<td>{_dashboard._esc(src.get('elapsed_ms','—'))} ms</td><td>{_dashboard._format_time_pair(src.get('last_success_at'))}</td></tr>""")
+        status = str(src.get("status") or "unknown")
+        timing = "overdue" if src.get("stale") or src.get("worker_stale") else "recent" if _dashboard._parse_time(src.get("checked_at")) else "unknown"
+        priority = 0 if status == "error" else 1 if status == "warn" else 2 if timing == "overdue" else 3 if timing == "unknown" else 4
+        name = str(src.get("name") or sid)
+        search = " ".join(str(x) for x in (name, sid, provider, category, src.get("worker") or "")).lower()
+        successes = sum(x.get("status") == "ok" for x in hist)
+        rows.append(f'''<tr data-name="{_dashboard._esc(name.lower())}" data-search="{_dashboard._esc(search)}" data-category="{_dashboard._esc(category)}" data-status="{_dashboard._esc(status)}" data-timing="{timing}" data-priority="{priority}" data-last="{_dashboard._esc(src.get("checked_at") or "")}" data-success="{_dashboard._esc(src.get("last_success_at") or "")}">
+<th scope="row"><a href="/source?{_dashboard.urllib.parse.urlencode({'id':sid})}"><strong>{_dashboard._esc(name)}</strong></a><br><span class="subtext">{_dashboard._esc(sid)}</span></th>
+<td data-label="Provider / type">{_dashboard._esc(provider)}<br><span class="subtext">{_dashboard._esc(category)}</span></td>
+<td data-label="Latest check result"><span class="pill {_dashboard._status_class(status)}">{_dashboard._esc(RESULTS.get(status, "Unknown"))}</span><br><span class="subtext {'warn' if timing == 'overdue' else ''}">{_dashboard._esc(check_timing(src))}</span></td>
+<td data-label="Last known records">{_dashboard._esc(measurement(current_count, missing="Unavailable"))}<br><span class="{delta_class}">{_dashboard._esc(delta_text)}</span></td>
+<td data-label="Days since change detected">{_dashboard._esc(stats.get('change_age_days') if stats.get('change_age_days') is not None else 'Unavailable')}</td>
+<td data-label="Recent observations passed">{_dashboard._esc(measurement(stats.get('success_rate'), '%', missing='No history'))}<br><span class="subtext">{successes} of {len(hist)} retained observations · {stats['consecutive_ok']} consecutive passed</span></td>
+<td data-label="Response time">{_dashboard._esc(duration(src.get('elapsed_ms')))}</td><td data-label="Check times"><small>Latest attempt</small><br>{compact_time(src.get('checked_at'))}<br><small>Last success</small><br>{compact_time(src.get('last_success_at'))}</td></tr>''')
     options = "".join(f'<option value="{_dashboard._esc(x)}">{_dashboard._esc(x)}</option>' for x in categories)
-    run_wall = [((x.get("telemetry") or {}).get("wall_ms") or 0) / 1000.0 for x in run_history if (x.get("telemetry") or {}).get("wall_ms") is not None]
-    run_cpu = [((x.get("telemetry") or {}).get("cpu_ms") or 0) / 1000.0 for x in run_history if (x.get("telemetry") or {}).get("cpu_ms") is not None]
-    run_mem = [((x.get("telemetry") or {}).get("peak_python_memory_kb") or 0) / 1024.0 for x in run_history if (x.get("telemetry") or {}).get("peak_python_memory_kb") is not None]
-    run_sources = [(x.get("telemetry") or {}).get("sources_checked") for x in run_history if (x.get("telemetry") or {}).get("sources_checked") is not None]
+    source_table = _source_table(rows, options)
+    if sources_only:
+        return _dashboard._layout(page_title("Data sources"), source_table, active_section="sources", csrf_token=str(config.get("_csrf_token") or ""))
+    body += source_table
+    body += '<section class="card" id="changes"><h2>Recent changes</h2><a href="/changes">View and filter all retained changes →</a>' + render_change_list(change_events(config, state, history=retained_runs), preview=True) + '</section>'
+    run_wall = [((x.get("telemetry") or {}).get("wall_ms") or 0) / 1000.0 if (x.get("telemetry") or {}).get("wall_ms") is not None else None for x in run_history]
+    run_cpu = [((x.get("telemetry") or {}).get("cpu_ms") or 0) / 1000.0 if (x.get("telemetry") or {}).get("cpu_ms") is not None else None for x in run_history]
+    run_mem = [((x.get("telemetry") or {}).get("peak_python_memory_kb") or 0) / 1024.0 if (x.get("telemetry") or {}).get("peak_python_memory_kb") is not None else None for x in run_history]
+    run_sources = [(x.get("telemetry") or {}).get("sources_checked") for x in run_history]
     failure_rates = []
     for x in run_history:
         counts = x.get("counts") or {}
         total = sum(int(counts.get(k) or 0) for k in ("ok","warn","error"))
-        if total:
-            failure_rates.append(round(int(counts.get("error") or 0) / total * 100.0, 2))
+        failure_rates.append(round(int(counts.get("error") or 0) / total * 100.0, 2) if total else None)
     telemetry_charts = (
         '<div class="grid">'
-        f'<div class="card"><h3>How long Watchtower checks have taken</h3>{_dashboard._svg_sparkline(run_wall)}</div>'
-        f'<div class="card"><h3>Computer processing time used</h3>{_dashboard._svg_sparkline(run_cpu)}</div>'
-        f'<div class="card"><h3>Memory used by Watchtower</h3>{_dashboard._svg_sparkline(run_mem)}</div>'
+        f'<div class="card"><h3>How long Watchtower checks have taken</h3>{_dashboard._svg_sparkline(run_wall, label="Check run duration", unit="s")}</div>'
+        f'<div class="card"><h3>Computer processing time used</h3>{_dashboard._svg_sparkline(run_cpu, label="CPU time", unit="s")}</div>'
+        f'<div class="card"><h3>Memory used by Watchtower</h3>{_dashboard._svg_sparkline(run_mem, label="Python memory", unit="MiB")}</div>'
         '</div><div class="grid">'
-        f'<div class="card"><h3>Data sources checked per run</h3>{_dashboard._svg_sparkline(run_sources)}</div>'
-        f'<div class="card"><h3>Checks that could not be completed</h3>{_dashboard._svg_sparkline(failure_rates)}</div>'
+        f'<div class="card"><h3>Data sources checked per run</h3>{_dashboard._svg_sparkline(run_sources, label="Sources checked", unit="sources")}</div>'
+        f'<div class="card"><h3>Checks that could not be completed</h3>{_dashboard._svg_sparkline(failure_rates, label="Failed checks", unit="%")}</div>'
         '</div>'
     )
-    body += '<details class="diagnostics"><summary>System diagnostics</summary><span class="subtext">Runtime telemetry from retained checks. These are operational diagnostics, not source-health scores.</span>' + telemetry_charts + '</details>'
+    body += '<details class="card diagnostics" id="monitoring-systems"><summary>Monitoring systems and diagnostics</summary><p>Last check results and reporting time are separate. The charts describe retained observations.</p><div class="grid worker-grid">' + (''.join(worker_cards) or '<p>Monitoring system reports are unavailable.</p>') + '</div>' + telemetry_charts
+    if run_history:
+        body += f'<p class="subtext">{len(run_history)} retained runs: {compact_time(run_history[0].get("generated_at"))} – {compact_time(run_history[-1].get("generated_at"))}. Missing measurements stay unconnected.</p>'
     latency_chart = _dashboard._bar_chart(sorted([(src.get("name") or sid, src.get("elapsed_ms")) for sid,src in sources.items() if isinstance(src.get("elapsed_ms"),(int,float))], key=lambda x:x[1], reverse=True)[:8], title="Sources taking longest to respond", suffix=" ms")
     category_counts = {}
     for _,src,meta,_,_ in enriched:
@@ -199,68 +206,20 @@ def render_dashboard(config: dict) -> str:
     complexity_chart=_dashboard._bar_chart(sorted(complexity,key=lambda x:x[1],reverse=True),title="Average parcel-shape complexity")
     body += '<div class="section-head"><div><h2>Parcel-source quality</h2><p>Comparative quality indicators for directly monitored county parcel layers.</p></div></div>'
     body += f'<div class="grid"><div class="card">{county_counts_chart}</div><div class="card">{county_fields_chart}</div></div><div class="grid"><div class="card">{quality_chart}</div><div class="card">{duplicate_chart}</div><div class="card">{geometry_chart}</div></div><div class="grid"><div class="card">{owner_chart}</div><div class="card">{site_address_chart}</div><div class="card">{mailing_address_chart}</div></div><div class="grid"><div class="card">{multipart_chart}</div><div class="card">{complexity_chart}</div></div>'
-    body += f"""<div class="card"><h2>Data being watched</h2>
-<div class="filters"><input id="q" aria-label="Filter data sources" placeholder="Filter datasets…"><select id="cat" aria-label="Filter by source category"><option value="">All categories</option>{options}</select><select id="health" aria-label="Filter by source health"><option value="">All statuses</option><option>ok</option><option>warn</option><option>error</option></select></div>
-<table id="datasets"><thead><tr><th>Data source</th><th>Provided by / type</th><th>Status</th><th>Records / change<br><span class="subtext">Current count and change from the prior comparable check</span></th><th>Days since data changed<br><span class="subtext">Days since Watchtower last detected a source-data change</span></th><th>Recent reliability<br><span class="subtext">Successful checks across retained recent history</span></th><th>Response time<br><span class="subtext">Elapsed time for the source request/check</span></th><th>Last successful check<br><span class="subtext">Most recent successful observation, not merely last attempt</span></th></tr></thead><tbody>{"".join(rows)}</tbody></table></div>
-{SCRIPT_TAG}function filterRows(){{const q=document.getElementById('q').value.toLowerCase(),c=document.getElementById('cat').value,h=document.getElementById('health').value;document.querySelectorAll('#datasets tbody tr').forEach(r=>{{r.style.display=(!q||r.dataset.name.includes(q))&&(!c||r.dataset.category===c)&&(!h||r.dataset.status===h)?'':'none'}})}};document.getElementById('q').addEventListener('input',filterRows);for(const id of ['cat','health'])document.getElementById(id).addEventListener('change',filterRows);</script>"""
+    body += "</details>"
     return _dashboard._layout(PRODUCT_NAME, body, csrf_token=str(config.get("_csrf_token") or ""))
 
 
 def render_source(config: dict, source_id: str) -> str:
-    state = _dashboard._dashboard_state(config)
-    src = (state.get("sources") or {}).get(source_id)
-    if not src:
-        return _dashboard._layout(page_title("Source not found"), '<div class="card"><h2>Source not found</h2><p><a href="/">Return to dashboard</a></p></div>', csrf_token=str(config.get("_csrf_token") or ""))
-    full_hist = _dashboard.load_history(config, source_filter=source_id, exact=True,
-                                        limit=FRESHNESS_HISTORY_LIMIT).get("entries", [])
-    hist = full_hist[-60:]
-    stats = _dashboard._history_stats(hist)
-    fresh = data_freshness(src, source_config=_dashboard._source_config_map(config).get(source_id, {}), history=full_hist)
-    meta = _dashboard._source_config_map(config).get(source_id, {})
-    provenance = src.get("provenance") or {}
-    changes = src.get("changes") or []
-    feature_values = [x.get("feature_count") for x in hist]
-    latency_values = [x.get("elapsed_ms") for x in hist]
-    history_rows = "".join(
-        f"<tr><td>{_dashboard._format_time_pair(x.get('generated_at'))}</td><td>{_dashboard._esc(x.get('status'))}</td><td>{_dashboard._esc(f'{x.get("feature_count"):,}' if isinstance(x.get('feature_count'),int) else x.get('feature_count','—'))}</td><td>{_dashboard._esc(len(x.get('changes') or []))}</td><td>{_dashboard._esc(x.get('elapsed_ms','—'))} ms</td></tr>"
-        for x in reversed(hist[-30:])
-    )
-    provider = meta.get("provider") or src.get("provider") or "—"
-    category = meta.get("category") or src.get("category") or "—"
-    source_count_text = _dashboard._esc(f"{src.get('feature_count'):,}" if isinstance(src.get('feature_count'),int) else src.get('feature_count','—'))
-    body = f"""<p><a href="/">← All data sources</a></p><div class="grid">
-<div class="card"><div class="muted">Data source</div><h2>{_dashboard._esc(src.get('name') or source_id)}</h2><code>{_dashboard._esc(source_id)}</code></div>
-<div class="card"><div class="muted">Health</div><div class="metric {_dashboard._status_class(src.get('status','unknown'))}">{_dashboard._esc(_dashboard._health_status(src.get('status','unknown')))}</div><span class="subtext">{_dashboard._esc('Reporting overdue' if src.get('reporting') == 'stale' else 'Reporting on time')} · {_dashboard._esc(src.get('worker') or 'local/default')} worker</span></div>
-<div class="card"><div class="muted">Record count</div><div class="metric">{source_count_text}</div><span class="subtext">Features or rows reported during the latest successful check.</span></div>
-<div class="card"><div class="muted">Recent reliability</div><div class="metric">{_dashboard._esc(stats.get('success_rate') if stats.get('success_rate') is not None else '—')}%</div><span class="subtext">{_dashboard._esc(stats.get('consecutive_ok'))} successful checks in a row.</span></div>
-<div class="card"><div class="muted">Days since data changed</div><div class="metric">{_dashboard._esc(stats.get('change_age_days') if stats.get('change_age_days') is not None else '—')}</div><span class="subtext">Elapsed days since Watchtower last detected a meaningful observation change.</span></div></div>
-<div class="grid"><div class="card"><h3>Record-count history</h3>{_dashboard._svg_sparkline(feature_values)}</div><div class="card"><h3>Response-time history</h3>{_dashboard._svg_sparkline(latency_values)}</div></div>
+    from .dashboard_source import render_source as render
+    return render(config, source_id)
 
-<div class="section-head"><div><h2>About this data</h2><p>Operational source facts first; low-level adapter and coordinate details remain expandable below.</p></div></div>
-<div class="definition-grid">
-<div class="definition-group"><h3>Source</h3><dl class="definition-list">
-<dt>Provided by</dt><dd>{_dashboard._esc(provider)}</dd><dt>Data type</dt><dd>{_dashboard._esc(category)}</dd><dt>Checked by</dt><dd>{_dashboard._esc(src.get('worker') or 'local/default')} worker</dd><dt>Reporting</dt><dd>{_dashboard._esc(src.get('reporting') or 'current')}</dd><dt>Last successful check</dt><dd>{_dashboard._format_time_pair(src.get('last_success_at'))}</dd><dt>Last provider response</dt><dd>{_dashboard._format_time_pair(src.get('last_available_at')) if src.get('last_available_at') else 'Not yet recorded'}</dd><dt>Changes this check</dt><dd>{len(changes)}</dd><dt>Last change found</dt><dd>{_dashboard._format_time_pair(stats.get('last_change')) if stats.get('last_change') else 'Not yet recorded'}</dd>
-</dl></div>
-<div class="definition-group"><h3>Parcel quality</h3><dl class="definition-list">
-<dt>Records</dt><dd>{source_count_text}</dd><dt>Information fields</dt><dd>{_dashboard._esc(src.get('field_count','—'))}</dd><dt>Parcel ID field</dt><dd>{_dashboard._esc(src.get('parcel_id_field','Not identified'))} ({_dashboard._esc(src.get('parcel_id_confidence','none'))} confidence)</dd><dt>Missing parcel IDs</dt><dd>{_dashboard._esc(src.get('parcel_id_null_count','Not checked'))}</dd><dt>Duplicate-ID extra rows</dt><dd>{_dashboard._esc(src.get('duplicate_id_extra_rows','Not checked'))}</dd><dt>Missing mapped shape</dt><dd>{_dashboard._esc(src.get('null_geometry_count','Not checked'))}</dd>
-</dl></div>
-<div class="definition-group"><h3>Shape sample</h3><dl class="definition-list">
-<dt>Shapes sampled</dt><dd>{_dashboard._esc(src.get('geometry_sample_size','Not checked'))}</dd><dt>Multipart / holes</dt><dd>{_dashboard._esc(src.get('geometry_sample_multipart_percent','Not checked'))}%</dd><dt>Average complexity</dt><dd>{_dashboard._esc(src.get('geometry_sample_avg_vertices','Not checked'))}</dd><dt>Most complex shape</dt><dd>{_dashboard._esc(src.get('geometry_sample_max_vertices','Not checked'))}</dd>
-</dl></div>
-</div><br>
-<div class="card"><details class="technical"><summary>Technical details</summary><div class="technical-body"><dl class="definition-list">
-<dt>Source connection</dt><dd>{_dashboard._esc(provenance.get('adapter') or src.get('adapter') or src.get('kind'))}</dd>
-<dt>Map shape type</dt><dd>{_dashboard._esc(src.get('geometry_type','—'))}</dd>
-<dt>Coordinate system code</dt><dd>{_dashboard._esc(src.get('wkid','—'))}</dd>
-<dt>Parcel map layer</dt><dd>{_dashboard._esc(src.get('parcel_layer_name','Direct layer'))}</dd>
-<dt>Mapped extent</dt><dd><code>{_dashboard._esc(src.get('spatial_extent','Not reported'))}</code></dd>
-<dt>Last checked</dt><dd>{_dashboard._format_time_pair(provenance.get('observed_at') or src.get('checked_at'))}</dd>
-<dt>Publisher modified</dt><dd>{_dashboard._esc(provenance.get('publisher_modified') or 'Not reported')}</dd>
-<dt>Data last updated by publisher</dt><dd>{_dashboard._format_time_pair(fresh['data_updated_at']) if fresh['data_updated_at'] else 'Not reported'}</dd>
-<dt>Data freshness</dt><dd>{_dashboard._esc(_DATA_STATE_LABELS[fresh['state']])}{f" · {fresh['age_days']} days old" if fresh['age_days'] is not None else ''} · expected within {fresh['expected_days']} days ({_dashboard._esc(_DATA_BASIS_LABELS[fresh['basis']])})</dd>
-<dt>Source address</dt><dd><code>{_dashboard._esc(provenance.get('source_url') or src.get('url'))}</code></dd>
-<dt>Structure comparison ID</dt><dd><code>{_dashboard._esc(src.get('schema_hash'))}</code></dd>
-<dt>Observation comparison ID</dt><dd><code>{_dashboard._esc(src.get('observation_fingerprint'))}</code></dd>
-</dl></div></details></div><br>
-<div class="card"><h2>Check history</h2><span class="subtext">Recent retained observations for this source.</span><table class="history-table"><thead><tr><th>Last checked</th><th>Status</th><th>Records</th><th>Changes found</th><th>Response time</th></tr></thead><tbody>{history_rows}</tbody></table></div>"""
-    return _dashboard._layout(page_title(src.get("name") or source_id), body, csrf_token=str(config.get("_csrf_token") or ""))
+
+def _source_table(rows: list[str], options: str) -> str:
+    return f'''<section class="card" id="datasets"><h2>Data sources</h2><p>Last recorded results, with check timing shown separately. Access permissions do not follow from a successful check.</p>
+<div class="filters"><input id="q" type="search" aria-label="Search source names, providers and IDs" placeholder="Search sources, providers or IDs…"><select id="cat" aria-label="Filter source category"><option value="">All categories</option>{options}</select>
+<select id="health" aria-label="Filter check result"><option value="">All check results</option><option value="ok">Passed</option><option value="warn">Needs attention</option><option value="error">Failed</option><option value="unknown">Unknown</option><option value="paused">Paused</option><option value="awaiting-permission">Awaiting permission</option></select>
+<select id="check-timing" aria-label="Filter check timing"><option value="">All check times</option><option value="recent">Recent</option><option value="overdue">Overdue</option><option value="unknown">Time unavailable</option></select>
+<select id="source-sort" aria-label="Sort sources"><option value="priority">Needs attention first</option><option value="name">Source name</option><option value="oldest">Oldest check first</option><option value="success">Oldest success first</option></select><button type="button" id="source-clear">Clear filters</button></div>
+<p id="source-results" role="status"></p><table class="ops-table" id="source-list"><thead><tr><th>Data source</th><th>Provided by / type</th><th>Latest check result</th><th>Last known records / change</th><th>Days since change detected</th><th>Recent observations passed</th><th>Response time</th><th>Check times</th></tr></thead><tbody>{"".join(rows)}</tbody></table><p id="source-empty" hidden>No sources match these filters.</p></section>
+{SCRIPT_TAG}(function(){{const ids=['q','cat','health','check-timing'],controls=ids.map(id=>document.getElementById(id)),sort=document.getElementById('source-sort'),body=document.querySelector('#source-list tbody');function filterRows(){{const[q,c,h,t]=controls.map(e=>e.value.toLowerCase());const rows=[...body.rows];rows.sort((a,b)=>sort.value==='name'?a.dataset.name.localeCompare(b.dataset.name):['oldest','success'].includes(sort.value)?(Date.parse(a.dataset[sort.value==='success'?'success':'last'])||0)-(Date.parse(b.dataset[sort.value==='success'?'success':'last'])||0):Number(a.dataset.priority)-Number(b.dataset.priority)||a.dataset.name.localeCompare(b.dataset.name));let n=0;rows.forEach(r=>{{body.append(r);const show=(!q||r.dataset.search.includes(q))&&(!c||r.dataset.category.toLowerCase()===c)&&(!h||r.dataset.status===h)&&(!t||r.dataset.timing===t);r.hidden=!show;if(show)n++}});document.getElementById('source-results').textContent=n+' of '+rows.length+' sources shown';document.getElementById('source-empty').hidden=n>0}}controls.forEach(e=>e.addEventListener(e.tagName==='SELECT'?'change':'input',filterRows));sort.addEventListener('change',filterRows);document.getElementById('source-clear').addEventListener('click',()=>{{controls.forEach(e=>e.value='');sort.value='priority';filterRows();controls[0].focus();window.watchtowerRefresh?.save()}});filterRows()}})();</script>'''

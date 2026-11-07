@@ -29,7 +29,7 @@ class PublicDashboardTests(unittest.TestCase):
         about = page_text(page)
         self.assertIn(f"{PRODUCT_NAME} is an open-source ClearParcel project", about)
         self.assertIn("county access research", about)
-        self.assertIn("Minnesota GAC field-population insights", page)
+        self.assertIn("data completeness results", page)
         self.assertIn("Disclaimer:", page)
         self.assertIn('href="https://github.com/clearparcel/GIS-Data-Watchtower"', page)
         self.assertIn('rel="noopener noreferrer"', page)
@@ -53,16 +53,16 @@ class PublicDashboardTests(unittest.TestCase):
         state['workers'] = {'local': {'checked_at': recent, 'last_report_at': recent, 'source_count': 2, 'overall': 'error'}}
         with patch('clearparcel.datawatch.public_dashboard._dashboard_state', return_value=state):
             page = render_public_dashboard({'_public_mode': True})
-        self.assertIn('Latest provider check in this snapshot', page)
+        self.assertIn('Latest source check', page)
         self.assertIn('2 days ago', page)
-        self.assertIn('Source reporting: 2 overdue', page)
+        self.assertIn('Source checks: 2 overdue', page)
         self.assertIn('Reporting on time', page)
-        self.assertEqual(metric(page, 'Last successful provider check'), '—')
-        self.assertIn('does not check GIS providers again', page)
+        self.assertEqual(metric(page, 'Last successful source check'), '—')
+        self.assertIn('without running a new source check', page)
         state['sources'] = {'missing': {'checked_at': None}, 'invalid': {'checked_at': 'invalid'}}
         with patch('clearparcel.datawatch.public_dashboard._dashboard_state', return_value=state):
             page = render_public_dashboard({'_public_mode': True})
-        self.assertIn('Source reporting: 0 overdue · 2 without a check time', page_text(page))
+        self.assertIn('Source checks: 0 overdue · 2 without a check time', page_text(page))
 
     def test_feedback_mandatory_map_research_brand_and_record_format(self):
         from unittest.mock import patch
@@ -75,7 +75,7 @@ class PublicDashboardTests(unittest.TestCase):
             county_page = render_county({'_public_mode': True}, 'olmsted')
             index = render_counties({'_public_mode': True})
         self.assertIn('"pct": 80', page)
-        self.assertIn('Mandatory-field population', page)
+        self.assertIn('Required fields filled', page)
         self.assertIn('87/87 counties researched', page)
         self.assertIn('87/87 counties researched', index)
         self.assertIn('Open parcel data', index)
@@ -93,7 +93,7 @@ class PublicDashboardTests(unittest.TestCase):
                     return_value={'sources': {'x': {'name': 'X', 'feature_count': value, 'field_count': value}}}):
                 page = render_public_source({}, 'x')
                 self.assertIn('Records</div><div class="metric">' + expected + '</div>', page)
-                self.assertIn('Information fields</dt><dd>' + expected + '</dd>', page)
+                self.assertIn('Data fields available</dt><dd>' + expected + '</dd>', page)
 
     def test_overview_labels_publication_reporting_separately_from_source_health(self):
         from unittest.mock import patch
@@ -101,17 +101,17 @@ class PublicDashboardTests(unittest.TestCase):
         state['public_published_at'] = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=2)).isoformat()
         with patch.dict('os.environ', {'WATCHTOWER_PUBLIC_MAX_PUBLICATION_AGE_SECONDS': '1800'}), patch('clearparcel.datawatch.public_dashboard._dashboard_state', return_value=state):
             page = render_public_dashboard({'_public_mode': True})
-        self.assertIn('Public publication reporting: Overdue', page)
+        self.assertIn('Dashboard update status: Overdue', page)
         self.assertIn('complete county profiles', page)
-        self.assertIn('Healthy', page)
+        self.assertIn('Source responding', page)
         self.assertIn('/api/county-profile?', page)
         with patch('clearparcel.datawatch.dashboard._dashboard_state', return_value=state):
             self.assertIn('complete county profiles', render_counties({'_public_mode': True}))
         with patch.dict('os.environ', {'WATCHTOWER_PUBLIC_MAX_PUBLICATION_AGE_SECONDS': '86400'}), patch('clearparcel.datawatch.public_dashboard._dashboard_state', return_value=state):
-            self.assertIn('Public publication reporting: Current', render_public_dashboard({'_public_mode': True}))
+            self.assertIn('Dashboard update status: Current', render_public_dashboard({'_public_mode': True}))
         state['public_published_at'] = None
         with patch('clearparcel.datawatch.public_dashboard._dashboard_state', return_value=state):
-            self.assertIn('Public publication reporting: Unknown', render_public_dashboard({'_public_mode': True}))
+            self.assertIn('Dashboard update status: Unknown', render_public_dashboard({'_public_mode': True}))
 
     def test_overview_labels_follow_selected_map_view(self):
         from unittest.mock import patch
@@ -120,7 +120,7 @@ class PublicDashboardTests(unittest.TestCase):
         with patch('clearparcel.datawatch.public_dashboard._dashboard_state', return_value=state):
             page = render_public_dashboard({'_public_mode': True})
         initial = re.search(r'<p id="home-county-detail">(.*?)</p>', page).group(1)
-        self.assertIn('differing direct-feed schemas', initial)
+        self.assertIn('available parcel data, source checks, and completeness results', initial)
         self.assertNotIn('population across', initial)
         self.assertIn('function monitoringLabel(paths)', page)
         self.assertIn('function updateDescription()', page)
@@ -128,11 +128,11 @@ class PublicDashboardTests(unittest.TestCase):
         self.assertIn('selectedPath=path', page)
         self.assertIn('updateDescription();', page)
         self.assertIn('const monitoring=selector.value==="monitoring"', page)
-        self.assertIn('No active parcel monitoring path', page)
-        self.assertIn('MN GAC / open-data status', page)
+        self.assertIn('No parcel source currently checked', page)
+        self.assertIn('Data availability and standards', page)
         self.assertIn('No confirmed open parcel data', page)
         self.assertIn('Open-data status unresolved', page)
-        self.assertIn('MN GAC all-field population', page)
+        self.assertIn('Completeness across all standard fields', page)
         self.assertIn('fill(d&&d.all_pct)', page)
         self.assertIn('across all 91', page)
         self.assertLess(page.index('id="county-coverage-all"'), page.index('id="county-coverage-mandatory"'))
@@ -163,7 +163,7 @@ class PublicDashboardTests(unittest.TestCase):
             self.assertIn('id="home-county-infographics"', page)
             self.assertIn("e.key==='Enter'||e.key===' '", page)
             self.assertNotIn('http-equiv="refresh"', page)
-            self.assertTrue("public publication" in page.lower())
+            self.assertTrue("dashboard updated" in page.lower())
 
     def test_no_statewide_observation_still_has_all_county_targets(self):
         import re
@@ -392,15 +392,15 @@ class PublicDashboardTests(unittest.TestCase):
             self.assertIn("summary-v2", page)
             self.assertIn("Explore Minnesota GIS data", page)
             self.assertIn("Counties with parcel observations", page)
-            self.assertIn("Dataset/service entries monitored", page)
+            self.assertIn("Data sources monitored", page)
             text = page_text(page)
-            self.assertIn("entries, not counties or unique providers", text)
-            self.assertIn("One statewide source can cover many counties", text)
+            self.assertIn("Some sources cover multiple counties.", text)
+            self.assertIn("One statewide source may include many counties", text)
             self.assertIn("2/87", page)
-            self.assertIn("2 via MnGeo open parcels", page)
-            self.assertIn("1 via county-direct sources", page)
+            self.assertIn("2 through MnGeo", page)
+            self.assertIn("1 directly from counties", page)
             self.assertIn('id="mngac-map"', page)
-            self.assertIn("PUBLIC · READ ONLY", page)
+            self.assertIn("Public · read only", page)
             self.assertNotIn('class="sidebar"', page)
 
     def test_public_source_marks_data_sources_tab_active(self):
@@ -419,7 +419,7 @@ class PublicDashboardTests(unittest.TestCase):
                 "_public_mode": True,
             }
             page = render_public_source(config, "county-parcels-direct")
-            self.assertRegex(page, r'class="active" aria-current="page"><span class="tab-long">Data Sources</span><span class="tab-short">Sources</span></a>')
+            self.assertRegex(page, r'class="active" aria-current="page">Data sources</a>')
             self.assertIn("Data Source — County Parcels", page)
 
     def test_public_overview_uses_v2_shell_and_interactive_map(self):
@@ -511,7 +511,7 @@ class PublicDashboardTests(unittest.TestCase):
                 "_public_mode": True,
             }
             page = render_public_source(config, "county-parcels-direct")
-            self.assertIn('<a href="/#datasets" class="active" aria-current="page"><span class="tab-long">Data Sources</span>', page)
+            self.assertIn('<a href="/#datasets" class="active" aria-current="page">Data sources</a>', page)
             self.assertNotIn(raw["sources"]["county-parcels-direct"]["checked_at"], page)
 
     def test_county_editor_link_is_private_and_requires_a_safe_https_url(self):
@@ -519,7 +519,7 @@ class PublicDashboardTests(unittest.TestCase):
         with patch.dict("os.environ", {"WATCHTOWER_COUNTY_ADMIN_URL": url}):
             private = _layout("Private dashboard", "", static=False)
             self.assertEqual(private.count(f'href="{url}"'), 2)
-            self.assertIn("repeat(6,minmax(0,1fr))", private)
+            self.assertIn("repeat(5,minmax(0,1fr))", private)
             for bundle in (False, True):
                 self.assertNotIn(url, _layout("Public dashboard", "", static=True, static_bundle=bundle))
         for unsafe in ("", "http://county-editor.example.org/", "javascript:alert(1)",
@@ -549,13 +549,13 @@ class PublicDashboardTests(unittest.TestCase):
                 "_public_mode": True,
             }
             page = render_counties(config)
-            self.assertIn("Minnesota county dashboards", page)
-            self.assertIn("Monitoring coverage", page)
-            self.assertIn("Parcel data access", page)
-            self.assertIn("Research: Fee-based parcel data", page)
-            self.assertIn("Statewide open access", page)
+            self.assertIn("Find a county", page)
+            self.assertIn("Check status", page)
+            self.assertIn("Data from the county", page)
             self.assertIn("Fee-based parcel data", page)
-            self.assertIn("Available free through MnGeo Plan Parcels Open", page)
+            self.assertIn("Free statewide copy", page)
+            self.assertIn("Fee-based parcel data", page)
+            self.assertIn("Available free through MnGeo", page)
             self.assertNotIn('<form method="post" action="/refresh"', page)
 
     def test_county_detail_separates_monitoring_from_parcel_access_research(self):
@@ -574,8 +574,8 @@ class PublicDashboardTests(unittest.TestCase):
                 "_public_mode": True,
             }
             page = render_county(config, "winona")
-            self.assertIn("Monitoring coverage", page)
-            self.assertIn("Monitoring path", page)
+            self.assertIn("Check status", page)
+            self.assertIn("Source used for checks", page)
             self.assertIn("MnGeo Plan Parcels Open", page)
             self.assertIn("Parcel dataset access", page)
             self.assertIn("County-direct access:", page)
@@ -597,9 +597,9 @@ class PublicDashboardTests(unittest.TestCase):
         with patch("clearparcel.datawatch.dashboard._dashboard_state", return_value=public):
             mngac = render_mngac({"_public_mode": True}, view="statewide")
         # Two parcel entries cover two counties, including overlap; imagery adds an entry only.
-        self.assertEqual(metric(overview, 'Dataset/service entries monitored'), '3')
+        self.assertEqual(metric(overview, 'Data sources monitored'), '3')
         self.assertEqual(metric(overview, 'Counties with parcel observations'), '2/87')
-        self.assertIn("2 via MnGeo open parcels · 1 via county-direct sources · 1 via both · each county counted once",
+        self.assertIn("2 through MnGeo · 1 directly from counties · 1 through both. Each county counted once.",
                       page_text(overview))
         for page in (overview, mngac):
             self.assertIn(f"<h1>{PRODUCT_NAME}</h1>", page)
