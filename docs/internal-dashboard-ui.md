@@ -41,6 +41,10 @@ start provider checks. The footer shows application version/build and whether
 the dashboard is view-only. An ordinary writable local dashboard retains its
 existing separately controlled **Check now** action.
 
+The next-release review fix also preserves the pause choice and open sections
+when returning through a link to a particular recorded change. Linked evidence
+opens after the saved preferences are restored.
+
 ## Measurements and downloads
 
 Source pages show relevant checks. A measured zero is retained; absent metrics
@@ -48,6 +52,11 @@ say **Not checked** or **Unavailable** without a misleading unit suffix.
 Publisher data age stays unknown when there is no valid publisher update time.
 Trends state units, date range and retained-observation counts, leaving gaps
 unconnected. Retained observations are not an uptime/service guarantee.
+
+The next-release count-date fix uses the measurement's check time even when that
+check reports a data-quality failure. A retained count after a failed request or
+backoff has an Unavailable observation time when its date cannot be established;
+the last successful check remains a separate fact.
 
 **Downloads** is a page, rather than an immediate global workbook download.
 The page menu labels **All monitoring data**, **This county** or **This source**

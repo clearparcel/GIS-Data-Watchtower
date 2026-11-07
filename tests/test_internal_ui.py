@@ -15,6 +15,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from clearparcel.datawatch import dashboard
+from clearparcel.datawatch.aggregate import merge_states
 from clearparcel.datawatch.dashboard_activity import change_events, render_change_list, source_snapshot, MAX_CHANGES
 from clearparcel.datawatch.dashboard_source import measurement
 from clearparcel.datawatch.dashboard_terms import render_terms_body
@@ -75,6 +76,39 @@ class InternalUiTests(unittest.TestCase):
             self.assertEqual(measurement(value, '%'), 'Not checked')
         self.assertEqual(measurement(0, '%'), '0%')
         self.assertEqual(measurement(15.25, '%'), '15.25%')
+
+    def test_record_count_observation_time_survives_a_quality_failure(self):
+        first = '2026-11-05T12:00:00Z'
+        latest = '2026-11-06T12:00:00Z'
+        state = {}
+        for stamp, count, status, problems in ((first, 100, 'ok', []),
+                                               (latest, 90, 'error', ['Required field missing'])):
+            source = {'name': 'Invented source', 'status': status, 'feature_count': count,
+                      'checked_at': stamp, 'problems': problems}
+            report = {'generated_at': stamp, 'overall': status, 'sources': {'sample': source}}
+            state = merge_states(state, report, 'cloud')
+        self.assertEqual(state['sources']['sample']['last_success_at'], first)
+        page = dashboard.render_source({**self.config, '_render_state': state}, 'sample')
+        observed = page.split('<dt>Record count observed</dt><dd>', 1)[1].split('</dd>', 1)[0]
+        self.assertIn(latest.replace('Z', '+00:00'), observed)
+        self.assertNotIn(first.replace('Z', '+00:00'), observed)
+        self.assertIn('>90</div>', page)
+
+    def test_retained_or_unmeasured_counts_have_no_invented_observation_time(self):
+        cases = [
+            {'status': 'error', 'error': 'Request failed'},
+            {'status': 'error', 'rate_limited': True},
+            {'status': 'ok', 'deferred': {'reason': 'provider-rate-limit'}},
+            {'status': 'unknown'},
+            {'status': 'ok', 'feature_count': None},
+        ]
+        for extra in cases:
+            with self.subTest(extra=extra):
+                src = {**self.source, 'error': None, 'category': 'Parcels', **extra}
+                state = {**self.state, 'sources': {'sample': src}}
+                page = dashboard.render_source({**self.config, '_render_state': state}, 'sample')
+                observed = page.split('<dt>Record count observed</dt><dd>', 1)[1].split('</dd>', 1)[0]
+                self.assertEqual(observed, 'Unavailable')
 
     def test_attention_precedes_sources_and_navigation_has_all_destinations(self):
         page = dashboard.render_dashboard(self.config)
@@ -205,6 +239,49 @@ window.watchtowerRefresh.pause();assert.equal(timers.size,0);console.log('OK')})
         self.assertIn('1.0 – 3.0 s', page)
         self.assertNotIn('nan', dashboard._svg_sparkline([1, float('nan'), 3, float('inf')]))
         self.assertIn('10.0 s', dashboard._svg_sparkline([10, 10], unit='s'))
+
+    def test_refresh_initialization_does_not_overwrite_saved_pause_and_sections(self):
+        if not shutil.which('node') and os.environ.get('WATCHTOWER_REQUIRE_NODE') != '1':
+            self.skipTest('Node required for executable refresh-controller regression')
+        from clearparcel.datawatch.dashboard_refresh import _SCRIPT
+        harness = r"""
+const assert=require('node:assert/strict'),events={},store=new Map(),timers=new Map();let nextTimer=0;
+const key='watchtower-view:/source?id=sample';
+const saved={userPaused:true,q:'invented',details:['source-technical'],scroll:120};
+store.set(key,JSON.stringify(saved));
+function dispatch(type){for(const listener of events[type]||[])listener({type})}
+const detail={id:'source-technical',tagName:'DETAILS',open:false};
+const change={id:'source-change-details',tagName:'DETAILS',open:false};
+const pause={id:'refresh-pause',dataset:{},addEventListener(){}};
+const input={id:'q',tagName:'INPUT',value:'',dataset:{},addEventListener(){},
+ dispatchEvent(){dispatch('toggle')}}; // A disclosure changes while controls are restored.
+const nodes={'source-technical':detail,'source-change-details':change,'refresh-pause':pause,q:input};
+global.location={pathname:'/source',search:'?id=sample',hash:'#change-example'};
+global.window={scrollY:0,scrollTo(){},addEventListener(){}};
+global.sessionStorage={getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)};
+global.document={hidden:false,activeElement:null,getElementById:id=>nodes[id]||null,
+ querySelectorAll:s=>s.startsWith('details')?[detail,change]:[],
+ querySelector:()=>null,addEventListener:(type,fn)=>(events[type]??=[]).push(fn)};
+global.setTimeout=(fn,delay)=>{timers.set(++nextTimer,{fn,delay});return nextTimer};
+global.clearTimeout=id=>timers.delete(id);
+"""
+        scenario = r"""
+// A deep link opens a disclosure while the page is still being parsed.
+change.open=true;dispatch('toggle');
+assert.deepEqual(JSON.parse(store.get(key)),saved);
+dispatch('DOMContentLoaded');
+assert.equal(window.watchtowerRefresh.paused(),true);
+assert.equal(pause.textContent,'Resume refresh');assert.equal(timers.size,0);
+assert.equal(input.value,'invented');assert.equal(detail.open,true);assert.equal(change.open,true);
+dispatch('toggle');
+const restored=JSON.parse(store.get(key));assert.equal(restored.userPaused,true);
+assert.deepEqual(restored.details,['source-technical','source-change-details']);
+console.log('OK');
+"""
+        controller = _SCRIPT.replace('__DELAY__', '30000').replace('__PUBLIC__', 'false')
+        result = subprocess.run(['node', '-e', harness + controller + scenario], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.strip(), 'OK')
 
 
 if __name__ == '__main__':
