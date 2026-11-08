@@ -452,6 +452,9 @@ class _PublicStateCache:
         self._directory_lock = threading.Lock()
         self._directory_value = {}
         self._directory_read_at = None
+        self.directory_failed = False
+        self._research = None
+        self._research_digest = None
         self.object_name = os.environ.get("WATCHTOWER_AGGREGATE_OBJECT", "aggregate-state.json")
         self.refresh_seconds = max(5, min(int(os.environ.get("WATCHTOWER_PUBLIC_REFRESH_SECONDS", "30")), 300))
         self._last_refresh = 0.0
@@ -546,9 +549,17 @@ class _PublicStateCache:
             return {}
         with self._directory_lock:
             now = time.monotonic()
-            if self._directory_read_at is None or now - self._directory_read_at >= self.directory_refresh_seconds:
-                self._directory_value = read_public_directory(self.directory_storage)
+            interval = max(5, self.directory_refresh_seconds) if self.directory_failed else self.directory_refresh_seconds
+            if self._directory_read_at is None or now - self._directory_read_at >= interval:
                 self._directory_read_at = now
+                try:
+                    self._directory_value = read_public_directory(self.directory_storage)
+                    self.directory_failed = False
+                except Exception:
+                    self.directory_failed = True
+                    raise
+            if self.directory_failed:
+                raise OSError("county directory refresh unavailable")
             return self._directory_value
 
     @staticmethod
@@ -592,8 +603,14 @@ class _PublicStateCache:
         """Capture an immutable state/profile/summary bundle for one request."""
         with self._export_lock:
             state_bytes = self.public_path.read_bytes()
-            research = load_parcel_access()
-            key = hashlib.sha256(state_bytes + json.dumps(research, sort_keys=True).encode()
+            # Bundled research is immutable for the lifetime of this application
+            # process. Keep this private to the cache; load_parcel_access callers
+            # elsewhere still receive their own mutable documents.
+            if self._research is None:
+                self._research = load_parcel_access()
+                self._research_digest = hashlib.sha256(json.dumps(self._research, sort_keys=True).encode()).digest()
+            research = self._research
+            key = hashlib.sha256(state_bytes + self._research_digest
                                  + json.dumps(application_identity(), sort_keys=True).encode()
                                  + json.dumps(self.config, sort_keys=True).encode()
                                  + _freshness_bucket()).hexdigest()
@@ -730,6 +747,13 @@ def serve_public(host: str = "0.0.0.0", port: int = 8080, *, county_directory_ro
                     cache.refresh()
                     state = strict_json.loads(cache.public_path.read_text(encoding="utf-8"))
                     healthy, payload = _publication_health(state, max_age_seconds=max_publication_age_seconds)
+                    if directory_enabled:
+                        try:
+                            cache.directory()
+                            payload["directory_status"] = "available"
+                        except storage_errors:
+                            healthy = False
+                            payload.update(status="unavailable", directory_status="unavailable")
                     if cache.stale:
                         healthy = False
                         payload = {**payload, "status": "stale", "refresh_failed": True}
@@ -787,7 +811,10 @@ def serve_public(host: str = "0.0.0.0", port: int = 8080, *, county_directory_ro
             if parsed.path == "/api/state":
                 return self._send(200, cache.public_path.read_text(encoding="utf-8"), "application/json; charset=utf-8")
             if parsed.path in ("/county-profiles.csv", "/parcel-sources.csv"):
-                snap = cache.snapshot()
+                try:
+                    snap = cache.snapshot()
+                except storage_errors:
+                    return self._send(503, "Snapshot temporarily unavailable.", "text/plain; charset=utf-8")
                 profiles = {row["parcel_source_profile"]["county"]["slug"]: row["parcel_source_profile"] for row in snap["counties"]}
                 export = county_profiles_csv if parsed.path == "/county-profiles.csv" else parcel_sources_csv
                 return self._send(200, export(profiles), "text/csv; charset=utf-8")

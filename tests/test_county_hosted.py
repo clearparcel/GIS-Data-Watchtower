@@ -235,6 +235,7 @@ class ScannerStartupTests(unittest.TestCase):
                 serve_county_scanner()
             create.assert_not_called()
 
+    @unittest.skipUnless(importlib.util.find_spec("requests"), "hosted transport dependency required")
     def test_transport_allows_startup_and_still_bounds_response(self):
         from unittest.mock import MagicMock
         session = MagicMock()

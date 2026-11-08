@@ -4,14 +4,14 @@
 
 This file applies to the entire GIS Data Watchtower repository.
 
-- Authoritative machine: **GERTKEN-PC**.
-- Authoritative repository: `C:\Users\sgert\source\repos\GIS-Data-Watchtower`.
-- Do **not** use `DESKTOP-FVRB1SB` for Watchtower work.
+- Operational authority is the owner-designated Watchtower workstation and checkout.
+- Resolve its device and checkout from the private operational inventory before remote work; never guess or use another device.
+- The current operator retains the mapping outside Git under `%LOCALAPPDATA%/ClearParcel/Watchtower/operational-workstation.json` on that workstation. This change does not transfer operational authority.
 - Treat the checked-out branch, `STATUS.md`, `docs/current-status.md`, and current GitHub state as the operational source of truth.
 - Preserve existing dirty work. Before editing, inspect `git status`, the current branch, and recent commits.
 
 Codex Cloud may perform repository coding, offline tests, documentation, and
-synthetic dashboard previews. GERTKEN-PC remains the authoritative operational
+synthetic dashboard previews. The designated workstation remains the authoritative operational
 machine. Follow [the cloud development guide](docs/codex-cloud-development.md).
 Cloud setup must use synthetic data and local storage, without production
 credentials, private registries, provider polling, or authoritative scheduling.

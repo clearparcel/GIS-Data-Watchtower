@@ -1,5 +1,27 @@
 # Project status
 
+## v0.5.1 review corrections — candidate, 2026-11-08
+
+The candidate fixes enrolled destination validation, corrupt private snapshot
+replacement, public-directory outage retries/exports, LAN authentication,
+attachment metadata read amplification and missing save actor records. It caches
+editor summaries and bundled public research, reconciles current documentation,
+removes the personal checkout exemption and consolidates timestamp parsing.
+Validation and production promotion are tracked in the
+[release record](docs/release-v0.5.1.md). Production remains v0.5.0 until verified
+promotion. See [review disposition](docs/review-remediation-v0.5.1.md) for retained
+feature work and historical evidence.
+
+## Enrolled source destination validation — candidate, 2026-11-08
+
+A follow-up fix restricts county-editor checks to validated public IPv4/IPv6
+destinations, including initial requests, derived count URLs, redirects and
+curl fallback. Address pinning preserves Host/TLS checks; effective proxies
+fail closed for enrolled sources. Operator-configured sources keep their
+existing network settings. Synthetic regression coverage exercises private and
+mixed DNS answers, pinning and adapter-context cleanup. This fix is not deployed.
+See the [source monitoring guide](docs/county-source-monitoring.md#public-destination-checks-pending-release).
+
 ## v0.5.0 coordinated release — deployed, 2026-11-07
 
 The public and internal dashboards, county editor, regular cloud worker and
@@ -103,12 +125,13 @@ The public dashboard was deployed November 6, 2026. Live Aitkin page, index,
 map profile, and JSON/CSV/Excel/PDF checks passed; its saved directory and the
 monitoring snapshot were unchanged. See the [release record](docs/release-v0.4.1.md).
 
-## Scanner readiness fix — candidate
+## Scanner readiness — historical evidence reconciled, 2026-11-08
 
-The candidate waits for a successful ClamAV readiness scan before accepting
-HTTP traffic and allows the editor scan request to cover cold startup.
-Staging verified startup ordering and clean/encrypted PDF verdicts.
-Production promotion remains pending.
+The November 6 record retained on PR #213 states that the startup fix was
+promoted and that clean/encrypted PDF checks and authentication checks passed.
+Its exact historical source is preserved in the
+[v0.4.0 record](docs/release-v0.4.0.md). This reconciles the stale candidate label;
+it does not claim a new live acceptance test on November 8.
 
 ## v0.4.0 county directory and administration
 

@@ -7,13 +7,14 @@ import http.client
 import io
 import json
 import os
+import socket
 import tempfile
 import threading
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from clearparcel.datawatch import cli, watch
+from clearparcel.datawatch import cli, transport, watch
 from clearparcel.datawatch.aggregate import merge_states
 from clearparcel.datawatch.cloud_job import publish_worker_result
 from clearparcel.datawatch.county_admin import create_county_admin_server
@@ -88,6 +89,40 @@ class CountyMonitoringTests(unittest.TestCase):
             node[location[-1]] = replacement
             with self.subTest(location=location, replacement=replacement), self.assertRaises(ValueError):
                 build_county_monitoring_sources(self.county, value)
+
+    def test_enrolled_file_and_layer_reject_private_dns_before_dispatch(self):
+        addresses = ((socket.AF_INET, socket.SOCK_STREAM, 6, "", ("127.0.0.1", 443)),)
+        for revision, kind in enumerate(("direct_rest", "direct_download"), 1):
+            self.registry.replace_county(self.county, draft(kind=kind), revision=revision)
+            with (self.subTest(kind=kind),
+                  patch.object(watch, "resolve_addresses", return_value=addresses),
+                  patch.object(transport.socket, "socket") as sock,
+                  patch.object(watch.urllib.request, "build_opener") as opener,
+                  patch.object(watch.subprocess, "run") as curl):
+                report = watch.check_sources(config(self.root), save=False, execution_profile="cloud")
+            row, = report["sources"].values()
+            self.assertEqual(row["status"], "error")
+            self.assertIn("destination is not public", row["error"])
+            self.assertFalse(watch._PUBLIC_SOURCE_REQUESTS.get())
+            sock.assert_not_called()
+            opener.assert_not_called()
+            curl.assert_not_called()
+
+    def test_enrolled_layer_count_keeps_public_destination_boundary(self):
+        self.registry.replace_county(self.county, draft(), revision=1)
+        public = ((socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", 443)),)
+        private = ((socket.AF_INET6, socket.SOCK_STREAM, 6, "", ("fd00::1", 443, 0, 0)),)
+        with (patch.object(watch, "resolve_addresses", side_effect=[public, private]) as resolve,
+              patch.object(watch, "_urllib_request_once", return_value=(b'{"fields": []}', {"status": 200})) as request,
+              patch.object(watch.subprocess, "run") as curl):
+            report = watch.check_sources(config(self.root), save=False, execution_profile="cloud")
+        row, = report["sources"].values()
+        self.assertEqual(row["status"], "error")
+        self.assertIn("destination is not public", row["error"])
+        self.assertEqual(resolve.call_count, 2)
+        request.assert_called_once()
+        self.assertEqual(request.call_args.args[0].addresses, public)
+        curl.assert_not_called()
 
     def test_county_holds_and_stop_decisions_remain_authoritative(self):
         for decision in ({"decision": "hold-for-terms"}, {"decision": "not-appropriate"},

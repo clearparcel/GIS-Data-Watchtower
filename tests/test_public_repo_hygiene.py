@@ -22,8 +22,8 @@ FORBIDDEN = {
     "Cloud Storage bucket": re.compile(r"\bgs://(?!<)[a-z0-9][a-z0-9._-]{2,62}"),
     "user profile path": re.compile(r"(?:\b[A-Za-z]:(?:\\\\|\\|/)Users(?:\\\\|\\|/)|/Users/|/home/)(?!<|%)[A-Za-z0-9._-]+(?:\\\\|\\|/)"),
 }
-# AGENTS.md names the owner's authoritative checkout on purpose; allow exactly that line.
-ALLOWED_LINES = {("AGENTS.md", "user profile path"): ("- Authoritative repository: `",)}
+# Public instructions have no exception for personal workstation paths.
+ALLOWED_LINES = {}
 
 
 def tracked_files():
@@ -95,9 +95,9 @@ class PublicRepoHygieneTests(unittest.TestCase):
         for placeholder in PLACEHOLDERS:
             self.assertEqual(scan("sample.md", placeholder), [], placeholder)
 
-    def test_agents_allowance_covers_only_the_authoritative_checkout_line(self):
+    def test_agents_has_no_personal_checkout_exception(self):
         line = _sample("- Authoritative repository: `C:", "\\Users\\someone\\source\\repos\\X`.")
-        self.assertEqual(scan("AGENTS.md", line), [])
+        self.assertTrue(scan("AGENTS.md", line))
         self.assertTrue(scan("AGENTS.md", _sample("Another path: C:", "\\Users\\someone\\x")))
 
 

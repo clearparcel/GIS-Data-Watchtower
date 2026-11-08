@@ -8,6 +8,7 @@ import json
 import re
 import secrets
 import threading
+import time
 from http.server import BaseHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import parse_qs
@@ -66,8 +67,17 @@ def create_county_admin_server(store: CountyDirectoryStore, *, port: int, userna
     drafts = packaged_county_drafts(counties)
     assets = {route: (Path(__file__).with_name(name).read_bytes(), content_type)
               for route, (name, content_type) in _ASSETS.items()}
+    directory_lock = threading.Lock()
+    directory_cache = {"value": None, "read_at": 0.0}
 
     def directory():
+        with directory_lock:
+            if directory_cache["value"] is None or time.monotonic() - directory_cache["read_at"] >= 30:
+                directory_cache["value"] = read_directory()
+                directory_cache["read_at"] = time.monotonic()
+            return directory_cache["value"]
+
+    def read_directory():
         summary = []
         for county in sorted(counties.values(), key=lambda county: county["name"]):
             stored = store.read_private(county).draft
@@ -115,13 +125,14 @@ def create_county_admin_server(store: CountyDirectoryStore, *, port: int, userna
                 return False
             if hosted_auth is not None:
                 try:
-                    self._csrf = hosted_auth.authorize(self._one("X-Goog-IAP-JWT-Assertion"))
+                    identity = hosted_auth.authorize_identity(self._one("X-Goog-IAP-JWT-Assertion"))
                 except OSError:
                     self._send(503, {"status": "identity_unavailable"})
                     return False
-                if self._csrf is None:
+                if identity is None:
                     self._send(403, {"status": "authentication_required"})
                     return False
+                self._csrf, self._actor = identity
                 return True
             authorization = self._one("Authorization") or ""
             if authorization.startswith("Basic "):
@@ -131,6 +142,7 @@ def create_county_admin_server(store: CountyDirectoryStore, *, port: int, userna
                     credentials = b""
                 if hmac.compare_digest(credentials, expected):
                     self._csrf = token
+                    self._actor = "local:" + username
                     return True
             self._send(401, {"status": "authentication_required"})
             return False
@@ -374,6 +386,7 @@ def create_county_admin_server(store: CountyDirectoryStore, *, port: int, userna
                     attachments.validate_refs(county["fips"], refs)
                 receipt = store.save(county, body["draft"], expected_revision=body["expected_revision"],
                                      request_id=body["request_id"],
+                                     actor=self._actor,
                                      before_save=lambda revision: monitoring_store.prepare_removals(
                                          county, body["draft"], revision=revision))
             except CountyRevisionConflict:
@@ -390,6 +403,8 @@ def create_county_admin_server(store: CountyDirectoryStore, *, port: int, userna
             except backend_failures:
                 self._send(503, {"status": "storage_unavailable"})
                 return
+            with directory_lock:
+                directory_cache["value"] = None
             if receipt.publication_revision is None:
                 monitoring_status, monitoring_count = self._sync_monitoring(county)
                 self._send(200, {"status": "saved_private", "revision": receipt.revision,

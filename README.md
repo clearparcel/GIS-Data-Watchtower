@@ -8,9 +8,13 @@
 
 **[Explore the live public dashboard](https://gis-watchtower.clear-parcel.com/)** · **[User guide](docs/user-guide.md)** · **[Documentation index](docs/README.md)**
 
+**Source version: v0.5.1.** See the [release checklist](docs/release-v0.5.1.md).
+
 The public dashboard, internal dashboard and county editor run **v0.5.0**,
 deployed November 7, 2026. The regular cloud worker and public publisher use the
 same release. See the [release record](docs/release-v0.5.0.md).
+A follow-up [destination validation fix](docs/county-source-monitoring.md#public-destination-checks-pending-release)
+for editor-enrolled source checks is pending release.
 The [internal UI guide](docs/internal-dashboard-ui.md) describes attention lists, saved changes, reading-safe updates, terms filters and scoped downloads.
 The release includes the review fixes for paused refresh and record-count
 observation dates. See [STATUS.md](STATUS.md) for each surface’s release state.
@@ -118,20 +122,15 @@ Developers can use the [documentation index](docs/README.md), [contribution guid
 
 ## Releases and project status
 
-The current production release is **v0.3.7** on the public and private
-dashboards (deployed October 23, 2026); the provider and public-publisher jobs
-remain on **v0.3.6** (deployed October 20). Each component's current release
-record lists its images, revisions and rollback targets.
-The footer displays only the version number; the About section explains
-the open-source ClearParcel mission, disclaimer, and GitHub link.
+The opening release summary and [release policy](docs/release-policy.md) identify
+current deployment and downloadable release state. The footer displays only the
+version number; build provenance stays in release records.
 
-- **[v0.3.7 dashboard release](docs/release-v0.3.7.md)** — current dashboard images, revisions, and rollback to v0.3.6 revisions
-- **[v0.3.6 coordinated release](docs/release-v0.3.6.md)** — current provider and publisher job images
-- **[Validated operational status](STATUS.md)** — current monitoring and remaining gates
-- **[GitHub releases](https://github.com/clearparcel/GIS-Data-Watchtower/releases)** — versioned summaries; the latest published there is v0.2.2, so the release records above are authoritative for v0.3.x
-- **[Documentation index](docs/README.md)** — user guides, methodology, engineering references and dated history
-- **[Original v0.2.0 release](docs/archive/release-v0.2.0.md)** and
-  **[October 11 correction](docs/archive/release-county-percentage-fix-2026-10-11.md)** — retained history
+- **[Validated operational status](STATUS.md)** — monitoring and remaining gates
+- **[GitHub releases](https://github.com/clearparcel/GIS-Data-Watchtower/releases)** — downloadable versions and release summaries
+- **[Documentation index](docs/README.md)** — current guidance and dated history
+
+Historical notes below describe their dated releases, not current traffic.
 
 Earlier merged PR #69 static-output/provider retry corrections also ship in
 the v0.2.2 application image. The coordinated v0.2.2 release updated both
