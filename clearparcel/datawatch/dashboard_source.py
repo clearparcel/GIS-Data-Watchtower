@@ -26,6 +26,22 @@ def duration(value) -> str:
     return measurement(value / 1000, " s") if value >= 1000 else measurement(value, " ms")
 
 
+def record_count_time(source: dict):
+    """Date a measured count only when this record establishes its provenance.
+
+    Quality errors can accompany a new count. Request failures and backoff can
+    instead carry older values; last_success_at does not date those measurements.
+    """
+    if measurement(source.get("feature_count"), missing="") == "":
+        return None
+    if source.get("error") or source.get("rate_limited") or source.get("deferred"):
+        return None
+    status = source.get("status")
+    if status in {"ok", "warn"} or status == "error" and source.get("problems"):
+        return source.get("checked_at")
+    return None
+
+
 def check_timing(source: dict) -> str:
     if source.get("stale") or source.get("worker_stale") or source.get("reporting") == "stale":
         return "Check or monitoring report overdue"
@@ -73,7 +89,7 @@ def render_source(config: dict, source_id: str) -> str:
     reliability = measurement(stats.get("success_rate"), "%", missing="Not enough history")
     data_age = {"current": "Within expected update interval", "stale": "Publisher data may be old", "unknown": "Publisher update time unavailable"}[fresh["state"]]
     record_card = f'<div class="card"><div class="muted">Last known record count</div><div class="metric">{esc(count)}</div><span class="subtext">Retained count; its observation time is shown below. The latest attempt may be newer.</span></div>' if type(src.get("feature_count")) in (int, float) or category in {"Parcels", "Roads", "Addresses", "Flood", "Wetlands"} else ''
-    count_observed = f'<dt>Record count observed</dt><dd>{compact_time(src.get("last_success_at") if result == "error" else src.get("checked_at"))}</dd>' if record_card else ''
+    count_observed = f'<dt>Record count observed</dt><dd>{compact_time(record_count_time(src))}</dd>' if record_card else ''
     body = f'''<nav class="breadcrumb" aria-label="Breadcrumb"><a href="/">Overview</a> / <a href="/sources">Data sources</a> / {esc(src.get("name") or source_id)}</nav>
 <h2>{esc(src.get("name") or source_id)}</h2>{issue}
 <div class="grid primary-grid"><div class="card"><div class="muted">Latest check result</div><div class="metric {dashboard._status_class(result)}">{esc(result_label)}</div><p class="subtext">{esc(check_timing(src))}</p></div>

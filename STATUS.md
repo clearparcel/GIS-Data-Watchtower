@@ -1,5 +1,15 @@
 # Project status
 
+## Internal UI review fixes — prepared, 2026-11-07
+
+The candidate preserves paused refresh and open sections when a change link
+returns to a source. Saved preferences are restored before disclosure events
+can persist state, and linked evidence opens after restoration. A count measured
+during a failed quality check uses that observation's time; retained counts with
+no trustworthy measurement time show Unavailable. These fixes follow the two
+independent v0.4.3 review findings and await merge and release.
+See the [fix handoff](docs/ai/handoffs/2026-11-07-internal-ui-review-fixes.md).
+
 ## Internal UI v0.4.3 — deployed, 2026-11-07
 
 The internal dashboard was updated from merged source
