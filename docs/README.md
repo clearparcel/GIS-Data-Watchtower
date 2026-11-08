@@ -2,7 +2,7 @@
 
 Choose the path that matches what you want to do. For the live dashboard and a concise introduction, start with the [project README](../README.md).
 
-- [Internal dashboard UI candidate](internal-dashboard-ui.md) — internal navigation, saved evidence, terms and downloads.
+- [Internal dashboard UI guide](internal-dashboard-ui.md) — internal navigation, saved evidence, terms and downloads.
 
 ## Visitors, county staff, and GIS researchers
 

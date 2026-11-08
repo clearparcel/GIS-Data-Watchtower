@@ -51,3 +51,12 @@ this UI task's scope.
 - No independent model review has been requested or performed. An independent
   review can be requested against the pinned PR head when CCE is available;
   neither review nor this UI implementation authorizes merge or deployment.
+
+## Deployment update
+
+PR #223 merged this implementation as part of source
+`81807110dca882a57fed7d7f3acf7449badc7946`. The internal dashboard was deployed
+as v0.4.3 on November 7, 2026, after owner merge/deployment approval. Release
+preparation resolved the inherited container-scan blocker; main CI and image
+acceptance passed. The owner confirmed the updated signed-in UI. See the
+[release record](../../release-v0.4.3.md) for scope and verification limits.
