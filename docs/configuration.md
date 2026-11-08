@@ -351,6 +351,10 @@ A wildcard/public bind fails closed without a password. For Internet exposure, p
   own temporary directory, removed when the run ends)
 - `WATCHTOWER_EXECUTION_PROFILE`
 - `WATCHTOWER_AGGREGATE_OBJECT`
+- `WATCHTOWER_COUNTY_MONITORING_BUCKET` or `WATCHTOWER_COUNTY_MONITORING_ROOT`
+  (optional provider worker input for the county editor's private enrollment
+  object; configure only one). See [county source monitoring](county-source-monitoring.md)
+  for the required object-scoped permission and separate public/private boundaries.
 
 GCS support requires the `gcs` package extra.
 

@@ -12,6 +12,7 @@ from clearparcel.datawatch.county_directory import project_public_county
 from clearparcel.datawatch.county_directory_seed import packaged_county_drafts
 from clearparcel.datawatch.county_directory_store import CountyDirectoryStore, read_public_directory
 from clearparcel.datawatch.county_profiles import county_identities
+from clearparcel.datawatch.county_monitoring import CountyMonitoringStore
 from clearparcel.datawatch.storage import LocalStorage
 
 
@@ -141,6 +142,32 @@ class CountyAdminTests(unittest.TestCase):
         private_change["draft"]["correspondence"][0]["subject"] = "Changed private note"
         status, result = self.json_request("POST", path, private_change, headers)
         self.assertEqual((status, result["status"]), (200, "saved_private"))
+
+    def test_monitoring_removal_survives_failed_publication_and_old_save_replay(self):
+        headers = self.get_mutation_headers()
+        payload = self.apply_payload()
+        payload["draft"]["access"] = {"parcel_polygons": {"classification": "open",
+            "restrictions": {"status": "reviewed_none"}, "methods": [{"kind": "direct_rest",
+                "url": "https://example.gov/arcgis/rest/services/Parcels/FeatureServer/0", "scope": "County parcels",
+                "evidence_date": "2026-11-07", "monitoring": {"enabled": True, "execution_profile": "cloud",
+                    "terms_url": "https://example.gov/terms", "terms_reviewed_on": "2026-11-07", "terms_confirmed": True,
+                    "county_permission": {"reply": "permitted", "scope": "details-and-count", "received_on": "2026-11-07",
+                        "reference": "SYNTHETIC_PRIVATE_REFERENCE"}}}]}}
+        route = "/api/counties/aitkin"
+        self.assertEqual(self.json_request("POST", route, payload, headers)[0], 200)
+        registry = CountyMonitoringStore(self.store._private)
+        self.assertEqual(len(registry.read_sources()), 1)
+        newer = json.loads(json.dumps(payload))
+        newer.update(expected_revision=1, request_id="disable-monitoring")
+        newer["draft"]["access"]["parcel_polygons"]["methods"][0]["monitoring"]["enabled"] = False
+        newer["draft"]["policy"]["text"] = "Changed public text"
+        self.public.unavailable = True
+        status, receipt = self.json_request("POST", route, newer, headers)
+        self.assertEqual((status, receipt["status"], receipt["monitoring_status"]), (202, "pending", "current"))
+        self.assertEqual(registry.read_sources(), [])
+        self.json_request("POST", route, payload, headers)
+        self.assertEqual(registry.read_sources(), [])
+        self.assertEqual(self.store.read_private(county_identities()["aitkin"]).revision, 2)
 
     def test_invalid_save_returns_safe_field_hints_without_writing(self):
         payload = self.apply_payload()

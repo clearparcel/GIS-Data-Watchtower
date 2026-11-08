@@ -2404,6 +2404,13 @@ def _check_sources_unlocked(
     state_path = Path(config["state_file"])
     previous_state = load_state(state_path)
     previous_sources = previous_state.get("sources", {})
+    for previous in previous_sources.values():
+        if previous.get("monitoring_review"):
+            registry_revision = config.get("_county_monitoring_counties", {}).get(previous.get("county_slug"))
+            if registry_revision is None or registry_revision < previous.get("county_monitoring_revision", 0):
+                # An absent/rolled-back registry is not an administrator's
+                # removal. Refuse a fleet report that could retire those rows.
+                raise ValueError("county monitoring registry is missing or older than the saved enrollment")
     run_started = dt.datetime.now(dt.timezone.utc)
     now = run_started.isoformat()
     records = {}
@@ -2430,6 +2437,9 @@ def _check_sources_unlocked(
         if any(host in rate_limits for host in hosts):
             # A provider asked us to back off: make no request to that host.
             records[source["id"]] = _deferred_record(source, previous_sources.get(source["id"]), now)
+            if review := CountyPermission.public_review(source):
+                records[source["id"]]["monitoring_review"] = review
+                records[source["id"]]["county_monitoring_revision"] = source["_county_monitoring_revision"]
             continue
         rate_limited = False
         started = dt.datetime.now(dt.timezone.utc)
@@ -2579,6 +2589,19 @@ def _check_sources_unlocked(
             records[source["id"]]["error"] = _RATE_LIMITED_MESSAGE
             if "gac_check_error" in records[source["id"]]:
                 records[source["id"]]["gac_check_error"] = _RATE_LIMITED_MESSAGE
+        if review := CountyPermission.public_review(source):
+            records[source["id"]]["monitoring_review"] = review
+            records[source["id"]]["county_monitoring_revision"] = source["_county_monitoring_revision"]
+    if not filtered and execution_profile:
+        configured_ids = {source.get("id") for source in config.get("sources", []) if isinstance(source, dict)}
+        for source_id, previous in previous_sources.items():
+            registry_revision = config.get("_county_monitoring_counties", {}).get(previous.get("county_slug"))
+            if (previous.get("monitoring_review") and source_id not in configured_ids
+                    and registry_revision is not None
+                    and registry_revision >= previous.get("county_monitoring_revision", 0)):
+                # The county editor removed or reassigned this private registry
+                # entry. Tell the worker aggregate this specific retirement was intentional.
+                skipped_sources.setdefault(source_id, "disabled")
     counts = {
         status: sum(1 for x in records.values() if x["status"] == status)
         for status in ("ok", "warn", "error")
@@ -2606,7 +2629,10 @@ def _check_sources_unlocked(
     identity = runtime_identity(config)
     # An operator may deliberately drain a worker's inventory (worker
     # migration/retirement); otherwise an empty run is an error.
-    allow_shrink = os.environ.get("WATCHTOWER_ALLOW_INVENTORY_SHRINK") == "1"
+    enrollment_drain = (bool(execution_profile) and not filtered and not records and bool(previous_sources)
+                        and all(previous.get("monitoring_review") and skipped_sources.get(sid) == "disabled"
+                                for sid, previous in previous_sources.items()))
+    allow_shrink = os.environ.get("WATCHTOWER_ALLOW_INVENTORY_SHRINK") == "1" or enrollment_drain
     # A filter that matched nothing is an empty run too; only an explicit
     # fleet drain may report no sources.
     empty_run = not records and not (allow_shrink and not source_filter)
@@ -2801,6 +2827,7 @@ def check_sources(
     execution_profile: str | None = None,
     rate_limit_sink=None,
 ) -> dict:
+    config = _load_county_monitoring_sources(config)
     # Before any lock, provider request or state write.
     validate_source_registry(config.get("sources", []))
     _validate_dispatch_options(config, "configuration", _CONFIG_DISPATCH_OPTIONS)
@@ -2812,6 +2839,33 @@ def check_sources(
     finally:
         _RATE_LIMIT_SINK.reset(sink_token)
         _RUN_BLOCKED_HOSTS.reset(token)
+
+
+def _load_county_monitoring_sources(config: dict) -> dict:
+    """Load the separate private admin registry before validating or checking sources."""
+    bucket = os.environ.get("WATCHTOWER_COUNTY_MONITORING_BUCKET", "").strip()
+    root = os.environ.get("WATCHTOWER_COUNTY_MONITORING_ROOT", "").strip()
+    if bucket and root:
+        raise ValueError("configure only one county monitoring registry location")
+    enrolled, counties = [], {}
+    if bucket or root:
+        from clearparcel.datawatch.county_monitoring import CountyMonitoringStore
+        from clearparcel.datawatch.storage import GCSStorage, LocalStorage
+        storage = GCSStorage(bucket) if bucket else LocalStorage(root)
+        enrolled, counties = CountyMonitoringStore(storage).read_registry()
+    configured = config.get("sources", [])
+    if not isinstance(configured, list):
+        raise InvalidSourceRegistryError("source registry 'sources' must be a list")
+    # Only the validated private enrollment object can grant source permission.
+    # JSON configuration and observed state cannot imitate its approval leaves.
+    ordinary = [{key: value for key, value in source.items()
+                 if key not in {"monitoring_approval", "monitoring_review", "_county_monitoring_revision"}}
+                if isinstance(source, dict) else source for source in configured]
+    loaded = {**config, "sources": [*ordinary, *enrolled]}
+    loaded.pop("_county_monitoring_counties", None)
+    if bucket or root:
+        loaded["_county_monitoring_counties"] = counties
+    return loaded
 
 
 def _check_sources(

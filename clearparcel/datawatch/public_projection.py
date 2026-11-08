@@ -63,6 +63,15 @@ def _worker_name(value: object) -> str | None:
     return value if isinstance(value, str) and value in _PUBLIC_WORKERS else None
 
 
+def _monitoring_review(value: object) -> dict | None:
+    if (not isinstance(value, dict) or value.get("status") != "approved"
+            or value.get("scope") != "details-and-count"
+            or not isinstance(value.get("mode"), str)
+            or value["mode"] not in {"file-update-metadata", "service-details-and-count"}):
+        return None
+    return {"status": "approved", "scope": "details-and-count", "mode": value["mode"]}
+
+
 def _records(value: object) -> dict:
     return value if isinstance(value, dict) else {}
 
@@ -76,6 +85,7 @@ _SOURCE_SCHEMA = {
         'duplicate_id_extra_rows', 'null_geometry_count')},
     **{key: _public_number for key in ('geometry_sample_multipart_percent', 'geometry_sample_avg_vertices', 'elapsed_ms')},
     'status': _public_status,
+    'monitoring_review': _monitoring_review,
     'gac_check_status': _public_status,
     'catalog_observed_at': _public_date,
     **{key: lambda value: value if type(value) is bool else None

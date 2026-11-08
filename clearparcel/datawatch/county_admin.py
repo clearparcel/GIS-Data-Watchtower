@@ -13,6 +13,7 @@ from pathlib import Path
 from urllib.parse import parse_qs
 
 from .county_attachments import CountyAttachments, MAX_ATTACHMENT_BYTES, draft_attachment_refs
+from .county_monitoring import CountyMonitoringStore, build_county_monitoring_sources
 from .county_directory_store import CountyDirectoryStore, CountyRevisionConflict, PublicationStatus
 from .county_directory_seed import packaged_county_drafts
 from .county_admin_validation import editor_validation_errors
@@ -44,7 +45,8 @@ def _status_payload(status: PublicationStatus) -> dict:
 
 def create_county_admin_server(store: CountyDirectoryStore, *, port: int, username: str | None = None,
                                password: str | None = None, attachments: CountyAttachments | None = None,
-                               hosted_auth=None, scanner=None, backend_errors=()):
+                               hosted_auth=None, scanner=None, monitoring_store: CountyMonitoringStore | None = None,
+                               backend_errors=()):
     if hosted_auth is None and (not username or ":" in username or not password):
         raise ValueError("County administration requires a username and password")
     if hosted_auth is not None and (username is not None or password is not None):
@@ -54,6 +56,7 @@ def create_county_admin_server(store: CountyDirectoryStore, *, port: int, userna
     scan_slots = threading.BoundedSemaphore(2)
     store_failures = _STORE_FAILURES + backend_errors
     backend_failures = (OSError, StorageConflictError) + backend_errors
+    monitoring_store = monitoring_store or CountyMonitoringStore(store._private)
     counties = county_identities()
     drafts = packaged_county_drafts(counties)
     assets = {route: (Path(__file__).with_name(name).read_bytes(), content_type)
@@ -155,7 +158,10 @@ def create_county_admin_server(store: CountyDirectoryStore, *, port: int, userna
             county, publication = target
             try:
                 if publication:
-                    body = _status_payload(store.publication_status(county))
+                    status = store.publication_status(county)
+                    monitoring_status, monitoring_count = self._sync_monitoring(county)
+                    body = {**_status_payload(status), "monitoring_status": monitoring_status,
+                            "monitoring_source_count": monitoring_count}
                 else:
                     private = store.read_private(county)
                     body = {"county": county, "revision": private.revision,
@@ -297,19 +303,36 @@ def create_county_admin_server(store: CountyDirectoryStore, *, port: int, userna
         def _publish(self, county, receipt=None):
             body = {} if receipt is None else {"revision": receipt.revision,
                                                "target_revision": receipt.publication_revision}
+            monitoring_status, monitoring_count = self._sync_monitoring(county)
+            body.update(monitoring_status=monitoring_status, monitoring_source_count=monitoring_count)
             try:
                 status = store.publish(county)
             except store_failures:
                 self._send(202, {**body, "status": "pending"})
                 return
             if receipt is None:
-                self._send(202 if status.target_revision and not status.confirmed else 200, _status_payload(status))
+                self._send(202 if status.target_revision and not status.confirmed else 200,
+                           {**_status_payload(status), "monitoring_status": monitoring_status,
+                            "monitoring_source_count": monitoring_count})
                 return
             published = status.published_revision
             requested = receipt.publication_revision
             outcome = "superseded" if published > requested else "published" if published == requested else "pending"
             self._send(202 if outcome == "pending" else 200,
-                       {**body, "status": outcome, "public_revision": published})
+                       {**body, "status": outcome, "public_revision": published,
+                        "monitoring_status": monitoring_status,
+                        "monitoring_source_count": monitoring_count})
+
+        def _sync_monitoring(self, county):
+            try:
+                private = store.read_private(county)
+                if private.draft is None:
+                    return "current", 0
+                return "current", monitoring_store.replace_county(county, private.draft, revision=private.revision)
+            except store_failures:
+                # A durable private save owns enrollment, including removals,
+                # even when public publication needs a retry. Never poll here.
+                return "pending", None
 
         def do_POST(self):
             if not self._authorized():
@@ -337,6 +360,7 @@ def create_county_admin_server(store: CountyDirectoryStore, *, port: int, userna
                 return
             try:
                 refs = draft_attachment_refs(body["draft"])
+                build_county_monitoring_sources(county, body["draft"])
                 if refs:
                     if attachments is None:
                         raise ValueError
@@ -353,7 +377,10 @@ def create_county_admin_server(store: CountyDirectoryStore, *, port: int, userna
                 self._send(503, {"status": "storage_unavailable"})
                 return
             if receipt.publication_revision is None:
-                self._send(200, {"status": "saved_private", "revision": receipt.revision})
+                monitoring_status, monitoring_count = self._sync_monitoring(county)
+                self._send(200, {"status": "saved_private", "revision": receipt.revision,
+                                 "monitoring_status": monitoring_status,
+                                 "monitoring_source_count": monitoring_count})
             else:
                 self._publish(county, receipt)
 

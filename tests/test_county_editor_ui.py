@@ -32,17 +32,17 @@ class CountyEditorUiTests(unittest.TestCase):
         source = (Path(__file__).resolve().parents[1] / "clearparcel/datawatch/county_admin.js").read_text(encoding="utf-8")
         harness = r'''
 const assert=require('node:assert/strict'),vm=require('node:vm');
-const nodes=new Map(),listeners=new Map(),calls=[];let confirmResult=false,failList=false,failSave=false;
-function node(){return {key:'',disabled:false,hidden:false,value:'',textContent:'',children:[],dataset:{},files:[],scrollTop:0,
+const nodes=new Map(),listeners=new Map(),calls=[];let confirmResult=false,failList=false,failSave=false,saveResult={status:'published',revision:2};
+function node(){return {key:'',disabled:false,hidden:false,value:'',textContent:'',children:[],dataset:{},files:[],scrollTop:0,handlers:{},
  append(c){this.children.push(c)},replaceChildren(){this.children=[]},querySelectorAll(){return[]},
  setAttribute(){},removeAttribute(){},focus(){},scrollIntoView(){},
- addEventListener(type,fn){listeners.set(this.key+':'+type,fn)}}}
+ addEventListener(type,fn){this.handlers[type]=fn;listeners.set(this.key+':'+type,fn)}}}
 for(const key of ['#editor','#fields','#counties','#county-search','#status','#save-status','#retry','#apply','#discard','#errors','.editor-scroll','#review','#change-summary','#county-results','#clear-search','#refresh-directory','.county-search']){const n=node();n.key=key;nodes.set(key,n)}
 const sandbox={document:{querySelector:key=>nodes.get(key),querySelectorAll:()=>[],createElement:()=>node(),getElementById:()=>null},
  window:{addEventListener(){}},matchMedia:()=>({matches:false,addEventListener(){}}),Intl,Map,Set,URL,URLSearchParams,structuredClone,queueMicrotask,
  crypto:{randomUUID:()=>String(calls.length)},setTimeout(){},clearTimeout(){},confirm(){return confirmResult},
  fetch:async(path,options)=>{calls.push({path,method:options?.method||'GET',payload:options?.body&&JSON.parse(options.body)});
- if(options?.method==='POST'){if(failSave){failSave=false;throw Error('Ambiguous write')}return {status:200,json:async()=>({status:'published',revision:2})}}
+ if(options?.method==='POST'){if(failSave){failSave=false;throw Error('Ambiguous write')}return {status:200,json:async()=>saveResult}}
  if(failList)throw Error('County list refresh failed');
  return {status:200,json:async()=>({counties:[],csrf_token:'synthetic-csrf'})};}};
 vm.createContext(sandbox);vm.runInContext(SOURCE,sandbox);
@@ -91,6 +91,30 @@ assert.ok(rows.some(r=>r.value==='PRIVATE_NOTE'&&r.private));
 assert.ok(rows.some(r=>r.value==='Public'&&!r.private));
 assert.ok(!JSON.stringify(rows.map(r=>({label:r.label,value:r.value}))).includes('PRIVATE_FILE_ID'));
 assert.ok(!JSON.stringify(rows).includes('NEVER_DISPLAY'));
+''')
+
+    def test_direct_source_controls_render_and_keep_permission_review_private(self):
+        self.run_ui(r'''
+vm.runInContext(`draft.access={parcel_polygons:{classification:'open',restrictions:{status:'reviewed_none'},methods:[{
+ kind:'direct_rest',url:'https://example.gov/rest/services/Parcels/FeatureServer/0',scope:'County',evidence_date:'2026-11-07',
+ monitoring:{enabled:true,execution_profile:'cloud',terms_url:'https://example.gov/terms',terms_reviewed_on:'2026-11-07',terms_confirmed:true,
+ county_permission:{reply:'permitted',scope:'details-and-count',received_on:'2026-11-07',reference:'PRIVATE_PERMISSION'}}}]} };access();`,sandbox);
+function walk(n){return [n,...(n.children||[]).filter(c=>typeof c==='object').flatMap(walk)]}
+const controls=walk(nodes.get('#fields'));
+assert.ok(controls.some(c=>c.dataset.field==='access.parcel_polygons.methods.0.monitoring.enabled'));
+assert.ok(controls.some(c=>c.dataset.field==='access.parcel_polygons.methods.0.monitoring.county_permission.reference'));
+const rows=JSON.parse(vm.runInContext('JSON.stringify([...reviewRows(draft).values()])',sandbox));
+assert.ok(rows.some(r=>r.value==='PRIVATE_PERMISSION'&&r.private));
+assert.match(vm.runInContext("resultLabel({status:'published',monitoring_status:'pending'})",sandbox),/check setup is pending/);
+''')
+
+    def test_private_enrollment_save_exposes_pending_setup_retry(self):
+        self.run_ui(r'''
+saveResult={status:'saved_private',revision:2,monitoring_status:'pending'};await submit();
+assert.equal(nodes.get('#retry').hidden,false);
+assert.equal(nodes.get('#retry').textContent,'Retry updates');
+assert.match(nodes.get('#save-status').textContent,/Private changes saved/);
+assert.match(nodes.get('#save-status').textContent,/check setup is pending/);
 ''')
 
 

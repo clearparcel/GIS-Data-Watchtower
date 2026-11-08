@@ -17,6 +17,16 @@ summarize access and expand to show their links, verification dates, coverage
 and restrictions. Access information does not grant permission for automated
 monitoring. A statewide copy remains separate from county-direct access.
 
+Direct service and download links include **Regular Watchtower checks**. Choose
+**Include this source in regular checks** after reviewing restrictions, provider
+terms and affirmative county permission, then select its worker. Save records the
+enrollment for the next regular run. Service checks read details and one record
+count; file checks read update headers. Permission references stay private.
+Existing terms holds and county stop decisions remain in force. See the
+[source monitoring guide](county-source-monitoring.md) for supported links,
+save recovery and deployment prerequisites. This prepared feature needs rollout
+before it can change production checks.
+
 **Remove contact** changes the draft. **Undo contact removal** restores the most
 recent removal. **Discard unsaved changes** asks before reloading a saved record.
 Switching counties or leaving the page also protects unsaved work.

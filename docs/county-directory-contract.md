@@ -40,8 +40,12 @@ standards, and evidence in the monitoring/research snapshot. Parcel migration
 must preserve the evidence basis and county-direct scope, including cases
 where a county fee and a separate open MnGeo product coexist. Record uncertain
 items in an import exceptions report. The editor owns its directory fields.
-Packaged research and monitoring retain their existing ownership, including
-permission, terms holds, polling cadence, and worker provenance.
+Packaged research retains its terms holds and county stop decisions. The private
+editor can separately enroll eligible direct methods in regular checks with
+explicit permission evidence; monitoring settings are excluded from the public
+directory. Polling cadence and worker provenance retain their existing ownership.
+See [county source monitoring](county-source-monitoring.md) for the enrollment
+registry, save revisions, bounded adapters and worker access contract.
 
 ## Save and publication
 
