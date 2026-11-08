@@ -66,9 +66,9 @@ timestamp parsing is consolidated without removing compatibility aliases.
   walkthrough is claimed: the staging route required Google sign-in.
 - No additional provider run or scheduler change occurred. Automatic approval
   review rejected a manual publisher execution because it would republish
-  authoritative data; it was not performed. The deployed publisher image is verified
-  through its configuration; a new execution will be observed on the existing
-  schedule.
+  authoritative data; it was not performed. The existing scheduled publisher
+  subsequently completed successfully on the verified v0.5.1 image; no manual
+  invocation or schedule change was needed.
 
 Previous service revisions and job image references remain available for rollback.
 Private artifacts, operational settings and detailed verification records stay

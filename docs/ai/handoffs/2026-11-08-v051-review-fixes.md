@@ -35,3 +35,6 @@ verification limits. Manual publisher execution was rejected by automatic approv
 review and was not performed; no provider job was invoked. Historical draft PRs
 #209/#213 were closed, six obsolete branch tips archived before ref retirement,
 and the fee feature retained as deferred.
+
+The next normal scheduled publisher execution completed successfully on the
+verified v0.5.1 image. No manual invocation or schedule modification was made.

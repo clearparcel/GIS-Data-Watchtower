@@ -16,7 +16,7 @@ Actual staging storage verified bounded attachment reads and private atomic audi
 records. Staging browser access required Google sign-in, so no authenticated
 browser walkthrough is claimed. No extra provider run was made. Manual publisher
 execution was rejected by automatic approval review and was not performed;
-verification uses deployment state and the existing schedule.
+the existing scheduled publisher subsequently completed successfully on v0.5.1.
 
 The fixes cover enrolled DNS destinations, corrupt private state, directory
 outages, LAN authentication, save attribution and redundant storage/research work.
