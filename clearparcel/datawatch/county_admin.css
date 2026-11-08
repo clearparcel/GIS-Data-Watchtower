@@ -244,6 +244,21 @@ legend {
   padding: 0.6rem 0 0.2rem 1rem;
   margin: 0.5rem 0 1rem;
 }
+.monitoring-options {
+  border: 1px solid #c3d0db;
+  border-radius: 0.4rem;
+  padding: 0.8rem 1rem;
+  margin: 0.8rem 0;
+  background: #f6f9fb;
+}
+.monitoring-options > summary {
+  font-weight: 650;
+  cursor: pointer;
+}
+.monitoring-options > fieldset {
+  border-top: 1px solid #d7e0e7;
+  padding-top: 0.8rem;
+}
 .method-meta {
   max-width: 52rem;
 }

@@ -68,7 +68,7 @@ class CountyPermission:
                      "gac_completeness", "mngac_completeness")
     # Skip reasons a fleet report may treat as deliberate coverage, alongside
     # the existing disabled and execution-profile skips.
-    COVERAGE_SKIPS = frozenset({"hold-for-terms", "awaiting-permission", "stop-requested"})
+    COVERAGE_SKIPS = frozenset({"hold-for-terms", "not-appropriate", "awaiting-permission", "stop-requested"})
     # Adapters that, once EXTRA_QUERIES are removed, request only service
     # metadata, capabilities, a file header or one record count. Anything else
     # (for example the county catalog adapter, which reads feature attributes)
@@ -200,11 +200,38 @@ class CountyPermission:
     @staticmethod
     def _is_limited(source: dict, permission: dict | None) -> bool:
         """details-and-count applies to this source's server (see ``constrain``)."""
+        permission = CountyPermission._effective_for_source(source, permission)
         return bool(permission and not permission.get("stop_requested")
                     and (permission.get("scope") == "details-and-count"
                          or (permission.get("terms_decision") == "candidate-low-frequency"
                              and permission.get("check_scope") == "details-and-count"))
                     and (CountyPermission.is_county_operated(source) or CountyPermission.is_county_agol_service(source)))
+
+    @staticmethod
+    def public_review(source: dict) -> dict | None:
+        """Expose only an approved check scope; keep evidence and references private."""
+        source = source or {}
+        approval = source.get("monitoring_approval") or source.get("monitoring_review")
+        if not isinstance(approval, dict) or approval.get("status") != "approved" or approval.get("scope") != "details-and-count":
+            return None
+        mode = approval.get("mode")
+        if not isinstance(mode, str) or mode not in {"file-update-metadata", "service-details-and-count"}:
+            adapter = CountyPermission._adapter(source)
+            mode = "file-update-metadata" if adapter == "http_file" else "service-details-and-count"
+        return {"status": "approved", "scope": "details-and-count", "mode": mode}
+
+    @staticmethod
+    def _effective_for_source(source: dict, permission: dict | None) -> dict | None:
+        """Add a source-specific approval without overriding a county hold or stop."""
+        if not CountyPermission.public_review(source):
+            return permission
+        if permission and (permission.get("terms_decision") in {"hold-for-terms", "not-appropriate"}
+                           or permission.get("stop_requested")
+                           or permission.get("reply") in {"declined", "stop"}
+                           or permission.get("scope") == "none"):
+            return permission
+        return {**(permission or {}), "reply": "permitted", "scope": "details-and-count",
+                "check_scope": "details-and-count"}
 
     @staticmethod
     def skip_reason(source: dict, permission: dict | None) -> str | None:
@@ -215,11 +242,15 @@ class CountyPermission:
         operates. ``stop_requested`` also covers a direct query of the county's
         own ArcGIS Online hosted feature or map service.
         """
+        permission = CountyPermission._effective_for_source(source, permission)
         slug = str((source or {}).get("county_slug") or "").strip()
         if not slug:
             return None
         if permission and permission.get("terms_decision") == "hold-for-terms" and CountyPermission.is_county_direct(source):
             return "hold-for-terms"
+        if (permission and permission.get("terms_decision") == "not-appropriate"
+                and CountyPermission.public_review(source) and CountyPermission.is_county_direct(source)):
+            return "not-appropriate"
         county_server = CountyPermission.is_county_operated(source)
         agol_service = CountyPermission.is_county_agol_service(source)
         if permission and permission.get("stop_requested") and (county_server or agol_service):
@@ -242,6 +273,7 @@ class CountyPermission:
     @staticmethod
     def constrain(source: dict, permission: dict | None) -> dict:
         """Drop queries beyond service metadata and a record count when that is all that's permitted."""
+        permission = CountyPermission._effective_for_source(source, permission)
         if not CountyPermission._is_limited(source, permission):
             return source
         limited = dict(source)
@@ -258,6 +290,8 @@ class CountyPermission:
             return "Checking paused. This county asked Watchtower to stop."
         if permission.get("terms_decision") == "hold-for-terms":
             return "County-direct parcel checks are paused until terms are settled."
+        if permission.get("terms_decision") == "not-appropriate":
+            return "County-direct parcel checks are paused by the current monitoring review."
         if permission.get("scope") == "details-and-count" and permission.get("reply") == "permitted":
             return "Limited check: service details and a record count only."
         if permission.get("terms_decision") == "candidate-low-frequency" and permission.get("check_scope") == "details-and-count":
@@ -272,14 +306,19 @@ class CountyPermission:
         reason = CountyPermission.skip_reason(source, permission)
         if reason == "awaiting-permission":
             return "awaiting-permission"
-        if reason in {"stop-requested", "hold-for-terms"}:
+        if reason in {"stop-requested", "hold-for-terms", "not-appropriate"}:
             return "paused"
         return None
 
     @staticmethod
     def note_for_source(source: dict, permission: dict | None) -> str | None:
+        permission = CountyPermission._effective_for_source(source, permission)
         if CountyPermission.skip_reason(source, permission):
             return CountyPermission.public_note(permission)
+        if review := CountyPermission.public_review(source):
+            if review["mode"] == "file-update-metadata":
+                return "Limited check: file update details only. Watchtower does not download the file."
+            return "Limited check: service details and a record count only."
         if not permission or permission.get("stop_requested") or not str((source or {}).get("county_slug") or "").strip():
             return None
         county_permitted = permission.get("scope") == "details-and-count" and permission.get("reply") == "permitted"

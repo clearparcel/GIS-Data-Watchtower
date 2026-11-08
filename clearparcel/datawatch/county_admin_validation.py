@@ -3,6 +3,8 @@ from __future__ import annotations
 
 from .county_attachments import _event_time
 from .county_directory import DATASETS, _project_contacts, _project_methods, _project_access, _public_fields
+from .county_monitoring import build_county_monitoring_sources
+from .county_profiles import county_identities
 
 
 def editor_validation_errors(draft: object) -> list[dict]:
@@ -60,6 +62,52 @@ def editor_validation_errors(draft: object) -> list[dict]:
                      "restrictions.reviewed_on" if "reviewed_on" in message else
                      "restrictions.url" if "url" in message else "restrictions.text")
             add(f"{base}.{field}", "Check the public note, restriction details, link or review date for this dataset.")
+    try:
+        county = next((item for item in county_identities().values() if item["fips"] == draft.get("fips")), None)
+        if county is not None:
+            build_county_monitoring_sources(county, draft)
+    except ValueError as exc:
+        monitoring_failure = str(exc)
+        access = draft.get("access", {})
+        found_monitoring = False
+        for dataset in DATASETS:
+            data = access.get(dataset, {}) if isinstance(access, dict) else {}
+            for index, method in enumerate(data.get("methods", []) if isinstance(data, dict) else []):
+                monitoring = method.get("monitoring") if isinstance(method, dict) else None
+                if isinstance(monitoring, dict) and monitoring.get("enabled") is True:
+                    path = f"access.{dataset}.methods.{index}.monitoring"
+                    if "terms" in monitoring_failure:
+                        suffix, hint = ".terms_url", "Enter the public provider-terms link, review date, and confirm that regular checks are allowed."
+                        if "terms allow" in monitoring_failure:
+                            suffix, hint = ".terms_confirmed", "Confirm the provider terms allow regular checks."
+                    elif "worker" in monitoring_failure:
+                        suffix, hint = ".execution_profile", "Choose which monitoring worker should run this source."
+                    elif "current monitoring decision" in monitoring_failure:
+                        suffix, hint = ".enabled", "This county's current monitoring review does not allow a new direct check."
+                    elif "asked Watchtower" in monitoring_failure:
+                        suffix, hint = ".enabled", "The county asked Watchtower not to check its direct sources."
+                    elif "permission for service" in monitoring_failure:
+                        suffix, hint = ".county_permission.received_on", "Record the date the county approved this limited check."
+                    elif "county" in monitoring_failure or "permission" in monitoring_failure:
+                        suffix, hint = ".county_permission.reply", "Record affirmative county permission for the limited check, with its date and private response reference."
+                        if "public permission" in monitoring_failure:
+                            suffix, hint = ".county_permission.evidence_url", "Add a public link documenting the county's permission."
+                        elif "private reference" in monitoring_failure:
+                            suffix, hint = ".county_permission.reference", "Add a private reference to the county's permission response."
+                    elif "restrictions" in monitoring_failure:
+                        suffix, hint = ".enabled", "Review the data-use restrictions before enabling regular checks."
+                    elif "open data" in monitoring_failure:
+                        suffix, hint = ".enabled", "Only open data sources can be included in regular checks."
+                    elif "ArcGIS REST" in monitoring_failure or "download link" in monitoring_failure:
+                        path = f"access.{dataset}.methods.{index}"
+                        suffix, hint = ".url", "Use a direct ArcGIS layer link or a direct link to a supported data file."
+                    else:
+                        suffix, hint = ".enabled", "Check the link and regular-check settings for this source."
+                    add(path + suffix, hint)
+                    found_monitoring = True
+                    break
+            if found_monitoring:
+                break
     policy = draft.get("policy", {})
     if isinstance(policy, dict):
         try:

@@ -40,8 +40,12 @@ standards, and evidence in the monitoring/research snapshot. Parcel migration
 must preserve the evidence basis and county-direct scope, including cases
 where a county fee and a separate open MnGeo product coexist. Record uncertain
 items in an import exceptions report. The editor owns its directory fields.
-Packaged research and monitoring retain their existing ownership, including
-permission, terms holds, polling cadence, and worker provenance.
+Packaged research retains its terms holds and county stop decisions. The private
+editor can separately enroll eligible direct methods in regular checks with
+explicit permission evidence; monitoring settings are excluded from the public
+directory. Polling cadence and worker provenance retain their existing ownership.
+See [county source monitoring](county-source-monitoring.md) for the enrollment
+registry, save revisions, bounded adapters and worker access contract.
 
 ## Save and publication
 
@@ -55,6 +59,12 @@ permission, terms holds, polling cadence, and worker provenance.
   write. The same object holds the draft, receipt, and durable desired public
   revision and fingerprint. A private-only change advances only the private
   revision and preserves any pending public intent.
+- The editor supplies a `before_save` hook after validation, replay and revision
+  checks, before the private compare-and-swap. This hook prepares only monitoring
+  removals; failure prevents the new private revision. Additions synchronize
+  after the durable save. Retried receipts skip the hook and reconcile the latest
+  saved draft instead. A conflicting save can conservatively pause a changed
+  check until the winning saved revision reconciles the registry.
 - Store each private county record separately. The sanitized public directory
   uses a separate object from both private storage and the routine monitoring
   aggregate. Each public county entry adds a public revision and publication

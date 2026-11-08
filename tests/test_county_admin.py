@@ -1,17 +1,21 @@
 import base64
 import http.client
 import json
+import os
 import tempfile
 import threading
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
+from clearparcel.datawatch import watch
 from clearparcel.datawatch.county_admin import create_county_admin_server
 from clearparcel.datawatch.county_attachments import CountyAttachments
 from clearparcel.datawatch.county_directory import project_public_county
 from clearparcel.datawatch.county_directory_seed import packaged_county_drafts
 from clearparcel.datawatch.county_directory_store import CountyDirectoryStore, read_public_directory
 from clearparcel.datawatch.county_profiles import county_identities
+from clearparcel.datawatch.county_monitoring import CountyMonitoringStore
 from clearparcel.datawatch.storage import LocalStorage
 
 
@@ -66,6 +70,17 @@ class CountyAdminTests(unittest.TestCase):
             "fips": "27001", "policy": {"text": "Public policy"},
             "correspondence": [{"subject": "PRIVATE_SENTINEL"}],
         }}
+
+    def monitoring_payload(self):
+        payload = self.apply_payload()
+        payload["draft"]["access"] = {"parcel_polygons": {"classification": "open",
+            "restrictions": {"status": "reviewed_none"}, "methods": [{"kind": "direct_rest",
+                "url": "https://example.gov/arcgis/rest/services/Parcels/FeatureServer/0", "scope": "County parcels",
+                "evidence_date": "2026-11-07", "monitoring": {"enabled": True, "execution_profile": "cloud",
+                    "terms_url": "https://example.gov/terms", "terms_reviewed_on": "2026-11-07", "terms_confirmed": True,
+                    "county_permission": {"reply": "permitted", "scope": "details-and-count", "received_on": "2026-11-07",
+                        "reference": "SYNTHETIC_PRIVATE_REFERENCE"}}}]}}
+        return payload
 
     def test_all_reads_and_writes_require_authentication(self):
         for method, path in [("GET", "/"), ("GET", "/api/counties"),
@@ -141,6 +156,58 @@ class CountyAdminTests(unittest.TestCase):
         private_change["draft"]["correspondence"][0]["subject"] = "Changed private note"
         status, result = self.json_request("POST", path, private_change, headers)
         self.assertEqual((status, result["status"]), (200, "saved_private"))
+
+    def test_monitoring_removal_survives_failed_publication_and_old_save_replay(self):
+        headers = self.get_mutation_headers()
+        payload = self.monitoring_payload()
+        route = "/api/counties/aitkin"
+        self.assertEqual(self.json_request("POST", route, payload, headers)[0], 200)
+        registry = CountyMonitoringStore(self.store._private)
+        self.assertEqual(len(registry.read_sources()), 1)
+        newer = json.loads(json.dumps(payload))
+        newer.update(expected_revision=1, request_id="disable-monitoring")
+        newer["draft"]["access"]["parcel_polygons"]["methods"][0]["monitoring"]["enabled"] = False
+        newer["draft"]["policy"]["text"] = "Changed public text"
+        self.public.unavailable = True
+        with patch.object(CountyMonitoringStore, "replace_county", side_effect=OSError("synthetic registry failure")):
+            status, receipt = self.json_request("POST", route, newer, headers)
+        self.assertEqual((status, receipt["status"], receipt["monitoring_status"]), (202, "pending", "pending"))
+        self.assertEqual(registry.read_sources(), [])
+        self.json_request("POST", route, payload, headers)
+        self.assertEqual(registry.read_sources(), [])
+        self.assertEqual(self.store.read_private(county_identities()["aitkin"]).revision, 2)
+
+    def test_explicit_no_permission_cannot_be_enrolled_by_the_editor(self):
+        with patch("clearparcel.datawatch.county_monitoring.load_parcel_access", return_value={
+                "Aitkin": {"monitoring": {"decision": "not-assessed", "scope": "none"}}}):
+            status, receipt = self.json_request("POST", "/api/counties/aitkin", self.monitoring_payload(), self.get_mutation_headers())
+        self.assertEqual((status, receipt["status"]), (400, "invalid_draft"))
+        self.assertEqual(self.store.read_private(county_identities()["aitkin"]).revision, 0)
+
+    def test_conflicting_removal_reconciles_winning_enrollment_before_response(self):
+        headers = self.get_mutation_headers()
+        payload = self.monitoring_payload()
+        self.json_request("POST", "/api/counties/aitkin", payload, headers)
+        losing = json.loads(json.dumps(payload))
+        losing.update(expected_revision=1, request_id="loser")
+        losing["draft"]["access"]["parcel_polygons"]["methods"][0]["monitoring"]["enabled"] = False
+        private = self.store._private
+        original, raced = private.upload_if_version, False
+        def race(name, path, version):
+            nonlocal raced
+            if not raced and "/records/" in name:
+                raced = True
+                self.store.save(county_identities()["aitkin"], payload["draft"], expected_revision=1, request_id="winner")
+            original(name, path, version)
+        with patch.object(private, "upload_if_version", side_effect=race):
+            status, receipt = self.json_request("POST", "/api/counties/aitkin", losing, headers)
+        self.assertEqual((status, receipt["status"], receipt["monitoring_status"]), (409, "revision_conflict", "current"))
+        cfg = {"sources": [], "state_file": str(private.root / "state.json"), "history_file": str(private.root / "history.jsonl")}
+        with patch.dict(os.environ, {"WATCHTOWER_COUNTY_MONITORING_ROOT": str(private.root), "WATCHTOWER_COUNTY_MONITORING_BUCKET": ""}), \
+                patch.object(watch, "_source_check", return_value={"problems": []}) as check:
+            report = watch.check_sources(cfg, save=False, execution_profile="cloud")
+        check.assert_called_once()
+        self.assertEqual(len(report["sources"]), 1)
 
     def test_invalid_save_returns_safe_field_hints_without_writing(self):
         payload = self.apply_payload()

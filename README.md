@@ -38,6 +38,8 @@ county profile PDFs. The [v0.4.0 release record](docs/release-v0.4.0.md) covers
 the public dashboard and the protected production editor.
 The [county editor guide](docs/county-editor-guide.md) describes the prepared
 section navigation, change review, save recovery and private-file workflow.
+The prepared [county source enrollment](docs/county-source-monitoring.md) connects
+reviewed direct links to bounded regular checks and their public results.
 
 ![Live Watchtower overview with source health, county coverage, and a Minnesota county map](docs/images/watchtower-overview.png)
 

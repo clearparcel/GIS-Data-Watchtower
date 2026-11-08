@@ -70,6 +70,22 @@ function status(text, saveText = text) {
   message.textContent = text;
   saveMessage.textContent = saveText;
 }
+function resultLabel(result) {
+  const base = labels[result.status] || "Publication status is unavailable.";
+  if (result.monitoring_status === "pending")
+    return (
+      base + " Regular check setup is pending. Use Retry updates to try again."
+    );
+  if (
+    Number.isInteger(result.monitoring_source_count) &&
+    result.monitoring_source_count > 0
+  )
+    return (
+      base +
+      ` ${result.monitoring_source_count} approved direct ${result.monitoring_source_count === 1 ? "source is" : "sources are"} registered for the next regular check.`
+    );
+  return base;
+}
 async function request(path, payload) {
   const response = await fetch(
     path,
@@ -100,6 +116,21 @@ function button(parent, text, action) {
   const control = node("button", text, parent);
   control.type = "button";
   control.addEventListener("click", action);
+  return control;
+}
+function checkbox(parent, title, checked, field, change) {
+  const label = node("label", undefined, parent);
+  const control = node("input", undefined, label);
+  control.type = "checkbox";
+  control.checked = checked === true;
+  control.id = controlId(field);
+  control.dataset.field = field;
+  control.dataset.label = title;
+  label.append(title);
+  control.addEventListener("change", () => {
+    clearFieldError(control);
+    change(control.checked);
+  });
   return control;
 }
 function help(parent, text) {
@@ -277,6 +308,30 @@ function validate() {
         field: `access.${dataset}.classification`,
         message: "Choose at least one way to access this data.",
       });
+    for (const [index, method] of (data.methods || []).entries()) {
+      const monitor = method.monitoring;
+      if (!monitor?.enabled) continue;
+      if (data.classification !== "open")
+        errors.push({
+          field: `access.${dataset}.classification`,
+          message: "Only open data can be included in regular checks.",
+        });
+      if (data.restrictions?.status !== "reviewed_none")
+        errors.push({
+          field: `access.${dataset}.restrictions.status`,
+          message: "Review the data-use restrictions before enabling checks.",
+        });
+      if (monitor.terms_confirmed !== true)
+        errors.push({
+          field: `access.${dataset}.methods.${index}.monitoring.terms_confirmed`,
+          message: "Confirm the provider terms allow regular checks.",
+        });
+      if (monitor.county_permission?.reply !== "permitted")
+        errors.push({
+          field: `access.${dataset}.methods.${index}.monitoring.county_permission.reply`,
+          message: "Confirm the county approved this limited check.",
+        });
+    }
   }
   showErrors(errors);
   return errors.length === 0;
@@ -376,6 +431,9 @@ function access() {
       wrapper.append(label);
       radio.addEventListener("change", () => {
         data.classification = value;
+        if (value !== "open")
+          for (const method of data.methods)
+            if (method.monitoring) method.monitoring.enabled = false;
         changed();
         render();
         document.getElementById(radio.id)?.focus();
@@ -389,21 +447,35 @@ function access() {
       for (const [kind, label] of Object.entries(methodNames)) {
         const selectedMethod = data.methods.find((m) => m.kind === kind);
         const wrapper = node("label", undefined, methods);
-        const checkbox = node("input", undefined, wrapper);
-        checkbox.type = "checkbox";
-        checkbox.id = dataset + "-" + kind;
-        checkbox.checked = Boolean(selectedMethod);
+        const methodCheckbox = node("input", undefined, wrapper);
+        methodCheckbox.type = "checkbox";
+        methodCheckbox.id = dataset + "-" + kind;
+        methodCheckbox.checked = Boolean(selectedMethod);
         wrapper.append(label);
-        checkbox.addEventListener("change", () => {
-          if (checkbox.checked) data.methods.push({ kind });
+        methodCheckbox.addEventListener("change", () => {
+          if (methodCheckbox.checked) data.methods.push({ kind });
           else data.methods = data.methods.filter((m) => m.kind !== kind);
           changed();
           render();
-          document.getElementById(checkbox.id)?.focus();
+          document.getElementById(methodCheckbox.id)?.focus();
         });
         if (selectedMethod) {
           const card = node("div", undefined, methods);
           card.className = "method-card";
+          selectedMethod.monitoring ??= {
+            enabled: false,
+            execution_profile: "cloud",
+            terms_url: "",
+            terms_reviewed_on: "",
+            terms_confirmed: false,
+            county_permission: {
+              reply: "none",
+              scope: "details-and-count",
+              received_on: "",
+              reference: "",
+              evidence_url: "",
+            },
+          };
           const base = `access.${dataset}.methods.${data.methods.indexOf(selectedMethod)}`;
           input(
             card,
@@ -438,6 +510,140 @@ function access() {
             card,
             "For example: county parcel boundaries, or a statewide copy. Use the date you checked this link.",
           );
+          if (kind === "direct_rest" || kind === "direct_download") {
+            const monitor = selectedMethod.monitoring;
+            const checks = node("details", undefined, card);
+            checks.className = "monitoring-options";
+            node("summary", "Regular Watchtower checks", checks);
+            help(
+              checks,
+              kind === "direct_rest"
+                ? "This check reads the service description and one record count. It does not read parcel records."
+                : "This check reads the file's update headers only. It does not download the file.",
+            );
+            checkbox(
+              checks,
+              "Include this source in regular checks",
+              monitor.enabled,
+              base + ".monitoring.enabled",
+              (value) => {
+                monitor.enabled = value;
+                changed();
+                render();
+                const target = document.getElementById(
+                  controlId(base + ".monitoring.enabled"),
+                );
+                if (target) {
+                  target.closest("details").open = true;
+                  target.focus();
+                }
+              },
+            );
+            if (monitor.enabled) {
+              select(
+                checks,
+                "Check on this worker",
+                { cloud: "Cloud worker", local: "Local worker" },
+                monitor.execution_profile || "cloud",
+                (value) => {
+                  monitor.execution_profile = value;
+                  changed();
+                },
+                base + ".monitoring.execution_profile",
+              );
+              const terms = node("fieldset", undefined, checks);
+              node("legend", "Provider terms review", terms);
+              help(
+                terms,
+                "Record the public terms that allow this limited, recurring check.",
+              );
+              input(
+                terms,
+                "Terms or policy link",
+                monitor,
+                "terms_url",
+                "url",
+                base + ".monitoring.terms_url",
+                true,
+              );
+              input(
+                terms,
+                "Reviewed on",
+                monitor,
+                "terms_reviewed_on",
+                "date",
+                base + ".monitoring.terms_reviewed_on",
+                true,
+              );
+              checkbox(
+                terms,
+                kind === "direct_rest"
+                  ? "I confirmed these terms allow regular service details and record-count checks"
+                  : "I confirmed these terms allow regular file update checks",
+                monitor.terms_confirmed,
+                base + ".monitoring.terms_confirmed",
+                (value) => {
+                  monitor.terms_confirmed = value;
+                  changed();
+                },
+              );
+              const permission = (monitor.county_permission ??= {
+                reply: "none",
+                scope: "details-and-count",
+                received_on: "",
+                reference: "",
+                evidence_url: "",
+              });
+              const consent = node("fieldset", undefined, checks);
+              node("legend", "County permission", consent);
+              help(
+                consent,
+                "The county must agree to this source check. The response reference stays private.",
+              );
+              checkbox(
+                consent,
+                "The county explicitly approved this limited check",
+                permission.reply === "permitted",
+                base + ".monitoring.county_permission.reply",
+                (value) => {
+                  permission.reply = value ? "permitted" : "none";
+                  changed();
+                },
+              );
+              help(
+                consent,
+                kind === "direct_rest"
+                  ? "Approved scope: service details and one record count."
+                  : "Approved scope: file update details only; no file download.",
+              );
+              input(
+                consent,
+                "Permission received on",
+                permission,
+                "received_on",
+                "date",
+                base + ".monitoring.county_permission.received_on",
+                true,
+              );
+              input(
+                consent,
+                "Private reference to the response",
+                permission,
+                "reference",
+                "text",
+                base + ".monitoring.county_permission.reference",
+                true,
+              );
+              input(
+                consent,
+                "Public confirmation link, if available",
+                permission,
+                "evidence_url",
+                "url",
+                base + ".monitoring.county_permission.evidence_url",
+              );
+            }
+          }
           if (kind === "other")
             input(
               card,
@@ -471,6 +677,9 @@ function access() {
       restrictions.status,
       (value) => {
         restrictions.status = value;
+        if (value !== "reviewed_none")
+          for (const method of data.methods)
+            if (method.monitoring) method.monitoring.enabled = false;
         changed();
         render();
         document
@@ -891,6 +1100,55 @@ function reviewRows(record) {
               }[field],
             m[field],
           );
+    if (d.classification === "open")
+      for (const m of d.methods || []) {
+        const review = m.monitoring || {};
+        add(
+          key + ":" + m.kind + ":monitoring:enabled",
+          title + " · " + methodNames[m.kind] + " · regular checks",
+          review.enabled ? "Included" : "Not included",
+          true,
+        );
+        if (review.enabled) {
+          const permission = review.county_permission || {};
+          for (const [field, label, value] of [
+            ["execution_profile", "worker", review.execution_profile],
+            ["terms_url", "provider terms link", review.terms_url],
+            [
+              "terms_reviewed_on",
+              "terms reviewed on",
+              review.terms_reviewed_on,
+            ],
+            [
+              "terms_confirmed",
+              "terms allow regular checks",
+              review.terms_confirmed ? "Confirmed" : "Not confirmed",
+            ],
+            [
+              "permission_reply",
+              "county permission",
+              permission.reply === "permitted" ? "Confirmed" : "Not confirmed",
+            ],
+            [
+              "permission_received_on",
+              "permission received on",
+              permission.received_on,
+            ],
+            [
+              "permission_reference",
+              "private permission reference",
+              permission.reference,
+            ],
+            ["permission_evidence", "permission link", permission.evidence_url],
+          ])
+            add(
+              key + ":" + m.kind + ":monitoring:" + field,
+              title + " · " + methodNames[m.kind] + " · " + label,
+              value,
+              true,
+            );
+        }
+      }
     const r = d.restrictions || {};
     add(
       key + ":restriction",
@@ -1054,10 +1312,15 @@ async function refreshDirectory() {
   return directory;
 }
 function publicationState(result) {
-  retry.hidden = result.status !== "pending";
+  const needsRetry =
+    result.status === "pending" || result.monitoring_status === "pending";
+  retry.hidden = !needsRetry;
+  retry.textContent =
+    result.monitoring_status === "pending"
+      ? "Retry updates"
+      : "Retry publication";
   clearTimeout(retryTimer);
-  if (result.status === "pending")
-    retryTimer = setTimeout(() => retryPublication(true), 3000);
+  if (needsRetry) retryTimer = setTimeout(() => retryPublication(true), 3000);
 }
 async function loadCounty(slug) {
   clearTimeout(retryTimer);
@@ -1099,11 +1362,8 @@ async function loadCounty(slug) {
     try {
       const result = await request(path() + "/publication");
       status(
-        labels[result.status] ||
-          "County record loaded. Publication status is unavailable.",
-        result.status === "unsaved"
-          ? "No unsaved edits."
-          : labels[result.status],
+        resultLabel(result),
+        result.status === "unsaved" ? "No unsaved edits." : resultLabel(result),
       );
       publicationState(result);
     } catch {
@@ -1123,12 +1383,17 @@ async function loadCounty(slug) {
 async function retryPublication(automatic = false) {
   if (busy || pendingRequest || (automatic && dirty)) return;
   lock(true);
-  saveMessage.textContent = "Checking publication…";
+  saveMessage.textContent = "Checking pending updates…";
   try {
     const result = await request(path() + "/publication", {});
-    status(labels[result.status] || "Publication status is unavailable.");
-    retry.hidden = result.status !== "pending";
-    if (!automatic && result.status === "pending") publicationState(result);
+    status(resultLabel(result));
+    retry.hidden =
+      result.status !== "pending" && result.monitoring_status !== "pending";
+    if (
+      !automatic &&
+      (result.status === "pending" || result.monitoring_status === "pending")
+    )
+      publicationState(result);
   } catch (error) {
     status(
       error.message || "Publication status is unavailable. Try again later.",
@@ -1223,7 +1488,7 @@ form.addEventListener("submit", async (event) => {
   status("Saving changes…");
   try {
     const result = await request(path(), pendingRequest);
-    status(labels[result.status] || "The request could not be completed.");
+    status(resultLabel(result));
     if ([200, 202].includes(result.code)) {
       revision = result.revision;
       dirty = false;
@@ -1234,7 +1499,7 @@ form.addEventListener("submit", async (event) => {
         attachmentCache.clear();
         render();
       } else renderReview();
-      if (result.status !== "saved_private") publicationState(result);
+      publicationState(result);
       try {
         await refreshDirectory();
       } catch {
@@ -1244,6 +1509,7 @@ form.addEventListener("submit", async (event) => {
       }
     } else if (result.code < 500) {
       pendingRequest = null;
+      if (result.monitoring_status === "pending") publicationState(result);
       if (result.status === "revision_conflict") await showConflict();
       else if (result.status === "invalid_draft")
         showErrors(
