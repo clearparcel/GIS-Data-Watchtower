@@ -11,6 +11,8 @@
 The public dashboard, internal dashboard and county editor run **v0.5.0**,
 deployed November 7, 2026. The regular cloud worker and public publisher use the
 same release. See the [release record](docs/release-v0.5.0.md).
+A follow-up [destination validation fix](docs/county-source-monitoring.md#public-destination-checks-pending-release)
+for editor-enrolled source checks is pending release.
 The [internal UI guide](docs/internal-dashboard-ui.md) describes attention lists, saved changes, reading-safe updates, terms filters and scoped downloads.
 The release includes the review fixes for paused refresh and record-count
 observation dates. See [STATUS.md](STATUS.md) for each surface’s release state.

@@ -1,5 +1,15 @@
 # Project status
 
+## Enrolled source destination validation — candidate, 2026-11-08
+
+A follow-up fix restricts county-editor checks to validated public IPv4/IPv6
+destinations, including initial requests, derived count URLs, redirects and
+curl fallback. Address pinning preserves Host/TLS checks; effective proxies
+fail closed for enrolled sources. Operator-configured sources keep their
+existing network settings. Synthetic regression coverage exercises private and
+mixed DNS answers, pinning and adapter-context cleanup. This fix is not deployed.
+See the [source monitoring guide](docs/county-source-monitoring.md#public-destination-checks-pending-release).
+
 ## v0.5.0 coordinated release — deployed, 2026-11-07
 
 The public and internal dashboards, county editor, regular cloud worker and

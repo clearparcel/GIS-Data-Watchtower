@@ -293,12 +293,34 @@ _RUN_BLOCKED_HOSTS: contextvars.ContextVar[set] = contextvars.ContextVar("watcht
 # storage embargo object). Called with the current backoffs after each local
 # checkpoint; it must raise if it cannot persist them.
 _RATE_LIMIT_SINK: contextvars.ContextVar = contextvars.ContextVar("watchtower_rate_limit_sink", default=None)
+# County-editor URLs are public inputs. Keep their network boundary scoped to
+# the adapter call so derived count URLs, redirects and fallbacks inherit it.
+_PUBLIC_SOURCE_REQUESTS: contextvars.ContextVar[bool] = contextvars.ContextVar("watchtower_public_source_requests", default=False)
 
 
 def _block_hosts(hosts) -> None:
     blocked = _RUN_BLOCKED_HOSTS.get(None)
     if blocked is not None:
         blocked.update(hosts)
+
+
+def _public_request_url(url: str, deadline: RequestDeadline) -> str:
+    """Bind an enrolled request to public addresses without a second DNS lookup."""
+    if not _PUBLIC_SOURCE_REQUESTS.get():
+        return url
+    host = _url_host(url)
+    parsed = urllib.parse.urlsplit(url)
+    addresses = getattr(url, "addresses", None)
+    if addresses is None:
+        addresses = resolve_addresses(host, parsed.port or (443 if parsed.scheme == "https" else 80), deadline)
+    if not addresses:
+        raise RuntimeError("county monitoring request rejected: destination has no addresses")
+    for family, _, _, _, sockaddr in addresses:
+        address = ipaddress.ip_address(sockaddr[0])
+        if (family not in (socket.AF_INET, socket.AF_INET6) or not address.is_global
+                or address.is_multicast or address.is_reserved or getattr(address, "is_site_local", False)):
+            raise RuntimeError("county monitoring request rejected: destination is not public")
+    return PinnedURL(url, addresses)
 
 
 def _validated_redirect(current_url: str, location: str, initial_url: str, *, deadline: RequestDeadline | None = None) -> str:
@@ -318,7 +340,8 @@ def _validated_redirect(current_url: str, location: str, initial_url: str, *, de
     parsed = urllib.parse.urlsplit(target)
     addresses = resolve_addresses(target_host, parsed.port or (443 if parsed.scheme == "https" else 80), deadline)
     target = PinnedURL(target, addresses)
-    if target_host in _redirect_allow_hosts():
+    target = _public_request_url(target, deadline)
+    if not _PUBLIC_SOURCE_REQUESTS.get() and target_host in _redirect_allow_hosts():
         return target
 
     # A fresh lookup cannot establish the original connection's trust boundary.
@@ -350,6 +373,7 @@ def _urllib_request_once(
     if deadline is None:
         with RequestDeadline(timeout) as bounded:
             return _urllib_request_once(url, timeout, data=data, content_type=content_type, deadline=bounded, method=method)
+    url = _public_request_url(url, deadline)
     headers = {"User-Agent": USER_AGENT}
     if content_type:
         headers["Content-Type"] = content_type
@@ -508,6 +532,7 @@ def _curl_request_once(
     if deadline is None:
         with RequestDeadline(timeout) as bounded:
             return _curl_request_once(url, timeout, transport=transport, data=data, content_type=content_type, deadline=bounded)
+    url = _public_request_url(url, deadline)
     timeout = deadline.remaining()
     pinned = getattr(url, "addresses", None)
     if pinned and effective_proxy(url):
@@ -600,6 +625,7 @@ def _curl_request(
     if deadline is None:
         with RequestDeadline(timeout) as bounded:
             return _curl_request(url, timeout, transport=transport, initial_url=initial_url, data=data, content_type=content_type, deadline=bounded, redirect_budget=redirect_budget)
+    url = _public_request_url(url, deadline)
     deadline.remaining()
     initial_url = initial_url or url
     current = url
@@ -632,6 +658,7 @@ def _request(url: str, timeout: int, *, prefer_curl: bool = False, deadline: Req
     if deadline is None:
         with RequestDeadline(timeout) as bounded:
             return _request(url, timeout, prefer_curl=prefer_curl, deadline=bounded)
+    url = _public_request_url(url, deadline)
     _url_host(url)
     if prefer_curl:
         return _curl_request(url, timeout, transport="curl-preferred", deadline=deadline)
@@ -677,6 +704,7 @@ def _head_request(url: str, timeout: int) -> dict:
     current = url
     max_redirects = _max_redirects()
     with RequestDeadline(timeout) as deadline:
+        current = _public_request_url(current, deadline)
         for hop in range(max_redirects + 1):
             _, meta = _urllib_request_once(current, timeout, method="HEAD", deadline=deadline)
             status = int(meta.get("status") or 0)
@@ -749,6 +777,7 @@ def _post_json(url: str, payload: dict, timeout: int, *, deadline: RequestDeadli
     if deadline is None:
         with RequestDeadline(timeout) as bounded:
             return _post_json(url, payload, timeout, deadline=bounded)
+    url = _public_request_url(url, deadline)
     _url_host(url)
     body = json.dumps(payload).encode("utf-8")
     current = url
@@ -2148,6 +2177,14 @@ def _retain_item_metadata(details: dict, previous: dict | None) -> None:
 
 
 def _source_check(source: dict, timeout: int) -> dict:
+    token = _PUBLIC_SOURCE_REQUESTS.set(bool(source.get("_county_monitoring_revision")))
+    try:
+        return _dispatch_source_check(source, timeout)
+    finally:
+        _PUBLIC_SOURCE_REQUESTS.reset(token)
+
+
+def _dispatch_source_check(source: dict, timeout: int) -> dict:
     kind = _adapter_name(source)
     if kind == "arcgis_county_catalog":
         return _arcgis_county_catalog(source, timeout)
