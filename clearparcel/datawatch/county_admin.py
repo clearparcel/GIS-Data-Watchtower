@@ -370,7 +370,11 @@ def create_county_admin_server(store: CountyDirectoryStore, *, port: int, userna
                                      before_save=lambda revision: monitoring_store.prepare_removals(
                                          county, body["draft"], revision=revision))
             except CountyRevisionConflict:
-                self._send(409, {"status": "revision_conflict"})
+                # A losing CAS may already have prepared conservative removals.
+                # Reconcile the winning saved draft before returning to its editor.
+                monitoring_status, monitoring_count = self._sync_monitoring(county)
+                self._send(409, {"status": "revision_conflict", "monitoring_status": monitoring_status,
+                                 "monitoring_source_count": monitoring_count})
                 return
             except ValueError:
                 self._send(400, {"status": "invalid_draft", "errors": editor_validation_errors(body["draft"])})

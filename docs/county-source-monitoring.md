@@ -37,7 +37,8 @@ nonpublic URLs cannot be enrolled through this path.
    registry. The validated snapshot is carried through that run.
    Existing profile assignments, dispatch spacing, terms holds, county stop and
    decline decisions, and provider 429 backoff still apply. A source approval
-   cannot lift a packaged `hold-for-terms` decision.
+   cannot lift a packaged `hold-for-terms` decision or a parcel permission scope
+   of `none`. Road/address enrollments retain their separate source permissions.
 4. The worker publishes observations through the existing aggregate merge. The
    public publisher includes source health, check dates, counts or file update
    details, and a fixed limited-check label. Parcel sources also join the county

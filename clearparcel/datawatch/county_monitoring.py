@@ -140,10 +140,12 @@ def build_county_monitoring_sources(county: dict, draft: object) -> list[dict]:
         return []
     research = load_parcel_access().get(county.get("name"), {})
     county_decision = (research.get("monitoring") or {}).get("decision")
-    if (any(dataset == "parcel_polygons" for dataset, _record, _method in enabled)
-            and county_decision in {"hold-for-terms", "not-appropriate"}):
+    has_parcels = any(dataset == "parcel_polygons" for dataset, _record, _method in enabled)
+    if has_parcels and county_decision in {"hold-for-terms", "not-appropriate"}:
         raise ValueError("this county's current monitoring decision does not allow new direct checks")
     monitoring = research.get("monitoring") or {}
+    if has_parcels and monitoring.get("scope") == "none":
+        raise ValueError("this county's current monitoring decision does not allow new direct checks")
     if monitoring.get("stop_requested") is True or monitoring.get("reply") in {"declined", "stop"}:
         raise ValueError("the county asked Watchtower not to check its direct sources")
 

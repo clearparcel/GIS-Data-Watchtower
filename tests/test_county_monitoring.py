@@ -91,6 +91,7 @@ class CountyMonitoringTests(unittest.TestCase):
 
     def test_county_holds_and_stop_decisions_remain_authoritative(self):
         for decision in ({"decision": "hold-for-terms"}, {"decision": "not-appropriate"},
+                         {"decision": "not-assessed", "scope": "none"},
                          {"decision": "not-assessed", "stop_requested": True},
                          {"decision": "not-assessed", "reply": "declined", "scope": "none"}):
             with self.subTest(decision=decision), patch("clearparcel.datawatch.county_monitoring.load_parcel_access",
@@ -244,8 +245,11 @@ class CountyMonitoringTests(unittest.TestCase):
         for dataset in ("road_centerlines", "address_points"):
             with self.subTest(dataset=dataset):
                 value = draft(dataset=dataset)
-                self.registry.replace_county(self.county, value, revision=1 if dataset == "road_centerlines" else 2)
-                with patch.object(watch, "_source_check", return_value={"feature_count": 42, "problems": []}):
+                research = {"Aitkin": {"monitoring": {"decision": "not-assessed", "scope": "none"}}}
+                with patch("clearparcel.datawatch.county_monitoring.load_parcel_access", return_value=research):
+                    self.registry.replace_county(self.county, value, revision=1 if dataset == "road_centerlines" else 2)
+                with patch("clearparcel.datawatch.parcel_access.load_parcel_access", return_value=research), \
+                        patch.object(watch, "_source_check", return_value={"feature_count": 42, "problems": []}):
                     result = watch.check_sources(config(self.root), save=False, execution_profile="cloud")
                 public = sanitize_public_render_state(merge_states({}, result, "cloud"))
                 sid = next(iter(public["sources"]))

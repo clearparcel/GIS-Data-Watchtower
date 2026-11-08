@@ -1509,6 +1509,7 @@ form.addEventListener("submit", async (event) => {
       }
     } else if (result.code < 500) {
       pendingRequest = null;
+      if (result.monitoring_status === "pending") publicationState(result);
       if (result.status === "revision_conflict") await showConflict();
       else if (result.status === "invalid_draft")
         showErrors(
