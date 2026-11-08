@@ -36,7 +36,8 @@ class CountyAdminTests(unittest.TestCase):
         self.store = CountyDirectoryStore(private, self.public)
         self.attachments = CountyAttachments(private)
         self.server = self.enterContext(create_county_admin_server(
-            self.store, port=0, username="editor", password="synthetic-password", attachments=self.attachments
+            self.store, port=0, username="editor", password="synthetic-password", attachments=self.attachments,
+            monitoring_profiles=("cloud",)
         ))
         worker = threading.Thread(target=self.server.serve_forever, kwargs={"poll_interval": 0.01})
         worker.start()
@@ -182,6 +183,16 @@ class CountyAdminTests(unittest.TestCase):
                 "Aitkin": {"monitoring": {"decision": "not-assessed", "scope": "none"}}}):
             status, receipt = self.json_request("POST", "/api/counties/aitkin", self.monitoring_payload(), self.get_mutation_headers())
         self.assertEqual((status, receipt["status"]), (400, "invalid_draft"))
+        self.assertEqual(self.store.read_private(county_identities()["aitkin"]).revision, 0)
+
+    def test_unavailable_worker_cannot_be_enrolled(self):
+        payload = self.monitoring_payload()
+        payload["draft"]["access"]["parcel_polygons"]["methods"][0]["monitoring"]["execution_profile"] = "local"
+        headers = self.get_mutation_headers()
+        self.assertEqual(self.json_request("GET", "/api/counties")[1]["monitoring_profiles"], ["cloud"])
+        status, receipt = self.json_request("POST", "/api/counties/aitkin", payload, headers)
+        self.assertEqual((status, receipt["status"]), (400, "invalid_draft"))
+        self.assertIn("access.parcel_polygons.methods.0.monitoring.execution_profile", {e.get("field") for e in receipt["errors"]})
         self.assertEqual(self.store.read_private(county_identities()["aitkin"]).revision, 0)
 
     def test_conflicting_removal_reconciles_winning_enrollment_before_response(self):

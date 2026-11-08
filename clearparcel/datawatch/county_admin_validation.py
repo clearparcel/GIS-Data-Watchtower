@@ -7,7 +7,7 @@ from .county_monitoring import build_county_monitoring_sources
 from .county_profiles import county_identities
 
 
-def editor_validation_errors(draft: object) -> list[dict]:
+def editor_validation_errors(draft: object, *, monitoring_profiles=("cloud", "local")) -> list[dict]:
     """Return field paths and fixed messages; never echo draft values or diagnostics.
 
     These hints do not replace validation in the save/store and public projector.
@@ -65,7 +65,7 @@ def editor_validation_errors(draft: object) -> list[dict]:
     try:
         county = next((item for item in county_identities().values() if item["fips"] == draft.get("fips")), None)
         if county is not None:
-            build_county_monitoring_sources(county, draft)
+            build_county_monitoring_sources(county, draft, execution_profiles=monitoring_profiles)
     except ValueError as exc:
         monitoring_failure = str(exc)
         access = draft.get("access", {})

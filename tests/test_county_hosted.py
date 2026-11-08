@@ -65,6 +65,7 @@ class HostedAuthTests(unittest.TestCase):
                     iap = {**host, "X-Goog-IAP-JWT-Assertion": "verified-fixture"}
                     status, body = request("GET", "/api/counties", iap)
                     self.assertEqual(status, 200)
+                    self.assertEqual(body["monitoring_profiles"], ["cloud"])
                     mutation = {**iap, "Content-Type": "application/json", "X-Watchtower-CSRF": body["csrf_token"]}
                     path = "/api/counties/aitkin"
                     payload = json.dumps({"draft": {"fips": "27001", "policy": {"text": "Synthetic public"}},

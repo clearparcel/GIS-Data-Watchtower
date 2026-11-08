@@ -132,6 +132,7 @@ def serve_hosted_county_admin():
     scanner = RunScannerClient(env.get("WATCHTOWER_COUNTY_SCANNER_URL", ""))
     with create_county_admin_server(
         store, port=int(env.get("PORT", "8080")), hosted_auth=auth, attachments=CountyAttachments(private),
+        monitoring_profiles=tuple(item.strip() for item in env.get("WATCHTOWER_COUNTY_MONITORING_PROFILES", "cloud").split(",")),
         scanner=scanner, backend_errors=(GoogleAPICallError, GoogleAuthError),
     ) as server:
         print("Watchtower hosted county administration ready")

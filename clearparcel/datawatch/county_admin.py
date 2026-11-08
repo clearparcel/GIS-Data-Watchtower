@@ -46,7 +46,7 @@ def _status_payload(status: PublicationStatus) -> dict:
 def create_county_admin_server(store: CountyDirectoryStore, *, port: int, username: str | None = None,
                                password: str | None = None, attachments: CountyAttachments | None = None,
                                hosted_auth=None, scanner=None, monitoring_store: CountyMonitoringStore | None = None,
-                               backend_errors=()):
+                               monitoring_profiles=None, backend_errors=()):
     if hosted_auth is None and (not username or ":" in username or not password):
         raise ValueError("County administration requires a username and password")
     if hosted_auth is not None and (username is not None or password is not None):
@@ -57,6 +57,11 @@ def create_county_admin_server(store: CountyDirectoryStore, *, port: int, userna
     store_failures = _STORE_FAILURES + backend_errors
     backend_failures = (OSError, StorageConflictError) + backend_errors
     monitoring_store = monitoring_store or CountyMonitoringStore(store._private)
+    monitoring_profiles = tuple(monitoring_profiles if monitoring_profiles is not None else
+                                ("cloud",) if hosted_auth is not None else ("cloud", "local"))
+    if (not monitoring_profiles or any(profile not in ("cloud", "local") for profile in monitoring_profiles)
+            or len(set(monitoring_profiles)) != len(monitoring_profiles)):
+        raise ValueError("county administration requires available cloud/local monitoring profiles")
     counties = county_identities()
     drafts = packaged_county_drafts(counties)
     assets = {route: (Path(__file__).with_name(name).read_bytes(), content_type)
@@ -148,7 +153,8 @@ def create_county_admin_server(store: CountyDirectoryStore, *, port: int, userna
                 return
             if self.path == "/api/counties":
                 try:
-                    self._send(200, {"counties": directory(), "csrf_token": self._csrf, "scanner_enabled": scanner is not None})
+                    self._send(200, {"counties": directory(), "csrf_token": self._csrf, "scanner_enabled": scanner is not None,
+                                     "monitoring_profiles": monitoring_profiles})
                 except store_failures:
                     self._send(503, {"status": "storage_unavailable"})
                 return
@@ -328,6 +334,7 @@ def create_county_admin_server(store: CountyDirectoryStore, *, port: int, userna
                 private = store.read_private(county)
                 if private.draft is None:
                     return "current", 0
+                build_county_monitoring_sources(county, private.draft, execution_profiles=monitoring_profiles)
                 return "current", monitoring_store.replace_county(county, private.draft, revision=private.revision)
             except store_failures:
                 # A durable private save owns enrollment, including removals,
@@ -360,7 +367,7 @@ def create_county_admin_server(store: CountyDirectoryStore, *, port: int, userna
                 return
             try:
                 refs = draft_attachment_refs(body["draft"])
-                build_county_monitoring_sources(county, body["draft"])
+                build_county_monitoring_sources(county, body["draft"], execution_profiles=monitoring_profiles)
                 if refs:
                     if attachments is None:
                         raise ValueError
@@ -377,7 +384,8 @@ def create_county_admin_server(store: CountyDirectoryStore, *, port: int, userna
                                  "monitoring_source_count": monitoring_count})
                 return
             except ValueError:
-                self._send(400, {"status": "invalid_draft", "errors": editor_validation_errors(body["draft"])})
+                self._send(400, {"status": "invalid_draft", "errors": editor_validation_errors(
+                    body["draft"], monitoring_profiles=monitoring_profiles)})
                 return
             except backend_failures:
                 self._send(503, {"status": "storage_unavailable"})
