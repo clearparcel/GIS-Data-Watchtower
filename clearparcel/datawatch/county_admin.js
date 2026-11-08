@@ -56,6 +56,7 @@ const timeChecks = new Map();
 let counties = [],
   csrf,
   scannerEnabled = false,
+  monitoringProfiles = ["cloud"],
   selected = "",
   draft,
   baseline,
@@ -311,6 +312,11 @@ function validate() {
     for (const [index, method] of (data.methods || []).entries()) {
       const monitor = method.monitoring;
       if (!monitor?.enabled) continue;
+      if (!monitoringProfiles.includes(monitor.execution_profile))
+        errors.push({
+          field: `access.${dataset}.methods.${index}.monitoring.execution_profile`,
+          message: "Choose an available monitoring worker.",
+        });
       if (data.classification !== "open")
         errors.push({
           field: `access.${dataset}.classification`,
@@ -464,7 +470,7 @@ function access() {
           card.className = "method-card";
           selectedMethod.monitoring ??= {
             enabled: false,
-            execution_profile: "cloud",
+            execution_profile: monitoringProfiles[0],
             terms_url: "",
             terms_reviewed_on: "",
             terms_confirmed: false,
@@ -528,6 +534,11 @@ function access() {
               base + ".monitoring.enabled",
               (value) => {
                 monitor.enabled = value;
+                if (
+                  value &&
+                  !monitoringProfiles.includes(monitor.execution_profile)
+                )
+                  monitor.execution_profile = monitoringProfiles[0];
                 changed();
                 render();
                 const target = document.getElementById(
@@ -540,17 +551,27 @@ function access() {
               },
             );
             if (monitor.enabled) {
-              select(
-                checks,
-                "Check on this worker",
-                { cloud: "Cloud worker", local: "Local worker" },
-                monitor.execution_profile || "cloud",
-                (value) => {
-                  monitor.execution_profile = value;
-                  changed();
-                },
-                base + ".monitoring.execution_profile",
-              );
+              if (
+                monitoringProfiles.length > 1 ||
+                !monitoringProfiles.includes(monitor.execution_profile)
+              )
+                select(
+                  checks,
+                  "Check on this worker",
+                  Object.fromEntries(
+                    monitoringProfiles.map((profile) => [
+                      profile,
+                      profile === "cloud" ? "Cloud worker" : "Local worker",
+                    ]),
+                  ),
+                  monitor.execution_profile || "cloud",
+                  (value) => {
+                    monitor.execution_profile = value;
+                    changed();
+                  },
+                  base + ".monitoring.execution_profile",
+                );
+              else help(checks, "Uses the regular Watchtower schedule.");
               const terms = node("fieldset", undefined, checks);
               node("legend", "Provider terms review", terms);
               help(
@@ -1306,6 +1327,11 @@ async function refreshDirectory() {
     throw new Error("The county list could not refresh.");
   csrf = directory.csrf_token;
   scannerEnabled = directory.scanner_enabled === true;
+  monitoringProfiles =
+    Array.isArray(directory.monitoring_profiles) &&
+    directory.monitoring_profiles.length
+      ? directory.monitoring_profiles
+      : ["cloud"];
   counties = directory.counties;
   list();
   countyList.disabled = busy;

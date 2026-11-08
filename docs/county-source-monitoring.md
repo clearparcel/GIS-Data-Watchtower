@@ -76,10 +76,13 @@ Provider workers opt in with **one** of these settings:
 
 Initialize the enrollment object through a saved editor record before enabling
 worker access; its absence fails preflight. The object key is fixed; neither
-setting changes the normal worker's state,
-history or aggregate storage. Configure both worker profiles that administrators
-may select. A local worker using GCS needs the optional `gcs` dependency and its
-approved existing identity. Keep these settings off public dashboards and the
+setting changes the normal worker's state, history or aggregate storage.
+The hosted editor defaults to the cloud worker, matching the current regular
+schedule. Set `WATCHTOWER_COUNTY_MONITORING_PROFILES=cloud,local` on the editor only
+after an approved local worker is actually configured to read this registry.
+Unavailable profiles are rejected on save. The local preview supports both
+profiles. A local worker using GCS needs the optional `gcs` dependency and its
+approved existing identity. Keep worker registry settings off public dashboards and the
 sanitized publisher, which read observations and do not need enrollment evidence.
 
 Production IAM must grant the worker only `storage.objects.get` for this object.

@@ -9,6 +9,9 @@ public snapshot. Service checks read details and one count; file checks read
 update headers. County terms holds, stop decisions and provider backoff remain
 in force, and permission evidence stays private.
 
+The hosted editor offers the current regular cloud schedule. A local worker
+choice requires explicit operator configuration and an active approved worker.
+
 The editor adds section navigation, clear save/retry feedback, change review,
 field validation and protection against losing unsaved edits. Internal dashboard
 fixes preserve refresh preferences and show the correct count observation date.

@@ -103,6 +103,9 @@ function walk(n){return [n,...(n.children||[]).filter(c=>typeof c==='object').fl
 const controls=walk(nodes.get('#fields'));
 assert.ok(controls.some(c=>c.dataset.field==='access.parcel_polygons.methods.0.monitoring.enabled'));
 assert.ok(controls.some(c=>c.dataset.field==='access.parcel_polygons.methods.0.monitoring.county_permission.reference'));
+assert.ok(!controls.some(c=>c.dataset.field==='access.parcel_polygons.methods.0.monitoring.execution_profile'));
+vm.runInContext("monitoringProfiles=['cloud','local'];fields.replaceChildren();access();",sandbox);
+assert.ok(walk(nodes.get('#fields')).some(c=>c.dataset.field==='access.parcel_polygons.methods.0.monitoring.execution_profile'));
 const rows=JSON.parse(vm.runInContext('JSON.stringify([...reviewRows(draft).values()])',sandbox));
 assert.ok(rows.some(r=>r.value==='PRIVATE_PERMISSION'&&r.private));
 assert.match(vm.runInContext("resultLabel({status:'published',monitoring_status:'pending'})",sandbox),/check setup is pending/);

@@ -118,7 +118,7 @@ def _source_kind(method: dict) -> tuple[str, str]:
     raise ValueError("regular checks support direct GIS service and data file links")
 
 
-def build_county_monitoring_sources(county: dict, draft: object) -> list[dict]:
+def build_county_monitoring_sources(county: dict, draft: object, *, execution_profiles=("cloud", "local")) -> list[dict]:
     """Build bounded source records from a private draft; never from public URL input alone."""
     if not isinstance(draft, dict) or draft.get("fips") != county.get("fips"):
         raise ValueError("monitoring record does not match the selected county")
@@ -164,6 +164,8 @@ def build_county_monitoring_sources(county: dict, draft: object) -> list[dict]:
             raise ValueError("the same direct source is listed more than once")
         seen_urls.add(identity)
         approval = _monitoring_options(options)
+        if approval["execution_profile"] not in execution_profiles:
+            raise ValueError("choose an available monitoring worker")
         digest = hashlib.sha256(f"{county['slug']}\0{dataset}\0{url}".encode("utf-8")).hexdigest()[:16]
         source = {
             "id": f"county-{county['slug']}-{digest}",
