@@ -1,6 +1,8 @@
 # County editor sources in regular Watchtower checks
 
-Prepared implementation; production registry access and rollout require approval.
+Available in v0.5.0. The production cloud worker is connected to the enrollment
+registry with verified read access to that exact object. Future production
+configuration or scheduling changes still require approval.
 
 The county editor can enroll a direct GIS service or data file in the existing
 regular worker run. Public access links remain useful without enrollment. A new
