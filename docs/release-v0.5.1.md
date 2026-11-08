@@ -1,7 +1,12 @@
 # GIS Data Watchtower v0.5.1
 
-Release candidate, November 8, 2026. Production promotion is pending; the last
-verified deployed application version is v0.5.0.
+Deployed November 8, 2026 (Central time). Immutable application source:
+`f7e82feaa05afaa01f2766a57a3ad9371ad31c02`, incorporated by merged PR #231
+at `93f8a5c2aa0c88ed47393270cd72f0cd57d996f7` (identical source tree).
+
+The public dashboard, internal dashboard, county editor, regular cloud worker
+and public publisher use this release. Scanner and weekly digest images were
+outside this coordinated application update.
 
 This patch incorporates PR #230's public-destination boundary for editor-enrolled
 sources. It also preserves validated private snapshots on corrupt downloads,
@@ -18,7 +23,7 @@ Contributor setup, current release documentation, historical scanner acceptance,
 branch disposition and personal checkout handling have been reconciled. Duplicate
 timestamp parsing is consolidated without removing compatibility aliases.
 
-## Candidate validation
+## Validation
 
 - 1,081 offline tests passed with ResourceWarning errors and Node 24 required.
   Compileall, dependency consistency, status/source-version checks and diff
@@ -35,14 +40,37 @@ timestamp parsing is consolidated without removing compatibility aliases.
   Legitimate operator transport, read-only IAP and valid retained state remain
   covered by the existing and new tests.
 
-## Remaining promotion checklist
+## Promotion and live verification
 
-- Full Windows/Linux CI matrix and dependency/container scans.
-- Strict live-version preflight before building a clean committed source.
-- Installed-image synthetic checks and applicable staging acceptance.
-- Preserve service settings, IAM, provider schedules and rollback revisions.
-- Verify each promoted image, public version, readiness, source observations and provenance.
-- Publish the tag/release only after verified deployment.
+- [Candidate CI](https://github.com/clearparcel/GIS-Data-Watchtower/actions/runs/42507821092)
+  passed all six Windows/Linux Python combinations, dependency audit, CodeQL,
+  both container scans and supply-chain evidence. [Merged-main CI](https://github.com/clearparcel/GIS-Data-Watchtower/actions/runs/42508589757)
+  also passed.
+- Live-version preflight passed v0.5.0 → v0.5.1 before the clean committed build.
+  The installed image matched every source hash and immutable identity, passed
+  148 synthetic tests, and matched the scanned CI artifact's Python/OS inventory.
+- Isolated real staging storage verified atomic audit attribution and replay,
+  public privacy, bounded attachment metadata and hash-verified downloads.
+  Synthetic staging objects were removed. Existing private aggregate/history
+  passed the new validator before promotion.
+- Candidate service revisions were prepared without production traffic and
+  compared with rollback baselines. Production runtime settings, IAM, authentication
+  controls and scheduler configuration were preserved. All five images and the
+  three service traffic allocations were verified.
+- Public footer v0.5.1, readiness including directory availability, county page,
+  summary and CSV/JSON exports passed. All 24 source observations and worker
+  provenance matched the aggregate, and the snapshot retained all 87 counties.
+  The bounded production error-log query returned no error entries.
+- The editor's unauthenticated request still redirects to sign-in. The internal
+  dashboard's default service URL remains disabled. No authenticated browser
+  walkthrough is claimed: the staging route required Google sign-in.
+- No additional provider run or scheduler change occurred. Automatic approval
+  review rejected a manual publisher execution because it would republish
+  authoritative data; it was not performed. The deployed publisher image is verified
+  through its configuration; a new execution will be observed on the existing
+  schedule.
 
-Actual results and deployed source will replace this candidate checklist as the
-release completes. Private operational evidence stays outside the public repo.
+Previous service revisions and job image references remain available for rollback.
+Private artifacts, operational settings and detailed verification records stay
+outside the public repository. Deferred features and infrastructure decisions are
+listed in the [review disposition](review-remediation-v0.5.1.md).
