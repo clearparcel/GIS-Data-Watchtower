@@ -25,3 +25,16 @@ regressions. The final correction was verified by the implementer. Local full
 suite: 1,081 passed, Node required, ResourceWarning errors; compileall, dependency
 consistency, status/source-version check and diff check passed. CI and rollout
 evidence remain in the PR/release record.
+
+Release completed November 8: implementation PR #231 merged at `93f8a5c`,
+artifact source `f7e82fe` (identical tree). Both candidate and main CI passed;
+148 installed-image tests, source identity, runtime inventories, staging storage
+and production public checks passed. All five application surfaces use v0.5.1;
+IAM/runtime settings and schedules match baselines. See the release record for
+verification limits. Manual publisher execution was rejected by automatic approval
+review and was not performed; no provider job was invoked. Historical draft PRs
+#209/#213 were closed, six obsolete branch tips archived before ref retirement,
+and the fee feature retained as deferred.
+
+The next normal scheduled publisher execution completed successfully on the
+verified v0.5.1 image. No manual invocation or schedule modification was made.

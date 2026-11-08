@@ -21,10 +21,9 @@ geometry. Direct file links must end in `.zip`, `.gpkg`, `.geojson`, `.json`, or
 Viewer pages, generic portals, service roots, credential-bearing URLs and
 nonpublic URLs cannot be enrolled through this path.
 
-### Public destination checks (pending release)
+### Public destination checks (v0.5.1)
 
-The follow-up destination validation fix is not included in deployed v0.5.0.
-With this fix, the worker resolves enrolled URLs within the existing request
+Deployed in v0.5.1. The worker resolves enrolled URLs within the existing request
 deadline and rejects the entire address set if any IPv4/IPv6 answer is private,
 loopback, link-local, multicast, reserved or otherwise nonpublic. Connections
 use the validated addresses while preserving the hostname and TLS checks.
