@@ -32,7 +32,7 @@ import time
 from pathlib import Path
 
 from . import strict_json
-from .public_projection import validate_snapshot_structure
+from .private_snapshot import validate_private_snapshot
 
 HISTORY_OBJECT = "history.jsonl"
 HISTORY_ARCHIVE_OBJECT = "history.jsonl.1"  # read by the history loader beside history.jsonl
@@ -94,19 +94,15 @@ class StateSync:
         return results
 
     def _validate(self, name: str, path: Path) -> None:
-        from .watch import _validated_state
         if name in (HISTORY_OBJECT, HISTORY_ARCHIVE_OBJECT):
             with path.open(encoding="utf-8-sig") as stream:
                 for line in stream:
                     if line.strip():
                         row = strict_json.loads(line)
-                        _validated_state(row)
-                        if "counts" in row and not isinstance(row["counts"], dict):
-                            raise ValueError("invalid hosted history counts")
+                        validate_private_snapshot(row, history=True)
         else:
             state = strict_json.loads(path.read_text(encoding="utf-8-sig"))
-            _validated_state(state)
-            validate_snapshot_structure(state)
+            validate_private_snapshot(state)
 
     def maybe_sync(self) -> None:
         """Sync if the interval has passed; never blocks behind another sync."""

@@ -73,6 +73,39 @@ class ReviewRegressionTests(unittest.TestCase):
                 sync.sync()
             self.assertEqual(target.read_bytes(), good)
 
+    def test_nested_corruption_rejected_in_aggregate_and_both_histories(self):
+        source = self.root / "nested"
+        source.mkdir()
+        values = []
+        for key, bad in (("worker", []), ("status", []), ("category", ["bad"]), ("changes", 1), ("provenance", ["bad"])):
+            value = _aggregate()
+            value["sources"]["sample"][key] = bad
+            if key == "status": value["counts"]["ok"] = 0
+            values.append(value)
+        value = _aggregate()
+        value["workers"]["cloud"]["telemetry"] = ["broken"]
+        values.extend((value, {**_aggregate(), "telemetry": {"wall_ms": "broken"}},
+                       {**_aggregate(), "counts": {"ok": "broken"}}))
+        for name in ("aggregate.json", HISTORY_OBJECT, HISTORY_OBJECT + ".1"):
+            path = source / name
+            good = json.dumps(_aggregate()) + "\n"
+            path.write_text(good)
+            target = self.root / ("cached-" + name)
+            sync = StateSync(LocalStorage(source), {name: target})
+            sync.sync()
+            for bad in values:
+                with self.subTest(name=name, bad=bad):
+                    path.write_text(json.dumps(bad))
+                    with self.assertRaises(ValueError): sync.sync()
+                    self.assertEqual(target.read_text(), good)
+                    self.assertTrue(sync.status["refresh_failed"])
+            path.write_text(good)
+            sync.sync()
+            self.assertFalse(sync.status["refresh_failed"])
+        # The preserved aggregate and legacy history are still renderable.
+        dashboard.render_dashboard({"sources": [], "state_file": str(self.root / "cached-aggregate.json"),
+                                    "history_file": str(self.root / ("cached-" + HISTORY_OBJECT))})
+
     def test_directory_outage_backs_off_all_export_routes_and_health(self):
         cache = self.cache()
         captured = {}

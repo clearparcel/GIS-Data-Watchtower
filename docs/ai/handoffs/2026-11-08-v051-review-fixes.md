@@ -17,3 +17,11 @@
   See `docs/review-remediation-v0.5.1.md` for finding and branch dispositions.
 - Operational checkout contains unrelated dirty work. It is preserved; rollout
   uses an isolated checkout and private evidence outside the public repository.
+
+Independent investigation and one candidate review were completed. The reviewer
+found nested private snapshot validation still admitted renderer-crashing data;
+that finding was reproduced and corrected with aggregate/history/archive
+regressions. The final correction was verified by the implementer. Local full
+suite: 1,081 passed, Node required, ResourceWarning errors; compileall, dependency
+consistency, status/source-version check and diff check passed. CI and rollout
+evidence remain in the PR/release record.

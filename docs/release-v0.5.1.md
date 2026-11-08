@@ -18,10 +18,25 @@ Contributor setup, current release documentation, historical scanner acceptance,
 branch disposition and personal checkout handling have been reconciled. Duplicate
 timestamp parsing is consolidated without removing compatibility aliases.
 
-## Validation and promotion checklist
+## Candidate validation
 
-- Required offline tests, Node tests, compileall, dependency consistency and status checks.
-- Independent security and regression review of the pinned candidate.
+- 1,081 offline tests passed with ResourceWarning errors and Node 24 required.
+  Compileall, dependency consistency, status/source-version checks and diff
+  checks passed on Python 3.12.
+- A fresh independent investigator traced the transport and authentication
+  boundaries. A separate fresh candidate reviewer examined base `8661bea` to
+  `9ca18d9` and found one remaining private nested-state validation gap.
+  The correction validates telemetry, counts and source fields before replacement;
+  regressions cover aggregate, active history and rotated history while preserving
+  legacy absent fields and successful rendering. The implementer verified this
+  final correction; the earlier review is not claimed as an exact-final-head review.
+- Security triggers are synthetic: blocked private DNS/proxy/fallback cases,
+  rejected password-free LAN binds, and rejected malformed nested snapshots.
+  Legitimate operator transport, read-only IAP and valid retained state remain
+  covered by the existing and new tests.
+
+## Remaining promotion checklist
+
 - Full Windows/Linux CI matrix and dependency/container scans.
 - Strict live-version preflight before building a clean committed source.
 - Installed-image synthetic checks and applicable staging acceptance.
