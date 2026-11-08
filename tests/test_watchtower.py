@@ -1361,14 +1361,13 @@ class DataWatchTests(unittest.TestCase):
         self.assertEqual(request.call_count, 1)
         self.assertEqual(report['sources']['rate']['attempts'], 1)
 
-    def test_private_lan_bind_is_allowed_without_password_but_wildcard_is_not(self):
+    def test_private_lan_bind_requires_password(self):
         import os
         from unittest.mock import patch
         with patch.dict(os.environ, {}, clear=False):
             os.environ.pop('CLEARPARCEL_WATCHTOWER_DASHBOARD_PASSWORD', None)
-            password, user = datawatch_dashboard._dashboard_auth({'public_dashboard': {'internet_exposure': False}}, '192.168.8.236')
-            self.assertIsNone(password)
-            self.assertEqual(user, 'watchtower')
+            with self.assertRaisesRegex(RuntimeError, 'DASHBOARD_PASSWORD'):
+                datawatch_dashboard._dashboard_auth({'public_dashboard': {'internet_exposure': False}}, '192.168.8.236')
             with self.assertRaisesRegex(RuntimeError, 'DASHBOARD_PASSWORD'):
                 datawatch_dashboard._dashboard_auth({'public_dashboard': {'internet_exposure': False}}, '0.0.0.0')
 
@@ -1505,12 +1504,12 @@ class DataWatchTests(unittest.TestCase):
         self.assertIsNone(datawatch_dashboard._safe_url('data:text/html,x'))
         self.assertIsNone(datawatch_dashboard._safe_url('//example.com/x'))
 
-    def test_nonloopback_auth_policy_allows_private_lan_but_blocks_wildcard_without_password(self):
+    def test_loopback_auth_policy_preserves_local_access(self):
         import os
         from unittest.mock import patch
         with patch.dict(os.environ, {}, clear=False):
             os.environ.pop('CLEARPARCEL_WATCHTOWER_DASHBOARD_PASSWORD', None)
-            self.assertEqual(datawatch_dashboard._dashboard_auth({'public_dashboard': {'internet_exposure': False}}, '192.168.8.236'), (None, 'watchtower'))
+            self.assertEqual(datawatch_dashboard._dashboard_auth({'public_dashboard': {'internet_exposure': False}}, '127.0.0.1'), (None, 'watchtower'))
             with self.assertRaisesRegex(RuntimeError, 'requires CLEARPARCEL_WATCHTOWER_DASHBOARD_PASSWORD'):
                 datawatch_dashboard._dashboard_auth({'public_dashboard': {'internet_exposure': False}}, '0.0.0.0')
 

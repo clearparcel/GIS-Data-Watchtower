@@ -924,11 +924,11 @@ def _dashboard_auth(config: dict, host: str = "127.0.0.1") -> tuple[str | None, 
     if not trusted_bind:
         try:
             addr = ipaddress.ip_address(host_text)
-            trusted_bind = addr.is_loopback or (addr.is_private and not addr.is_unspecified)
+            trusted_bind = addr.is_loopback
         except ValueError:
             trusted_bind = False
     if (public_cfg.get("internet_exposure") or not trusted_bind) and not password:
-        raise RuntimeError("Public, wildcard, or Internet dashboard exposure requires CLEARPARCEL_WATCHTOWER_DASHBOARD_PASSWORD")
+        raise RuntimeError("Non-loopback or Internet dashboard exposure requires CLEARPARCEL_WATCHTOWER_DASHBOARD_PASSWORD")
     return password, username
 
 
@@ -1103,6 +1103,8 @@ def serve(config: dict, host: str = "127.0.0.1", port: int = 8765, *, read_only:
             return True
 
         def _send(self, status: int, content: str, content_type: str = "text/html; charset=utf-8"):
+            if content_type.startswith("text/html") and config.get("_sync_status", {}).get("refresh_failed"):
+                content = content.replace("<body>", '<body><div role="status">Showing cached data: the latest storage sync failed.</div>', 1)
             # Only scripts our templates wrote are allowed (by hash); markers never leave.
             content, csp_header = secure_html(content if content_type.startswith("text/html") else strip_markers(content))
             raw = content.encode("utf-8")
@@ -1134,6 +1136,10 @@ def serve(config: dict, host: str = "127.0.0.1", port: int = 8765, *, read_only:
                 except Exception:  # noqa: BLE001 - serve the last synced state
                     pass
             parsed = urllib.parse.urlparse(self.path)
+            if parsed.path == "/healthz" and "_sync_status" in config:
+                sync_status = dict(config["_sync_status"])
+                return self._send(503 if sync_status["refresh_failed"] else 200,
+                                  json.dumps(sync_status), "application/json; charset=utf-8")
             if dispatch_brand_asset(self, parsed.path):
                 return
             if parsed.path == "/":

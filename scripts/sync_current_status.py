@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import re
+import tomllib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -29,6 +30,10 @@ def main() -> int:
     args = parser.parse_args()
     expected = render()
     if args.check:
+        version = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]["version"]
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        if f"**Source version: v{version}.**" not in readme or not (ROOT / "docs" / f"release-v{version}.md").is_file():
+            raise SystemExit("README source version / release record do not match pyproject.toml")
         actual = DESTINATION.read_text(encoding="utf-8") if DESTINATION.is_file() else ""
         if actual != expected:
             raise SystemExit("docs/current-status.md is out of sync with STATUS.md")

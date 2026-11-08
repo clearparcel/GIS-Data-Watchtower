@@ -1,7 +1,7 @@
 # Codex Cloud development
 
 Use Codex Cloud for coding, offline tests, documentation, and synthetic dashboard
-previews. The Cloud Run services and GERTKEN-PC provider workers keep their
+previews. The Cloud Run services and designated workstation provider workers keep their
 existing operational roles and execution profiles. This guide prepares the
 repository. A private pilot has subsequently been published and preparation
 checks passed. The restoration retry subsequently passed at the original

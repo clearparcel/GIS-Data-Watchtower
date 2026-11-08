@@ -184,3 +184,25 @@ and monitoring. Page three summarizes statewide MN GAC observations, scan scope,
 and selected mandatory-field gaps. Long content is visibly shortened and linked
 to the full profile. Private records and detailed field tables are excluded.
 JSON, CSV and Excel remain available for full public detail.
+
+## Save audit records and cache behavior (v0.5.1)
+
+Each private county save atomically appends an `audit_events` entry in the same
+compare-and-swap document as the edit. It records the verified IAP subject (or
+authenticated local username), server UTC time, county FIPS, request ID, prior
+and new revision, and operation. It contains no tokens, draft text or attachments
+and is excluded from public projection. Replaying a saved request creates no
+additional event. Direct trusted storage callers are identified as
+`operator:direct-storage` unless they supply an operator identity.
+
+Authorized operators retrieve events from the private county record; public
+endpoints never expose them. Saves retain the previous 365 days of events and
+fail closed above 10,000 retained events until an operator archives them under
+the private retention policy. Existing pre-v0.5.1 saves have no retroactive actor
+attribution. Storage object retention remains a separate deployment setting.
+
+The editor caches list summaries for 30 seconds, invalidates its cache after a
+successful save, and rereads authoritative records for edits and CAS checks.
+Other instances converge within 30 seconds. Attachment status and association
+checks read at most 2,052 bytes bound to one storage generation; downloads and
+scans still verify the complete bytes and their content hash.

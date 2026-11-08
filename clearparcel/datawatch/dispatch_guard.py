@@ -24,6 +24,8 @@ visible in later cadence reviews; it is never implied.
 """
 from __future__ import annotations
 
+from .timestamps import parse_utc as _time
+
 from datetime import datetime, timedelta, timezone
 import json
 import math
@@ -60,16 +62,6 @@ class DispatchGuardError(ValueError):
 
 def _iso(moment: datetime) -> str:
     return moment.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
-
-
-def _time(value) -> datetime | None:
-    if not isinstance(value, str):
-        return None
-    try:
-        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
-    except ValueError:
-        return None
-    return parsed.astimezone(timezone.utc) if parsed.tzinfo else None
 
 
 def configured_min_hours(environ=None) -> float | None:

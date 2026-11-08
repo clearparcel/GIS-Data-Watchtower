@@ -722,3 +722,10 @@ or viewer-only findings; free statewide access does not override a direct fee.
 - The public server answers `HEAD` with the same status and headers as `GET`.
 
 Catalog retention timestamps/flags, public GAC observation time, compact read-only summary and revision-bound county routes, and private worker identity/receipt semantics are documented in [October 7 remediation](archive/watchtower-remediation-2026-10-07.md). These additions do not change provider cadence or execution-profile assignments.
+
+### Dashboard authentication in v0.5.1
+
+Password-free access is limited to loopback. Private IPv4, IPv6 ULA/link-local,
+public and wildcard binds require `CLEARPARCEL_WATCHTOWER_DASHBOARD_PASSWORD`.
+Use TLS at the reverse proxy when sending Basic authentication over a network.
+The read-only Cloud Run IAP frontend retains its separate trust boundary.

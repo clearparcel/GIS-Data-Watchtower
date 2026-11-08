@@ -76,6 +76,10 @@ class IapAdminAuth:
         self._verify = IapVerifier() if verify is None else verify
 
     def authorize(self, assertion):
+        identity = self.authorize_identity(assertion)
+        return identity[0] if identity is not None else None
+
+    def authorize_identity(self, assertion):
         if not isinstance(assertion, str) or not 0 < len(assertion) <= 8192:
             return None
         try:
@@ -85,8 +89,9 @@ class IapAdminAuth:
         subject = claims.get("sub")
         if claims.get("iss") != _ISSUER or not isinstance(subject, str) or subject not in self._subjects:
             return None
-        return hmac.new(self._secret, ("watchtower-county-admin-v1\0" + self.origin + "\0" + subject).encode(),
-                        hashlib.sha256).hexdigest()
+        csrf = hmac.new(self._secret, ("watchtower-county-admin-v1\0" + self.origin + "\0" + subject).encode(),
+                       hashlib.sha256).hexdigest()
+        return csrf, "iap:" + subject
 
 
 def hosted_storage_settings(environ):
