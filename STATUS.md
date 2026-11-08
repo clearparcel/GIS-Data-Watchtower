@@ -1,5 +1,13 @@
 # Project status
 
+## v0.5.0 coordinated release — candidate, 2026-11-07
+
+PRs #224–#227 are merged and the owner approved production rollout of the county
+editor, internal UI fixes and gated source monitoring. The release candidate
+advances the semantic version to 0.5.0. CI, installed-image acceptance, scoped
+worker storage permissions and live rollout verification remain release gates.
+See the [release record](docs/release-v0.5.0.md).
+
 ## County editor source checks — prepared, 2026-11-07
 
 The candidate connects explicitly approved direct service and data-file links
