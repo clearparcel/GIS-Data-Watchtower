@@ -1,28 +1,35 @@
 # Project status
 
-## v0.5.0 coordinated release — candidate, 2026-11-07
+## v0.5.0 coordinated release — deployed, 2026-11-07
 
-PRs #224–#227 are merged and the owner approved production rollout of the county
-editor, internal UI fixes and gated source monitoring. The release candidate
-advances the semantic version to 0.5.0. CI, installed-image acceptance, scoped
-worker storage permissions and live rollout verification remain release gates.
+The public and internal dashboards, county editor, regular cloud worker and
+public publisher run source `69619565646372aa3e7b346a2e9a3bbfc06901ec` from
+merged release PR #228. All six CI combinations and container scans passed;
+1,058 local tests and 39 installed-image tests passed. Installed source and
+OS/Python inventories matched the reviewed and scanned artifacts. Scoped worker
+storage access, live version, authentication, source results, provenance and
+unchanged schedules were verified. The public publisher completed successfully;
+no extra provider run was made. Rollback revisions remain available. The owner
+provided a screenshot confirming the revised editor and review controls.
 See the [release record](docs/release-v0.5.0.md).
 
-## County editor source checks — prepared, 2026-11-07
+## County editor source checks — deployed in v0.5.0
 
-The candidate connects explicitly approved direct service and data-file links
+The editor connects explicitly approved direct service and data-file links
 from the county editor to the normal worker registry. Enrollment requires open
 access, reviewed restrictions and terms, affirmative county permission, and a
 worker assignment. Revisioned private saves preserve removals and concurrent
 county edits. Checks read service details and one count, or file headers; their
 results reach the existing aggregate and public publisher without permission
 references. Existing terms holds, stop decisions and backoff remain in force.
-Production rollout and exact-object worker read access are pending approval.
+The cloud worker's exact-object read access is configured and verified. The
+hosted editor offers its active regular schedule; local workers require an
+explicit operator configuration. Saved enrollments join the next regular run.
 See the [source monitoring guide](docs/county-source-monitoring.md).
 
-## County information editor improvements — prepared, 2026-11-07
+## County information editor improvements — deployed in v0.5.0
 
-The candidate replaces the long contacts form with section navigation, compact
+The editor replaces the long contacts form with section navigation, compact
 dataset summaries and a separate save area that does not cover editing controls.
 Save changes explains public publication and private records; a change review,
 discard confirmation and contact-removal undo help protect edits. Confirmed saves
@@ -30,17 +37,17 @@ survive list-refresh failures, ambiguous writes retain their retry request, and
 validation feedback identifies fields. Private uploads explain linking and file
 checks, retain selected files during form updates and show progress locally.
 Conflict comparisons preserve the draft, and repeated Central times request an
-occurrence only when needed. These changes await merge and release. See the
+occurrence only when needed. These changes are included in v0.5.0. See the
 [editor guide](docs/county-editor-guide.md).
 
-## Internal UI review fixes — prepared, 2026-11-07
+## Internal UI review fixes — deployed in v0.5.0
 
-The candidate preserves paused refresh and open sections when a change link
+The dashboard preserves paused refresh and open sections when a change link
 returns to a source. Saved preferences are restored before disclosure events
 can persist state, and linked evidence opens after restoration. A count measured
 during a failed quality check uses that observation's time; retained counts with
 no trustworthy measurement time show Unavailable. These fixes follow the two
-independent v0.4.3 review findings and await merge and release.
+independent v0.4.3 review findings and are included in v0.5.0.
 See the [fix handoff](docs/ai/handoffs/2026-11-07-internal-ui-review-fixes.md).
 
 ## Internal UI v0.4.3 — deployed, 2026-11-07
@@ -50,8 +57,8 @@ The internal dashboard was updated from merged source
 14 installed-image acceptance steps passed. The installed artifact and live
 revision identity were verified, and the owner confirmed the updated signed-in
 UI. Non-image runtime settings and IAM match the rollback baseline. The
-previous revision is retained. The public site remains v0.4.2; provider jobs
-and schedules were not updated. Saved source results and worker provenance were
+previous revision was retained. At that release, the public site remained
+v0.4.2 and provider jobs and schedules were not updated. Saved source results and worker provenance were
 rechecked; bounded live request logs showed successful responses and no server
 errors.
 See the [release record](docs/release-v0.4.3.md).
@@ -68,15 +75,15 @@ Synthetic validation preceded deployment; live identity and owner UI confirmatio
 are recorded in the release above. See the [UI guide](docs/internal-dashboard-ui.md)
 and [implementation handoff](docs/ai/handoffs/2026-11-07-internal-ui.md).
 
-## Plain-language public UI — merged, not deployed, 2026-11-07
+## Plain-language public UI — deployed in v0.5.0
 
-The candidate simplifies county search and access columns, separates recent
+The public UI simplifies county search and access columns, separates recent
 checks from overdue coverage, and replaces technical metric labels with data
 completeness language. Public directory pages show a readable update time and
 purposeful source links. Detailed comparisons move to the completeness page;
 field names, schema evidence and earlier research remain in expandable details.
 Stored observations, permissions and export schemas are preserved. The public
-deployment remains on v0.4.2. See the [implementation handoff](docs/ai/handoffs/2026-11-07-plain-language-ui.md).
+deployment includes these changes in v0.5.0. See the [implementation handoff](docs/ai/handoffs/2026-11-07-plain-language-ui.md).
 
 ## v0.4.2 county PDF summaries — deployed
 

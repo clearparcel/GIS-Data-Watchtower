@@ -40,7 +40,9 @@ Choose the path that matches what you want to do. For the live dashboard and a c
 | [Provider-run alerting proposal](provider-run-alerting-proposal.md) | Proposed (not applied): alert on Watchtower failures and missed runs separately from source errors |
 | [Public dashboard hosting](public-dashboard-hosting.md) | Anonymous sanitized service, access boundaries, publication, and freshness |
 | [Release policy](release-policy.md) | Versioning, evidence, and rollback expectations |
-| [Current v0.4.2 public dashboard release](release-v0.4.2.md) | Three-page county PDF summaries |
+| [Current v0.5.0 coordinated release](release-v0.5.0.md) | County editor, gated source monitoring, dashboards and jobs |
+| [v0.4.3 internal dashboard release](release-v0.4.3.md) | Previous internal UI rollout |
+| [v0.4.2 public dashboard release](release-v0.4.2.md) | Three-page county PDF summaries |
 | [v0.4.1 public dashboard release](release-v0.4.1.md) | Published county access consistency and live verification |
 | [v0.4.0 county administration release](release-v0.4.0.md) | County editor, public profiles, and PDF introduction |
 | [v0.3.9 coordinated release](release-v0.3.9.md) | Historical dashboard and job release |

@@ -8,15 +8,12 @@
 
 **[Explore the live public dashboard](https://gis-watchtower.clear-parcel.com/)** · **[User guide](docs/user-guide.md)** · **[Documentation index](docs/README.md)**
 
-The public dashboard currently runs **v0.4.2**, deployed November 6, 2026.
-The internal dashboard runs **v0.4.3**, deployed November 7, 2026.
-The shared public UI changes are merged and await a separate public rollout.
-See the [internal release record](docs/release-v0.4.3.md).
+The public dashboard, internal dashboard and county editor run **v0.5.0**,
+deployed November 7, 2026. The regular cloud worker and public publisher use the
+same release. See the [release record](docs/release-v0.5.0.md).
 The [internal UI guide](docs/internal-dashboard-ui.md) describes attention lists, saved changes, reading-safe updates, terms filters and scoped downloads.
-Review fixes for paused refresh and record-count observation dates are prepared
-for the next internal release; see [STATUS.md](STATUS.md).
-See [STATUS.md](STATUS.md) for each service’s release state and the
-[public dashboard release record](docs/release-v0.4.2.md).
+The release includes the review fixes for paused refresh and record-count
+observation dates. See [STATUS.md](STATUS.md) for each surface’s release state.
 Starting with v0.3.10, each deployed version is tagged and published as a
 GitHub Release; v0.3.0 through v0.3.9 are recorded but not tagged (see the
 [release policy](docs/release-policy.md#source-downloadable-release-and-deployment-are-different-things)). Alert
@@ -36,9 +33,9 @@ The [county directory contract](docs/county-directory-contract.md) describes
 GIS contact editing, public publication, private attachment quarantine, and
 county profile PDFs. The [v0.4.0 release record](docs/release-v0.4.0.md) covers
 the public dashboard and the protected production editor.
-The [county editor guide](docs/county-editor-guide.md) describes the prepared
+The [county editor guide](docs/county-editor-guide.md) describes the
 section navigation, change review, save recovery and private-file workflow.
-The prepared [county source enrollment](docs/county-source-monitoring.md) connects
+The [county source enrollment](docs/county-source-monitoring.md) connects
 reviewed direct links to bounded regular checks and their public results.
 
 ![Live Watchtower overview with source health, county coverage, and a Minnesota county map](docs/images/watchtower-overview.png)
