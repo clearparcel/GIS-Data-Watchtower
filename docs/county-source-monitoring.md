@@ -75,7 +75,10 @@ Provider workers opt in with **one** of these settings:
 | `WATCHTOWER_COUNTY_MONITORING_ROOT` | A local storage root, normally the synthetic or local editor's private root. |
 
 Initialize the enrollment object through a saved editor record before enabling
-worker access; its absence fails preflight. The object key is fixed; neither
+worker access; its absence fails preflight. During an approved initial rollout,
+an operator may instead conditionally create the empty version 1 manifest with
+`counties: {}` only if the object does not exist. This enables no sources and must
+never overwrite an existing registry. The object key is fixed; neither
 setting changes the normal worker's state, history or aggregate storage.
 The hosted editor defaults to the cloud worker, matching the current regular
 schedule. Set `WATCHTOWER_COUNTY_MONITORING_PROFILES=cloud,local` on the editor only
