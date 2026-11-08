@@ -28,6 +28,7 @@ With this fix, the worker resolves enrolled URLs within the existing request
 deadline and rejects the entire address set if any IPv4/IPv6 answer is private,
 loopback, link-local, multicast, reserved or otherwise nonpublic. Connections
 use the validated addresses while preserving the hostname and TLS checks.
+Legacy 6to4 IPv6 addresses are rejected consistently across supported runtimes.
 Derived count URLs and redirects have the same boundary; the redirect allowlist
 cannot relax it. Curl fallback reuses the validated address snapshot. Effective
 proxies fail closed because they cannot enforce destination binding. Existing

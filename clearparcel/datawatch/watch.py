@@ -317,8 +317,11 @@ def _public_request_url(url: str, deadline: RequestDeadline) -> str:
         raise RuntimeError("county monitoring request rejected: destination has no addresses")
     for family, _, _, _, sockaddr in addresses:
         address = ipaddress.ip_address(sockaddr[0])
+        # Reject 6to4 explicitly: early supported Python patch versions called
+        # even private-IPv4 embeddings global; newer ipaddress rejects them.
         if (family not in (socket.AF_INET, socket.AF_INET6) or not address.is_global
-                or address.is_multicast or address.is_reserved or getattr(address, "is_site_local", False)):
+                or address.is_multicast or address.is_reserved or getattr(address, "is_site_local", False)
+                or getattr(address, "sixtofour", None) is not None):
             raise RuntimeError("county monitoring request rejected: destination is not public")
     return PinnedURL(url, addresses)
 

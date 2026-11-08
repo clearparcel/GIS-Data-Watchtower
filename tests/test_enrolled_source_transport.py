@@ -36,7 +36,7 @@ class EnrolledSourceTransportTests(unittest.TestCase):
         for ip in ("127.0.0.1", "10.0.0.1", "172.16.0.1", "192.168.0.1",
                    "169.254.169.254", "100.64.0.1", "0.0.0.0", "192.0.2.1",
                    "224.0.0.1", "::1", "fe80::1", "fec0::1", "fd00::1",
-                   "::ffff:127.0.0.1", "ff02::1", "64:ff9b::7f00:1"):
+                   "::ffff:127.0.0.1", "ff02::1", "64:ff9b::7f00:1", "2002:7f00:1::"):
             family = socket.AF_INET6 if ":" in ip else socket.AF_INET
             addresses = ((family, socket.SOCK_STREAM, 6, "", (ip, 443)),)
             for invoke in requests:
@@ -63,6 +63,19 @@ class EnrolledSourceTransportTests(unittest.TestCase):
         with (patch.object(watch, "resolve_addresses", return_value=()),
               patch.object(transport.socket, "socket") as sock):
             with self.assertRaisesRegex(RuntimeError, "no addresses"):
+                watch._head_request(URL, 2)
+            sock.assert_not_called()
+
+    def test_six_to_four_is_rejected_even_with_older_ip_classification(self):
+        # Early Python 3.12 classified 6to4 as global even when it embeds a
+        # private IPv4 destination. Match patched runtimes explicitly.
+        classified = SimpleNamespace(is_global=True, is_multicast=False,
+            is_reserved=False, is_site_local=False, sixtofour="127.0.0.1")
+        addresses = ((socket.AF_INET6, socket.SOCK_STREAM, 6, "", ("2002:7f00:1::", 443, 0, 0)),)
+        with (patch.object(watch, "resolve_addresses", return_value=addresses),
+              patch.object(watch.ipaddress, "ip_address", return_value=classified),
+              patch.object(transport.socket, "socket") as sock):
+            with self.assertRaisesRegex(RuntimeError, "not public"):
                 watch._head_request(URL, 2)
             sock.assert_not_called()
 
