@@ -366,7 +366,9 @@ def create_county_admin_server(store: CountyDirectoryStore, *, port: int, userna
                         raise ValueError
                     attachments.validate_refs(county["fips"], refs)
                 receipt = store.save(county, body["draft"], expected_revision=body["expected_revision"],
-                                     request_id=body["request_id"])
+                                     request_id=body["request_id"],
+                                     before_save=lambda revision: monitoring_store.prepare_removals(
+                                         county, body["draft"], revision=revision))
             except CountyRevisionConflict:
                 self._send(409, {"status": "revision_conflict"})
                 return

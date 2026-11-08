@@ -230,6 +230,31 @@ class CountyMonitoringStore:
     def __init__(self, storage: StorageBackend):
         self._storage = storage
 
+    def prepare_removals(self, county: dict, draft: object, *, revision: int) -> None:
+        """Remove old/changed checks before accepting a private save; never add here."""
+        if type(revision) is not int or revision < 1:
+            raise ValueError("county monitoring requires a saved private revision")
+        desired = build_county_monitoring_sources(county, draft)
+        with TemporaryDirectory() as scratch:
+            path = Path(scratch) / "sources.json"
+            for attempt in range(_ATTEMPTS):
+                manifest, version = _read(self._storage, path)
+                counties = manifest["counties"]
+                _validate_counties(counties)
+                previous = counties.get(county["slug"])
+                if previous is None or previous["revision"] >= revision:
+                    return
+                retained = [source for source in previous["sources"] if source in desired]
+                if retained == previous["sources"]:
+                    return
+                counties[county["slug"]] = {"revision": revision, "sources": retained, "pending": True}
+                try:
+                    _write(self._storage, path, version, manifest)
+                    return
+                except StorageConflictError:
+                    if attempt + 1 == _ATTEMPTS:
+                        raise
+
     def replace_county(self, county: dict, draft: object, *, revision: int) -> int:
         if type(revision) is not int or revision < 1:
             raise ValueError("county monitoring requires a saved private revision")
@@ -244,8 +269,10 @@ class CountyMonitoringStore:
                 _validate_counties(counties)
                 existing = counties.get(county["slug"], {})
                 if existing.get("revision", 0) > revision:
+                    if existing.get("pending"):
+                        raise StorageConflictError("county monitoring removal awaits a saved revision")
                     return len(existing["sources"])
-                if existing.get("revision") == revision:
+                if existing.get("revision") == revision and not existing.get("pending"):
                     if existing["sources"] != sources:
                         raise ValueError("county monitoring revision has different content")
                     return len(sources)
@@ -263,7 +290,9 @@ class CountyMonitoringStore:
 
     def read_registry(self) -> tuple[list[dict], dict]:
         with TemporaryDirectory() as scratch:
-            manifest, _ = _read(self._storage, Path(scratch) / "sources.json")
+            manifest, version = _read(self._storage, Path(scratch) / "sources.json")
+        if version is None:
+            raise ValueError("county monitoring registry is not initialized")
         counties = manifest["counties"]
         _validate_counties(counties)
         return ([{**source, "_county_monitoring_revision": record["revision"]}
@@ -279,9 +308,10 @@ def _validate_counties(counties: dict) -> None:
     seen = set()
     for slug, record in counties.items():
         if (slug not in identities or not isinstance(record, dict)
-                or set(record) != {"revision", "sources"}
+                or not {"revision", "sources"} <= set(record) <= {"revision", "sources", "pending"}
                 or type(record["revision"]) is not int or record["revision"] < 1
-                or not isinstance(record["sources"], list)):
+                or not isinstance(record["sources"], list)
+                or "pending" in record and record["pending"] is not True):
             raise ValueError("invalid county monitoring registry")
         for item in record["sources"]:
             source = _validate_source(item, slug)

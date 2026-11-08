@@ -5,6 +5,7 @@ import tempfile
 import threading
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from clearparcel.datawatch.county_admin import create_county_admin_server
 from clearparcel.datawatch.county_attachments import CountyAttachments
@@ -162,8 +163,9 @@ class CountyAdminTests(unittest.TestCase):
         newer["draft"]["access"]["parcel_polygons"]["methods"][0]["monitoring"]["enabled"] = False
         newer["draft"]["policy"]["text"] = "Changed public text"
         self.public.unavailable = True
-        status, receipt = self.json_request("POST", route, newer, headers)
-        self.assertEqual((status, receipt["status"], receipt["monitoring_status"]), (202, "pending", "current"))
+        with patch.object(CountyMonitoringStore, "replace_county", side_effect=OSError("synthetic registry failure")):
+            status, receipt = self.json_request("POST", route, newer, headers)
+        self.assertEqual((status, receipt["status"], receipt["monitoring_status"]), (202, "pending", "pending"))
         self.assertEqual(registry.read_sources(), [])
         self.json_request("POST", route, payload, headers)
         self.assertEqual(registry.read_sources(), [])

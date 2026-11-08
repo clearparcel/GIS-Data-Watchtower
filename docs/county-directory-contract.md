@@ -59,6 +59,12 @@ registry, save revisions, bounded adapters and worker access contract.
   write. The same object holds the draft, receipt, and durable desired public
   revision and fingerprint. A private-only change advances only the private
   revision and preserves any pending public intent.
+- The editor supplies a `before_save` hook after validation, replay and revision
+  checks, before the private compare-and-swap. This hook prepares only monitoring
+  removals; failure prevents the new private revision. Additions synchronize
+  after the durable save. Retried receipts skip the hook and reconcile the latest
+  saved draft instead. A conflicting save can conservatively pause a changed
+  check until the winning saved revision reconciles the registry.
 - Store each private county record separately. The sanitized public directory
   uses a separate object from both private storage and the routine monitoring
   aggregate. Each public county entry adds a public revision and publication

@@ -157,7 +157,7 @@ class CountyDirectoryStore:
             raise ValueError("request ID was already used for a different county save")
         return CountySave(receipt["revision"], receipt["publication_revision"])
 
-    def save(self, county: dict, draft: dict, *, expected_revision: int, request_id: str) -> CountySave:
+    def save(self, county: dict, draft: dict, *, expected_revision: int, request_id: str, before_save=None) -> CountySave:
         key = _private_key(county)
         if type(expected_revision) is not int or expected_revision < 0:
             raise ValueError("expected revision must be a nonnegative integer")
@@ -194,6 +194,8 @@ class CountyDirectoryStore:
                 "schema_version": _VERSION, "revision": revision, "draft": draft, "public_revision": target,
                 "public_fingerprint": public_fingerprint, "requests": requests,
             }
+            if before_save is not None:
+                before_save(revision)
             try:
                 _write(self._private, key, path, version, updated)
             except StorageConflictError:

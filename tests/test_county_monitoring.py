@@ -1,8 +1,10 @@
 """Synthetic editor enrollment through scheduled checks and public publication."""
 import base64
+import contextlib
 import copy
 import datetime as dt
 import http.client
+import io
 import json
 import os
 import tempfile
@@ -11,16 +13,17 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from clearparcel.datawatch import watch
+from clearparcel.datawatch import cli, watch
 from clearparcel.datawatch.aggregate import merge_states
 from clearparcel.datawatch.cloud_job import publish_worker_result
 from clearparcel.datawatch.county_admin import create_county_admin_server
 from clearparcel.datawatch.county_directory import project_public_county
-from clearparcel.datawatch.county_directory_store import CountyDirectoryStore, read_public_directory
+from clearparcel.datawatch.county_directory_store import CountyDirectoryStore, CountyRevisionConflict, read_public_directory
 from clearparcel.datawatch.county_monitoring import CountyMonitoringStore, build_county_monitoring_sources
 from clearparcel.datawatch.county_profiles import FreshnessPolicy, compose_county_profiles, county_identities
 from clearparcel.datawatch.parcel_access import CountyPermission, load_parcel_access
-from clearparcel.datawatch.public_dashboard import render_public_source
+from clearparcel.datawatch.public_dashboard import render_public_dashboard, render_public_source
+from clearparcel.datawatch.public_projection import sanitize_public_render_state
 from clearparcel.datawatch.public_publish import publish_public_snapshot
 from clearparcel.datawatch.storage import LocalStorage
 
@@ -127,11 +130,88 @@ class CountyMonitoringTests(unittest.TestCase):
         cfg["_county_monitoring_sources"] = [source]
         cfg["_county_monitoring_sources_loaded"] = True
         before = copy.deepcopy(cfg)
-        with patch.object(watch, "_source_check") as check:
+        with patch.dict(os.environ, {"WATCHTOWER_COUNTY_MONITORING_ROOT": ""}), patch.object(watch, "_source_check") as check:
             report = watch.check_sources(cfg, save=False, execution_profile="cloud")
         check.assert_not_called()
         self.assertEqual(cfg, before)
         self.assertEqual(report["skipped_sources"][source["id"]], "awaiting-permission")
+
+    def test_failed_removal_write_does_not_accept_private_save(self):
+        store = CountyDirectoryStore(self.storage, LocalStorage(self.root / "directory"))
+        store.save(self.county, draft(), expected_revision=0, request_id="first")
+        self.registry.replace_county(self.county, draft(), revision=1)
+        value = draft()
+        value["access"]["parcel_polygons"]["methods"][0]["monitoring"]["enabled"] = False
+        with patch.object(self.storage, "upload_if_version", side_effect=OSError("synthetic write failure")), self.assertRaises(OSError):
+            store.save(self.county, value, expected_revision=1, request_id="disable", before_save=lambda revision:
+                self.registry.prepare_removals(self.county, value, revision=revision))
+        self.assertEqual(store.read_private(self.county).revision, 1)
+        self.assertEqual(len(self.registry.read_sources()), 1)
+
+    def test_prepared_removal_after_private_cas_conflict_reconciles_the_winning_draft(self):
+        for winner_enabled in (True, False):
+            with self.subTest(winner_enabled=winner_enabled):
+                private = LocalStorage(self.root / str(winner_enabled))
+                registry = CountyMonitoringStore(private)
+                store = CountyDirectoryStore(private, LocalStorage(self.root / (str(winner_enabled) + "-public")))
+                store.save(self.county, draft(), expected_revision=0, request_id="first")
+                registry.replace_county(self.county, draft(), revision=1)
+                disabled, winner = draft(), draft()
+                disabled["access"]["parcel_polygons"]["methods"][0]["monitoring"]["enabled"] = False
+                winner["access"]["parcel_polygons"]["methods"][0]["monitoring"]["enabled"] = winner_enabled
+                original, raced = private.upload_if_version, False
+                def race(name, path, version):
+                    nonlocal raced
+                    if not raced and "/records/" in name:
+                        raced = True
+                        store.save(self.county, winner, expected_revision=1, request_id="winner")
+                    original(name, path, version)
+                with patch.object(private, "upload_if_version", side_effect=race), self.assertRaises(CountyRevisionConflict):
+                    store.save(self.county, disabled, expected_revision=1, request_id="loser", before_save=lambda revision:
+                        registry.prepare_removals(self.county, disabled, revision=revision))
+                self.assertEqual(registry.read_sources(), [])
+                saved = store.read_private(self.county)
+                registry.replace_county(self.county, saved.draft, revision=saved.revision)
+                self.assertEqual(len(registry.read_sources()), int(winner_enabled))
+
+    def test_worker_registry_read_requests_only_the_enrollment_object(self):
+        self.registry.replace_county(self.county, draft(), revision=1)
+        with patch.object(self.storage, "download_versioned", wraps=self.storage.download_versioned) as read:
+            self.registry.read_registry()
+        self.assertEqual([call.args[0] for call in read.call_args_list], [OBJECT])
+
+    def test_bad_enrollment_fails_before_daily_guard_and_good_snapshot_is_reused(self):
+        self.registry.replace_county(self.county, draft(), revision=1)
+        cfg_path = self.root / "config.json"
+        cfg_path.write_text(json.dumps(config(self.root)), encoding="utf-8")
+        registry_path = self.storage.root / OBJECT
+        valid = registry_path.read_text(encoding="utf-8")
+        for command in ("check", "cloud-job"):
+            registry_path.write_text("{invalid", encoding="utf-8")
+            with patch.dict(os.environ, {"WATCHTOWER_MIN_DISPATCH_HOURS": "23", "WATCHTOWER_RUN_RECEIPTS": "0"}), \
+                    patch("sys.argv", ["watchtower", "--config", str(cfg_path), command]), \
+                    patch("clearparcel.datawatch.dispatch_guard.guard_dispatch") as guard, \
+                    contextlib.redirect_stderr(io.StringIO()):
+                self.assertEqual(cli.main(), cli.EXIT_TOOL_FAILURE)
+            guard.assert_not_called()
+        registry_path.write_text(valid, encoding="utf-8")
+        duplicate = config(self.root, self.registry.read_sources())
+        cfg_path.write_text(json.dumps(duplicate), encoding="utf-8")
+        with patch("sys.argv", ["watchtower", "--config", str(cfg_path), "check"]), \
+                patch("clearparcel.datawatch.dispatch_guard.guard_dispatch") as guard, \
+                contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(cli.main(), cli.EXIT_TOOL_FAILURE)
+        guard.assert_not_called()
+        cfg_path.write_text(json.dumps(config(self.root)), encoding="utf-8")
+        # A change after the slot claim is for the next run, not a second load.
+        with patch("sys.argv", ["watchtower", "--config", str(cfg_path), "check", "--no-save", "--execution-profile", "cloud"]), \
+                patch("clearparcel.datawatch.dispatch_guard.guard_dispatch", side_effect=lambda *args, **kwargs:
+                      registry_path.write_text("{invalid", encoding="utf-8")) as guard, \
+                patch.object(watch, "_source_check", return_value={"problems": []}) as check, \
+                contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(cli.main(), cli.EXIT_OK)
+        guard.assert_called_once()
+        check.assert_called_once()
 
     def test_invalid_registry_and_colliding_static_id_fail_before_any_poll(self):
         self.registry.replace_county(self.county, draft(), revision=1)
@@ -159,6 +239,20 @@ class CountyMonitoringTests(unittest.TestCase):
         self.assertEqual(source["category"], "Roads")
         self.assertEqual(source["monitoring_review"]["mode"], "file-update-metadata")
         head.assert_called_once()
+
+    def test_road_and_address_sources_are_public_without_claiming_parcel_coverage(self):
+        for dataset in ("road_centerlines", "address_points"):
+            with self.subTest(dataset=dataset):
+                value = draft(dataset=dataset)
+                self.registry.replace_county(self.county, value, revision=1 if dataset == "road_centerlines" else 2)
+                with patch.object(watch, "_source_check", return_value={"feature_count": 42, "problems": []}):
+                    result = watch.check_sources(config(self.root), save=False, execution_profile="cloud")
+                public = sanitize_public_render_state(merge_states({}, result, "cloud"))
+                sid = next(iter(public["sources"]))
+                self.assertIn(public["sources"][sid]["name"], render_public_dashboard({"_render_state": public}))
+                self.assertIn("Limited check", render_public_source({"_render_state": public}, sid))
+                profiles = compose_county_profiles(public, {}, now=dt.datetime.now(dt.UTC), freshness_policy=FreshnessPolicy())
+                self.assertNotIn("county-direct", profiles["aitkin"]["monitoring"]["paths"])
 
     def test_removal_is_retired_but_an_unconfigured_or_missing_registry_is_not_a_removal(self):
         self.registry.replace_county(self.county, draft(), revision=1)

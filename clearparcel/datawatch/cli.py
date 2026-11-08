@@ -9,7 +9,7 @@ from pathlib import Path
 from clearparcel.datawatch.dashboard import build_static_site, serve
 from clearparcel.datawatch.dispatch_guard import DispatchGuardError, DispatchRefused
 from clearparcel.datawatch.product import PRODUCT_NAME
-from clearparcel.datawatch.watch import _EXECUTION_PROFILES, _resolve_execution_profile, _safe_diagnostic, check_sources, load_config, load_history, load_state
+from clearparcel.datawatch.watch import _EXECUTION_PROFILES, _resolve_execution_profile, _safe_diagnostic, check_sources, load_config, load_history, load_state, prepare_check_config
 
 
 def _default_config() -> Path | None:
@@ -194,6 +194,7 @@ def main() -> int:
             )
         config = load_config(args.config)
         if args.command == "check":
+            config = prepare_check_config(config)
             # Resolve once so the polled profile and the published worker agree.
             profile = _resolve_execution_profile(args.execution_profile)
             if profile and not args.no_save:
@@ -236,11 +237,12 @@ def main() -> int:
             from clearparcel.datawatch.dispatch_guard import configured_min_hours
             started_at = _utc_now()
             try:
+                config = prepare_check_config(config)
                 if configured_min_hours() is not None or args.override_min_interval is not None:
                     # Refuse a run that cannot poll before it uses the day's provider-run slot.
-                    preflight_cloud_job(config)
+                    config = preflight_cloud_job(config)
                     _guard(config, args.config, "cloud-job", args.override_min_interval, job_profile())
-                result = run_cloud_job(args.config)
+                result = run_cloud_job(args.config, prepared_config=config)
             except DispatchRefused:
                 raise  # Refused before any provider request: no run receipt.
             except Exception:

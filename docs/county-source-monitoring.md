@@ -21,14 +21,20 @@ nonpublic URLs cannot be enrolled through this path.
 
 ## Save and check flow
 
-1. The authenticated editor validates and saves its private county draft.
+1. The authenticated editor validates its draft and revision, then removes
+   disabled or changed checks from the private registry before accepting the
+   private save. A failed removal write prevents that save from being accepted.
 2. The server synchronizes that county's sources into the separate private
    object `county-directory/v1/monitoring/sources.json`. Each county entry carries
    its saved private revision and a bounded source list. Conditional writes
    preserve concurrent changes to other counties. Empty entries retain removals;
    an older request cannot restore a source after a newer save disables it.
-3. The assigned `cloud` or `local` worker reads that object at the beginning of
-   each normal check and includes its sources alongside the deployment registry.
+   Additions become active only after the private save succeeds. If a private
+   write fails after a prepared removal, that removal remains conservative until
+   a saved revision reconciles it; retry the save to finish.
+3. The assigned `cloud` or `local` worker reads and validates that object before
+   claiming its normal run slot and includes its sources alongside the deployment
+   registry. The validated snapshot is carried through that run.
    Existing profile assignments, dispatch spacing, terms holds, county stop and
    decline decisions, and provider 429 backoff still apply. A source approval
    cannot lift a packaged `hold-for-terms` decision.
@@ -67,7 +73,9 @@ Provider workers opt in with **one** of these settings:
 | `WATCHTOWER_COUNTY_MONITORING_BUCKET` | The editor's private GCS bucket; only the exact enrollment object is read. |
 | `WATCHTOWER_COUNTY_MONITORING_ROOT` | A local storage root, normally the synthetic or local editor's private root. |
 
-The object key is fixed; neither setting changes the normal worker's state,
+Initialize the enrollment object through a saved editor record before enabling
+worker access; its absence fails preflight. The object key is fixed; neither
+setting changes the normal worker's state,
 history or aggregate storage. Configure both worker profiles that administrators
 may select. A local worker using GCS needs the optional `gcs` dependency and its
 approved existing identity. Keep these settings off public dashboards and the
@@ -86,6 +94,11 @@ bucket: it also contains contact drafts, correspondence and private attachments.
 The worker needs no list or write permission on that bucket. The existing editor
 identity continues to own conditional writes. Preserve its authentication,
 scanner and public-directory permissions.
+
+During approved rollout, verify that the worker identity can read this exact
+object and is denied a private county record and an attachment object. The
+offline suite verifies that the worker reader requests only the fixed enrollment
+key; it cannot prove live IAM. Do not activate a worker with broad bucket access.
 
 Rollout must deploy the editor and worker code, grant this object read, set the
 worker registry location, and deploy the public publisher/dashboard code that

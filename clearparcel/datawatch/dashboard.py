@@ -1001,6 +1001,8 @@ def refresh_providers(config: dict, execution_profile) -> dict | None:
     """A dashboard refresh polls providers, so it claims the same provider-run spacing slot first."""
     from clearparcel.datawatch.dispatch_guard import DispatchGuardError, DispatchRefused, guard_dispatch
     from clearparcel.datawatch.storage import backend_from_env
+    from clearparcel.datawatch.watch import prepare_check_config
+    config = prepare_check_config(config)
     root = config.get("_root_dir") or Path(config.get("state_file", ".")).parent
     try:
         guard_dispatch(lambda: backend_from_env(root), command="dashboard-refresh", override=None,

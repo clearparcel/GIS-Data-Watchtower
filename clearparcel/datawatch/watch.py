@@ -2827,7 +2827,7 @@ def check_sources(
     execution_profile: str | None = None,
     rate_limit_sink=None,
 ) -> dict:
-    config = _load_county_monitoring_sources(config)
+    config = prepare_check_config(config)
     # Before any lock, provider request or state write.
     validate_source_registry(config.get("sources", []))
     _validate_dispatch_options(config, "configuration", _CONFIG_DISPATCH_OPTIONS)
@@ -2839,6 +2839,21 @@ def check_sources(
     finally:
         _RATE_LIMIT_SINK.reset(sink_token)
         _RUN_BLOCKED_HOSTS.reset(token)
+
+
+_COUNTY_MONITORING_SNAPSHOT = object()
+
+
+def prepare_check_config(config: dict) -> dict:
+    """Validate one private registry snapshot before dispatch claims its run slot."""
+    if config.get("_county_monitoring_snapshot") is _COUNTY_MONITORING_SNAPSHOT:
+        return config
+    loaded = _load_county_monitoring_sources(config)
+    validate_source_registry(loaded.get("sources", []))
+    _validate_dispatch_options(loaded, "configuration", _CONFIG_DISPATCH_OPTIONS)
+    if "_county_monitoring_counties" in loaded:
+        loaded["_county_monitoring_snapshot"] = _COUNTY_MONITORING_SNAPSHOT
+    return loaded
 
 
 def _load_county_monitoring_sources(config: dict) -> dict:
@@ -2863,8 +2878,10 @@ def _load_county_monitoring_sources(config: dict) -> dict:
                 if isinstance(source, dict) else source for source in configured]
     loaded = {**config, "sources": [*ordinary, *enrolled]}
     loaded.pop("_county_monitoring_counties", None)
+    loaded.pop("_county_monitoring_original_sources", None)
     if bucket or root:
         loaded["_county_monitoring_counties"] = counties
+        loaded["_county_monitoring_original_sources"] = ordinary
     return loaded
 
 
