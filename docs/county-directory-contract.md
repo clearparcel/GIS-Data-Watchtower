@@ -6,6 +6,11 @@ with HTML, JSON, CSV, XLSX, and PDF output. See the
 [hosted staging checklist](county-directory-staging.md) for service
 bindings, verified migration, and rollout acceptance.
 
+The prepared **County information editor** UI adds section navigation, public
+and private change review, field validation hints, protected discard/undo and
+clear save/publication recovery. See the [editor guide](county-editor-guide.md).
+The save, authentication, publication and file-check contracts below still apply.
+
 ## County identity and public content
 
 Resolve five-digit county FIPS, slug, and name from the existing county profile

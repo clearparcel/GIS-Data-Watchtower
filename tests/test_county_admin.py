@@ -80,7 +80,7 @@ class CountyAdminTests(unittest.TestCase):
     def test_editor_assets_are_authenticated_and_use_same_origin_csp(self):
         status, headers, page = self.request("GET", "/")
         self.assertEqual(status, 200)
-        self.assertIn(b"GIS Contacts", page)
+        self.assertIn(b"County information editor", page)
         self.assertIn(b'src="/county-admin.js"', page)
         self.assertIn("frame-ancestors 'none'", headers["Content-Security-Policy"])
         for path in ("/county-admin.js", "/county-admin.css"):
@@ -141,6 +141,26 @@ class CountyAdminTests(unittest.TestCase):
         private_change["draft"]["correspondence"][0]["subject"] = "Changed private note"
         status, result = self.json_request("POST", path, private_change, headers)
         self.assertEqual((status, result["status"]), (200, "saved_private"))
+
+    def test_invalid_save_returns_safe_field_hints_without_writing(self):
+        payload = self.apply_payload()
+        payload['draft']['contacts'] = [{'name': 'Invented office', 'email': 'PRIVATE_BAD_VALUE'}]
+        payload['draft']['policy']['url'] = 'javascript:PRIVATE_BAD_VALUE'
+        status, result = self.json_request('POST', '/api/counties/aitkin', payload, self.get_mutation_headers())
+        self.assertEqual((status, result['status']), (400, 'invalid_draft'))
+        self.assertIn('contacts.0.email', {e.get('field') for e in result['errors']})
+        self.assertIn('policy.url', {e.get('field') for e in result['errors']})
+        self.assertNotIn('PRIVATE_BAD_VALUE', json.dumps(result))
+        self.assertEqual(self.json_request('GET', '/api/counties/aitkin')[1]['revision'], 0)
+
+    def test_directory_search_includes_public_department_and_role(self):
+        payload = self.apply_payload()
+        payload['draft']['contacts'] = [{'name': 'Invented office', 'department': 'Invented mapping', 'role': 'Invented coordinator'}]
+        self.json_request('POST', '/api/counties/aitkin', payload, self.get_mutation_headers())
+        directory = self.json_request('GET', '/api/counties')[1]
+        terms = next(c['search_terms'] for c in directory['counties'] if c['slug'] == 'aitkin')
+        self.assertIn('Invented mapping', terms)
+        self.assertIn('Invented coordinator', terms)
 
     def test_packaged_seed_preserves_current_contacts_and_separate_access_evidence(self):
         counties = county_identities()
