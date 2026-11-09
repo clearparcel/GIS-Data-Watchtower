@@ -1,4 +1,7 @@
-# GIS Data Watchtower v0.5.2 candidate
+# GIS Data Watchtower v0.5.2
+
+Deployed November 9, 2026. Built from merged source commit
+`6ac707952037e9ef4c8acb7ba82581885344b434`, incorporating PR #233.
 
 This candidate updates the County editor and county-direct source monitoring:
 
@@ -12,7 +15,22 @@ This candidate updates the County editor and county-direct source monitoring:
 - County-reported direct-data update frequency is recorded as descriptive
   information and does not change the Watchtower schedule.
 
-The candidate was validated locally with the repository's required test,
-compile, status-sync and diff checks. It has not been merged or deployed.
-Hosted CI and production promotion evidence will be recorded after those steps
-are completed.
+## Validation and promotion
+
+- Candidate CI passed all six Windows/Linux Python combinations and security
+  checks; [merged-main CI](https://github.com/clearparcel/GIS-Data-Watchtower/actions/runs/42647933798)
+  also passed. Local validation passed 1,086 tests (3 skipped), compileall,
+  current-status synchronization and diff checks.
+- IAP-protected synthetic staging UI review confirmed the optional policy link,
+  permission date and county update-frequency fields. The test stayed in an
+  unsaved draft; no real county record or monitoring enrollment was changed.
+- Production rollout updated the public and internal dashboards, county editor,
+  regular cloud worker and public publisher. The public site returned HTTP 200
+  and displayed v0.5.2 after promotion. Candidate revisions were verified ready
+  before traffic moved; runtime settings, service identities, ingress controls
+  and scheduler targets were preserved. Prior service revisions and job images
+  remain the rollback targets.
+- No provider polling was started and no provider or publisher schedule was
+  changed. Scanner and weekly digest images were outside this coordinated
+  application update. Detailed deployment identifiers remain in the private
+  deployment record.
