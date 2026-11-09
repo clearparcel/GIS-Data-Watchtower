@@ -97,17 +97,21 @@ assert.ok(!JSON.stringify(rows).includes('NEVER_DISPLAY'));
         self.run_ui(r'''
 vm.runInContext(`draft.access={parcel_polygons:{classification:'open',restrictions:{status:'reviewed_none'},methods:[{
  kind:'direct_rest',url:'https://example.gov/rest/services/Parcels/FeatureServer/0',scope:'County',evidence_date:'2026-11-07',
- monitoring:{enabled:true,execution_profile:'cloud',terms_url:'https://example.gov/terms',terms_reviewed_on:'2026-11-07',terms_confirmed:true,
- county_permission:{reply:'permitted',scope:'details-and-count',received_on:'2026-11-07',reference:'PRIVATE_PERMISSION'}}}]} };access();`,sandbox);
+update_frequency:'Annually',monitoring:{enabled:true,execution_profile:'cloud',terms_url:'',terms_reviewed_on:'2026-11-07',terms_confirmed:true,
+county_permission:{reply:'none',scope:'none',received_on:'',reference:''}}}]} };access();`,sandbox);
 function walk(n){return [n,...(n.children||[]).filter(c=>typeof c==='object').flatMap(walk)]}
 const controls=walk(nodes.get('#fields'));
 assert.ok(controls.some(c=>c.dataset.field==='access.parcel_polygons.methods.0.monitoring.enabled'));
-assert.ok(controls.some(c=>c.dataset.field==='access.parcel_polygons.methods.0.monitoring.county_permission.reference'));
+assert.ok(controls.some(c=>c.dataset.field==='access.parcel_polygons.methods.0.monitoring.county_permission.reply'));
+assert.ok(controls.some(c=>c.dataset.field==='access.parcel_polygons.methods.0.monitoring.terms_url'&&!c.required));
+assert.ok(controls.some(c=>c.dataset.field==='access.parcel_polygons.methods.0.monitoring.county_permission.received_on'&&!c.required));
+assert.ok(controls.some(c=>c.dataset.field==='access.parcel_polygons.methods.0.update_frequency'));
+assert.ok(controls.some(c=>c.dataset.field==='access.parcel_polygons.methods.0.monitoring.county_permission.stop_requested'));
 assert.ok(!controls.some(c=>c.dataset.field==='access.parcel_polygons.methods.0.monitoring.execution_profile'));
 vm.runInContext("monitoringProfiles=['cloud','local'];fields.replaceChildren();access();",sandbox);
 assert.ok(walk(nodes.get('#fields')).some(c=>c.dataset.field==='access.parcel_polygons.methods.0.monitoring.execution_profile'));
 const rows=JSON.parse(vm.runInContext('JSON.stringify([...reviewRows(draft).values()])',sandbox));
-assert.ok(rows.some(r=>r.value==='PRIVATE_PERMISSION'&&r.private));
+assert.ok(!JSON.stringify(rows).includes('PRIVATE_PERMISSION'));
 assert.match(vm.runInContext("resultLabel({status:'published',monitoring_status:'pending'})",sandbox),/check setup is pending/);
 ''')
 

@@ -178,12 +178,12 @@ class CountyAdminTests(unittest.TestCase):
         self.assertEqual(registry.read_sources(), [])
         self.assertEqual(self.store.read_private(county_identities()["aitkin"]).revision, 2)
 
-    def test_explicit_no_permission_cannot_be_enrolled_by_the_editor(self):
+    def test_silent_county_policy_allows_limited_rest_enrollment_without_permission(self):
         with patch("clearparcel.datawatch.county_monitoring.load_parcel_access", return_value={
                 "Aitkin": {"monitoring": {"decision": "not-assessed", "scope": "none"}}}):
             status, receipt = self.json_request("POST", "/api/counties/aitkin", self.monitoring_payload(), self.get_mutation_headers())
-        self.assertEqual((status, receipt["status"]), (400, "invalid_draft"))
-        self.assertEqual(self.store.read_private(county_identities()["aitkin"]).revision, 0)
+        self.assertEqual((status, receipt["status"], receipt["monitoring_source_count"]), (200, "published", 1))
+        self.assertEqual(self.store.read_private(county_identities()["aitkin"]).revision, 1)
 
     def test_unavailable_worker_cannot_be_enrolled(self):
         payload = self.monitoring_payload()

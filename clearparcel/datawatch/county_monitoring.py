@@ -54,25 +54,40 @@ def _write(storage: StorageBackend, path: Path, version: str | int | None, value
     storage.upload_if_version(_OBJECT, path, version)
 
 
-def _monitoring_options(value: object) -> dict:
+def _monitoring_options(value: object, *, adapter: str) -> dict:
     if not isinstance(value, dict) or value.get("enabled") is not True:
-        raise ValueError("regular checks need explicit review and county permission")
+        raise ValueError("regular checks need an explicit editor enrollment")
     profile = value.get("execution_profile")
     if not isinstance(profile, str) or profile not in _PROFILES:
         raise ValueError("choose a monitoring worker")
-    terms_url = safe_public_url(value.get("terms_url"))
-    if not terms_url or not _date(value.get("terms_reviewed_on")):
-        raise ValueError("record the public terms link and review date")
+    raw_terms_url = value.get("terms_url")
+    terms_url = safe_public_url(raw_terms_url)
+    if raw_terms_url and not terms_url:
+        raise ValueError("use a public provider-terms link without credentials")
+    if not _date(value.get("terms_reviewed_on")):
+        raise ValueError("record the date policy information was reviewed")
     if value.get("terms_confirmed") is not True:
-        raise ValueError("confirm that the reviewed terms allow this regular check")
-    permission = value.get("county_permission")
-    if not isinstance(permission, dict) or permission.get("reply") != "permitted":
-        raise ValueError("record the county's affirmative permission")
-    if permission.get("scope") != "details-and-count" or not _date(permission.get("received_on")):
-        raise ValueError("record permission for service details and one record count")
-    reference = permission.get("reference")
-    if (not isinstance(reference, str) or not reference.strip() or len(reference) > 240
-            or any(ord(ch) < 32 or ord(ch) == 127 for ch in reference)):
+        raise ValueError("confirm policy review found no restriction for this limited check")
+    permission = value.get("county_permission") or {}
+    if not isinstance(permission, dict):
+        raise ValueError("invalid county response record")
+    if permission.get("stop_requested") is True:
+        raise ValueError("the county asked Watchtower not to check this source")
+    reply = permission.get("reply", "none")
+    if not isinstance(reply, str) or reply not in {"none", "permitted"}:
+        raise ValueError("record a valid county response")
+    permission_required = adapter != "arcgis_layer"
+    if permission_required and reply != "permitted":
+        raise ValueError("record the county's affirmative permission for file update checks")
+    if reply == "permitted" and permission.get("scope") != "details-and-count":
+        raise ValueError("record the bounded county permission scope")
+    received_on = permission.get("received_on") or None
+    if received_on is not None and not _date(received_on):
+        raise ValueError("record a valid county response date")
+    reference = permission.get("reference", "")
+    if not isinstance(reference, str) or len(reference) > 240 or any(ord(ch) < 32 or ord(ch) == 127 for ch in reference):
+        raise ValueError("add a valid private reference to the county response")
+    if reply == "permitted" and not reference.strip():
         raise ValueError("add a private reference to the county's permission")
     raw_evidence_url = permission.get("evidence_url")
     evidence_url = safe_public_url(raw_evidence_url)
@@ -85,9 +100,9 @@ def _monitoring_options(value: object) -> dict:
         "terms_url": terms_url,
         "terms_reviewed_on": value["terms_reviewed_on"],
         "county_permission": {
-            "reply": "permitted",
-            "scope": "details-and-count",
-            "received_on": permission["received_on"],
+            "reply": reply,
+            "scope": "details-and-count" if reply == "permitted" else "none",
+            "received_on": received_on,
             "reference": reference.strip(),
             "evidence_url": evidence_url,
         },
@@ -144,8 +159,6 @@ def build_county_monitoring_sources(county: dict, draft: object, *, execution_pr
     if has_parcels and county_decision in {"hold-for-terms", "not-appropriate"}:
         raise ValueError("this county's current monitoring decision does not allow new direct checks")
     monitoring = research.get("monitoring") or {}
-    if has_parcels and monitoring.get("scope") == "none":
-        raise ValueError("this county's current monitoring decision does not allow new direct checks")
     if monitoring.get("stop_requested") is True or monitoring.get("reply") in {"declined", "stop"}:
         raise ValueError("the county asked Watchtower not to check its direct sources")
 
@@ -159,11 +172,14 @@ def build_county_monitoring_sources(county: dict, draft: object, *, execution_pr
         if not isinstance(restrictions, dict) or restrictions.get("status") != "reviewed_none":
             raise ValueError("review this dataset's use restrictions before enabling checks")
         adapter, url = _source_kind(method)
+        if (dataset == "parcel_polygons" and adapter != "arcgis_layer"
+                and monitoring.get("scope") == "none"):
+            raise ValueError("this county's current monitoring decision does not allow new direct checks")
         identity = (dataset, url)
         if identity in seen_urls:
             raise ValueError("the same direct source is listed more than once")
         seen_urls.add(identity)
-        approval = _monitoring_options(options)
+        approval = _monitoring_options(options, adapter=adapter)
         if approval["execution_profile"] not in execution_profiles:
             raise ValueError("choose an available monitoring worker")
         digest = hashlib.sha256(f"{county['slug']}\0{dataset}\0{url}".encode("utf-8")).hexdigest()[:16]
@@ -203,16 +219,21 @@ def _validate_source(source: object, slug: str) -> dict:
             or approval.get("status") != "approved" or approval.get("scope") != "details-and-count"
             or not isinstance(approval.get("execution_profile"), str) or approval["execution_profile"] not in _PROFILES
             or source["execution_profiles"] != [approval["execution_profile"]]
-            or not safe_public_url(approval.get("terms_url")) or not _date(approval.get("terms_reviewed_on"))):
+            or approval.get("terms_url") is not None and not safe_public_url(approval.get("terms_url"))
+            or not _date(approval.get("terms_reviewed_on"))):
         raise ValueError("invalid county monitoring approval")
     permission = approval.get("county_permission")
+    reply = permission.get("reply") if isinstance(permission, dict) else None
+    file_requires_permission = source["kind"] == "http_file"
     if (not isinstance(permission, dict)
             or set(permission) != {"reply", "scope", "received_on", "reference", "evidence_url"}
-            or permission.get("reply") != "permitted" or permission.get("scope") != "details-and-count"
-            or not _date(permission.get("received_on"))
-            or not isinstance(permission.get("reference"), str) or not permission["reference"].strip()
+            or reply not in ({"permitted"} if file_requires_permission else {"none", "permitted"})
+            or permission.get("scope") != ("details-and-count" if reply == "permitted" else "none")
+            or permission.get("received_on") is not None and not _date(permission.get("received_on"))
+            or not isinstance(permission.get("reference"), str)
             or len(permission["reference"]) > 240
             or any(ord(ch) < 32 or ord(ch) == 127 for ch in permission["reference"])
+            or reply == "permitted" and not permission["reference"].strip()
             or permission.get("evidence_url") is not None and not safe_public_url(permission["evidence_url"])):
         raise ValueError("invalid county monitoring permission record")
     direct_kind = "direct_rest" if source["kind"] == "arcgis_layer" else "direct_download"

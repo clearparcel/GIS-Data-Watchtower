@@ -7,10 +7,15 @@ configuration or scheduling changes still require approval.
 The county editor can enroll a direct GIS service or data file in the existing
 regular worker run. Public access links remain useful without enrollment. A new
 check requires an explicit **Include this source in regular checks** selection,
-open data access, reviewed use restrictions, a public provider terms link and
-review date, confirmation that the terms allow recurring checks, and affirmative
-county permission for the limited check. The permission response date and private
-reference are required. A public permission link is optional.
+open data access, reviewed use restrictions, a dated review of available policy
+information, and confirmation that no restriction is known for the bounded
+check. The public terms link is optional. A county's affirmative permission is
+not required for a public ArcGIS REST layer when the policy is silent; a specific
+county policy or employee stop request and any cease-and-desist are recorded as
+a hold. Existing fee, license, request and other explicit terms conflicts remain
+held. Direct file-update checks continue to require affirmative county permission.
+Its response date is optional; a private reference is required when permission
+is recorded. A public permission link is optional.
 
 Supported service links identify a numbered ArcGIS FeatureServer or MapServer
 layer. Browser `f=json` and `f=pjson` parameters are removed from the polling
@@ -51,9 +56,12 @@ Editor save and status requests still perform no DNS or provider requests.
    claiming its normal run slot and includes its sources alongside the deployment
    registry. The validated snapshot is carried through that run.
    Existing profile assignments, dispatch spacing, terms holds, county stop and
-   decline decisions, and provider 429 backoff still apply. A source approval
-   cannot lift a packaged `hold-for-terms` decision or a parcel permission scope
-   of `none`. Road/address enrollments retain their separate source permissions.
+   decline decisions, and provider 429 backoff still apply. A source enrollment
+   cannot lift a packaged `hold-for-terms` or `not-appropriate` decision. A
+   missing county reply or `scope: none` does not itself block an editor-enrolled
+   public ArcGIS REST layer; explicit `declined`, `stop`, or `stop_requested`
+   remains a hold. Direct file-update checks retain the affirmative permission
+   gate. Road/address enrollments retain their separate source permissions.
 4. The worker publishes observations through the existing aggregate merge. The
    public publisher includes source health, check dates, counts or file update
    details, and a fixed limited-check label. Parcel sources also join the county
@@ -69,8 +77,9 @@ retried with **Retry updates** or a subsequent authenticated status read.
 
 Terms review and permission evidence remain private in both the draft and the
 enrollment object. They are excluded from the public directory, worker results,
-public snapshots and public exports. Ordinary source configuration cannot supply
-the private enrollment approval.
+public snapshots and public exports. The optional county GIS update frequency
+is descriptive public access metadata and does not change provider polling.
+Ordinary source configuration cannot supply the private enrollment approval.
 
 A missing, unreadable, invalid or older enrollment registry never proves that an
 administrator removed a source. Once local worker state includes enrolled

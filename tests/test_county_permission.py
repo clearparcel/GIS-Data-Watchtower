@@ -123,6 +123,11 @@ class CheckRuleTests(unittest.TestCase):
         self.assertEqual([source["id"] for source in checked], ["parcels", "roads"])
         self.assertNotIn("parcels", result["skipped_sources"])
 
+    def test_editor_reviewed_rest_enrollment_runs_without_county_permission(self):
+        source = self.sources()[0] | {"monitoring_approval": {"status": "approved", "scope": "details-and-count"}}
+        permission = CountyPermission.from_record(load_parcel_access()["Aitkin"])
+        self.assertIsNone(CountyPermission.skip_reason(source, permission))
+
     def test_stop_requested_skips_every_source_for_the_county(self):
         research = self.patched("Aitkin", contacted_date="2026-10-29", reply="stop",
                                 scope="none", stop_requested=True)

@@ -14,15 +14,22 @@ Use **Contacts**, **Data access**, **Policy** and **Private correspondence** to
 move within the editing area. The county name and save controls remain visible.
 Save controls occupy a separate area and do not overlay the form. Dataset cards
 summarize access and expand to show their links, verification dates, coverage
-and restrictions. Access information does not grant permission for automated
-monitoring. A statewide copy remains separate from county-direct access.
+and restrictions. Access information does not enroll a source for monitoring.
+A statewide copy remains separate from county-direct access.
 
 Direct service and download links include **Regular Watchtower checks**. Choose
-**Include this source in regular checks** after reviewing restrictions, provider
-terms and affirmative county permission. Save records the
-enrollment for the next regular run. Service checks read details and one record
-count; file checks read update headers. Permission references stay private.
-Existing terms holds and county stop decisions remain in force. See the
+**Include this source in regular checks** after reviewing restrictions and
+available county/provider policy information. The terms link is optional; the
+review date and confirmation that no restriction is known are required. Public
+ArcGIS REST layers need no separate affirmative county permission when policy
+is silent. Record a specific county policy, employee request, or cease-and-desist
+as a stop request; it disables the check. Existing fee, licensing, request, and
+other explicit terms holds remain in force. Direct file-update checks still
+require affirmative county permission, but its response date is optional.
+Service checks read details and one record count; file checks read update
+headers. Permission references stay private. Each direct access method can also
+record the county GIS department's update frequency; this does not change
+Watchtower's check schedule. See the
 [source monitoring guide](county-source-monitoring.md) for supported links,
 save recovery and deployment prerequisites. The hosted editor uses the active
 regular cloud schedule; a worker choice appears only when explicitly configured.

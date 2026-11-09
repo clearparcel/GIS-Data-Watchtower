@@ -63,7 +63,8 @@ class CountyDirectoryPublicTests(unittest.TestCase):
                  "access": {"parcel_polygons": {
                      "classification": "open", "county_direct_note": "Terms still need review <note>",
                      "methods": [{"kind": "direct_rest", "url": "https://example.org/FeatureServer/0",
-                                  "evidence_date": "2026-11-06", "scope": "Synthetic parcel polygons"}],
+                                  "evidence_date": "2026-11-06", "scope": "Synthetic parcel polygons",
+                                  "update_frequency": "Every spring"}],
                      "restrictions": {"status": "restricted", "text": "Attribution <required>"}}}}
         draft["access"]["road_centerlines"] = {
             "classification": "open", "methods": [{"kind": "direct_download",
@@ -93,6 +94,8 @@ class CountyDirectoryPublicTests(unittest.TestCase):
                 self.assertIn({"open": "Open GIS data · Connect in GIS software", "fee": "Fee-based parcel data", "unknown": "Access not confirmed"}[classification], row)
                 self.assertNotIn("not yet researched", row)
                 self.assertIn(label.replace("Direct REST", "Connect in GIS software"), panel)
+                if classification == "open":
+                    self.assertIn("County GIS updates: Every spring", panel)
                 self.assertLess(page.index("County GIS data access"), page.index("Earlier parcel-access research"))
                 self.assertEqual(page.count('<h2>County GIS data access</h2>'), 1)
                 for output in (page, panel):
