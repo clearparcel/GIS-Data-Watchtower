@@ -27,8 +27,9 @@ all 87 counties alphabetically even when they have no contacts.
 
 Each access classification is `open`, `fee`, or `unknown`. Open requires at
 least one unique method from `mngeo_open`, `direct_rest`, `direct_download`,
-and `other`. A method carries an evidence URL, date, and scope. Other also
-requires a description. Non-open selections publish an empty methods list.
+and `other`. A method carries an evidence URL, date, and scope, plus an optional
+`update_frequency` description for direct data. Other also requires a description.
+Non-open selections publish an empty methods list.
 Restrictions use `unreviewed`, `reviewed_none`, or `restricted`. Restricted
 requires public details and supports a source URL. Reviewed states can carry a
 review date. Render reviewed-none as “No use restrictions recorded; confirm
@@ -41,9 +42,16 @@ must preserve the evidence basis and county-direct scope, including cases
 where a county fee and a separate open MnGeo product coexist. Record uncertain
 items in an import exceptions report. The editor owns its directory fields.
 Packaged research retains its terms holds and county stop decisions. The private
-editor can separately enroll eligible direct methods in regular checks with
-explicit permission evidence; monitoring settings are excluded from the public
-directory. Polling cadence and worker provenance retain their existing ownership.
+editor can separately enroll eligible direct methods in regular checks.
+Enrollment requires an explicit operator selection, open data, reviewed
+restrictions, and a dated review of policy information. A public ArcGIS REST
+layer does not require affirmative county permission when policy is silent;
+explicit county stop requests and actual terms conflicts remain holds. Direct
+file-update checks retain the affirmative permission requirement, with an
+optional response date. Terms links are optional. Monitoring settings and
+permission evidence are excluded from the public directory. The optional update
+frequency is public descriptive metadata and does not set Watchtower's polling
+cadence; worker provenance retains its existing ownership.
 See [county source monitoring](county-source-monitoring.md) for the enrollment
 registry, save revisions, bounded adapters and worker access contract.
 

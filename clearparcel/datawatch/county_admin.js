@@ -330,12 +330,28 @@ function validate() {
       if (monitor.terms_confirmed !== true)
         errors.push({
           field: `access.${dataset}.methods.${index}.monitoring.terms_confirmed`,
-          message: "Confirm the provider terms allow regular checks.",
+          message: "Confirm the policy review found no restriction on this limited check.",
         });
-      if (monitor.county_permission?.reply !== "permitted")
+      if (monitor.county_permission?.stop_requested === true)
+        errors.push({
+          field: `access.${dataset}.methods.${index}.monitoring.county_permission.stop_requested`,
+          message: "A county stop request is recorded. Disable this source before saving.",
+        });
+      if (
+        method.kind !== "direct_rest" &&
+        monitor.county_permission?.reply !== "permitted"
+      )
         errors.push({
           field: `access.${dataset}.methods.${index}.monitoring.county_permission.reply`,
-          message: "Confirm the county approved this limited check.",
+          message: "Confirm the county approved this file update check.",
+        });
+      if (
+        monitor.county_permission?.reply === "permitted" &&
+        !monitor.county_permission?.reference?.trim()
+      )
+        errors.push({
+          field: `access.${dataset}.methods.${index}.monitoring.county_permission.reference`,
+          message: "Add a private reference to the county's permission response.",
         });
     }
   }
@@ -480,6 +496,7 @@ function access() {
               received_on: "",
               reference: "",
               evidence_url: "",
+              stop_requested: false,
             },
           };
           const base = `access.${dataset}.methods.${data.methods.indexOf(selectedMethod)}`;
@@ -512,12 +529,36 @@ function access() {
             base + ".scope",
             true,
           );
+          if (kind === "direct_rest" || kind === "direct_download") {
+            selectedMethod.update_frequency ??= "";
+            const frequency = input(
+              grid,
+              "County GIS update frequency (optional)",
+              selectedMethod,
+              "update_frequency",
+              "text",
+              base + ".update_frequency",
+            );
+            frequency.maxLength = 240;
+            help(
+              grid,
+              "How often the county GIS department updates this direct data, if known. This does not change Watchtower's check schedule.",
+            );
+          }
           help(
             card,
             "For example: county parcel boundaries, or a statewide copy. Use the date you checked this link.",
           );
           if (kind === "direct_rest" || kind === "direct_download") {
             const monitor = selectedMethod.monitoring;
+            const permission = (monitor.county_permission ??= {
+              reply: "none",
+              scope: "details-and-count",
+              received_on: "",
+              reference: "",
+              evidence_url: "",
+              stop_requested: false,
+            });
             const checks = node("details", undefined, card);
             checks.className = "monitoring-options";
             node("summary", "Regular Watchtower checks", checks);
@@ -550,6 +591,24 @@ function access() {
                 }
               },
             );
+            checkbox(
+              checks,
+              kind === "direct_rest"
+                ? "The county asked Watchtower not to check this REST endpoint"
+                : "The county asked Watchtower not to check this file",
+              permission.stop_requested === true,
+              base + ".monitoring.county_permission.stop_requested",
+              (value) => {
+                permission.stop_requested = value;
+                if (value) monitor.enabled = false;
+                changed();
+                render();
+              },
+            );
+            help(
+              checks,
+              "Record a specific county policy, employee request, or cease-and-desist. A recorded stop keeps this source out of regular checks.",
+            );
             if (monitor.enabled) {
               if (
                 monitoringProfiles.length > 1 ||
@@ -576,7 +635,9 @@ function access() {
               node("legend", "Provider terms review", terms);
               help(
                 terms,
-                "Record the public terms that allow this limited, recurring check.",
+                kind === "direct_rest"
+                  ? "Review available county/provider policy information. A terms link is optional; a specific restriction or stop request still blocks this source."
+                  : "Review available provider terms. A terms link is optional; record any specific restriction that applies to file update checks.",
               );
               input(
                 terms,
@@ -585,7 +646,6 @@ function access() {
                 "terms_url",
                 "url",
                 base + ".monitoring.terms_url",
-                true,
               );
               input(
                 terms,
@@ -599,7 +659,7 @@ function access() {
               checkbox(
                 terms,
                 kind === "direct_rest"
-                  ? "I confirmed these terms allow regular service details and record-count checks"
+                  ? "I reviewed available policies and found no restriction on service details and one record count"
                   : "I confirmed these terms allow regular file update checks",
                 monitor.terms_confirmed,
                 base + ".monitoring.terms_confirmed",
@@ -608,27 +668,25 @@ function access() {
                   changed();
                 },
               );
-              const permission = (monitor.county_permission ??= {
-                reply: "none",
-                scope: "details-and-count",
-                received_on: "",
-                reference: "",
-                evidence_url: "",
-              });
               const consent = node("fieldset", undefined, checks);
-              node("legend", "County permission", consent);
+              node("legend", kind === "direct_rest" ? "County response (optional)" : "County permission", consent);
               help(
                 consent,
-                "The county must agree to this source check. The response reference stays private.",
+                kind === "direct_rest"
+                  ? "Prior county permission is not required for this bounded public REST check. Existing fee, licensing and other terms holds still apply."
+                  : "The county must agree to this limited file update check. Response references stay private.",
               );
               checkbox(
                 consent,
-                "The county explicitly approved this limited check",
+                kind === "direct_rest"
+                  ? "The county explicitly approved this limited check (optional)"
+                  : "The county explicitly approved this limited file update check",
                 permission.reply === "permitted",
                 base + ".monitoring.county_permission.reply",
                 (value) => {
                   permission.reply = value ? "permitted" : "none";
                   changed();
+                  render();
                 },
               );
               help(
@@ -639,21 +697,24 @@ function access() {
               );
               input(
                 consent,
-                "Permission received on",
+                permission.stop_requested
+                  ? "Stop request received on (optional)"
+                  : "Permission received on (optional)",
                 permission,
                 "received_on",
                 "date",
                 base + ".monitoring.county_permission.received_on",
-                true,
               );
               input(
                 consent,
-                "Private reference to the response",
+                permission.stop_requested
+                  ? "Private reference to the stop request (optional)"
+                  : "Private reference to the response",
                 permission,
                 "reference",
                 "text",
                 base + ".monitoring.county_permission.reference",
-                true,
+                permission.reply === "permitted",
               );
               input(
                 consent,
@@ -1106,7 +1167,7 @@ function reviewRows(record) {
     add(key + ":note", title + " · public note", d.county_direct_note);
     if (d.classification === "open")
       for (const m of d.methods || [])
-        for (const field of ["url", "scope", "evidence_date", "description"])
+        for (const field of ["url", "scope", "evidence_date", "update_frequency", "description"])
           add(
             key + ":" + m.kind + ":" + field,
             title +
@@ -1117,6 +1178,7 @@ function reviewRows(record) {
                 url: "data link",
                 scope: "coverage",
                 evidence_date: "link verified on",
+                update_frequency: "county GIS update frequency",
                 description: "description",
               }[field],
             m[field],
@@ -1130,8 +1192,14 @@ function reviewRows(record) {
           review.enabled ? "Included" : "Not included",
           true,
         );
+        const permission = review.county_permission || {};
+        add(
+          key + ":" + m.kind + ":monitoring:stop_requested",
+          title + " · " + methodNames[m.kind] + " · county stop request",
+          permission.stop_requested ? "Recorded; checks disabled" : "None recorded",
+          true,
+        );
         if (review.enabled) {
-          const permission = review.county_permission || {};
           for (const [field, label, value] of [
             ["execution_profile", "worker", review.execution_profile],
             ["terms_url", "provider terms link", review.terms_url],
@@ -1148,7 +1216,11 @@ function reviewRows(record) {
             [
               "permission_reply",
               "county permission",
-              permission.reply === "permitted" ? "Confirmed" : "Not confirmed",
+              permission.reply === "permitted"
+                ? "Confirmed"
+                : m.kind === "direct_rest"
+                  ? "Not required for a public REST layer"
+                  : "Not confirmed",
             ],
             [
               "permission_received_on",

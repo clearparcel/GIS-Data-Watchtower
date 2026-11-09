@@ -83,7 +83,8 @@ def render_published_directory(directory: dict) -> str:
                 label = "Download parcel data"
             methods.append(f'<li>{link(method["url"], label)}'
                            f'<details class="profile-evidence"><summary>Technical details</summary>'
-                           f'<p>{esc(method["scope"])} · Link reviewed: {esc(method["evidence_date"])}</p></details></li>')
+                           f'<p>{esc(method["scope"])} · Link reviewed: {esc(method["evidence_date"])}'
+                           f'{" · County GIS updates: " + esc(method["update_frequency"]) if method.get("update_frequency") else ""}</p></details></li>')
         method_list = "<ul>" + "".join(methods) + "</ul>" if methods else ""
         restriction = item["restrictions"]
         note = {

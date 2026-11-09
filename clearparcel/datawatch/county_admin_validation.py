@@ -50,8 +50,10 @@ def editor_validation_errors(draft: object, *, monitoring_profiles=("cloud", "lo
                 except ValueError as exc:
                     message = str(exc)
                     field = ("evidence_date" if "evidence_date" in message else "description" if "description" in message else
+                             "update_frequency" if "update_frequency" in message else
                              "url" if "URL" in message or "url" in message or not isinstance(method, dict) or not method.get("url") else "scope")
                     hint = {"evidence_date": "Enter the date this link was verified.", "description": "Describe this access method.",
+                            "update_frequency": "Enter at most 240 characters for the county's data update frequency.",
                             "url": "Enter a public http or https data link without credentials.", "scope": "Describe what this data link covers."}[field]
                     add(f"{base}.methods.{index}.{field}", hint)
         try:
@@ -77,19 +79,21 @@ def editor_validation_errors(draft: object, *, monitoring_profiles=("cloud", "lo
                 if isinstance(monitoring, dict) and monitoring.get("enabled") is True:
                     path = f"access.{dataset}.methods.{index}.monitoring"
                     if "terms" in monitoring_failure:
-                        suffix, hint = ".terms_url", "Enter the public provider-terms link, review date, and confirm that regular checks are allowed."
-                        if "terms allow" in monitoring_failure:
-                            suffix, hint = ".terms_confirmed", "Confirm the provider terms allow regular checks."
+                        suffix, hint = ".terms_url", "Use a public terms link if one is available."
+                    elif "policy information" in monitoring_failure:
+                        suffix, hint = ".terms_reviewed_on", "Enter the date you reviewed available county/provider policy information."
+                    elif "policy review" in monitoring_failure:
+                        suffix, hint = ".terms_confirmed", "Confirm the review found no restriction on this limited check."
                     elif "worker" in monitoring_failure:
                         suffix, hint = ".execution_profile", "Choose which monitoring worker should run this source."
                     elif "current monitoring decision" in monitoring_failure:
                         suffix, hint = ".enabled", "This county's current monitoring review does not allow a new direct check."
                     elif "asked Watchtower" in monitoring_failure:
-                        suffix, hint = ".enabled", "The county asked Watchtower not to check its direct sources."
-                    elif "permission for service" in monitoring_failure:
-                        suffix, hint = ".county_permission.received_on", "Record the date the county approved this limited check."
+                        suffix, hint = ".county_permission.stop_requested", "The county asked Watchtower not to check this source. Keep regular checks disabled."
+                    elif "response date" in monitoring_failure:
+                        suffix, hint = ".county_permission.received_on", "Enter a valid county response date, if known."
                     elif "county" in monitoring_failure or "permission" in monitoring_failure:
-                        suffix, hint = ".county_permission.reply", "Record affirmative county permission for the limited check, with its date and private response reference."
+                        suffix, hint = ".county_permission.reply", "Record the county's affirmative permission for this file update check."
                         if "public permission" in monitoring_failure:
                             suffix, hint = ".county_permission.evidence_url", "Add a public link documenting the county's permission."
                         elif "private reference" in monitoring_failure:

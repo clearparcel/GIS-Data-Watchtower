@@ -51,13 +51,12 @@ def _date(value: object) -> bool:
 
 
 class CountyPermission:
-    """Outreach and the checks that permission allows, on the county research record.
+    """County monitoring limits and explicit opt-outs on the research record.
 
-    Optional monitoring fields record contact, reply, permitted scope and a stop
-    request. When they are absent, the county has not given affirmative permission
-    and the existing terms decision decides. ``not-assessed`` does not authorize
-    an automated county-direct check. ``hold-for-terms`` still blocks county-direct
-    parcel checks until that decision itself changes.
+    An editor-enrolled public ArcGIS REST layer may receive bounded metadata and
+    count checks without affirmative county permission when no stop or policy
+    conflict is recorded. Direct file checks retain the affirmative permission
+    gate. ``hold-for-terms`` and ``not-appropriate`` still block parcel checks.
     """
 
     SCOPES = frozenset({"none", "details-and-count", "full"})
@@ -225,10 +224,11 @@ class CountyPermission:
         """Add a source-specific approval without overriding a county hold or stop."""
         if not CountyPermission.public_review(source):
             return permission
+        rest_enrollment = CountyPermission._adapter(source) == "arcgis_layer"
         if permission and (permission.get("terms_decision") in {"hold-for-terms", "not-appropriate"}
                            or permission.get("stop_requested")
                            or permission.get("reply") in {"declined", "stop"}
-                           or permission.get("scope") == "none"):
+                           or (permission.get("scope") == "none" and not rest_enrollment)):
             return permission
         return {**(permission or {}), "reply": "permitted", "scope": "details-and-count",
                 "check_scope": "details-and-count"}
@@ -255,6 +255,9 @@ class CountyPermission:
         agol_service = CountyPermission.is_county_agol_service(source)
         if permission and permission.get("stop_requested") and (county_server or agol_service):
             return "stop-requested"
+        if (permission and permission.get("reply") == "declined"
+                and CountyPermission.public_review(source) and CountyPermission.is_county_direct(source)):
+            return "awaiting-permission"
         if CountyPermission._is_limited(source, permission) and CountyPermission._adapter(source) not in CountyPermission.LIMITED_ADAPTERS:
             # The adapter cannot be reduced to metadata and a count; refuse it
             # before dispatch rather than send a broader request.
@@ -263,6 +266,9 @@ class CountyPermission:
             return None
         if permission is None:
             return "awaiting-permission"
+        if (CountyPermission._adapter(source) == "arcgis_layer"
+                and CountyPermission.public_review(source)):
+            return None
         if permission.get("scope") in CountyPermission.AFFIRMATIVE and permission.get("reply") == "permitted":
             return None
         decision = permission.get("terms_decision")

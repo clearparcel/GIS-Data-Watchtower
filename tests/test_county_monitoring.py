@@ -90,6 +90,28 @@ class CountyMonitoringTests(unittest.TestCase):
             with self.subTest(location=location, replacement=replacement), self.assertRaises(ValueError):
                 build_county_monitoring_sources(self.county, value)
 
+    def test_public_rest_enrollment_needs_no_terms_link_or_county_permission(self):
+        value = draft()
+        method = value["access"]["parcel_polygons"]["methods"][0]
+        method["update_frequency"] = "Every spring"
+        method["monitoring"].update({"terms_url": "", "county_permission": {
+            "reply": "none", "scope": "none", "received_on": "", "reference": "", "evidence_url": "",
+        }})
+        source, = build_county_monitoring_sources(self.county, value)
+        self.assertIsNone(source["monitoring_approval"]["terms_url"])
+        self.assertIsNone(source["monitoring_approval"]["county_permission"]["received_on"])
+        self.assertEqual(source["monitoring_approval"]["county_permission"]["reply"], "none")
+
+    def test_direct_file_still_needs_permission_but_not_permission_date(self):
+        value = draft(kind="direct_download", dataset="road_centerlines")
+        method = value["access"]["road_centerlines"]["methods"][0]
+        method["monitoring"]["county_permission"].update({"received_on": "", "reference": PRIVATE})
+        source, = build_county_monitoring_sources(self.county, value)
+        self.assertIsNone(source["monitoring_approval"]["county_permission"]["received_on"])
+        method["monitoring"]["county_permission"].update({"reply": "none", "scope": "none", "reference": ""})
+        with self.assertRaisesRegex(ValueError, "affirmative permission"):
+            build_county_monitoring_sources(self.county, value)
+
     def test_enrolled_file_and_layer_reject_private_dns_before_dispatch(self):
         addresses = ((socket.AF_INET, socket.SOCK_STREAM, 6, "", ("127.0.0.1", 443)),)
         for revision, kind in enumerate(("direct_rest", "direct_download"), 1):
@@ -126,12 +148,14 @@ class CountyMonitoringTests(unittest.TestCase):
 
     def test_county_holds_and_stop_decisions_remain_authoritative(self):
         for decision in ({"decision": "hold-for-terms"}, {"decision": "not-appropriate"},
-                         {"decision": "not-assessed", "scope": "none"},
                          {"decision": "not-assessed", "stop_requested": True},
                          {"decision": "not-assessed", "reply": "declined", "scope": "none"}):
             with self.subTest(decision=decision), patch("clearparcel.datawatch.county_monitoring.load_parcel_access",
                     return_value={"Aitkin": {"monitoring": decision}}), self.assertRaises(ValueError):
                 build_county_monitoring_sources(self.county, draft())
+        with patch("clearparcel.datawatch.county_monitoring.load_parcel_access",
+                   return_value={"Aitkin": {"monitoring": {"decision": "not-assessed", "scope": "none"}}}):
+            self.assertEqual(len(build_county_monitoring_sources(self.county, draft())), 1)
         self.registry.replace_county(self.county, draft(), revision=1)
         held = load_parcel_access()
         held["Aitkin"]["monitoring"]["decision"] = "hold-for-terms"
@@ -140,6 +164,17 @@ class CountyMonitoringTests(unittest.TestCase):
             report = watch.check_sources(config(self.root), save=False, execution_profile="cloud")
         check.assert_not_called()
         self.assertIn("hold-for-terms", report["skipped_sources"].values())
+
+    def test_enrolled_rest_is_skipped_after_county_declines(self):
+        self.registry.replace_county(self.county, draft(), revision=1)
+        source_id = self.registry.read_sources()[0]["id"]
+        declined = load_parcel_access()
+        declined["Aitkin"]["monitoring"].update({"reply": "declined", "scope": "none", "stop_requested": False})
+        with patch("clearparcel.datawatch.parcel_access.load_parcel_access", return_value=declined), \
+                patch.object(watch, "_source_check") as check:
+            report = watch.check_sources(config(self.root), save=False, execution_profile="cloud")
+        check.assert_not_called()
+        self.assertEqual(report["skipped_sources"][source_id], "awaiting-permission")
 
     def test_cas_preserves_other_counties_and_old_retries_cannot_reinstate_a_source(self):
         other = county_identities()["anoka"]

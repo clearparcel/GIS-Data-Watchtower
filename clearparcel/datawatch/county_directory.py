@@ -90,10 +90,14 @@ def _project_methods(records: object) -> list[dict]:
         if kind in seen:
             raise ValueError("access methods must be unique")
         seen.add(kind)
-        fields = _public_fields(method, text=("evidence_date", "scope"), urls=("url",))
+        fields = _public_fields(method, text=("evidence_date", "scope", "update_frequency"), urls=("url",))
         _require_date(fields.get("evidence_date"), "method evidence_date")
         if not fields.get("url") or not fields.get("scope"):
             raise ValueError("method requires an evidence URL and scope")
+        if "update_frequency" in fields and kind not in {"direct_rest", "direct_download"}:
+            raise ValueError("method update_frequency is only available for direct data")
+        if len(fields.get("update_frequency", "")) > 240:
+            raise ValueError("method update_frequency exceeds 240 characters")
         if kind == "other":
             fields.update(_public_fields(method, text=("description",)))
             if "description" not in fields:
