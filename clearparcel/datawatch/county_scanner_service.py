@@ -5,11 +5,15 @@ from __future__ import annotations
 import os
 import re
 import threading
+import time
 from http.server import BaseHTTPRequestHandler
 
 from .county_attachments import MAX_ATTACHMENT_BYTES
 from .county_scanner import ClamdScanner
 from .dashboard import _BoundedThreadingHTTPServer, _validated_content_length
+
+_STARTUP_TIMEOUT = 90.0
+_SCAN_READ_TIMEOUT = 120
 
 _RUN_URL = re.compile(r"https://(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+run\.app")
 
@@ -56,7 +60,7 @@ class RunScannerClient:
             with requests.Session() as session:
                 session.trust_env = False
                 with session.post(url, headers=headers, data=data, allow_redirects=False,
-                                  timeout=(3, 16), stream=True) as response:
+                                  timeout=(3, _SCAN_READ_TIMEOUT), stream=True) as response:
                     body = bytearray()
                     for chunk in response.iter_content(16):
                         body.extend(chunk)
@@ -130,11 +134,28 @@ def create_scanner_server(port, scanner, *, host="0.0.0.0"):
     return _BoundedThreadingHTTPServer((host, port), Handler, max_connections=4, request_timeout=24)
 
 
+def wait_for_scanner(scanner, *, timeout=_STARTUP_TIMEOUT, clock=time.monotonic, sleep=time.sleep):
+    """Keep ingress closed until a bounded scan confirms engine readiness."""
+    deadline = clock() + timeout
+    while clock() < deadline:
+        try:
+            if scanner(b"") is True:
+                return
+        except (OSError, ValueError):
+            pass
+        remaining = deadline - clock()
+        if remaining > 0:
+            sleep(min(1.0, remaining))
+    raise OSError("county scanner did not become ready before the startup deadline")
+
+
 def serve_county_scanner():
     if not os.environ.get("K_SERVICE"):
         raise ValueError("hosted county scanner requires Cloud Run invoker IAM")
     port = int(os.environ.get("PORT", "8080"))
     clamd_port = int(os.environ.get("WATCHTOWER_COUNTY_CLAMD_PORT", "3310"))
+    # Each readiness attempt is bounded separately; no listener is opened early.
+    wait_for_scanner(ClamdScanner(clamd_port, timeout=2.0))
     with create_scanner_server(port, ClamdScanner(clamd_port)) as server:
         print("Watchtower county scanner ready")
         server.serve_forever()

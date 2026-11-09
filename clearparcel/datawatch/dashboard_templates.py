@@ -2,12 +2,14 @@ from __future__ import annotations
 from clearparcel.datawatch.csp import SCRIPT_TAG
 
 import html
+import os
 import re
 
 from clearparcel.datawatch.build_info import application_identity
 from clearparcel.datawatch.analytics import posthog_html
 from clearparcel.datawatch.brand_assets import asset_src, favicon_html
 from clearparcel.datawatch.product import PRODUCT_NAME, page_label
+from clearparcel.datawatch.public_values import safe_public_url
 
 
 def _esc(value) -> str:
@@ -49,7 +51,7 @@ a:focus-visible,button:focus-visible,summary:focus-visible,input:focus-visible,s
 .status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:currentColor;margin-right:7px}.pill{display:inline-flex;align-items:center;height:24px;padding:4px 9px;border:1px solid var(--line);border-radius:999px;font-size:10px;text-transform:uppercase;font-weight:800}.pill.ok{border-color:#2d7155}.pill.warn,.pill.catalog,.pill.overdue,.pill.paused,.pill.awaiting-permission{border-color:#705b2d}.pill.error{border-color:#773944}
 .section-head{display:flex;align-items:end;justify-content:space-between;gap:16px;margin:28px 2px 12px}.section-head h2{margin:0;font-size:18px}.section-head p,.section-head span{margin:3px 0 0;color:var(--muted);font-size:11px}.section-head>a{font-size:11px;font-weight:700}
 .activity-strip{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px}.worker-card{display:grid;grid-template-columns:1fr;gap:10px 18px}.worker-card h3{margin:0}.worker-meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.worker-meta div{min-width:90px}.worker-meta .muted,.worker-meta span{display:block;font-size:9px}.worker-meta strong{display:block;margin-top:3px;font-size:13px;overflow-wrap:anywhere}
-.summary-v2{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;margin-bottom:30px}.summary-v2 .card{padding:16px 18px}.summary-v2 .metric{font-size:24px}.summary-v2 .muted{font-size:11px}
+.summary-v2{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:30px}.summary-v2 .card{padding:16px 18px}.summary-v2 .metric{font-size:24px}.summary-v2 .muted{font-size:11px}
 .hero-panel{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(300px,.75fr);gap:14px;margin-bottom:26px}.hero-copy{padding:22px}.hero-copy h2{font-size:24px;margin:0 0 8px}.hero-copy p{color:#c4cede;max-width:720px;margin:0 0 18px}.hero-actions{display:flex;gap:8px;flex-wrap:wrap}.hero-actions a{display:inline-flex;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:#121a27;color:#c4d1e5;font-weight:700}.hero-actions a.primary{border-color:#315078;color:#dceaff;background:#101827}
 .hero-stat{display:grid;grid-template-columns:1fr 1fr;gap:8px}.hero-stat>div{background:var(--panel2);border:1px solid #ffffff0d;border-radius:10px;padding:13px}.hero-stat small{display:block;color:var(--muted);font-size:9px;letter-spacing:.07em;text-transform:uppercase}.hero-stat b{display:block;font-size:19px;margin-top:4px}
 table{width:100%;border-collapse:collapse;background:transparent}th,td{padding:11px 12px;border-bottom:1px solid #1b2535;text-align:left;vertical-align:top}th{font-size:9px;text-transform:uppercase;color:var(--muted);letter-spacing:.08em;background:#0d131e}td{color:#c4cede}td strong{color:var(--text)}
@@ -60,7 +62,7 @@ table{width:100%;border-collapse:collapse;background:transparent}th,td{padding:1
 .mngac-layout{display:grid;grid-template-columns:minmax(360px,1.35fr) minmax(260px,.65fr);gap:14px;align-items:start}.mngac-map-panel{background:#0b111b;border:1px solid var(--line);border-radius:11px;padding:10px;min-width:0}.mngac-map{display:block;width:100%;height:auto;max-height:690px}.mngac-county{fill:#1b2636;stroke:#51647e;stroke-width:1.1;vector-effect:non-scaling-stroke;cursor:pointer;transition:fill .12s ease,stroke .12s ease,stroke-width .12s ease}.mngac-county:hover,.mngac-county:focus{stroke:#d7e8ff;stroke-width:2.2;outline:none}.mngac-county.selected{stroke:#fff;stroke-width:3}.mngac-detail{min-height:220px}.mngac-detail h3{margin-bottom:4px}.mngac-kpi{font-size:25px;font-weight:800}.mngac-legend{display:flex;flex-wrap:wrap;gap:7px 12px;margin:10px 0 0;font-size:10px;color:var(--muted)}.mngac-legend span{display:inline-flex;align-items:center;gap:5px}.mngac-swatch{width:13px;height:13px;border-radius:3px;border:1px solid #ffffff33;display:inline-block}.mngac-note{border-left:3px solid var(--blue);padding:10px 12px;background:#0e1622;border-radius:0 8px 8px 0;color:#aeb9ca;margin:12px 0}.mngac-table-wrap{overflow-x:auto}.mngac-field-select{background:none;color:var(--blue);padding:0;border:0;text-align:left;font:inherit;cursor:pointer}.mngac-field-select:hover{text-decoration:underline}
 code{font-size:11px;color:#b9c6d8}.technical summary,.diagnostics summary{cursor:pointer;font-weight:700;color:var(--blue);padding:4px 0}.diagnostics{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);margin:18px 0}.flat-note{padding:20px 4px;color:var(--muted);font-size:12px}
 .public-footnote{margin:30px 2px 0;padding-top:16px;border-top:1px solid var(--line);color:#66778f;font-size:10px;display:flex;justify-content:space-between;gap:20px}.public-footnote strong{color:#8da4c4}.footer-brand{display:inline-flex;vertical-align:middle}.footer-brand img{width:120px;height:42px;object-fit:contain}.profile-evidence{margin:12px 0;padding:12px;border:1px solid var(--line);border-radius:8px}.profile-evidence summary{cursor:pointer;color:var(--blue);font-weight:600}.profile-evidence li{margin:12px 0;overflow-wrap:anywhere}.profile-evidence p{max-width:80ch}.county-complete-profile section{border-top:1px solid var(--line);padding-top:16px;margin-top:20px}.county-complete-profile dl{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:12px}.county-complete-profile dd{margin:4px 0}.county-complete-profile dt{color:var(--muted);font-size:12px}
-@media(max-width:1050px){.summary-v2{grid-template-columns:repeat(3,minmax(0,1fr))}.primary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.hero-panel{grid-template-columns:1fr}.mngac-layout{grid-template-columns:1fr}.definition-grid{grid-template-columns:1fr}}
+@media(max-width:1050px){.summary-v2{grid-template-columns:repeat(2,minmax(0,1fr))}.primary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.hero-panel{grid-template-columns:1fr}.mngac-layout{grid-template-columns:1fr}.definition-grid{grid-template-columns:1fr}}
 @media(max-width:760px){.public-header{height:74px;padding:13px 14px}.public-header h1{font-size:20px}.brand-eyebrow{font-size:8px}.public-main{padding:0 12px 76px}.public-tabs{top:74px;overflow-x:auto;margin:0 -12px 18px;padding:0 12px}.public-tabs a{padding:12px 10px 10px}.public-tools{margin-left:4px}.summary-v2{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.grid,.primary-grid,.worker-grid,.activity-strip{grid-template-columns:1fr;gap:9px}.card{padding:14px}.hero-copy{padding:16px}.hero-copy h2{font-size:21px}.hero-stat{grid-template-columns:1fr 1fr}.section-head{margin-top:22px}.section-head span{display:none}.filters{display:grid;grid-template-columns:1fr}.filters input,.filters select{width:100%;min-width:0}#counties thead,#datasets thead,.contacts-table thead,.history-table thead,#mngac-fields thead,#county-mngac-fields thead{display:none}#counties,#counties tbody,#counties tr,#counties td,#datasets,#datasets tbody,#datasets tr,#datasets td,.contacts-table,.contacts-table tbody,.contacts-table tr,.contacts-table td,.history-table,.history-table tbody,.history-table tr,.history-table td,#mngac-fields,#mngac-fields tbody,#mngac-fields tr,#mngac-fields td,#county-mngac-fields,#county-mngac-fields tbody,#county-mngac-fields tr,#county-mngac-fields td{display:block;width:100%}#counties tr,#datasets tr,.contacts-table tr,.history-table tr,#mngac-fields tr,#county-mngac-fields tr{padding:10px 0;border-bottom:1px solid #1b2535}#counties td,#datasets td,.contacts-table td,.history-table td,#mngac-fields td,#county-mngac-fields td{border:0;padding:4px 2px;white-space:normal;overflow-wrap:anywhere}.worker-card{grid-template-columns:1fr}.worker-meta{display:grid;grid-template-columns:1fr 1fr}.definition-list{grid-template-columns:1fr;gap:2px}.definition-list dd{margin-bottom:8px}.mngac-controls label,.mngac-controls select{width:100%}.public-footnote{flex-direction:column;gap:4px}}
 @media(max-width:430px){.summary-v2{grid-template-columns:1fr 1fr}.summary-v2 .card{padding:12px}.summary-v2 .metric{font-size:21px}.hero-stat{grid-template-columns:1fr 1fr}.public-export summary{padding:7px 8px}.page-kicker{padding-top:18px}.page-kicker h2{font-size:23px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
@@ -284,15 +286,15 @@ def _public_layout_v2(title: str, body: str, *, refresh_seconds: int = 30, publi
     watchtower_logo_src = asset_src("watchtower-logo", hosted=hosted)
     brand_href = "index.html" if static_bundle else "/"
     lower = title.lower()
-    active = "mngac" if "gac" in lower else "sources" if "source" in lower else "counties" if "county" in lower or "counties" in lower else "overview"
+    active = "mngac" if "gac" in lower or "completeness" in lower else "sources" if "source" in lower else "counties" if "county" in lower or "counties" in lower else "overview"
     tabs = ([
         ("overview", "index.html", "Overview"),
         ("state", "state.json", "Sanitized state JSON"),
     ] if static_bundle else [
         ("overview", "/", "Overview"),
-        ("counties", "/counties", "Minnesota Counties"),
-        ("mngac", "/mngac", "MN GAC"),
-        ("sources", "/#datasets", "Data Sources"),
+        ("counties", "/counties", "Counties"),
+        ("mngac", "/mngac", "Data completeness"),
+        ("sources", "/#datasets", "Data sources"),
     ])
     short_labels = {"Minnesota Counties": "Counties", "Data Sources": "Sources", "Sanitized state JSON": "State JSON"}
     if static_bundle:
@@ -306,19 +308,19 @@ def _public_layout_v2(title: str, body: str, *, refresh_seconds: int = 30, publi
     )
     page_name = page_label(title)
     subtitle = {
-        "overview": "Availability, freshness, and structure of Minnesota public GIS data.",
+        "overview": "Find Minnesota GIS data, see when it was checked, and explore what information is available.",
         "state": "Sanitized, read-only Watchtower state for offline review.",
-        "counties": "County profiles, parcel availability, monitoring coverage, and GIS contact references.",
-        "mngac": "Field population across Minnesota GAC parcel, address-point, and road-centerline standards.",
-        "sources": "Public source health and high-level structural observations.",
+        "counties": "Find parcel data, compare access options, and see when sources were last checked.",
+        "mngac": "See how often standard data fields contain values. Uses Minnesota Geospatial Advisory Council (MN GAC) standards for parcels, addresses, and roads.",
+        "sources": "See whether a data source responded and when Watchtower last checked it.",
     }.get(active, "Minnesota public GIS data, summarized for practical exploration.")
     export_label = "Files" if static_bundle else "Export"
     export_links = (
         '<a href="index.html">Overview</a><a href="state.json">Sanitized state JSON</a>'
         if static_bundle else
-        '<a href="/snapshot.xlsx">Excel (.xlsx)</a><a href="/county-profiles.csv">County profiles (CSV)</a>'
-        '<a href="/parcel-sources.csv">Parcel sources (CSV)</a><a href="/snapshot.csv">Monitored sources (CSV)</a>'
-        '<a href="/snapshot.json">JSON</a>'
+        '<a href="/snapshot.xlsx">Download Excel spreadsheet (.xlsx)</a><a href="/county-profiles.csv">County profiles (CSV)</a>'
+        '<a href="/parcel-sources.csv">Parcel sources (CSV)</a><a href="/snapshot.csv">Source checks (CSV)</a>'
+        '<a href="/snapshot.json">Raw data (JSON)</a>'
     )
     analytics_script = posthog_html(
         page=page_name,
@@ -335,7 +337,7 @@ def _public_layout_v2(title: str, body: str, *, refresh_seconds: int = 30, publi
     <img class="public-brand-logo" src="{watchtower_logo_src}" width="54" height="54" alt="" decoding="async">
     <div class="public-brand-title"><div class="brand-eyebrow" aria-hidden="true">{_esc(PRODUCT_NAME)}</div><h1>{_esc(PRODUCT_NAME)}</h1></div>
   </a>
-  <div class="live-state"><span class="live-dot" aria-hidden="true"></span><span class="live-label"><span class="live-long">PUBLIC · READ ONLY</span><span class="live-short">READ ONLY</span></span>{'<button type="button" id="refresh-pause">Pause refresh</button>' if refresh_seconds else ''}</div>
+  <div class="live-state"><span class="live-dot" aria-hidden="true"></span><span class="live-label">Public · read only</span>{'<button type="button" id="refresh-pause">Pause refresh</button>' if refresh_seconds else ''}</div>
 </header>
 <main class="public-main">
   <div class="public-nav-row"><nav class="public-tabs" aria-label="Watchtower views">{nav}</nav>
@@ -347,21 +349,22 @@ def _public_layout_v2(title: str, body: str, *, refresh_seconds: int = 30, publi
 </main>{SCRIPT_TAG}(function(){{const row=document.querySelector('.public-tabs'),active=row&&row.querySelector('a.active');if(active&&row.scrollWidth>row.clientWidth&&active.offsetLeft+active.offsetWidth>row.clientWidth)row.scrollLeft=active.offsetLeft-12;}})();</script>{SCRIPT_TAG}(function(){{const menu=document.querySelector('.public-export');if(!menu)return;document.addEventListener('keydown',e=>{{if(e.key==='Escape'&&menu.open){{menu.open=false;menu.querySelector('summary').focus()}}}});document.addEventListener('click',e=>{{if(menu.open&&!menu.contains(e.target))menu.open=false}});}})();</script></body></html>"""
 
 def _layout(title: str, body: str, *, refresh_seconds: int = 30, static: bool = False, csrf_token: str = "", public_summary: bool = True,
-            static_bundle: bool = False) -> str:
+            static_bundle: bool = False, active_section: str | None = None,
+            download_scope: tuple[str, str] | None = None) -> str:
     if static:
         return _public_layout_v2(title, body, refresh_seconds=refresh_seconds, public_summary=public_summary,
                                  static_bundle=static_bundle)
     auto_refresh = int(refresh_seconds or 0) > 0
     body = _accessible_tables(body)
     refresh_meta = _refresh_script(refresh_seconds)
-    refresh_label = f"Dashboard view refreshes every {int(refresh_seconds)}s" if auto_refresh else "Interactive view · reload for latest saved data"
+    refresh_label = f"View updates every {int(refresh_seconds)}s; provider checks run separately" if auto_refresh else "Reload for the latest saved results"
     # No token means no refresh endpoint (the read-only hosted dashboard), so no form.
     refresh_form = "" if static or not csrf_token else (
         '<form method="post" action="/refresh" class="refresh-form">'
         f'<input type="hidden" name="csrf_token" value="{_esc(csrf_token)}">'
         '<button>Check now</button></form>'
     )
-    side_context = "Public read-only view" if static else "Private dashboard"
+    side_context = "Internal dashboard" if csrf_token else "Internal · view only"
     def icon(kind: str) -> str:
         paths = {
             "overview": '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
@@ -375,6 +378,46 @@ def _layout(title: str, body: str, *, refresh_seconds: int = 30, static: bool = 
             "menu": '<path d="M4 7h16M4 12h16M4 17h16"/>',
         }
         return f'<svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">{paths.get(kind, paths["overview"])}</svg>'
+    editor_url = safe_public_url(os.environ.get("WATCHTOWER_COUNTY_ADMIN_URL", ""))
+    editor_link = (
+        f'<a href="{_esc(editor_url)}">{icon("counties")}<span>County editor</span></a>'
+        if editor_url and editor_url.startswith("https://") else ""
+    )
+    lower = page_label(title).casefold()
+    active = active_section or ("overview" if title == PRODUCT_NAME else
+        "mngac" if "gac" in lower or "completeness" in lower else
+        "counties" if "county" in lower or "counties" in lower else
+        "terms" if "provider terms" in lower else "sources")
+    def nav_link(key, href, label):
+        selected = ' aria-current="page"' if key == active else ''
+        return f'<a href="{_esc(href)}"{selected}>{icon(key)}<span>{_esc(label)}</span></a>'
+    desktop_nav = ''.join(nav_link(*item) + (editor_link if item[0] == "counties" else '') for item in [
+        ("overview", "/", "Overview"), ("counties", "/counties", "Counties"),
+        ("mngac", "/mngac", "Data completeness"), ("terms", "/terms", "Provider Terms"),
+        ("sources", "/sources", "Data sources"), ("changes", "/changes", "Recent changes"),
+        ("alerts", "/alerts", "Alerts"), ("export", "/downloads", "Downloads")])
+    mobile_nav = ''.join(nav_link(*item) for item in [
+        ("overview", "/", "Overview"), ("counties", "/counties", "Counties"),
+        ("mngac", "/mngac", "Data completeness"), ("sources", "/sources", "Sources")])
+    more_links = ''.join(nav_link(*item) for item in [
+        ("terms", "/terms", "Provider Terms"), ("changes", "/changes", "Recent changes"),
+        ("alerts", "/alerts", "Alerts"), ("export", "/downloads", "Downloads")]) + editor_link
+    more_current = ' current-section' if active in {"terms", "changes", "alerts", "export"} else ''
+    scope_links = ''
+    if download_scope:
+        from urllib.parse import urlencode
+        kind, value = download_scope
+        query = urlencode({"slug" if kind == "county" else "id": value})
+        base = "county-snapshot" if kind == "county" else "source-snapshot"
+        scope_links = f'<strong>This {_esc(kind)}</strong>' + ''.join(
+            f'<a href="/{base}.{ext}?{_esc(query)}">{label}</a>' for ext, label in
+            (("xlsx", "Excel spreadsheet (.xlsx)"), ("csv", "Summary (CSV)"), ("json", "Summary data (JSON)")))
+    download_links = scope_links + '<strong>All monitoring data</strong><a href="/snapshot.xlsx">Excel spreadsheet (.xlsx)</a><a href="/snapshot.csv">Source checks (CSV)</a><a href="/snapshot.json">Summary data (JSON)</a><a href="/downloads">More downloads and scope options</a>'
+    identity = application_identity()
+    version = "v" + identity["version"] if identity["version"] != "unknown" else "Version unavailable"
+    build = identity["revision"][:7] or "not recorded"
+    if active == "mngac":
+        body = '<p>Data completeness uses standards from the Minnesota Geospatial Advisory Council (MN GAC). It measures whether fields contain values; it does not establish data accuracy or permission to use the data.</p>' + body
     page_title = page_label(title)
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -554,24 +597,35 @@ code{{font-size:12px;overflow-wrap:anywhere}}
   .primary-grid{{grid-template-columns:1fr}}
   .bar-row{{grid-template-columns:100px minmax(60px,1fr) 40px}}
 }}
-{_TABLE_CSS}</style></head><body>
-<a class="skip-link" href="#main-content">Skip to content</a><header><h1>{_esc(PRODUCT_NAME)}</h1><div class="actions"><span>{_esc(refresh_label)}</span>{refresh_form}{'<button type="button" id="refresh-pause">Pause refresh</button>' if auto_refresh else ''}</div></header>
+
+.internal-heading{{min-width:0}}.internal-heading small{{font-size:11px;color:#bed4e4}}.internal-heading h1{{line-height:1.2}}
+.sidebar nav a[aria-current="page"],.mobile-nav a[aria-current="page"]{{background:#ffffff18;color:#fff;box-shadow:inset 3px 0 #75c9f1}}
+.mobile-more summary{{cursor:pointer;list-style:none;height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:2px;color:#b9d1e2;font-size:10px;font-weight:600}}
+.mobile-more nav{{position:fixed;bottom:72px;right:10px;max-width:calc(100vw - 20px);width:260px;background:var(--navy);border:1px solid #ffffff30;border-radius:10px;padding:8px;box-shadow:var(--shadow)}}
+.mobile-more nav a{{flex-direction:row;justify-content:start;font-size:14px;gap:10px;padding:12px}}.mobile-more.current-section summary{{color:#fff;background:#ffffff18}}
+.export-pop strong{{display:block;color:var(--muted);font-size:12px;padding:8px 12px}}.change-entry{{border-top:1px solid var(--line);padding:14px 0;overflow-wrap:anywhere}}.change-entry h3{{margin:0 0 6px}}.change-values{{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:8px 0}}.change-values div{{min-width:0}}.change-values dt{{color:var(--muted);font-size:12px;font-weight:600}}.change-values dd{{margin:4px 0;overflow-wrap:anywhere}}
+.change-entry[hidden],.ops-table tr[hidden]{{display:none!important}}.filters label{{display:grid;gap:4px}}.filters button{{align-self:end}}.reading-update{{margin:8px 0}}.reading-update button{{margin-left:8px}}.ops-table td,.ops-table th{{white-space:normal;overflow-wrap:anywhere}}.ops-table tbody th{{font:inherit;text-transform:none;letter-spacing:normal;color:var(--text);background:transparent}}.ops-table tbody th .subtext{{font-size:11px}}.source-issue{{border-left:4px solid var(--err)}}.source-issue.warn{{border-color:var(--warn)}}.section-nav{{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 20px}}.section-nav a{{padding:8px 12px;background:var(--card);border:1px solid var(--line);border-radius:8px}}.breadcrumb{{margin:0 0 16px}}.terms-summary{{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:700px){{.terms-summary{{grid-template-columns:repeat(2,minmax(0,1fr))}}}}
+@media(max-width:700px){{header .internal-heading h1{{font-size:16px}}header .internal-heading small{{font-size:10px}}header .internal-heading{{max-width:calc(100% - 116px)}}.mobile-more{{min-width:0}}.ops-table thead{{display:none}}.ops-table,.ops-table tbody,.ops-table tr,.ops-table td,.ops-table th{{display:block;width:100%}}.ops-table tr{{padding:12px 0;border-bottom:1px solid var(--line)}}.ops-table td{{border:0;padding:4px 0}}.ops-table td::before{{content:attr(data-label) ": ";font-weight:700;color:var(--muted)}}.ops-table th{{border:0;padding:4px 0}}.change-values{{grid-template-columns:1fr}}}}
+{_TABLE_CSS}
+@media(max-width:700px){{
+ .table-scroll table.ops-table,.table-scroll table.ops-table tbody,.table-scroll table.ops-table tr,.table-scroll table.ops-table td,.table-scroll table.ops-table th{{display:block!important;width:100%!important;min-width:0!important}}
+ .table-scroll table.ops-table thead{{display:none!important}}
+ .table-scroll table.ops-table td{{border:0;padding:4px 0;white-space:normal!important}}
+ .table-scroll table.ops-table td[data-label]::before{{content:attr(data-label) ": "!important;font-weight:700;color:var(--muted)}}
+ .table-scroll table.ops-table tr[hidden]{{display:none!important}}
+ .table-scroll table.ops-table th{{border:0;white-space:normal!important;padding:4px 0}}
+ .table-scroll table:not(.ops-table) td::before{{content:none!important}}
+ .table-scroll:has(table.ops-table){{overflow:visible}}
+}}
+</style></head><body>
+<a class="skip-link" href="#main-content">Skip to content</a><header><div class="internal-heading"><h1>{_esc(PRODUCT_NAME)}</h1><small>{side_context}</small></div><div class="actions"><span>{_esc(refresh_label)}</span>{refresh_form}{'<button type="button" id="refresh-pause">Pause refresh</button>' if auto_refresh else ''}</div></header>
 <div class="app-shell">
-<aside class="sidebar"><div class="side-brand"><strong>{_esc(PRODUCT_NAME)}</strong></div><nav>
-<a href="/">{icon("overview")}<span>Overview</span></a>
-<a href="/counties">{icon("counties")}<span>Minnesota Counties</span></a>
-<a href="/mngac">{icon("mngac")}<span>MN GAC Completeness</span></a>
-{'' if static else f'<a href="/terms">{icon("terms")}<span>Provider Terms</span></a>'}
-<a href="/#datasets">{icon("sources")}<span>Data Sources</span></a>
-<a href="/#changes">{icon("changes")}<span>Recent Changes</span></a>
-<a href="/#alerts">{icon("alerts")}<span>Alerts</span></a>
-<a href="/snapshot.xlsx">{icon("export")}<span>Export</span></a>
+<aside class="sidebar"><div class="side-brand"><strong>{_esc(PRODUCT_NAME)}</strong></div><nav aria-label="Main navigation">{desktop_nav}
 </nav><div class="side-note">{side_context}<br><small>Central Time primary</small></div></aside>
 <section class="content-shell">
-<div class="pagebar" role="region" aria-label="Page title and export"><div class="pagebar-title">{_esc(page_title)}</div><div class="page-actions"><details class="export-menu"><summary>Export</summary><div class="export-pop"><a href="/snapshot.xlsx">Excel (.xlsx)</a><a href="/county-profiles.csv">County profiles (CSV)</a><a href="/parcel-sources.csv">Parcel sources (CSV)</a><a href="/snapshot.csv">Monitored sources (CSV)</a><a href="/snapshot.json">JSON</a></div></details></div></div>
-<main id="main-content" tabindex="-1">{body}<footer class="app-footnote">{_esc(PRODUCT_NAME)}</footer></main>
+<div class="pagebar" role="region" aria-label="Page title and downloads"><div class="pagebar-title">{_esc(page_title)}</div><div class="page-actions"><details class="export-menu" id="download-menu"><summary>Download</summary><div class="export-pop">{download_links}</div></details></div></div>
+<main id="main-content" tabindex="-1"><div id="refresh-status" role="status"></div>{body}<footer class="app-footnote">{_esc(PRODUCT_NAME)} · {_esc(version)} · Build {_esc(build)} · {side_context}</footer></main>
 </section></div>
-<nav class="mobile-nav" aria-label="Mobile navigation">
-<a href="/">{icon("overview")}<span>Overview</span></a><a href="/counties">{icon("counties")}<span>Counties</span></a><a href="/mngac">{icon("mngac")}<span>MN GAC</span></a><a href="/#datasets">{icon("sources")}<span>Sources</span></a><a href="/snapshot.xlsx">{icon("export")}<span>Export</span></a>
-</nav>
+<nav class="mobile-nav" aria-label="Mobile navigation">{mobile_nav}<details class="mobile-more{more_current}" id="mobile-more"><summary>{icon("menu")}<span>More</span></summary><nav aria-label="More pages">{more_links}</nav></details></nav>
+{SCRIPT_TAG}(function(){{document.addEventListener('keydown',e=>{{if(e.key==='Escape')document.querySelectorAll('.export-menu[open],.mobile-more[open]').forEach(d=>{{d.open=false;d.querySelector('summary').focus()}})}});document.addEventListener('click',e=>{{document.querySelectorAll('.export-menu[open],.mobile-more[open]').forEach(d=>{{if(!d.contains(e.target))d.open=false}})}});function revealHash(){{if(!location.hash)return;let id;try{{id=decodeURIComponent(location.hash.slice(1))}}catch(e){{return}}const target=document.getElementById(id);if(target){{if(target.tagName==='DETAILS')target.open=true;let p=target.parentElement;while(p){{if(p.tagName==='DETAILS')p.open=true;p=p.parentElement}}target.scrollIntoView();}}}}window.addEventListener('hashchange',revealHash);if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',revealHash,{{once:true}});else revealHash();}})();</script>
 </body></html>"""

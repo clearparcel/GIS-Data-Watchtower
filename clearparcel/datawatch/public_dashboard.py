@@ -18,7 +18,6 @@ from clearparcel.datawatch.dashboard import (
     _county_snapshot,
     _county_profiles,
     _dashboard_state,
-    _health_status,
     _gac_data,
     _mngac_data,
     _mngac_map_svg,
@@ -42,6 +41,7 @@ from clearparcel.datawatch.county_map_status import MAP_STATUSES, county_map_sta
 from clearparcel.datawatch import strict_json
 from clearparcel.datawatch.storage import LocalStorage, StorageConflictError, backend_from_env
 from clearparcel.datawatch.county_directory_store import read_public_directory
+from .county_directory_view import with_published_directory
 from clearparcel.datawatch.county_admin_hosted import hosted_public_county_bucket
 from clearparcel.datawatch.county_profile_pdf import county_profile_pdf
 from clearparcel.datawatch.public_values import sanitize_source_metadata
@@ -50,7 +50,8 @@ from clearparcel.datawatch.gac_standards import normalize_standard_key, standard
 from clearparcel.datawatch.analytics import posthog_csp_sources
 from clearparcel.datawatch.brand_assets import dispatch_brand_asset
 from clearparcel.datawatch.csp import secure_html, strip_markers
-from clearparcel.datawatch.dashboard_summary import summary_for, render_diagnostics
+from clearparcel.datawatch.dashboard_summary import summary_for
+from clearparcel.datawatch.dashboard_copy import source_status_label
 from clearparcel.datawatch.public_details import dispatch_public_details, encode_response
 
 
@@ -159,8 +160,6 @@ def render_public_dashboard(config: dict) -> str:
     research = load_parcel_access()
     profiles = _county_profiles(config, state, research)
     monitoring = county_profile_counts(profiles)
-    all_field = (mngac or {}).get("field_population_percent")
-    mandatory = (mngac or {}).get("mandatory_population_percent")
 
     rows = []
     for source_id, source in sorted(
@@ -174,7 +173,7 @@ def render_public_dashboard(config: dict) -> str:
             f'<td><a href="/source?{urllib.parse.urlencode({"id": source_id})}"><strong>{_esc(name)}</strong></a>'
             f'<br><span class="subtext">{_esc(source.get("category") or "Other")}</span></td>'
             f'<td>{_esc(source.get("provider") or "—")}</td>'
-            f'<td><span class="pill {_status_class(status)}">{_esc(_health_status(status))}</span></td>'
+            f'<td><span class="pill {_status_class(status)}">{_esc(source_status_label(status))}</span></td>'
             f'<td>{_esc(f"{source.get("feature_count"):,}" if isinstance(source.get("feature_count"), int) else source.get("feature_count") or "—")}</td>'
             f'<td>{_esc(source.get("change_count") if source.get("change_count") is not None else "—")}</td>'
             f'<td>{_esc(_public_time(source.get("last_success_at")))}</td>'
@@ -189,12 +188,12 @@ def render_public_dashboard(config: dict) -> str:
         reporting = "Reporting unknown" if reported is None else "Reporting overdue" if now - reported > dt.timedelta(minutes=int(config.get("worker_stale_minutes", 1560))) else "Reporting on time"
         worker_cards.append(
             '<div class="card worker-card">'
-            f'<div><h3><span class="status-dot {_status_class(status)}"></span>{_esc(name.title())} monitoring path</h3>'
-            f'<span class="subtext" data-worker-report="{_esc(name)}">{_esc(_health_status(status))} · {_esc(reporting)}</span></div>'
+            f'<div><h3><span class="status-dot {_status_class(status)}"></span>{_esc(name.title())} monitoring system</h3>'
+            f'<span class="subtext" data-worker-report="{_esc(name)}">{_esc({"ok": "Checks passing", "warn": "Some checks need attention", "error": "Checks failed"}.get(status, "Unknown"))} · {_esc(reporting)}</span></div>'
             '<div class="worker-meta">'
             f'<div><span class="muted">Sources</span><strong>{_esc(worker.get("source_count", "—"))}</strong></div>'
-            f'<div><span class="muted">Last successful provider check</span><strong>{_esc(_public_time(worker.get("last_success_at")))}</strong></div>'
-            f'<div><span class="muted">Last worker report</span><strong>{_esc(_public_time(worker.get("last_report_at") or worker.get("checked_at")))}</strong></div>'
+            f'<div><span class="muted">Last successful source check</span><strong>{_esc(_public_time(worker.get("last_success_at")))}</strong></div>'
+            f'<div><span class="muted">Latest monitoring report</span><strong>{_esc(_public_time(worker.get("last_report_at") or worker.get("checked_at")))}</strong></div>'
             '</div></div>'
         )
 
@@ -213,7 +212,6 @@ def render_public_dashboard(config: dict) -> str:
     map_svg = map_svg.replace('</svg>', status_patterns() + '</svg>')
     summary = summary_for(config, state, profiles=profiles, research=research)
     profile_panel = render_inline_county_panel(revision=summary["content_revision"])
-    diagnostics = render_diagnostics(summary)
     county_options = ''.join(f'<option value="{_esc(slug)}">{_esc(p["county"]["name"])} County</option>'
                              for slug, p in sorted(profiles.items(), key=lambda item: item[1]["county"]["name"]))
     monitoring_json = json.dumps({slug: p["monitoring"]["paths"] for slug, p in profiles.items()})
@@ -223,20 +221,23 @@ def render_public_dashboard(config: dict) -> str:
 
     body = f"""
 <div class="summary-v2">
-  <div class="card"><div class="muted">Dataset/service entries monitored</div><div class="metric">{len(sources)}</div><span class="subtext">All data types · entries, not counties or unique providers</span></div>
-  <div class="card"><div class="muted">Entries healthy at last check</div><div class="metric ok">{healthy}</div><span class="subtext">{issues} had issues at their last check</span></div>
-  <div class="card"><div class="muted">Minnesota counties</div><div class="metric">{monitoring["total"]}</div><span class="subtext">Statewide county profile index</span></div>
-  <div class="card"><div class="muted">Counties with parcel observations</div><div class="metric">{monitoring["active"]}/{monitoring["total"]}</div><span class="subtext">{monitoring["mngeo_open"]} via MnGeo open parcels · {monitoring["county_direct"]} via county-direct sources · {monitoring["both"]} via both · each county counted once</span></div>
-  <div class="card"><div class="muted">Parcel all-field population</div><div class="metric">{_esc(f"{all_field:.2f}%" if isinstance(all_field,(int,float)) else "—")}</div><span class="subtext">Across all {parcel_counts["fields"]} standard fields</span></div>
-  <div class="card"><div class="muted">Parcel mandatory-field population</div><div class="metric">{_esc(f"{mandatory:.2f}%" if isinstance(mandatory,(int,float)) else "—")}</div><span class="subtext">Record-weighted statewide rate</span></div>
+  <div class="card"><div class="muted">Data sources monitored</div><div class="metric">{len(sources)}</div><span class="subtext">Some sources cover multiple counties.</span></div>
+  <div class="card"><div class="muted">Sources passing their last check</div><div class="metric ok">{healthy}</div><span class="subtext">A successful check does not confirm data accuracy.</span></div>
+  <div class="card"><div class="muted">Sources needing attention</div><div class="metric">{issues}</div><span class="subtext">Based on the latest result for each source.</span></div>
+  <div class="card"><div class="muted">Counties with parcel observations</div><div class="metric">{monitoring["active"]}/{monitoring["total"]}</div><span class="subtext">{monitoring["mngeo_open"]} through MnGeo · {monitoring["county_direct"]} directly from counties · {monitoring["both"]} through both. Each county counted once.</span></div>
 </div>
-<p class="mngac-note">A source is a monitored dataset or service entry across any data type. Parcel coverage counts unique counties observed through county-direct or statewide sources. One statewide source can cover many counties; overlapping paths count each county once.</p>
+<p class="mngac-note">Explore data availability below, or <a href="/mngac">compare county data completeness</a>.</p>
+
+<div class="activity-strip">
+  <div class="card"><div class="muted">Dashboard updated</div><div class="metric" data-age-kind="publication" data-age-time="{_esc(published_at or "")}">{_esc(_public_age(published_at))}</div><span id="public-publication-time" class="subtext">{_esc(_public_time(published_at))}</span><p>The dashboard can be updated without running a new source check.</p><p id="public-publication-status">Dashboard update status: {_esc(publication_reporting)}</p></div>
+  <div class="card"><div class="muted">Latest source check</div><div class="metric" data-age-time="{_esc(checked_at or "")}">{_esc(_public_age(checked_at))}</div><span class="subtext">{_esc(_public_time(checked_at))}</span><p>Most recent source check, including failed checks. Other sources may have older checks. This is separate from when the provider updated its data.</p><p id="source-reporting-status" class="{"warn" if overdue or unknown_checks else "muted"}">Source checks: {overdue} overdue · {unknown_checks} without a check time. Checks become overdue after {stale_after.total_seconds() / 3600:g} hours.</p></div>
+</div>
 
 <div class="section-head"><div><h2>Explore Minnesota GIS data</h2><p>Select any county to see its monitoring summary and field coverage.</p></div><a href="/counties">All 87 counties →</a></div>
 <div class="hero-panel overview-county-explorer">
   <div class="card mngac-map-panel" id="overview-map-pane">
     <div class="overview-controls">
-      <label>Map view<select id="overview-metric"><option value="schema">MN GAC / open-data status</option><option value="monitoring">Monitoring paths</option><option value="completeness">MN GAC all-field population</option></select></label>
+      <label>Map view<select id="overview-metric"><option value="schema">Data availability and standards</option><option value="monitoring">Sources used for checks</option><option value="completeness">Completeness across all standard fields</option></select></label>
       <label for="overview-county-select">Find a county<select id="overview-county-select"><option value="">Choose a county…</option>{county_options}</select></label>
     </div>
     <div class="overview-map-content">{map_svg}<div id="overview-legend"></div></div>
@@ -245,56 +246,49 @@ def render_public_dashboard(config: dict) -> str:
   <div class="card hero-copy" id="home-county-pane" role="region" aria-labelledby="home-county-name">
     <div class="muted">Selected county</div>
     <h2 id="home-county-name">Choose a county</h2>
-    <p id="home-county-detail">The map distinguishes MN GAC data, differing direct-feed schemas, and open-data availability. Select a county to see the evidence.</p>
+    <p id="home-county-detail">Choose a county to see available parcel data, source checks, and completeness results.</p>
     <div class="hero-stat">
-      <div><small>All-field population</small><b id="home-county-all-rate">—</b></div>
+      <div><small>Completeness across all standard fields</small><b id="home-county-all-rate">—</b></div>
       <div><small>Parcel records</small><b id="home-county-records">—</b></div>
       <div><small>Fields with values</small><b id="home-county-fields">—</b></div>
-      <div><small>Mandatory-field population</small><b id="home-county-rate">—</b></div>
+      <div><small>Required fields filled</small><b id="home-county-rate">—</b></div>
     </div>
     <div class="hero-actions" style="margin-top:16px">
       <a id="home-county-link" class="primary" href="/counties">Open county profile</a>
-      <a id="home-county-gac-link" href="/mngac">Explore county MN GAC fields</a>
+      <a id="home-county-gac-link" href="/mngac">Explore county data completeness</a>
     </div>
     <p id="home-county-profile-status" role="status"></p>
     <div id="home-county-profile" aria-busy="false"></div>
     <section id="home-county-infographics" aria-labelledby="county-coverage-title" hidden>
       <h3 id="county-coverage-title">County field coverage</h3>
       <div class="county-coverage-rings">
-        <div><div class="county-coverage-ring unavailable" id="county-coverage-all" role="img" aria-label="All-field population: No data"><b id="county-coverage-all-value">No data</b></div><small>All {parcel_counts["fields"]} fields</small></div>
-        <div><div class="county-coverage-ring unavailable" id="county-coverage-mandatory" role="img" aria-label="Mandatory-field population: No data"><b id="county-coverage-mandatory-value">No data</b></div><small>Mandatory fields (7)</small></div>
+        <div><div class="county-coverage-ring unavailable" id="county-coverage-all" role="img" aria-label="Completeness across all standard fields: No data"><b id="county-coverage-all-value">No data</b></div><small>All {parcel_counts["fields"]} fields</small></div>
+        <div><div class="county-coverage-ring unavailable" id="county-coverage-mandatory" role="img" aria-label="Required fields filled: No data"><b id="county-coverage-mandatory-value">No data</b></div><small>Mandatory fields (7)</small></div>
       </div>
       <div class="county-field-coverage" id="county-field-coverage" role="img" aria-label="Fields with values: No data">
         <div><span>Fields with values</span><b id="county-field-coverage-value">No data</b></div>
         <div class="county-field-track" aria-hidden="true"><i id="county-field-coverage-fill"></i></div>
       </div>
-      <p class="subtext">Rings show record-weighted field population. The bar counts fields with at least one value. With just {parcel_counts["mandatory_words"]} mandatory fields, identical rates across counties are expected; the {parcel_counts["fields"]}-field rate gives more detail but is not a compliance grade.</p>
+      <p class="subtext">Completeness is the share of fields with a value across the parcel records. The bar counts fields with at least one value. Optional fields may be blank. Filled values may still be inaccurate; these are not compliance scores.</p>
     </section>
   </div>
 </div>
 
-<div class="card"><h3>Parcel source research</h3>{research_summary(profiles)}</div>
-{diagnostics}
-<div class="section-head"><div><h2>Latest Watchtower activity</h2><p>Public monitoring results, separated from internal provider diagnostics.</p></div></div>
-<div class="activity-strip">
-  <div class="card"><div class="muted">Latest public publication</div><div class="metric" data-age-kind="publication" data-age-time="{_esc(published_at or "")}">{_esc(_public_age(published_at))}</div><span id="public-publication-time" class="subtext">{_esc(_public_time(published_at))}</span><p>When the public snapshot was published. Publication copies existing results and does not check GIS providers again.</p><p id="public-publication-status">Public publication reporting: {_esc(publication_reporting)}</p></div>
-  <div class="card"><div class="muted">Latest provider check in this snapshot</div><div class="metric" data-age-time="{_esc(checked_at or "")}">{_esc(_public_age(checked_at))}</div><span class="subtext">{_esc(_public_time(checked_at))}</span><p>The newest provider check included here, not the provider’s dataset update date. Other sources may have older checks.</p><p id="source-reporting-status" class="{"warn" if overdue or unknown_checks else "muted"}">Source reporting: {overdue} overdue · {unknown_checks} without a check time. Reporting becomes overdue after {_esc(config.get("source_stale_minutes", 1560))} minutes without a provider check (26 hours by default). Publication freshness is separate.</p></div>
-</div>
-
-<div class="section-head"><div><h2>Data sources</h2><p>Dataset and service checks across all data types. A statewide parcel service covers multiple counties; source entries and county coverage are different counts.</p></div><span>{len(sources)} dataset/service entries · {monitoring["active"]} counties with parcel observations</span></div>
+<div class="section-head"><div><h2>Data sources</h2><p>Sources checked by Watchtower. One statewide source may include many counties.</p></div><span>{len(sources)} data sources · {monitoring["active"]} counties with parcel observations</span></div>
 <div class="card" id="datasets">
-  <div class="filters"><input id="q" aria-label="Search data sources" placeholder="Search data sources…"><select id="health" aria-label="Source health"><option value="">All statuses</option><option>ok</option><option>warn</option><option>error</option></select></div>
-  <table><thead><tr><th>Data source</th><th>Provided by</th><th>Status</th><th>Records</th><th>Changes</th><th>Last success</th></tr></thead><tbody>{"".join(rows)}</tbody></table>
+  <div class="filters"><input id="q" aria-label="Search data sources" placeholder="Search data sources…"><select id="health" aria-label="Source health"><option value="">All statuses</option><option value="ok">Source responding</option><option value="warn">Needs attention</option><option value="error">Check failed</option></select></div>
+  <table><thead><tr><th>Data source</th><th>Provided by</th><th>Status</th><th>Records</th><th>Changes</th><th>Last successful check</th></tr></thead><tbody>{"".join(rows)}</tbody></table>
 </div>
 
-<div class="section-head"><div><h2>System status</h2><p>Worker reports show when monitoring results last arrived. Last success can remain old after a failed or missed run. A fresh public publication does not prove either worker ran recently.</p></div></div>
+<details class="card profile-evidence"><summary>Technical details and research</summary><h2>Monitoring system status</h2><p>A dashboard update does not mean a new check ran. These times show when the monitoring system last sent results.</p>
 <div class="grid worker-grid">{"".join(worker_cards) or '<div class="card muted">System metadata is unavailable.</div>'}</div>
+<h3>Parcel source research</h3>{research_summary(profiles)}</details>
 <section class="card public-about" id="about-watchtower" aria-labelledby="watchtower-about-title">
   <div class="public-about-header">
     <div class="public-about-heading">
       <span class="public-about-eyebrow">About this project</span>
       <h2 id="watchtower-about-title">Making Minnesota GIS data easier to understand.</h2>
-      <p class="public-about-lead"><strong>{_esc(PRODUCT_NAME)} is an open-source ClearParcel project</strong> focused on making Minnesota GIS data easier to understand. It brings together public dataset availability, source monitoring, county access research, and Minnesota GAC field-population insights—helping people explore GIS data and see what has changed.</p>
+      <p class="public-about-lead"><strong>{_esc(PRODUCT_NAME)} is an open-source ClearParcel project</strong> focused on making Minnesota GIS data easier to understand. It brings together public dataset availability, source monitoring, county access research, and data completeness results—helping people explore GIS data and see what has changed.</p>
     </div>
     <a class="public-about-link" href="https://github.com/clearparcel/GIS-Data-Watchtower" target="_blank" rel="noopener noreferrer" >View on GitHub<span class="sr-only"> (opens in a new tab)</span> <span aria-hidden="true">↗</span></a>
   </div>
@@ -311,17 +305,17 @@ def render_public_dashboard(config: dict) -> str:
   root.querySelectorAll('.mngac-county').forEach(p=>p.setAttribute('aria-pressed','false'));
   let selectedPath=null;
   function monitoringLabel(paths){{
-    return paths.length===2?'Both county-direct and MnGeo open parcel monitoring paths':paths.includes('county-direct')?'County-direct parcel monitoring path':paths.includes('mngeo-open')?'MnGeo open parcel monitoring path':'No active parcel monitoring path';
+    return paths.length===2?'Checks through both county and statewide data':paths.includes('county-direct')?'Checks through the county’s data source':paths.includes('mngeo-open')?'Checks through statewide MnGeo data':'No parcel source currently checked';
   }}
   function updateDescription(){{
     const detail=root.getElementById('home-county-detail');
     if(selector.value==='schema'){{
-      detail.textContent=selectedPath?statusStyles[countyStatuses[selectedPath.dataset.slug]].label+'. This describes available datasets and checked field names, not county-wide compliance. Statewide field-population statistics are separate.':'The map distinguishes MN GAC data, differing direct-feed schemas, and open-data availability. Select a county to see the evidence.';
+      detail.textContent=selectedPath?statusStyles[countyStatuses[selectedPath.dataset.slug]].label+'. This describes available data and checked field names. Statewide completeness results are shown separately; these are not compliance scores.':'Choose a county to see available parcel data, source checks, and completeness results.';
     }}else if(selector.value==='monitoring'){{
-      detail.textContent=selectedPath?monitoringLabel(monitoringPaths[selectedPath.dataset.slug]||[])+'. County field-population statistics below come from the statewide parcel observations.':'The map shows active parcel monitoring paths: county-direct, MnGeo open parcels, both, or no active parcel monitoring path. Select a county to see its monitoring summary and field coverage.';
+      detail.textContent=selectedPath?monitoringLabel(monitoringPaths[selectedPath.dataset.slug]||[])+'. The completeness results below use statewide parcel data.':'The map shows the sources Watchtower uses: county data, statewide MnGeo data, or both. Select a county for check status and completeness.';
     }}else{{
       const d=selectedPath&&countyData[selectedPath.dataset.county];
-      detail.textContent=!selectedPath?'The map shows field population across all {parcel_counts["fields"]} Minnesota GAC parcel-transfer fields. Unavailable statewide completeness remains distinct from 0%.':!d||d.all_pct==null?'Statewide completeness is unavailable for this county. These statistics are separate from county-direct monitoring; no 0% value is inferred.':'Current record-weighted population across all {parcel_counts["fields"]} parcel-transfer fields for this county. These statistics are separate from county-direct monitoring and do not measure standards compliance.';
+      detail.textContent=!selectedPath?'The map shows completeness across all {parcel_counts["fields"]} Minnesota GAC parcel-transfer fields. Unavailable statewide completeness remains distinct from 0%.':!d||d.all_pct==null?'Statewide completeness is unavailable for this county. These statistics are separate from county-direct monitoring; no 0% value is inferred.':'Share of fields containing values across all {parcel_counts["fields"]} parcel-transfer fields for this county. These statistics are separate from county-direct monitoring and do not measure standards compliance.';
     }}
   }}
   function updateOverview(){{
@@ -330,12 +324,12 @@ def render_public_dashboard(config: dict) -> str:
     root.querySelectorAll(".mngac-county").forEach(p=>{{
       const paths=monitoringPaths[p.dataset.slug]||[],d=countyData[p.dataset.county];
       p.style.fill=schema?statusStyles[countyStatuses[p.dataset.slug]].fill:monitoring?(paths.length===2?"#4c9b7b":paths.includes("county-direct")?"#3c708f":paths.includes("mngeo-open")?"#315373":"#3a4556"):fill(d&&d.all_pct);
-      const label=schema?statusStyles[countyStatuses[p.dataset.slug]].label:monitoring?monitoringLabel(paths):d&&d.all_pct!=null?Number(d.all_pct).toFixed(2)+'% MN GAC all-field population':'Statewide completeness is unavailable';
+      const label=schema?statusStyles[countyStatuses[p.dataset.slug]].label:monitoring?monitoringLabel(paths):d&&d.all_pct!=null?Number(d.all_pct).toFixed(2)+'% completeness across all standard fields':'Statewide completeness is unavailable';
       p.setAttribute('aria-label',p.dataset.county+' County, '+label);
     }});
     updateDescription();
-    root.getElementById("overview-legend").innerHTML=schema?{json.dumps(status_legend())}:monitoring?'<div class="mngac-legend" role="group" aria-label="Monitoring path legend"><span><i class="mngac-swatch" style="background:#4c9b7b"></i>Both paths</span><span><i class="mngac-swatch" style="background:#3c708f"></i>County-direct</span><span><i class="mngac-swatch" style="background:#315373"></i>MnGeo open</span><span><i class="mngac-swatch" style="background:#3a4556"></i>No active parcel path</span></div>':{json.dumps(percentage_legend())};
-    root.getElementById('overview-map-note').textContent=schema?'MN GAC availability uses MnGeo county observations or checked standard field names. A differing direct feed does not rule out a separate standardized export. No confirmed open data means current research found no open product; unresolved cases remain separate.':monitoring?'Monitoring paths describe saved observations, not all available parcel products.':'Percentages describe statewide population across all {parcel_counts["fields"]} MN GAC fields, including conditional and optional fields; they are not compliance grades. Unavailable is not 0% and does not establish a different direct schema.';
+    root.getElementById("overview-legend").innerHTML=schema?{json.dumps(status_legend())}:monitoring?'<div class="mngac-legend" role="group" aria-label="Monitoring path legend"><span><i class="mngac-swatch" style="background:#4c9b7b"></i>Both sources</span><span><i class="mngac-swatch" style="background:#3c708f"></i>County source</span><span><i class="mngac-swatch" style="background:#315373"></i>MnGeo open</span><span><i class="mngac-swatch" style="background:#3a4556"></i>No current checks</span></div>':{json.dumps(percentage_legend())};
+    root.getElementById('overview-map-note').textContent=schema?'Standard-format availability is based on statewide MnGeo data or field names checked in a county source. A county may also offer other formats. Unconfirmed availability remains separate from a finding that no open data was found.':monitoring?'This view shows where Watchtower gets its check results. It does not list every available parcel dataset.':'Completeness measures filled values across all {parcel_counts["fields"]} standard fields. Optional fields may be blank. Filled values may still be inaccurate. Unavailable results are not shown as 0%.';
   }}
   selector.addEventListener("change",updateOverview);
   {percentage_color_js()}
@@ -407,24 +401,24 @@ def render_public_source(config: dict, source_id: str) -> str:
         '<p><a href="/">← Watchtower overview</a></p>'
         '<div class="grid">'
         f'<div class="card"><div class="muted">Data source</div><h2>{_esc(source.get("name") or source_id)}</h2></div>'
-        f'<div class="card"><div class="muted">Status</div><div class="metric {_status_class(shown)}">{_esc(_health_status(shown))}</div></div>'
-        f'<div class="card"><div class="muted">Records</div><div class="metric">{_esc(source.get("feature_count") if source.get("feature_count") is not None else "—")}</div></div>'
+        f'<div class="card"><div class="muted">Status</div><div class="metric {_status_class(shown)}">{_esc(source_status_label(shown))}</div></div>'
+        f'<div class="card"><div class="muted">Records</div><div class="metric">{_esc(f"{source.get("feature_count"):,}" if isinstance(source.get("feature_count"), int) else "—")}</div></div>'
         '</div>'
         '<div class="card"><h2>Public monitoring summary</h2><dl class="definition-list">'
         f'<dt>Provided by</dt><dd>{_esc(source.get("provider") or "—")}</dd>'
         f'<dt>Data type</dt><dd>{_esc(source.get("category") or "—")}</dd>'
-        f'<dt>Latest successful check</dt><dd>{_esc(_public_time(source.get("last_success_at")))}</dd>'
+        f'<dt>Latest successful source check</dt><dd>{_esc(_public_time(source.get("last_success_at")))}</dd>'
         f'<dt>Reporting</dt><dd>{_esc(source.get("reporting") or "current")}</dd>'
-        f'<dt>Changes found</dt><dd>{_esc(source.get("change_count") if source.get("change_count") is not None else "Not recorded")}</dd>'
-        f'<dt>Information fields</dt><dd>{_esc(source.get("field_count") if source.get("field_count") is not None else "—")}</dd>'
-        f'<dt>Missing parcel IDs</dt><dd>{_esc(source.get("parcel_id_null_count") if source.get("parcel_id_null_count") is not None else "Not checked")}</dd>'
-        f'<dt>Duplicate-ID extra rows</dt><dd>{_esc(source.get("duplicate_id_extra_rows") if source.get("duplicate_id_extra_rows") is not None else "Not checked")}</dd>'
-        f'<dt>Missing mapped shape</dt><dd>{_esc(source.get("null_geometry_count") if source.get("null_geometry_count") is not None else "Not checked")}</dd>'
+        f'<dt>Changes detected since the previous check</dt><dd>{_esc(source.get("change_count") if source.get("change_count") is not None else "Not recorded")}</dd>'
+        f'<dt>Data fields available</dt><dd>{_esc(source.get("field_count") if source.get("field_count") is not None else "—")}</dd>'
+        f'<dt>Records missing parcel numbers</dt><dd>{_esc(source.get("parcel_id_null_count") if source.get("parcel_id_null_count") is not None else "Not checked")}</dd>'
+        f'<dt>Extra records with repeated parcel numbers</dt><dd>{_esc(source.get("duplicate_id_extra_rows") if source.get("duplicate_id_extra_rows") is not None else "Not checked")}</dd>'
+        f'<dt>Records missing map shapes</dt><dd>{_esc(source.get("null_geometry_count") if source.get("null_geometry_count") is not None else "Not checked")}</dd>'
         '</dl></div>'
         + note_html
     )
     if source.get('county_slug') and source.get('category') == 'Parcels':
-        body += render_direct_schema_findings([direct_schema_assessment(source_id, source)])
+        body += '<details class="card profile-evidence"><summary>Technical field details</summary>' + render_direct_schema_findings([direct_schema_assessment(source_id, source)]) + '</details>'
     return _layout(
         page_title(f'Data Source — {source.get("name") or source_id}'),
         body,
@@ -458,6 +452,9 @@ class _PublicStateCache:
         self._directory_lock = threading.Lock()
         self._directory_value = {}
         self._directory_read_at = None
+        self.directory_failed = False
+        self._research = None
+        self._research_digest = None
         self.object_name = os.environ.get("WATCHTOWER_AGGREGATE_OBJECT", "aggregate-state.json")
         self.refresh_seconds = max(5, min(int(os.environ.get("WATCHTOWER_PUBLIC_REFRESH_SECONDS", "30")), 300))
         self._last_refresh = 0.0
@@ -552,9 +549,17 @@ class _PublicStateCache:
             return {}
         with self._directory_lock:
             now = time.monotonic()
-            if self._directory_read_at is None or now - self._directory_read_at >= self.directory_refresh_seconds:
-                self._directory_value = read_public_directory(self.directory_storage)
+            interval = max(5, self.directory_refresh_seconds) if self.directory_failed else self.directory_refresh_seconds
+            if self._directory_read_at is None or now - self._directory_read_at >= interval:
                 self._directory_read_at = now
+                try:
+                    self._directory_value = read_public_directory(self.directory_storage)
+                    self.directory_failed = False
+                except Exception:
+                    self.directory_failed = True
+                    raise
+            if self.directory_failed:
+                raise OSError("county directory refresh unavailable")
             return self._directory_value
 
     @staticmethod
@@ -598,8 +603,14 @@ class _PublicStateCache:
         """Capture an immutable state/profile/summary bundle for one request."""
         with self._export_lock:
             state_bytes = self.public_path.read_bytes()
-            research = load_parcel_access()
-            key = hashlib.sha256(state_bytes + json.dumps(research, sort_keys=True).encode()
+            # Bundled research is immutable for the lifetime of this application
+            # process. Keep this private to the cache; load_parcel_access callers
+            # elsewhere still receive their own mutable documents.
+            if self._research is None:
+                self._research = load_parcel_access()
+                self._research_digest = hashlib.sha256(json.dumps(self._research, sort_keys=True).encode()).digest()
+            research = self._research
+            key = hashlib.sha256(state_bytes + self._research_digest
                                  + json.dumps(application_identity(), sort_keys=True).encode()
                                  + json.dumps(self.config, sort_keys=True).encode()
                                  + _freshness_bucket()).hexdigest()
@@ -736,6 +747,13 @@ def serve_public(host: str = "0.0.0.0", port: int = 8080, *, county_directory_ro
                     cache.refresh()
                     state = strict_json.loads(cache.public_path.read_text(encoding="utf-8"))
                     healthy, payload = _publication_health(state, max_age_seconds=max_publication_age_seconds)
+                    if directory_enabled:
+                        try:
+                            cache.directory()
+                            payload["directory_status"] = "available"
+                        except storage_errors:
+                            healthy = False
+                            payload.update(status="unavailable", directory_status="unavailable")
                     if cache.stale:
                         healthy = False
                         payload = {**payload, "status": "stale", "refresh_failed": True}
@@ -759,7 +777,8 @@ def serve_public(host: str = "0.0.0.0", port: int = 8080, *, county_directory_ro
                     except storage_errors:
                         return self._send(503, "County directory temporarily unavailable.", "text/plain; charset=utf-8")
                     revision = cache._directory_key(view["summary"]["content_revision"], directory)
-                    view = {**view, "summary": {**view["summary"], "content_revision": revision}}
+                    view = {**view, "summary": {**view["summary"], "content_revision": revision},
+                            "profiles": with_published_directory(view["profiles"], directory)}
                     config = {**config, "_county_directory": directory, "_directory_refresh": True,
                               "_county_pdf_enabled": pdf_enabled}
                 self._render_revision = view["summary"]["content_revision"]
@@ -792,7 +811,10 @@ def serve_public(host: str = "0.0.0.0", port: int = 8080, *, county_directory_ro
             if parsed.path == "/api/state":
                 return self._send(200, cache.public_path.read_text(encoding="utf-8"), "application/json; charset=utf-8")
             if parsed.path in ("/county-profiles.csv", "/parcel-sources.csv"):
-                snap = cache.snapshot()
+                try:
+                    snap = cache.snapshot()
+                except storage_errors:
+                    return self._send(503, "Snapshot temporarily unavailable.", "text/plain; charset=utf-8")
                 profiles = {row["parcel_source_profile"]["county"]["slug"]: row["parcel_source_profile"] for row in snap["counties"]}
                 export = county_profiles_csv if parsed.path == "/county-profiles.csv" else parcel_sources_csv
                 return self._send(200, export(profiles), "text/csv; charset=utf-8")

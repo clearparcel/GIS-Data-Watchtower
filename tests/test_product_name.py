@@ -50,7 +50,9 @@ class ProductNameTests(unittest.TestCase):
         self.assertIn(f'<meta name="application-name" content="{sentinel}">', private)
         self.assertIn(f"<title>Minnesota Counties — {sentinel}</title>", private)
         private_footer = private.split('<footer class="app-footnote">', 1)[1].split("</footer>", 1)[0]
-        self.assertEqual(private_footer, sentinel)
+        self.assertTrue(private_footer.startswith(sentinel + " · v"))
+        self.assertIn("Build ", private_footer)
+        self.assertIn("Internal · view only", private_footer)
         rendered = _layout(PRODUCT_NAME, "<p>overview</p>", static=True, refresh_seconds=0)
         self.assertIn(f"<h1>{PRODUCT_NAME}</h1>", rendered)
         self.assertNotIn("Minnesota Open Data Watchtower", rendered)

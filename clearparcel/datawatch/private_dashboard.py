@@ -25,10 +25,14 @@ also reads ``WATCHTOWER_CRM_ACCESS_CLIENT_ID`` and
 from __future__ import annotations
 
 import os
+import datetime as dt
 import tempfile
 import threading
 import time
 from pathlib import Path
+
+from . import strict_json
+from .private_snapshot import validate_private_snapshot
 
 HISTORY_OBJECT = "history.jsonl"
 HISTORY_ARCHIVE_OBJECT = "history.jsonl.1"  # read by the history loader beside history.jsonl
@@ -52,6 +56,7 @@ class StateSync:
         self._clock = clock
         self._lock = threading.Lock()
         self._last = None
+        self.status = {"refresh_failed": False, "last_success_at": None}
 
     def sync(self) -> dict[str, bool]:
         """Copy every object; the interval restarts even when a copy fails.
@@ -60,7 +65,12 @@ class StateSync:
         turning every request into another storage read.
         """
         try:
-            return self._sync_all()
+            result = self._sync_all()
+            self.status.update(refresh_failed=False, last_success_at=dt.datetime.now(dt.UTC).isoformat())
+            return result
+        except Exception:
+            self.status["refresh_failed"] = True
+            raise
         finally:
             self._last = self._clock()
 
@@ -74,6 +84,7 @@ class StateSync:
             try:
                 found = self.storage.download(name, temp_path)
                 if found:
+                    self._validate(name, temp_path)
                     os.replace(temp_path, destination)
                 elif name in self.required:
                     raise FileNotFoundError(f"required hosted object not found: {name}")
@@ -81,6 +92,17 @@ class StateSync:
             finally:
                 temp_path.unlink(missing_ok=True)
         return results
+
+    def _validate(self, name: str, path: Path) -> None:
+        if name in (HISTORY_OBJECT, HISTORY_ARCHIVE_OBJECT):
+            with path.open(encoding="utf-8-sig") as stream:
+                for line in stream:
+                    if line.strip():
+                        row = strict_json.loads(line)
+                        validate_private_snapshot(row, history=True)
+        else:
+            state = strict_json.loads(path.read_text(encoding="utf-8-sig"))
+            validate_private_snapshot(state)
 
     def maybe_sync(self) -> None:
         """Sync if the interval has passed; never blocks behind another sync."""
@@ -126,6 +148,7 @@ def prepare_private_dashboard(environ=None, *, storage=None, workdir: Path | Non
     config["history_file"] = str(history_path)
     # Never let a registry path point the hosted server at another local state file.
     config["state_file"] = str(root / "unused-state.json")
+    config["_sync_status"] = sync.status
     # CRM terms status (#185): read-only, cached locally, refreshed in the background.
     from clearparcel.datawatch.provider_terms import cache_from_env
     config["_terms_cache"] = cache_from_env(environ, cache_path=root / "provider-terms.json")

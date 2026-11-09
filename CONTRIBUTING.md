@@ -2,6 +2,21 @@
 
 Contributions are welcome. ClearParcel GIS Data Watchtower is a public pre-1.0 project, so changes should preserve the documented provider-use, privacy, and compatibility boundaries.
 
+For the complete test suite, use Python 3.12+ and Node.js 24, then install all
+contributor dependencies in an isolated environment:
+
+```bash
+python -m venv .venv
+# Activate .venv using your shell's activation command.
+python -m pip install -c constraints.txt -e '.[gcs,pdf,pdf-test]'
+python -m pip check
+```
+
+Set `WATCHTOWER_REQUIRE_NODE=1` while running tests so missing Node fails rather
+than skipping JavaScript coverage. Installing only the core package is sufficient
+for core runtime use, but is not the full contributor test environment. These
+checks need no cloud credentials and must use synthetic data.
+
 Before submitting a change:
 
 1. Do not add a provider unless its automated-access and redistribution terms have been reviewed.

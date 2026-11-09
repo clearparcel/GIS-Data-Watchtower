@@ -74,15 +74,15 @@ class OverviewTests(unittest.TestCase):
 
     def test_future_source_worker_and_publication_times_are_unknown(self):
         page = self.render(self.state(40 * 86400))
-        self.assertIn("Public publication reporting: Unknown", page)
-        self.assertIn("Source reporting: 0 overdue · 1 without a check time", page)
-        self.assertEqual(self.worker_label(page), "Healthy · Reporting unknown")
+        self.assertIn("Dashboard update status: Unknown", page)
+        self.assertIn("Source checks: 0 overdue · 1 without a check time", page)
+        self.assertEqual(self.worker_label(page), "Checks passing · Reporting unknown")
 
     def test_current_times_stay_current(self):
         page = self.render(self.state(-60))
-        self.assertIn("Public publication reporting: Current", page)
-        self.assertIn("Source reporting: 0 overdue · 0 without a check time", page)
-        self.assertEqual(self.worker_label(page), "Healthy · Reporting on time")
+        self.assertIn("Dashboard update status: Current", page)
+        self.assertIn("Source checks: 0 overdue · 0 without a check time", page)
+        self.assertEqual(self.worker_label(page), "Checks passing · Reporting on time")
 
 
 class PublisherClockTests(unittest.TestCase):

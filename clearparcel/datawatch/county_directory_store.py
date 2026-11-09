@@ -157,7 +157,8 @@ class CountyDirectoryStore:
             raise ValueError("request ID was already used for a different county save")
         return CountySave(receipt["revision"], receipt["publication_revision"])
 
-    def save(self, county: dict, draft: dict, *, expected_revision: int, request_id: str) -> CountySave:
+    def save(self, county: dict, draft: dict, *, expected_revision: int, request_id: str, before_save=None,
+             actor: str = "operator:direct-storage") -> CountySave:
         key = _private_key(county)
         if type(expected_revision) is not int or expected_revision < 0:
             raise ValueError("expected revision must be a nonnegative integer")
@@ -165,6 +166,8 @@ class CountyDirectoryStore:
             raise ValueError("invalid county save request ID")
         if not isinstance(draft, dict):
             raise ValueError("county draft must be an object")
+        if not isinstance(actor, str) or not 0 < len(actor) <= 256 or any(ord(c) < 32 for c in actor):
+            raise ValueError("invalid county save actor")
         try:
             request_fingerprint = _fingerprint([expected_revision, draft])
         except (TypeError, ValueError, RecursionError):
@@ -187,13 +190,28 @@ class CountyDirectoryStore:
             requests[request_id] = {
                 "fingerprint": request_fingerprint, "revision": revision, "publication_revision": publication_revision,
             }
+            now = dt.datetime.now(dt.UTC)
+            cutoff = (now - dt.timedelta(days=365)).isoformat()
+            events = record.get("audit_events", [])
+            if not isinstance(events, list) or not all(isinstance(event, dict) and isinstance(event.get("at"), str) for event in events):
+                raise ValueError("invalid county audit history")
+            events = [event for event in events if event["at"] >= cutoff]
+            if len(events) >= 10000:
+                raise ValueError("county audit history requires operator archival")
+            events.append({"actor": actor, "at": now.isoformat(), "county": county["fips"],
+                           "request_id": request_id, "prior_revision": expected_revision,
+                           "revision": revision, "operation": "save"})
             if len(requests) > _RECEIPT_LIMIT:
                 oldest = min(requests, key=lambda request: requests[request]["revision"])
                 del requests[oldest]
             updated = {
                 "schema_version": _VERSION, "revision": revision, "draft": draft, "public_revision": target,
                 "public_fingerprint": public_fingerprint, "requests": requests,
+                # The event and edit share one CAS: neither can commit alone.
+                "audit_events": events,
             }
+            if before_save is not None:
+                before_save(revision)
             try:
                 _write(self._private, key, path, version, updated)
             except StorageConflictError:

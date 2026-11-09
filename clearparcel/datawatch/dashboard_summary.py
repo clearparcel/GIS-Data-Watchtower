@@ -174,12 +174,12 @@ def render_diagnostics(summary: dict) -> str:
                  'The cause of this classification difference has not been established. '
                  f'Layer features: {road.get("source_feature_count")}; Minnesota grouped denominator: {road.get("record_count")}; '
                  f'records outside that denominator: {road.get("ungrouped_record_count")}.</p>' if metadata else '')
-    return ('<div class="section-head"><h2>Coverage and field population</h2></div><div class="card">'
+    return ('<div class="section-head"><h2>Coverage and data completeness</h2></div><div class="card">'
             '<h3>Parcel monitoring paths</h3><p>Unique counties; this measures observation paths, separately from access rights and source health.</p>'
             '<div class="table-scroll" tabindex="0" role="region" aria-label="Parcel monitoring paths"><table><thead><tr><th scope="col">Path</th><th scope="col">Counties</th><th scope="col">Share of counties</th></tr></thead>'
             f'<tbody>{path_rows}</tbody></table></div><a href="/county-profiles.csv">Download county profiles (CSV)</a></div>'
             '<div class="card"><h3>Three-standard comparison</h3><p>Record-weighted rates weight each mandatory cell; median county rates give each represented county one position. Population does not certify value accuracy or standards compliance.</p>'
-            '<div class="table-scroll" tabindex="0" role="region" aria-label="Three-standard comparison"><table><thead><tr><th scope="col">Standard</th><th scope="col">County coverage</th><th scope="col">Record denominator</th><th scope="col">Mandatory population</th><th scope="col">Median county</th><th scope="col">Scan scope</th><th scope="col">Observation</th></tr></thead>'
+            '<div class="table-scroll" tabindex="0" role="region" aria-label="Three-standard comparison"><table><thead><tr><th scope="col">Standard</th><th scope="col">County coverage</th><th scope="col">Records included</th><th scope="col">Required fields filled</th><th scope="col">Median county</th><th scope="col">Scan scope</th><th scope="col">Observation</th></tr></thead>'
             f'<tbody>{"".join(rows)}</tbody></table></div>{road_note}<a href="/snapshot.xlsx">Download standards workbook</a></div>'
             '<div class="card"><label for="gap-standard">Field-gap standard</label><select id="gap-standard"><option value="parcel">Parcels</option><option value="address">Address points</option><option value="road">Road centerlines</option></select>'
             + "".join(gaps) + '</div>' + SCRIPT_TAG + 'document.getElementById("gap-standard").addEventListener("change",event=>{document.querySelectorAll("[data-gap-standard]").forEach(section=>{section.hidden=section.dataset.gapStandard!==event.target.value})});</script>')

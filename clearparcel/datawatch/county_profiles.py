@@ -97,6 +97,7 @@ def _source(item, observed, sid, state, now, policy, *, count=None, basis=None, 
         'last_success_at': observed.get('last_success_at') if _timestamp(observed.get('last_success_at')) else None,
         'health': health, 'reporting': reporting, 'execution_profile': observed.get('worker'),
         'monitoring_decision': item.get('monitoring_decision'),
+        'monitoring_review': CountyPermission.public_review(observed),
         'file': {key: file.get(key) for key in ('type', 'size_bytes', 'etag', 'last_modified')},
     }
 
@@ -195,13 +196,17 @@ def compose_county_profiles(state: dict, research: dict[str, dict], *, now: dt.d
         # The research dataset is the sole authority for monitoring decisions.
         decision = (record.get('monitoring') or {}).get('decision')
         permission = CountyPermission.from_record(record) if record.get('monitoring') else None
+        permission_note = CountyPermission.public_note(permission)
+        if any(CountyPermission.public_review(source) and not CountyPermission.skip_reason(source, permission)
+               for source in direct.values()):
+            permission_note = None
         profiles[slug] = {
             'schema_version': 1, 'county': county,
             'monitoring': {'active': bool(active), 'paths': paths, 'health': health, 'reporting': reporting,
                 'active_parcel_source_count': len(active), 'last_checked_at': _latest(s.get('checked_at') for s in active.values()),
                 'last_success_at': _latest(s.get('last_success_at') for s in active.values()),
                 'aggregate_generated_at': state.get('generated_at') if _timestamp(state.get('generated_at')) else None,
-                'permission': permission, 'permission_note': CountyPermission.public_note(permission)},
+                'permission': permission, 'permission_note': permission_note},
             **categories,
             'direct_gac_schema': [direct_schema_assessment(sid, source) for sid, source in sorted(direct.items())],
             'access': {'public_classification': public_access_classification(record),

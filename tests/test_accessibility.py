@@ -43,13 +43,14 @@ class SkipLinkAndFocusTests(unittest.TestCase):
 
 
 class PhoneHeaderAndNavTests(unittest.TestCase):
-    def test_status_text_and_short_tab_labels_exist_for_phones(self):
+    def test_public_status_and_navigation_use_single_plain_labels(self):
         page = public_page()
         self.assertIn('<span class="live-dot" aria-hidden="true">', page)
-        self.assertIn('<span class="live-short">READ ONLY</span>', page)
-        self.assertIn('<span class="tab-long">Minnesota Counties</span><span class="tab-short">Counties</span>', page)
-        # The short label must stay in the accessibility tree; CSS hides whichever label is unused.
-        self.assertNotIn('class="tab-short" aria-hidden', page)
+        self.assertIn('<span class="live-label">Public · read only</span>', page)
+        self.assertRegex(page, r'<a href="/counties"[^>]*>Counties</a>')
+        self.assertRegex(page, r'<a href="/mngac"[^>]*>Data completeness</a>')
+        nav = page.split('<nav class="public-tabs"', 1)[1].split("</nav>", 1)[0]
+        self.assertNotIn("tab-short", nav)
         # A descendant rule here once hid the short label (the last <span> in the block).
         self.assertNotIn(".live-state span:last-child{display:none}", page)
 

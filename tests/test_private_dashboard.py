@@ -123,6 +123,21 @@ class PreparePrivateDashboardTests(unittest.TestCase):
 
 
 class ReadOnlyServeTests(unittest.TestCase):
+    def test_failed_sync_is_visible_in_page_and_authenticated_health(self):
+        handler, status, _, config = self.handler(environ={"K_SERVICE": "svc"}, read_only=True,
+                                                trusted_frontend="cloud-run-iap")
+        config["_sync_status"] = {"refresh_failed": True, "last_success_at": None}
+        handler.do_GET()
+        self.assertIn(b"Showing cached data", handler.wfile.getvalue())
+        handler.path, handler.wfile = "/healthz", io.BytesIO()
+        handler.do_GET()
+        self.assertEqual(status[-1], 503)
+        self.assertTrue(json.loads(handler.wfile.getvalue())["refresh_failed"])
+        config["_sync_status"]["refresh_failed"] = False
+        handler.wfile = io.BytesIO()
+        handler.do_GET()
+        self.assertEqual(status[-1], 200)
+
     def handler(self, *, environ, **kwargs):
         captured = {}
 

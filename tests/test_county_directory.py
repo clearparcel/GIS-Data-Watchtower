@@ -94,6 +94,23 @@ class CountyDirectoryProjectionTests(unittest.TestCase):
                 "restrictions": {"status": "unreviewed"},
             })
 
+    def test_update_frequency_is_optional_direct_source_metadata(self):
+        draft = {"fips": "27001", "access": {"parcel_polygons": {
+            "classification": "open", "restrictions": {"status": "reviewed_none"}, "methods": [{
+                "kind": "direct_rest", "url": "https://example.org/FeatureServer/0",
+                "evidence_date": "2026-11-06", "scope": "Synthetic parcel polygons",
+                "update_frequency": "Every spring",
+            }],
+        }}}
+        public = project_public_county(COUNTY, draft)
+        self.assertEqual(public["access"]["parcel_polygons"]["methods"][0]["update_frequency"], "Every spring")
+        draft["access"]["parcel_polygons"]["methods"][0].pop("update_frequency")
+        self.assertNotIn("update_frequency", project_public_county(COUNTY, draft)["access"]["parcel_polygons"]["methods"][0])
+        method = draft["access"]["parcel_polygons"]["methods"][0]
+        method.update(kind="mngeo_open", update_frequency="Every spring")
+        with self.assertRaisesRegex(ValueError, "only available for direct data"):
+            project_public_county(COUNTY, draft)
+
     def test_each_existing_profile_has_a_unique_directory_identity(self):
         profiles = compose_county_profiles(
             {}, {}, now=dt.datetime(2026, 11, 6, tzinfo=dt.UTC), freshness_policy=FreshnessPolicy()

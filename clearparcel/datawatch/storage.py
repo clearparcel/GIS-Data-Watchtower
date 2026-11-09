@@ -27,6 +27,10 @@ class StorageBackend(abc.ABC):
         token = hashlib.sha256(destination.read_bytes()).hexdigest() if exists else None
         return exists, token
 
+    def read_prefix(self, name: str, maximum: int) -> bytes | None:
+        """Read one object's bounded prefix; backends must preserve snapshot identity."""
+        raise NotImplementedError("storage backend must implement bounded prefix reads")
+
     def upload_if_version(self, name: str, source: Path, version: str | int | None) -> None:
         raise NotImplementedError("storage backend must implement atomic version-conditional uploads")
 
@@ -84,6 +88,17 @@ class LocalStorage(StorageBackend):
         destination.write_bytes(self._read_shared(source))
         return True
 
+    def read_prefix(self, name: str, maximum: int) -> bytes | None:
+        def read():
+            try:
+                with self._path(name).open("rb") as stream:
+                    return stream.read(maximum)
+            except FileNotFoundError:
+                return None
+        if maximum <= 0:
+            raise ValueError("prefix limit must be positive")
+        return _retry_sharing(read, timeout=5.0)
+
     def download_versioned(self, name: str, destination: Path) -> tuple[bool, str | None]:
         source = self._path(name)
         if not source.is_file():
@@ -130,6 +145,21 @@ class GCSStorage(StorageBackend):
     def download(self, name: str, destination: Path) -> bool:
         exists, _ = self.download_versioned(name, destination)
         return exists
+
+    def read_prefix(self, name: str, maximum: int) -> bytes | None:
+        from google.api_core.exceptions import NotFound, PreconditionFailed
+        if maximum <= 0:
+            raise ValueError("prefix limit must be positive")
+        blob = self.bucket.blob(self._name(name))
+        try:
+            blob.reload(client=self.client)
+        except NotFound:
+            return None
+        try:
+            return blob.download_as_bytes(start=0, end=maximum - 1, raw_download=True,
+                                          if_generation_match=int(blob.generation))
+        except (NotFound, PreconditionFailed) as exc:
+            raise StorageConflictError(f"object changed while reading: {name}") from exc
 
     def download_versioned(self, name: str, destination: Path) -> tuple[bool, int | None]:
         blob = self.bucket.blob(self._name(name))

@@ -18,6 +18,7 @@ from .watch import (
     check_sources,
     load_config,
     load_state,
+    prepare_check_config,
     validate_source_registry,
 )
 
@@ -172,28 +173,30 @@ def job_profile() -> str | None:
     return _resolve_execution_profile(os.environ.get("WATCHTOWER_EXECUTION_PROFILE") or "cloud")
 
 
-def preflight_cloud_job(config: dict) -> None:
+def preflight_cloud_job(config: dict) -> dict:
     """The cloud job's own refusals, checked before any provider-run slot is claimed."""
-    if is_placeholder_config(config) and os.environ.get("WATCHTOWER_ALLOW_EXAMPLE_CONFIG") != "1":
+    config = prepare_check_config(config)
+    configured = {**config, "sources": config.get("_county_monitoring_original_sources", config.get("sources", []))}
+    if is_placeholder_config(configured) and os.environ.get("WATCHTOWER_ALLOW_EXAMPLE_CONFIG") != "1":
         # Fail closed: the container default points at the repository example.
         raise RuntimeError("cloud-job refuses the placeholder example configuration; pass --config with the "
                            "deployment registry (or set WATCHTOWER_ALLOW_EXAMPLE_CONFIG=1 for a synthetic test)")
     require_publishable_profile(config, job_profile())
     validate_source_registry(config.get("sources", []))
+    return config
 
 
-def run_cloud_job(config_path: str | Path) -> dict:
+def run_cloud_job(config_path: str | Path, *, prepared_config: dict | None = None) -> dict:
     configured = os.environ.get("WATCHTOWER_WORKDIR")
     if configured:
-        return _run_cloud_job(config_path, Path(configured).expanduser())
+        return _run_cloud_job(config_path, Path(configured).expanduser(), prepared_config=prepared_config)
     # A private per-run directory: concurrent or leftover runs never share downloaded state.
     with tempfile.TemporaryDirectory(prefix="watchtower-job-") as scratch:
-        return _run_cloud_job(config_path, Path(scratch))
+        return _run_cloud_job(config_path, Path(scratch), prepared_config=prepared_config)
 
 
-def _run_cloud_job(config_path: str | Path, workdir: Path) -> dict:
-    config = load_config(config_path)
-    preflight_cloud_job(config)
+def _run_cloud_job(config_path: str | Path, workdir: Path, *, prepared_config: dict | None = None) -> dict:
+    config = preflight_cloud_job(dict(prepared_config) if prepared_config is not None else load_config(config_path))
     workdir.mkdir(parents=True, exist_ok=True)
     storage = job_storage(config, config_path)
 

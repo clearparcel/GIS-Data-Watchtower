@@ -11,6 +11,7 @@ from .county_profile_panel import percentage_color, percentage_legend, profile_t
 from .direct_gac_schema import direct_schema_assessment
 from .gac_standards import gac_defaults, load_gac_standard, standard_field_counts, standard_keys
 from .product import page_title
+from .dashboard_copy import COMPLETENESS_NOTE, requirement_label, technical_field_details
 
 LABELS = {'parcel': 'Parcels', 'address': 'Address Points', 'road': 'Road Centerlines'}
 
@@ -61,7 +62,7 @@ def navigation(standard: str, view: str, county: dict | None) -> str:
 @media(max-width:760px){{.gac-county-form label{{max-width:none}}.gac-county-form button{{width:100%}}}}
 </style>
 <section class="card gac-navigation" aria-label="MN GAC results navigation">
-<div class="muted">MN GAC standard</div><nav aria-label="MN GAC standard">{links}</nav>
+<div class="muted">Data type</div><nav aria-label="Data standard">{links}</nav>
 <nav aria-label="Results scope">{scopes}</nav>
 <form action="/mngac" method="get" class="gac-county-form">
 <input type="hidden" name="standard" value="{esc(standard)}"><input type="hidden" name="view" value="county">
@@ -116,10 +117,10 @@ def render_county_results(config: dict, standard_key: str, county: dict | None) 
     if source.get('gac_check_status') in {'error', 'unsupported'}:
         body += '<p class="mngac-note warn" role="status">Latest configured GAC check failed. Results may be from an earlier successful observation.</p>'
     if not county:
-        body += '<div class="gac-county-heading"><h2>Explore county results</h2><p>Choose a county above or on the map to see its record counts, field population and individual field results.</p></div>'
+        body += '<div class="gac-county-heading"><h2>Explore county results</h2><p>Choose a county above or on the map to see its record counts, data completeness and individual field results.</p></div>'
     else:
         body += f'<div class="gac-county-heading"><h2>{esc(name)} County — {LABELS[standard_key]}</h2><p>County results from {esc(defaults["dataset_label"])}. Observation: {esc(profile_time(observed))}.</p></div>'
-        body += f'<p class="subtext">{esc(standard.get("short_name") or standard.get("name"))} v{esc(standard.get("version") or "—")}. {esc(defaults["grouping_note"])}</p>'
+        body += f'<details class="profile-evidence"><summary>How this is measured</summary><p>{esc(standard.get("short_name") or standard.get("name"))} v{esc(standard.get("version") or "—")}. {esc(defaults["grouping_note"])}</p></details>'
         if not isinstance(stats, dict):
             reason = ('This county is not represented in the current saved observation.' if data else
                       'A saved observation for this MN GAC standard is not available yet.')
@@ -130,19 +131,19 @@ def render_county_results(config: dict, standard_key: str, county: dict | None) 
             body += f'<div class="card"><h3>{heading}</h3><p>{reason} {qualification}</p></div>'
         else:
             all_rate = _percent(stats.get('field_population_percent'), 'Not scanned' if data.get('population_scope') == 'mandatory' else 'No data')
-            all_card = f'<div class="card"><div class="muted">All-field population</div><div class="metric">{all_rate}</div></div>'
-            mandatory_card = f'<div class="card"><div class="muted">Mandatory-field population</div><div class="metric">{_percent(stats.get("mandatory_population_percent"))}</div></div>'
+            all_card = f'<div class="card"><div class="muted">Completeness across all standard fields</div><div class="metric">{all_rate}</div></div>'
+            mandatory_card = f'<div class="card"><div class="muted">Required fields filled</div><div class="metric">{_percent(stats.get("mandatory_population_percent"))}</div></div>'
             ordered_cards = (all_card + mandatory_card) if standard_key == 'parcel' else (mandatory_card + all_card)
             body += f'''<div class="grid primary-grid" role="group" aria-label="Selected county summary">
 <div class="card"><div class="muted">County {esc(defaults['record_label'])}</div><div class="metric">{_count(stats.get('record_count'))}</div></div>
 {ordered_cards}
 <div class="card"><div class="muted">Standard fields</div><div class="metric">{len(schema['fields'])}</div></div></div>
-<p class="mngac-note">These percentages describe fields containing values in this county's records, not a compliance score. Conditional, If Available and Optional fields may legitimately be blank. Source schema describes the shared statewide layer; population figures below are county-specific.</p>'''
+<p class="mngac-note">{COMPLETENESS_NOTE}</p>'''
             if standard_key == 'parcel':
                 labels = standard_field_counts(schema=schema)
-                body += (f'<p class="subtext">The {labels["mandatory_words"]} mandatory fields can yield identical percentages across '
+                body += (f'<details class="profile-evidence"><summary>About the map percentages</summary><p class="subtext">The {labels["mandatory_words"]} mandatory fields can yield identical percentages across '
                          'counties even when all-field population differs. The parcel map compares all '
-                         f'{labels["fields"]} standard fields; conditional and optional fields may legitimately be blank.</p>')
+                         f'{labels["fields"]} standard fields; conditional and optional fields may legitimately be blank.</p></details>')
             if data.get('text_population_mode') == 'non_null':
                 body += '<p class="subtext">Text population is non-null based; empty strings may count as populated in this observation.</p>'
             rows = []
@@ -158,21 +159,23 @@ def render_county_results(config: dict, standard_key: str, county: dict | None) 
                 records = _count(values.get('record_count')) if scanned else '—'
                 percent = _percent(values.get('percent')) if scanned else scan
                 rows.append(f'<tr data-name="{esc((spec["label"] + " " + field).lower())}" data-inclusion="{esc(spec["inclusion"])}">'
-                            f'<td><strong>{esc(spec["label"])}</strong><br><code>{esc(field)}</code></td>'
-                            f'<td>{esc(spec["section_name"])}</td><td>{esc(spec["inclusion"])}</td><td>{shape}</td><td>{scan}</td>'
+                            f'<td><strong>{esc(spec["label"])}</strong>{technical_field_details(field, spec["section_name"], shape, scan)}</td>'
+                            f'<td>{esc(requirement_label(spec["inclusion"]))}</td>'
                             f'<td>{populated}</td><td>{records}</td><td>{percent}</td></tr>')
             body += f'''<section class="card"><h2>County field results</h2>
-<div class="filters"><input id="gac-field-search" type="search" placeholder="Find a field" aria-label="Find a county field"><select id="gac-field-inclusion" aria-label="Filter field inclusion"><option value="">All inclusion categories</option><option>Mandatory</option><option>Conditional</option><option>If Available</option><option>Optional</option></select></div>
-<div class="table-scroll"><table class="gac-field-table" id="gac-county-fields"><caption>{esc(name)} County — {LABELS[standard_key]} field population</caption><thead><tr><th>Field</th><th>Section</th><th>Inclusion</th><th>Source schema</th><th>Population scan</th><th>Populated</th><th>County records</th><th>Population</th></tr></thead><tbody>{''.join(rows)}</tbody></table></div>
+<div class="filters"><input id="gac-field-search" type="search" placeholder="Find a field" aria-label="Find a county field"><select id="gac-field-inclusion" aria-label="Filter by field requirement"><option value="">All field requirements</option><option value="Mandatory">Required</option><option value="Conditional">Required in some cases</option><option value="If Available">When available</option><option value="Optional">Optional</option></select></div>
+<div class="table-scroll"><table class="gac-field-table" id="gac-county-fields"><caption>{esc(name)} County — {LABELS[standard_key]} data completeness</caption><thead><tr><th>Field</th><th>Standard requirement</th><th>Records with value</th><th>Records included</th><th>Share filled</th></tr></thead><tbody>{''.join(rows)}</tbody></table></div>
 <p id="gac-no-fields" hidden role="status">No fields match these filters.</p></section>
 {SCRIPT_TAG}(function(){{const q=document.getElementById('gac-field-search'),i=document.getElementById('gac-field-inclusion');function filter(){{let visible=0;document.querySelectorAll('#gac-county-fields tbody tr').forEach(r=>{{const show=r.dataset.name.includes(q.value.toLowerCase())&&(!i.value||r.dataset.inclusion===i.value);r.hidden=!show;if(show)visible++}});document.getElementById('gac-no-fields').hidden=visible>0}}q.addEventListener('input',filter);i.addEventListener('change',filter)}})();</script>'''
         if standard_key == 'parcel':
             assessments = [direct_schema_assessment(sid, item) for sid, item in sorted((state.get('sources') or {}).items())
                            if item.get('category') == 'Parcels' and item.get('county_slug') == slug]
-            body += render_direct_schema_findings(assessments)
+            findings = render_direct_schema_findings(assessments)
+            if findings:
+                body += '<details class="card profile-evidence"><summary>County source technical details</summary>' + findings + '</details>'
         body += f'<p><a href="/county?slug={esc(slug)}">Open full {esc(name)} County profile</a> · <a href="{esc(gac_url(standard_key, county=slug))}">Link to these county results</a></p>'
-    map_label = (f'All-field population across {len(schema["fields"])} standard fields'
-                 if standard_key == 'parcel' else 'Mandatory-field population')
+    map_label = (f'Completeness across all {len(schema["fields"])} standard fields'
+                 if standard_key == 'parcel' else 'Required fields filled')
     map_html = county_map(standard_key, data, slug)
     # Inside <details> nothing tabbable follows the map, so the skip target must
     # sit after the disclosure or Tab would loop back into the county links.
@@ -182,7 +185,7 @@ def render_county_results(config: dict, standard_key: str, county: dict | None) 
     map_content = (f'<div class="gac-county-map"><h2>Interactive Minnesota county map</h2><p>{map_label}. Select a county to open its results.</p>'
                    + map_html + percentage_legend() + '</div>')
     body += f'<details><summary>Choose another county on the map</summary>{map_content}</details>{map_end}' if county else map_content
-    body += f'<p class="subtext">Public publication: {esc(profile_time(state.get("public_published_at")))}</p>'
-    return dashboard._layout(page_title(f'MN GAC {name + " County — " if name else ""}{LABELS[standard_key]}'), body,
+    body += f'<p class="subtext">Dashboard updated: {esc(profile_time(state.get("public_published_at")))}</p>'
+    return dashboard._layout(page_title(f'Data completeness — {name + " County — " if name else ""}{LABELS[standard_key]}'), body,
                              refresh_seconds=30 if config.get('_public_mode') else 0,
                              static=bool(config.get('_public_mode')), csrf_token=str(config.get('_csrf_token') or ''))

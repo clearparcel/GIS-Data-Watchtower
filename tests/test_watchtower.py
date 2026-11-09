@@ -290,15 +290,17 @@ class DataWatchTests(unittest.TestCase):
             page = datawatch_dashboard.render_mngac(config, view="statewide")
             self.assertIn('Interactive Minnesota county map', page)
             self.assertNotIn('http-equiv="refresh"', page)
-            self.assertIn('reload for latest saved data', page_text(page))
+            self.assertIn('Reload for the latest saved results', page_text(page))
             self.assertEqual(page.count('class="mngac-county"'), 87)
             self.assertIn('All 91 fields', page)
             self.assertIn('No data', page)
             self.assertIn('OWNER_NAME', page)
             county_page = datawatch_dashboard.render_county(config, 'aitkin')
-            self.assertIn('MN GAC field completeness', county_page)
-            self.assertIn('80.00%', county_page)
-            self.assertIn('Conditional', county_page)
+            self.assertIn('Data completeness', county_page)
+            self.assertIn('/mngac?county=Aitkin&amp;view=county', county_page)
+            field_results = datawatch_dashboard.render_mngac(config, county='aitkin')
+            self.assertIn('80.00%', field_results)
+            self.assertIn('Required in some cases', field_results)
             statewide = datawatch_dashboard._statewide_snapshot(config)
             self.assertEqual(statewide['mngac']['covered_counties'], 2)
             self.assertIn('OWNER_NAME', datawatch_dashboard._mngac_csv(statewide['mngac']))
@@ -503,13 +505,13 @@ class DataWatchTests(unittest.TestCase):
             overview = datawatch_dashboard.render_dashboard(config)
             detail = datawatch_dashboard.render_source(config, 'sample')
             self.assertIn('Sample County', overview)
-            self.assertIn('Days since data changed', overview)
+            self.assertIn('Days since change detected', overview)
             self.assertIn('filterRows()', overview)
             self.assertIn('+5', overview)
             self.assertIn('Record-count history', detail)
             self.assertIn('Response-time history', detail)
             self.assertIn('<svg', detail)
-            self.assertIn('Recent reliability', detail)
+            self.assertIn('Recent observations passed', detail)
 
     def test_dashboard_v04_municipal_theme_charts_and_all_counties(self):
         import tempfile
@@ -529,19 +531,19 @@ class DataWatchTests(unittest.TestCase):
             self.assertIn('Sources taking longest to respond', overview)
             self.assertIn('Data sources by category', overview)
             text = page_text(overview)
-            for phrase in ('cloud and local source checks', 'across the cloud and local workers',
-                           'not merely last attempt'):
+            for phrase in ('Results of the last recorded checks', 'across the cloud and local workers',
+                           'provider checks run separately'):
                 self.assertIn(phrase, text)
             self.assertEqual(len(datawatch_dashboard._load_counties()), 87)
             self.assertIn('Wabasha County', counties)
             self.assertIn('Yellow Medicine County', counties)
             self.assertIn('County-direct sources', counties)
             self.assertIn('Actively checked', counties)
-            self.assertIn('Health and active monitoring path', counties)
+            self.assertIn('Check status', counties)
             self.assertIn('County-direct access', counties)
             self.assertIn('Statewide open access', counties)
-            self.assertIn('County-specific sources actively checked', counties)
-            self.assertIn('Monitoring coverage', counties)
+            self.assertIn('Counties checked directly', counties)
+            self.assertIn('Check status', counties)
             self.assertNotIn('Live data checks', counties)
             self.assertNotIn('County update info available', counties)
             self.assertIn('Wabasha County Parcels', wabasha)
@@ -561,7 +563,7 @@ class DataWatchTests(unittest.TestCase):
         lincoln = datawatch_dashboard.render_county(config, 'lincoln')
         self.assertIn('County GIS contacts', wabasha)
         self.assertIn('Official county website', wabasha)
-        self.assertIn('class="contacts-table"', wabasha)
+        self.assertIn('class="contacts-table ops-table"', wabasha)
         self.assertIn('contacts-table td:nth-child(4)::before', wabasha)
         self.assertIn('MnGeo', lincoln)
         self.assertIn('retained as the fallback', lincoln)
@@ -623,9 +625,9 @@ class DataWatchTests(unittest.TestCase):
             county = datawatch_dashboard.render_county(config, 'aitkin')
             snap = datawatch_dashboard._county_snapshot(config, 'aitkin')
             csv_text = datawatch_dashboard._snapshot_csv(snap)
-            self.assertIn('County monitoring coverage', page)
-            self.assertIn('MnGeo parcel update age', page)
-            self.assertRegex(page_text(page), r'Use Export in the page toolbar for statewide Excel, CSV,? or JSON')
+            self.assertIn('County check status', page)
+            self.assertIn('Age of parcel data listed by MnGeo', page)
+            self.assertIn('Find a county', page)
             self.assertIn('County parcel update information', county)
             self.assertIn('MnGeo acquired county data', county)
             self.assertNotIn('Last county update', county)
@@ -670,8 +672,8 @@ class DataWatchTests(unittest.TestCase):
             hist.write_text('', encoding='utf-8')
             page = datawatch_dashboard.render_dashboard({'state_file': str(state), 'history_file': str(hist), 'sources': []})
             self.assertIn('class="sidebar"', page)
-            self.assertIn('Minnesota Counties', page)
-            self.assertIn('Export', page)
+            self.assertIn('Counties', page)
+            self.assertIn('Download', page)
             self.assertIn('#10263b', page)
 
     def test_arcgis_service_discovers_parcel_layer_for_qa(self):
@@ -726,7 +728,7 @@ class DataWatchTests(unittest.TestCase):
             state.write_text(json.dumps({'generated_at': '2026-10-04T13:30:00+00:00', 'overall': 'ok', 'counts': {'ok': 0, 'warn': 0, 'error': 0}, 'active_alerts': [], 'sources': {}, 'telemetry': {'wall_ms': 1234, 'cpu_ms': 321, 'peak_python_memory_kb': 4096, 'sources_checked': 0}}), encoding='utf-8')
             hist.write_text('', encoding='utf-8')
             page = datawatch_dashboard.render_dashboard({'state_file': str(state), 'history_file': str(hist), 'sources': []})
-            self.assertIn('System diagnostics', page)
+            self.assertIn('Monitoring systems and diagnostics', page)
             self.assertIn('Memory used by Watchtower', page)
             self.assertIn('grid-template-columns:1fr', page)
             self.assertIn('mobile-nav', page)
@@ -767,12 +769,12 @@ class DataWatchTests(unittest.TestCase):
             }), encoding='utf-8')
             hist.write_text('', encoding='utf-8')
             page = datawatch_dashboard.render_dashboard({'state_file': str(state), 'history_file': str(hist), 'sources': []})
-            self.assertIn('Cloud worker', page)
-            self.assertIn('Local worker', page)
-            self.assertIn('28.0s', page)
-            self.assertIn('1.8s', page)
+            self.assertIn('Cloud monitoring', page)
+            self.assertIn('Local monitoring', page)
+            self.assertIn('28 s', page)
+            self.assertIn('1.8 s', page)
             self.assertIn('aria-label="Mobile navigation"', page)
-            self.assertIn('Excel (.xlsx)', page)
+            self.assertIn('Excel spreadsheet (.xlsx)', page)
             self.assertNotIn('0.0 MB', page)
 
     def test_dashboard_v13_uses_plain_language_and_collapses_technical_details(self):
@@ -786,20 +788,20 @@ class DataWatchTests(unittest.TestCase):
             config = {'state_file': str(state), 'history_file': str(hist), 'sources': []}
             overview = datawatch_dashboard.render_dashboard(config)
             detail = datawatch_dashboard.render_source(config, 'sample')
-            self.assertIn('Overall health', overview)
+            self.assertIn('Latest check results', overview)
             self.assertIn('Source issues', overview)
-            self.assertIn('Workers', overview)
+            self.assertIn('monitoring', overview)
             self.assertIn('id="changes"', overview)
             self.assertIn('id="alerts"', overview)
             self.assertIn('No active alerts.', overview)
-            self.assertIn('Data being watched', overview)
-            self.assertIn('Healthy', overview)
+            self.assertIn('Data sources', overview)
+            self.assertIn('Passed', overview)
             self.assertNotIn('>Actively checked</span><br><span class="muted">current reporting', overview)
-            self.assertIn('Records / change', overview)
-            self.assertIn('Recent reliability', overview)
-            self.assertIn('<details class="technical">', detail)
+            self.assertIn('Last known records / change', overview)
+            self.assertIn('Recent observations passed', overview)
+            self.assertIn('id="source-technical"', detail)
             self.assertIn('<summary>Technical details</summary>', detail)
-            self.assertIn('About this data', detail)
+            self.assertIn('Source and timing', detail)
             self.assertNotIn('>Provenance<', detail)
 
 
@@ -1359,14 +1361,13 @@ class DataWatchTests(unittest.TestCase):
         self.assertEqual(request.call_count, 1)
         self.assertEqual(report['sources']['rate']['attempts'], 1)
 
-    def test_private_lan_bind_is_allowed_without_password_but_wildcard_is_not(self):
+    def test_private_lan_bind_requires_password(self):
         import os
         from unittest.mock import patch
         with patch.dict(os.environ, {}, clear=False):
             os.environ.pop('CLEARPARCEL_WATCHTOWER_DASHBOARD_PASSWORD', None)
-            password, user = datawatch_dashboard._dashboard_auth({'public_dashboard': {'internet_exposure': False}}, '192.168.8.236')
-            self.assertIsNone(password)
-            self.assertEqual(user, 'watchtower')
+            with self.assertRaisesRegex(RuntimeError, 'DASHBOARD_PASSWORD'):
+                datawatch_dashboard._dashboard_auth({'public_dashboard': {'internet_exposure': False}}, '192.168.8.236')
             with self.assertRaisesRegex(RuntimeError, 'DASHBOARD_PASSWORD'):
                 datawatch_dashboard._dashboard_auth({'public_dashboard': {'internet_exposure': False}}, '0.0.0.0')
 
@@ -1503,12 +1504,12 @@ class DataWatchTests(unittest.TestCase):
         self.assertIsNone(datawatch_dashboard._safe_url('data:text/html,x'))
         self.assertIsNone(datawatch_dashboard._safe_url('//example.com/x'))
 
-    def test_nonloopback_auth_policy_allows_private_lan_but_blocks_wildcard_without_password(self):
+    def test_loopback_auth_policy_preserves_local_access(self):
         import os
         from unittest.mock import patch
         with patch.dict(os.environ, {}, clear=False):
             os.environ.pop('CLEARPARCEL_WATCHTOWER_DASHBOARD_PASSWORD', None)
-            self.assertEqual(datawatch_dashboard._dashboard_auth({'public_dashboard': {'internet_exposure': False}}, '192.168.8.236'), (None, 'watchtower'))
+            self.assertEqual(datawatch_dashboard._dashboard_auth({'public_dashboard': {'internet_exposure': False}}, '127.0.0.1'), (None, 'watchtower'))
             with self.assertRaisesRegex(RuntimeError, 'requires CLEARPARCEL_WATCHTOWER_DASHBOARD_PASSWORD'):
                 datawatch_dashboard._dashboard_auth({'public_dashboard': {'internet_exposure': False}}, '0.0.0.0')
 

@@ -37,6 +37,11 @@ class SupplyChainTests(unittest.TestCase):
         self.assertIn("--constraint constraints.txt", dockerfile)
         self.assertIn("pip uninstall -y pip setuptools", dockerfile)
 
+    def test_container_refreshes_the_zlib_runtime_package(self):
+        dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
+        self.assertIn("apt-get -o Acquire::Retries=0 update", dockerfile)
+        self.assertRegex(dockerfile, r"install -y --no-install-recommends[^\n]*\bzlib1g\b")
+
     def test_build_inputs_exclude_private_configuration_and_attachments(self):
         # Audit WT31-10: a local docker build copies only the public example.
         dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
