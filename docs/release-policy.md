@@ -1,8 +1,8 @@
 # Versioning and release policy
 
 The public and internal dashboards, county editor, regular cloud worker and
-public publisher run **v0.5.1**, deployed November 8. See the
-[release record](release-v0.5.1.md) for scope and validation. Rollback targets
+public publisher run **v0.5.2**, deployed November 9. See the
+[release record](release-v0.5.2.md) for scope and validation. Rollback targets
 are recorded in the private deployment record. Older release records are in the
 [archive](README.md#historical-engineering-and-release-records). Daily cloud
 provider polling was separately approved and activated on October 10;
