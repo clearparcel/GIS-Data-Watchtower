@@ -1,6 +1,6 @@
 # ClearParcel GIS Data Watchtower
 
-**Explore the availability, freshness, and field population of Minnesota public GIS data.**
+**Find Minnesota public GIS data, see when sources were checked, and explore data completeness.**
 
 [![CI](https://github.com/clearparcel/GIS-Data-Watchtower/actions/workflows/watchtower-ci.yml/badge.svg)](https://github.com/clearparcel/GIS-Data-Watchtower/actions/workflows/watchtower-ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -8,9 +8,16 @@
 
 **[Explore the live public dashboard](https://gis-watchtower.clear-parcel.com/)** · **[User guide](docs/user-guide.md)** · **[Documentation index](docs/README.md)**
 
-The current production release is **v0.3.12**, deployed November 3, 2026 to
-the public and private dashboards and the Cloud Run jobs, including the weekly digest.
-See [STATUS.md](STATUS.md) and the [release record](docs/release-v0.3.12.md).
+**Source version: v0.5.2.** See the [release record](docs/release-v0.5.2.md).
+
+The public dashboard, internal dashboard, county editor, regular cloud worker
+and public publisher run **v0.5.2**, deployed November 9, 2026. See the
+[release record](docs/release-v0.5.2.md).
+The release includes [public destination validation](docs/county-source-monitoring.md#public-destination-checks-v051)
+for editor-enrolled source checks and the [repository review corrections](docs/review-remediation-v0.5.1.md).
+The [internal UI guide](docs/internal-dashboard-ui.md) describes attention lists, saved changes, reading-safe updates, terms filters and scoped downloads.
+The release includes the review fixes for paused refresh and record-count
+observation dates. See [STATUS.md](STATUS.md) for each surface’s release state.
 Starting with v0.3.10, each deployed version is tagged and published as a
 GitHub Release; v0.3.0 through v0.3.9 are recorded but not tagged (see the
 [release policy](docs/release-policy.md#source-downloadable-release-and-deployment-are-different-things)). Alert
@@ -26,9 +33,14 @@ The [authority reconciliation runbook](docs/monitoring-authority-reconciliation.
 checks supplied monitoring-approval evidence without activating sources.
 The [isolated restore rehearsal](docs/isolated-restore-rehearsal.md) exercises
 synthetic aggregate recovery and concurrent publishing in temporary local storage.
-The [county directory contract and preview](docs/county-directory-contract.md)
-describes how to exercise GIS contact editing, public publication, private
-attachment quarantine, and county profile PDFs against local storage.
+The [county directory contract](docs/county-directory-contract.md) describes
+GIS contact editing, public publication, private attachment quarantine, and
+county profile PDFs. The [v0.4.0 release record](docs/release-v0.4.0.md) covers
+the public dashboard and the protected production editor.
+The [county editor guide](docs/county-editor-guide.md) describes the
+section navigation, change review, save recovery and private-file workflow.
+The [county source enrollment](docs/county-source-monitoring.md) connects
+reviewed direct links to bounded regular checks and their public results.
 
 ![Live Watchtower overview with source health, county coverage, and a Minnesota county map](docs/images/watchtower-overview.png)
 
@@ -44,9 +56,9 @@ It monitors selected public ArcGIS, WMS/WFS, and other supported GIS services, r
 
 | Public view | What it helps answer |
 | --- | --- |
-| **Overview** | How many service entries are monitored? Which had warnings? How many Minnesota counties have parcel observations? |
-| **Minnesota Counties** | What access, statewide availability, county contacts, and monitoring evidence are recorded for a county? |
-| **MN GAC** | How frequently are standard parcel, address-point, and road-centerline fields populated in available statewide data? |
+| **Overview** | Which sources need attention? Which counties have parcel observations? When were sources checked and the dashboard updated? |
+| **Counties** | What access, statewide availability, county contacts, and monitoring evidence are recorded for a county? |
+| **Data completeness** | How often do standard parcel, address, and road fields contain values in available statewide data? |
 | **Data Sources** | Which public GIS sources are checked, and what were their latest recorded statuses and observation times? |
 | **Exports** | How can I reuse published summary evidence as JSON, CSV, or Excel without downloading private operational data or raw parcel-owner records? |
 
@@ -63,8 +75,8 @@ See the [illustrated public user guide](docs/user-guide.md) for step-by-step ins
 
 1. Open the **[public dashboard](https://gis-watchtower.clear-parcel.com/)**.
 2. On **Overview**, select a county on the map or with **Find a county**. The adjacent panel provides recorded monitoring and field-population details.
-3. Select **Open county profile** for source, contact, and access evidence, or **Explore county MN GAC fields** for field-by-field results.
-4. Use **MN GAC** to switch between **Parcels**, **Address Points**, and **Road Centerlines** and compare counties.
+3. Select **Open county profile** for source, contact, and access evidence, or **Explore county data completeness** for field-by-field results.
+4. Use **Data completeness** to switch between **Parcels**, **Address Points**, and **Road Centerlines** and compare counties.
 5. Use **Export** or page-specific export controls to obtain a dated, reusable summary.
 
 ![Live public dashboard with Olmsted County selected and separate monitoring and field-population evidence](docs/images/watchtower-county.png)
@@ -110,20 +122,15 @@ Developers can use the [documentation index](docs/README.md), [contribution guid
 
 ## Releases and project status
 
-The current production release is **v0.3.7** on the public and private
-dashboards (deployed October 23, 2026); the provider and public-publisher jobs
-remain on **v0.3.6** (deployed October 20). Each component's current release
-record lists its images, revisions and rollback targets.
-The footer displays only the version number; the About section explains
-the open-source ClearParcel mission, disclaimer, and GitHub link.
+The opening release summary and [release policy](docs/release-policy.md) identify
+current deployment and downloadable release state. The footer displays only the
+version number; build provenance stays in release records.
 
-- **[v0.3.7 dashboard release](docs/release-v0.3.7.md)** — current dashboard images, revisions, and rollback to v0.3.6 revisions
-- **[v0.3.6 coordinated release](docs/release-v0.3.6.md)** — current provider and publisher job images
-- **[Validated operational status](STATUS.md)** — current monitoring and remaining gates
-- **[GitHub releases](https://github.com/clearparcel/GIS-Data-Watchtower/releases)** — versioned summaries; the latest published there is v0.2.2, so the release records above are authoritative for v0.3.x
-- **[Documentation index](docs/README.md)** — user guides, methodology, engineering references and dated history
-- **[Original v0.2.0 release](docs/archive/release-v0.2.0.md)** and
-  **[October 11 correction](docs/archive/release-county-percentage-fix-2026-10-11.md)** — retained history
+- **[Validated operational status](STATUS.md)** — monitoring and remaining gates
+- **[GitHub releases](https://github.com/clearparcel/GIS-Data-Watchtower/releases)** — downloadable versions and release summaries
+- **[Documentation index](docs/README.md)** — current guidance and dated history
+
+Historical notes below describe their dated releases, not current traffic.
 
 Earlier merged PR #69 static-output/provider retry corrections also ship in
 the v0.2.2 application image. The coordinated v0.2.2 release updated both

@@ -5,6 +5,7 @@ import csv
 import io
 
 from .parcel_access import INVENTORY_CATEGORIES
+from .county_directory_view import published_access_summary
 from .public_values import safe_public_url, spreadsheet_cell, spreadsheet_text
 
 SUMMARY_FIELDS = ('county', 'county_slug', 'county_fips', 'active', 'paths', 'health', 'reporting',
@@ -13,7 +14,8 @@ SUMMARY_FIELDS = ('county', 'county_slug', 'county_fips', 'active', 'paths', 'he
     'monitoring_decision', 'research_complete', 'review_date', 'evidence_links', 'comments',
     'direct_gac_schema_status', 'direct_gac_schema_checked_at', 'direct_gac_missing_mandatory_names',
     'direct_gac_source_ids', 'direct_gac_standard_names', 'direct_gac_mandatory_names',
-    'direct_gac_reason', 'direct_gac_evidence_links')
+    'direct_gac_reason', 'direct_gac_evidence_links', 'access_classification_basis',
+    'published_directory_revision', 'published_parcel_access', 'published_road_access', 'published_address_access')
 SOURCE_FIELDS = ('county', 'county_slug', 'county_fips', 'category', 'availability', 'review_status',
     'inventory_id', 'monitored_source_id', 'name', 'authority', 'dataset_type', 'layer_id',
     'approved_public_links', 'geometry_type', 'feature_count', 'feature_count_basis',
@@ -37,7 +39,14 @@ def county_profile_summary(profile: dict) -> dict:
     """Flatten only the documented profile summary fields."""
     county, monitoring, access, research = (profile.get(k) or {} for k in ('county', 'monitoring', 'access', 'research'))
     audits = profile.get('direct_gac_schema') or []
-    return {'county': county.get('name'), 'county_slug': county.get('slug'), 'county_fips': county.get('fips'),
+    directory = profile.get('county_directory')
+    return {'access_classification_basis': 'packaged_research',
+        'published_directory_revision': directory['public_revision'] if directory is not None else None,
+        **{label: published_access_summary(directory, key) if directory is not None else None
+           for label, key in (('published_parcel_access', 'parcel_polygons'),
+                              ('published_road_access', 'road_centerlines'),
+                              ('published_address_access', 'address_points'))},
+        'county': county.get('name'), 'county_slug': county.get('slug'), 'county_fips': county.get('fips'),
         **{k: monitoring.get(k) for k in SUMMARY_FIELDS[3:11]},
         'paths': '; '.join(monitoring.get('paths') or []),
         **{k: access.get(k) for k in SUMMARY_FIELDS[11:17]},

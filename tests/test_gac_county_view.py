@@ -38,7 +38,7 @@ class GACCountyViewTests(unittest.TestCase):
         self.assertIn('Statewide overview', page)
         self.assertIn('View county results', page)
         self.assertLess(page.index('Choose county'), page.index('Interactive Minnesota county map'))
-        self.assertNotIn('Statewide MN GAC field completeness', page)
+        self.assertNotIn('Statewide data completeness', page)
         links = re.findall(r'<a class="gac-map-link"[^>]*href="([^"]+)"', page)
         self.assertEqual(len(links), 87)
         self.assertTrue(all('view=county' in link and 'county=' in link for link in links))
@@ -132,7 +132,7 @@ class GACCountyViewTests(unittest.TestCase):
             page = render_mngac({'_public_mode': True}, 'parcel', county='douglas')
         self.assertIn('23.45%', page)
         self.assertIn('seven mandatory fields', page)
-        self.assertIn('All-field population', page)
+        self.assertIn('Completeness across all standard fields', page)
 
 if __name__ == '__main__':
     unittest.main()

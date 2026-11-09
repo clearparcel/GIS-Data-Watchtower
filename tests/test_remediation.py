@@ -207,7 +207,7 @@ class HybridReceiptTests(unittest.TestCase):
 
 
 class DashboardInteractionTests(unittest.TestCase):
-    def test_public_home_is_lazy_and_small_with_all_three_graphics(self):
+    def test_public_home_is_lazy_and_small_with_diagnostics_on_standards_page(self):
         from clearparcel.datawatch.public_dashboard import render_public_dashboard
         state, _ = SummaryTests().fixture()
         with patch('clearparcel.datawatch.public_dashboard._dashboard_state', return_value=state):
@@ -216,8 +216,12 @@ class DashboardInteractionTests(unittest.TestCase):
         self.assertNotIn('<template data-profile=', page)
         self.assertLess(len(page.encode()), 250 * 1024)
         self.assertIn('/api/county-profile?', page)
+        from clearparcel.datawatch.dashboard_summary import render_diagnostics, summary_for
+        diagnostics = render_diagnostics(summary_for({}, state))
         for label in ('Parcel monitoring paths', 'Three-standard comparison', 'Field-gap standard'):
-            self.assertIn(label, page)
+            self.assertNotIn(label, page)
+            self.assertIn(label, diagnostics)
+        self.assertIn('compare county data completeness', page)
 
     def test_refresh_script_preserves_manual_pause_and_publication_only_updates(self):
         from clearparcel.datawatch.dashboard_templates import _refresh_script

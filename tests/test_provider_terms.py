@@ -275,7 +275,7 @@ class PrivateWiringTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             (root / "store").mkdir()
-            (root / "store" / "aggregate-state.json").write_text(json.dumps({"sources": {}}), encoding="utf-8")
+            (root / "store" / "aggregate-state.json").write_text(json.dumps({"schema_version": 2, "generated_at": NOW.isoformat(), "sources": {}, "workers": {}, "counts": {}}), encoding="utf-8")
             registry = root / "registry.json"
             registry.write_text(json.dumps({"sources": []}), encoding="utf-8")
             env = {"WATCHTOWER_CONFIG": str(registry)}

@@ -277,7 +277,7 @@ class CountyAndTableTests(unittest.TestCase):
             "id": "mn-wabasha-parcels", "county_slug": "wabasha", "category": "Parcels", "status": "error",
             "checked_at": old, "last_report_at": old}}}
         page = render_counties({"_render_state": state, "state_file": "unused.json"})
-        self.assertIn("1 of these is overdue for a new check.", page)
+        self.assertIn("Checks overdue: 1.", page)
         self.assertNotIn("0 of these are overdue", page)
 
     def test_nested_tables_do_not_change_their_parents_header_scope(self):

@@ -12,6 +12,8 @@ so evidence handling can never mask or change the provider run's outcome.
 """
 from __future__ import annotations
 
+from .timestamps import parse_utc as _time
+
 from datetime import datetime, timedelta, timezone
 import json
 import os
@@ -39,16 +41,6 @@ class ReceiptError(ValueError):
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-
-
-def _time(value):
-    if not isinstance(value, str):
-        return None
-    try:
-        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
-    except ValueError:
-        return None
-    return parsed.astimezone(timezone.utc) if parsed.tzinfo else None
 
 
 def _plausible(row, not_after) -> tuple:

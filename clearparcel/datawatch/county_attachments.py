@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import datetime as dt
 import hashlib
+import io
 import json
 import re
 from pathlib import Path
@@ -28,7 +29,7 @@ def _key(fips, attachment_id):
 
 
 def _read(path, fips, attachment_id, *, with_data):
-    with path.open("rb") as stream:
+    with (io.BytesIO(path) if isinstance(path, bytes) else path.open("rb")) as stream:
         length = int.from_bytes(stream.read(4), "big")
         if not 0 < length <= _MAX_HEADER:
             raise ValueError("invalid county attachment metadata")
@@ -116,12 +117,11 @@ class CountyAttachments:
         return meta
 
     def info(self, fips, attachment_id):
-        with TemporaryDirectory() as scratch:
-            path = Path(scratch) / "attachment.bin"
-            if not self._storage.download(_key(fips, attachment_id), path):
-                return None
-            meta, _ = _read(path, fips, attachment_id, with_data=False)
-            return meta
+        prefix = self._storage.read_prefix(_key(fips, attachment_id), 4 + _MAX_HEADER)
+        if prefix is None:
+            return None
+        meta, _ = _read(prefix, fips, attachment_id, with_data=False)
+        return meta
 
     def validate_refs(self, fips, refs):
         for attachment_id, kind, event in refs:

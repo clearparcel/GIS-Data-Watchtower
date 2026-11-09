@@ -92,11 +92,11 @@ class HistoryIdentityTests(unittest.TestCase):
         # feed: prior comparable count is 101 (not feed-extra's 202), 100% reliable.
         row = page.split('data-name="feed"', 1)[1].split("</tr>", 1)[0]
         self.assertIn(">+2<", row)
-        self.assertIn("100.0%", row)
+        self.assertIn("100%", row)
         self.assertIn("3 consecutive", row)
         extra = page.split('data-name="feed extra"', 1)[1].split("</tr>", 1)[0]
         self.assertIn(">+2<", extra)
-        self.assertIn(">0.0%<", extra)
+        self.assertIn(">0%<", extra)
 
     def test_source_page_history_is_exact(self):
         config = {**self.config, "state_file": str(self._state()), "sources": []}
@@ -105,7 +105,7 @@ class HistoryIdentityTests(unittest.TestCase):
             self.assertNotIn(other, page)
         for own in (">100<", ">101<", ">102<"):
             self.assertIn(own, page)
-        self.assertIn(">100.0%", page)
+        self.assertIn(">100%", page)
 
     def test_large_history_render_is_one_pass(self):
         sources = {f"src-{i:02}": _src("ok", i) for i in range(33)}

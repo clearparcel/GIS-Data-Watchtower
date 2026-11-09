@@ -1,9 +1,9 @@
 # Versioning and release policy
 
-The current recorded production release is **v0.3.12**, deployed November 3
-to both dashboards and all jobs (see the [release record](release-v0.3.12.md)).
-Rollback targets are the v0.3.11 dashboard revisions and the v0.3.11 job image,
-recorded in the private deployment record. Older release records are in the
+The public and internal dashboards, county editor, regular cloud worker and
+public publisher run **v0.5.2**, deployed November 9. See the
+[release record](release-v0.5.2.md) for scope and validation. Rollback targets
+are recorded in the private deployment record. Older release records are in the
 [archive](README.md#historical-engineering-and-release-records). Daily cloud
 provider polling was separately approved and activated on October 10;
 application publication does not reschedule it. Future runtime changes
@@ -58,7 +58,7 @@ records that predate this rule are accepted as public as written
 ### Source, downloadable release and deployment are different things
 
 - **Supported source** is `main`; its version is `[project].version` in `pyproject.toml`.
-- **Latest downloadable release** is the newest GitHub Release, v0.3.12.
+- **Latest downloadable release** is the newest GitHub Release, v0.5.1.
   Versions v0.3.0 through v0.3.9 were recorded and deployed from `main` without
   a Git tag or GitHub Release, so they do not appear on the Releases page.
 - **Operational deployment** is what the dated `docs/release-vX.Y.Z.md` records
@@ -77,9 +77,9 @@ Public page footers display **only the semantic application version** (for examp
 
 The source commit and build environment **remain inside immutable `build_info.json` and release/provenance records**, and may continue to inform optional analytics. They are intentionally not shown in the public footer. Container builds still require `WATCHTOWER_BUILD_REVISION` (full commit SHA) and `WATCHTOWER_BUILD_ENVIRONMENT` (`preview` or `production`). The production source package and visible version must agree. Build only from a clean, committed checkout; do not infer revision identity from the runtime Git state.
 
-**The public site reports v0.3.12 as of November 3, 2026.** The next coordinated
-application-code release must be strictly newer. The
-[release record](release-v0.3.12.md) identifies the deployed artifact and
+**The coordinated application surfaces use v0.5.1 as of November 8, 2026.** The next
+application-code release must advance beyond v0.5.1. The
+[v0.5.1 release record](release-v0.5.1.md) identifies the deployed source and
 verification limits. Always recheck live identity before promotion.
 
 ## Security fixes

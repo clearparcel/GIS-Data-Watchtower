@@ -15,7 +15,8 @@ identity and object details stay in private evidence.
 | Publisher replay from the restored aggregate | Reproduces the live public snapshot exactly (except publish time) |
 | Point-in-time recovery | Soft delete held the previous 7 daily generations of the aggregate, state and history |
 
-Protection today is the storage provider's 7-day soft delete in one region.
+Historical baseline on October 20, 2026: protection was the storage provider's
+7-day soft delete in one region. The November 3 update below supersedes this baseline.
 There is no object versioning, retention policy or independent copy, so a loss
 discovered after 7 days could not be recovered from storage. The private
 registry keeps every Secret Manager version.

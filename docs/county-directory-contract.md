@@ -6,6 +6,11 @@ with HTML, JSON, CSV, XLSX, and PDF output. See the
 [hosted staging checklist](county-directory-staging.md) for service
 bindings, verified migration, and rollout acceptance.
 
+The prepared **County information editor** UI adds section navigation, public
+and private change review, field validation hints, protected discard/undo and
+clear save/publication recovery. See the [editor guide](county-editor-guide.md).
+The save, authentication, publication and file-check contracts below still apply.
+
 ## County identity and public content
 
 Resolve five-digit county FIPS, slug, and name from the existing county profile
@@ -22,8 +27,9 @@ all 87 counties alphabetically even when they have no contacts.
 
 Each access classification is `open`, `fee`, or `unknown`. Open requires at
 least one unique method from `mngeo_open`, `direct_rest`, `direct_download`,
-and `other`. A method carries an evidence URL, date, and scope. Other also
-requires a description. Non-open selections publish an empty methods list.
+and `other`. A method carries an evidence URL, date, and scope, plus an optional
+`update_frequency` description for direct data. Other also requires a description.
+Non-open selections publish an empty methods list.
 Restrictions use `unreviewed`, `reviewed_none`, or `restricted`. Restricted
 requires public details and supports a source URL. Reviewed states can carry a
 review date. Render reviewed-none as “No use restrictions recorded; confirm
@@ -35,8 +41,19 @@ standards, and evidence in the monitoring/research snapshot. Parcel migration
 must preserve the evidence basis and county-direct scope, including cases
 where a county fee and a separate open MnGeo product coexist. Record uncertain
 items in an import exceptions report. The editor owns its directory fields.
-Packaged research and monitoring retain their existing ownership, including
-permission, terms holds, polling cadence, and worker provenance.
+Packaged research retains its terms holds and county stop decisions. The private
+editor can separately enroll eligible direct methods in regular checks.
+Enrollment requires an explicit operator selection, open data, reviewed
+restrictions, and a dated review of policy information. A public ArcGIS REST
+layer does not require affirmative county permission when policy is silent;
+explicit county stop requests and actual terms conflicts remain holds. Direct
+file-update checks retain the affirmative permission requirement, with an
+optional response date. Terms links are optional. Monitoring settings and
+permission evidence are excluded from the public directory. The optional update
+frequency is public descriptive metadata and does not set Watchtower's polling
+cadence; worker provenance retains its existing ownership.
+See [county source monitoring](county-source-monitoring.md) for the enrollment
+registry, save revisions, bounded adapters and worker access contract.
 
 ## Save and publication
 
@@ -50,6 +67,12 @@ permission, terms holds, polling cadence, and worker provenance.
   write. The same object holds the draft, receipt, and durable desired public
   revision and fingerprint. A private-only change advances only the private
   revision and preserves any pending public intent.
+- The editor supplies a `before_save` hook after validation, replay and revision
+  checks, before the private compare-and-swap. This hook prepares only monitoring
+  removals; failure prevents the new private revision. Additions synchronize
+  after the durable save. Retried receipts skip the hook and reconcile the latest
+  saved draft instead. A conflicting save can conservatively pause a changed
+  check until the winning saved revision reconciles the registry.
 - Store each private county record separately. The sanitized public directory
   uses a separate object from both private storage and the routine monitoring
   aggregate. Each public county entry adds a public revision and publication
@@ -140,3 +163,54 @@ exercises authenticated attachment reads, public HTML and exports, long
 policy pagination, clickable links, and searchable standards tables.
 Production storage and scanner permissions, rollout, and acceptance remain
 separate.
+
+## Public access display precedence
+
+Confirmed directory settings lead the county page and supply the county list
+and map/overview profile. A county without a published directory retains the
+packaged research fallback. The parcel summary names the selected methods, so
+MnGeo-only availability is never presented as county-direct REST access.
+
+The old parcel-access card is retained under a collapsed Packaged parcel-access
+research section when a directory exists. Inventory findings and monitoring
+permissions remain research/observation data, with a separate heading and
+explanation. Public notes are labeled Administrator note and preserved verbatim.
+
+JSON keeps the existing research fields for compatibility and adds
+`access_field_basis` to identify them. CSV and Excel summaries add published
+parcel, road, and address access plus the confirmed directory revision; existing
+classification columns are identified as packaged research. PDF sections
+likewise distinguish published access from packaged research. None of these
+presentation changes writes a county record or enables monitoring.
+
+## County PDF summary
+
+The county PDF is a fixed three-page summary with the Watchtower logo/name.
+Page one shows up to three contacts, selected access methods, and a link to all
+contacts and evidence. Page two summarizes policy, restrictions, public notes,
+and monitoring. Page three summarizes statewide MN GAC observations, scan scope,
+and selected mandatory-field gaps. Long content is visibly shortened and linked
+to the full profile. Private records and detailed field tables are excluded.
+JSON, CSV and Excel remain available for full public detail.
+
+## Save audit records and cache behavior (v0.5.1)
+
+Each private county save atomically appends an `audit_events` entry in the same
+compare-and-swap document as the edit. It records the verified IAP subject (or
+authenticated local username), server UTC time, county FIPS, request ID, prior
+and new revision, and operation. It contains no tokens, draft text or attachments
+and is excluded from public projection. Replaying a saved request creates no
+additional event. Direct trusted storage callers are identified as
+`operator:direct-storage` unless they supply an operator identity.
+
+Authorized operators retrieve events from the private county record; public
+endpoints never expose them. Saves retain the previous 365 days of events and
+fail closed above 10,000 retained events until an operator archives them under
+the private retention policy. Existing pre-v0.5.1 saves have no retroactive actor
+attribution. Storage object retention remains a separate deployment setting.
+
+The editor caches list summaries for 30 seconds, invalidates its cache after a
+successful save, and rereads authoritative records for edits and CAS checks.
+Other instances converge within 30 seconds. Attachment status and association
+checks read at most 2,052 bytes bound to one storage generation; downloads and
+scans still verify the complete bytes and their content hash.

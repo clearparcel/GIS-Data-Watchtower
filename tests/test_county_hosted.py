@@ -15,7 +15,7 @@ from clearparcel.datawatch.county_admin import create_county_admin_server
 from clearparcel.datawatch.county_admin_hosted import IapAdminAuth, IapVerifier, hosted_storage_settings
 from clearparcel.datawatch.county_directory_store import CountyDirectoryStore
 from clearparcel.datawatch.county_scanner import ClamdScanner
-from clearparcel.datawatch.county_scanner_service import RunScannerClient, create_scanner_server
+from clearparcel.datawatch.county_scanner_service import RunScannerClient, create_scanner_server, wait_for_scanner, serve_county_scanner
 from clearparcel.datawatch.storage import LocalStorage
 
 
@@ -65,6 +65,7 @@ class HostedAuthTests(unittest.TestCase):
                     iap = {**host, "X-Goog-IAP-JWT-Assertion": "verified-fixture"}
                     status, body = request("GET", "/api/counties", iap)
                     self.assertEqual(status, 200)
+                    self.assertEqual(body["monitoring_profiles"], ["cloud"])
                     mutation = {**iap, "Content-Type": "application/json", "X-Watchtower-CSRF": body["csrf_token"]}
                     path = "/api/counties/aitkin"
                     payload = json.dumps({"draft": {"fips": "27001", "policy": {"text": "Synthetic public"}},
@@ -201,3 +202,46 @@ class ClamdScannerTests(unittest.TestCase):
             finally:
                 server.shutdown()
                 worker.join(3)
+
+
+class ScannerStartupTests(unittest.TestCase):
+    def test_delayed_engine_is_retried_before_opening_ingress(self):
+        from unittest.mock import Mock
+        ticks = [0.0]
+        attempts = Mock(side_effect=[OSError("not listening"), ValueError("stale"), True])
+        wait_for_scanner(attempts, timeout=5, clock=lambda: ticks[0],
+                         sleep=lambda seconds: ticks.__setitem__(0, ticks[0] + seconds))
+        self.assertEqual(attempts.call_count, 3)
+        self.assertEqual(ticks[0], 2.0)
+        attempts.assert_called_with(b"")
+
+    def test_unavailable_or_non_clean_engine_has_bounded_failure(self):
+        for result in (False, None, "clean", OSError("unavailable")):
+            ticks = [0.0]
+            def scan(_):
+                if isinstance(result, Exception):
+                    raise result
+                return result
+            with self.assertRaises(OSError):
+                wait_for_scanner(scan, timeout=3, clock=lambda: ticks[0],
+                                 sleep=lambda seconds: ticks.__setitem__(0, ticks[0] + seconds))
+            self.assertEqual(ticks[0], 3.0)
+
+    def test_server_is_never_created_when_startup_fails(self):
+        with patch.dict("os.environ", {"K_SERVICE": "synthetic", "PORT": "8080"}), \
+             patch("clearparcel.datawatch.county_scanner_service.wait_for_scanner", side_effect=OSError), \
+             patch("clearparcel.datawatch.county_scanner_service.create_scanner_server") as create:
+            with self.assertRaises(OSError):
+                serve_county_scanner()
+            create.assert_not_called()
+
+    @unittest.skipUnless(importlib.util.find_spec("requests"), "hosted transport dependency required")
+    def test_transport_allows_startup_and_still_bounds_response(self):
+        from unittest.mock import MagicMock
+        session = MagicMock()
+        session.post.return_value.__enter__.return_value.status_code = 200
+        session.post.return_value.__enter__.return_value.iter_content.return_value = [b"clean"]
+        with patch("requests.Session") as factory:
+            factory.return_value.__enter__.return_value = session
+            self.assertEqual(RunScannerClient._post("https://synthetic.run.app/scan", {}, b"fixture"), (200, b"clean"))
+        self.assertEqual(session.post.call_args.kwargs["timeout"], (3, 120))

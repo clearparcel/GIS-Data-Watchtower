@@ -76,6 +76,10 @@ class IapAdminAuth:
         self._verify = IapVerifier() if verify is None else verify
 
     def authorize(self, assertion):
+        identity = self.authorize_identity(assertion)
+        return identity[0] if identity is not None else None
+
+    def authorize_identity(self, assertion):
         if not isinstance(assertion, str) or not 0 < len(assertion) <= 8192:
             return None
         try:
@@ -85,8 +89,9 @@ class IapAdminAuth:
         subject = claims.get("sub")
         if claims.get("iss") != _ISSUER or not isinstance(subject, str) or subject not in self._subjects:
             return None
-        return hmac.new(self._secret, ("watchtower-county-admin-v1\0" + self.origin + "\0" + subject).encode(),
-                        hashlib.sha256).hexdigest()
+        csrf = hmac.new(self._secret, ("watchtower-county-admin-v1\0" + self.origin + "\0" + subject).encode(),
+                       hashlib.sha256).hexdigest()
+        return csrf, "iap:" + subject
 
 
 def hosted_storage_settings(environ):
@@ -132,6 +137,7 @@ def serve_hosted_county_admin():
     scanner = RunScannerClient(env.get("WATCHTOWER_COUNTY_SCANNER_URL", ""))
     with create_county_admin_server(
         store, port=int(env.get("PORT", "8080")), hosted_auth=auth, attachments=CountyAttachments(private),
+        monitoring_profiles=tuple(item.strip() for item in env.get("WATCHTOWER_COUNTY_MONITORING_PROFILES", "cloud").split(",")),
         scanner=scanner, backend_errors=(GoogleAPICallError, GoogleAuthError),
     ) as server:
         print("Watchtower hosted county administration ready")

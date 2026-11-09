@@ -5,6 +5,7 @@ import datetime as dt
 import hmac
 import ipaddress
 import json
+import math
 import os
 import secrets
 import sys
@@ -117,25 +118,46 @@ def _history_stats(entries: list[dict]) -> dict:
     }
 
 
-def _svg_sparkline(values: list[float | int | None], *, width: int = 300, height: int = 72) -> str:
-    clean = [(i, float(v)) for i, v in enumerate(values) if isinstance(v, (int, float))]
+def _svg_sparkline(values: list[float | int | None], *, width: int = 300, height: int = 72,
+                   label: str = "Trend across retained observations", unit: str = "") -> str:
+    clean = []
+    for i, value in enumerate(values):
+        if type(value) not in (int, float):
+            continue
+        try:
+            number = float(value)
+        except OverflowError:
+            continue
+        if math.isfinite(number):
+            clean.append((i, number))
     if len(clean) < 2:
         return '<div class="muted">Not enough history yet</div>'
     vals = [v for _, v in clean]
     lo, hi = min(vals), max(vals)
     if hi == lo:
-        return f'<div class="flat-note">No change across {len(clean)} retained observations <strong>({_esc(round(lo,2))})</strong>.</div>'
+        return f'<div class="flat-note">No change across {len(clean)} retained observations <strong>({_esc(round(lo,2))}{" " + _esc(unit) if unit else ""})</strong>.</div>'
     span = hi - lo
     denom = max(1, len(values) - 1)
-    points = " ".join(
-        f"{8 + (i / denom) * (width - 16):.1f},{height - 8 - ((v - lo) / span) * (height - 16):.1f}"
-        for i, v in clean
-    )
-    return (
-        f'<svg class="spark" viewBox="0 0 {width} {height}" role="img" aria-label="Trend across retained observations">'
-        f'<polyline points="{points}" fill="none" stroke="currentColor" stroke-width="2"/>'
-        f'</svg><div class="chart-range">{_esc(round(lo,2))} – {_esc(round(hi,2))}</div>'
-    )
+    segments, segment, previous_index = [], [], -2
+    for i, v in clean:
+        if i != previous_index + 1 and segment:
+            segments.append(segment)
+            segment = []
+        segment.append((8 + (i / denom) * (width - 16), height - 8 - ((v - lo) / span) * (height - 16)))
+        previous_index = i
+    if segment:
+        segments.append(segment)
+    shapes = []
+    for segment in segments:
+        if len(segment) == 1:
+            x, y = segment[0]
+            shapes.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="2" fill="currentColor"/>')
+        else:
+            points = " ".join(f"{x:.1f},{y:.1f}" for x, y in segment)
+            shapes.append(f'<polyline points="{points}" fill="none" stroke="currentColor" stroke-width="2"/>')
+    return (f'<svg class="spark" viewBox="0 0 {width} {height}" role="img" aria-label="{_esc(label)}">'
+            + ''.join(shapes) + f'</svg><div class="chart-range">{_esc(round(lo,2))} – {_esc(round(hi,2))}{" " + _esc(unit) if unit else ""}</div>')
+
 
 
 def _source_config_map(config: dict) -> dict:
@@ -266,6 +288,7 @@ def _mngac_county_record(state: dict, county_name: str) -> tuple[dict | None, di
 
 
 def _mngac_field_rows(county_stats: dict) -> str:
+    from .dashboard_copy import requirement_label, technical_field_details
     schema = _load_mngac_schema()
     rows = []
     field_stats = county_stats.get("fields") or {}
@@ -280,10 +303,11 @@ def _mngac_field_rows(county_stats: dict) -> str:
         rows.append(
             f'<tr data-name="{_esc((str(spec.get("label") or "") + " " + field).lower())}" '
             f'data-inclusion="{_esc(spec.get("inclusion") or "")}">'
-            f'<td><strong>{_esc(spec.get("label"))}</strong><br><code>{_esc(field)}</code></td>'
-            f'<td>{_esc(spec.get("section_name"))}</td><td>{_esc(spec.get("inclusion"))}</td>'
-            f'<td>{"Present" if present is True else "Missing" if present is False else "Unknown"}</td>'
-            f'<td>{"Scanned" if scanned is True else "Not scanned" if scanned is False else "No data"}</td>'
+            f'<td><strong>{_esc(spec.get("label"))}</strong>'
+            + technical_field_details(field, spec.get("section_name"),
+                "Present" if present is True else "Missing" if present is False else "Unknown",
+                "Scanned" if scanned is True else "Not scanned" if scanned is False else "No data")
+            + f'</td><td>{_esc(requirement_label(spec.get("inclusion") or ""))}</td>'
             f'<td>{_esc(f"{populated:,}" if isinstance(populated, int) else "—")}</td>'
             f'<td>{_esc(f"{total:,}" if isinstance(total, int) else "—")}</td>'
             f'<td><strong>{_esc(f"{pct:.2f}%" if isinstance(pct, (int,float)) else "—")}</strong></td></tr>'
@@ -371,9 +395,11 @@ def _load_county_contacts() -> dict:
 
 
 def _county_profiles(config: dict, state: dict, research: dict) -> dict:
-    return compose_county_profiles(state, research, now=dt.datetime.now(dt.timezone.utc), freshness_policy=FreshnessPolicy(
+    from .county_directory_view import with_published_directory
+    profiles = compose_county_profiles(state, research, now=dt.datetime.now(dt.timezone.utc), freshness_policy=FreshnessPolicy(
         source_stale_minutes=int(config.get('source_stale_minutes', 1560)),
         worker_stale_minutes=int(config.get('worker_stale_minutes', 1560))))
+    return with_published_directory(profiles, config.get("_county_directory") or {})
 
 
 def _county_status(config: dict, county: dict, state: dict, *, profiles: dict | None = None, research: dict | None = None) -> dict:
@@ -458,9 +484,9 @@ def _county_status(config: dict, county: dict, state: dict, *, profiles: dict | 
 def _monitoring_path_label(info: dict) -> str:
     paths = set(info.get("monitoring_paths") or [])
     if paths == {"county-direct", "mngeo-open"}:
-        return "County-direct + MnGeo open parcels"
+        return "County data + statewide MnGeo data"
     if "county-direct" in paths:
-        return "County-direct source"
+        return "County’s own data source"
     if "mngeo-open" in paths:
         return "MnGeo Plan Parcels Open"
     if info.get("status") == "catalog":
@@ -597,7 +623,10 @@ def _county_snapshot(config: dict, slug: str, *, include_mngac: bool = True, sta
             "contacts": [{**person, "title": person.get("role")} for person in directory["contacts"]],
             "authority": "county_directory",
         }
-        directory_fields = {"county_directory": directory}
+        directory_fields = {"county_directory": directory,
+                            "access_field_basis": {"county_directory.access": "published_county_settings",
+                                                   "parcel_access": "packaged_research_and_statewide_observation",
+                                                   "parcel_source_profile.access": "packaged_research"}}
     return {
         "county": county["name"],
         "parcel_source_profile": profiles[slug],
@@ -708,8 +737,8 @@ def _coverage_status(value: str) -> str:
     return {
         "ok": "Actively checked",
         "overdue": "Check overdue",
-        "catalog": "MnGeo catalog only",
-        "needs-source": "No active parcel monitoring",
+        "catalog": "MnGeo listing only",
+        "needs-source": "Not currently checked",
         "not-configured": "No source information yet",
         "warn": "Needs attention",
         "error": "Check failed",
@@ -895,11 +924,11 @@ def _dashboard_auth(config: dict, host: str = "127.0.0.1") -> tuple[str | None, 
     if not trusted_bind:
         try:
             addr = ipaddress.ip_address(host_text)
-            trusted_bind = addr.is_loopback or (addr.is_private and not addr.is_unspecified)
+            trusted_bind = addr.is_loopback
         except ValueError:
             trusted_bind = False
     if (public_cfg.get("internet_exposure") or not trusted_bind) and not password:
-        raise RuntimeError("Public, wildcard, or Internet dashboard exposure requires CLEARPARCEL_WATCHTOWER_DASHBOARD_PASSWORD")
+        raise RuntimeError("Non-loopback or Internet dashboard exposure requires CLEARPARCEL_WATCHTOWER_DASHBOARD_PASSWORD")
     return password, username
 
 
@@ -972,6 +1001,8 @@ def refresh_providers(config: dict, execution_profile) -> dict | None:
     """A dashboard refresh polls providers, so it claims the same provider-run spacing slot first."""
     from clearparcel.datawatch.dispatch_guard import DispatchGuardError, DispatchRefused, guard_dispatch
     from clearparcel.datawatch.storage import backend_from_env
+    from clearparcel.datawatch.watch import prepare_check_config
+    config = prepare_check_config(config)
     root = config.get("_root_dir") or Path(config.get("state_file", ".")).parent
     try:
         guard_dispatch(lambda: backend_from_env(root), command="dashboard-refresh", override=None,
@@ -1072,6 +1103,8 @@ def serve(config: dict, host: str = "127.0.0.1", port: int = 8765, *, read_only:
             return True
 
         def _send(self, status: int, content: str, content_type: str = "text/html; charset=utf-8"):
+            if content_type.startswith("text/html") and config.get("_sync_status", {}).get("refresh_failed"):
+                content = content.replace("<body>", '<body><div role="status">Showing cached data: the latest storage sync failed.</div>', 1)
             # Only scripts our templates wrote are allowed (by hash); markers never leave.
             content, csp_header = secure_html(content if content_type.startswith("text/html") else strip_markers(content))
             raw = content.encode("utf-8")
@@ -1103,10 +1136,33 @@ def serve(config: dict, host: str = "127.0.0.1", port: int = 8765, *, read_only:
                 except Exception:  # noqa: BLE001 - serve the last synced state
                     pass
             parsed = urllib.parse.urlparse(self.path)
+            if parsed.path == "/healthz" and "_sync_status" in config:
+                sync_status = dict(config["_sync_status"])
+                return self._send(503 if sync_status["refresh_failed"] else 200,
+                                  json.dumps(sync_status), "application/json; charset=utf-8")
             if dispatch_brand_asset(self, parsed.path):
                 return
             if parsed.path == "/":
                 return self._send(200, render_dashboard(config))
+            if parsed.path == "/sources":
+                from clearparcel.datawatch.dashboard_views import render_dashboard as render_sources
+                return self._send(200, render_sources(config, sources_only=True))
+            if parsed.path in {"/changes", "/alerts", "/downloads"}:
+                from clearparcel.datawatch.dashboard_activity import render_changes, render_alerts, render_downloads
+                return self._send(200, {"/changes": render_changes, "/alerts": render_alerts,
+                                        "/downloads": render_downloads}[parsed.path](config))
+            if parsed.path in {"/source-snapshot.json", "/source-snapshot.csv", "/source-snapshot.xlsx"}:
+                from clearparcel.datawatch.dashboard_activity import source_snapshot
+                sid = urllib.parse.parse_qs(parsed.query).get("id", [""])[0]
+                snapshot = source_snapshot(config, sid)
+                if snapshot is None:
+                    return self._send(404, "Source not found", "text/plain; charset=utf-8")
+                if parsed.path.endswith(".json"):
+                    return self._send(200, json.dumps(snapshot, indent=2), "application/json; charset=utf-8")
+                if parsed.path.endswith(".csv"):
+                    return self._send(200, _snapshot_csv(snapshot), "text/csv; charset=utf-8")
+                return self._send_bytes(200, _snapshot_xlsx(snapshot),
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "watchtower-source.xlsx")
             if dispatch_snapshot_exports(
                 self,
                 parsed.path,

@@ -1,4 +1,5 @@
 from __future__ import annotations
+from .county_directory_view import published_access_summary
 
 import csv
 import html
@@ -87,10 +88,14 @@ def _snapshot_csv(snapshot: dict) -> str:
     out = io.StringIO()
     if "sources" in snapshot:
         fields = ["source_id","source_name","county","status","feature_count","worker","reporting","stale_source","stale_worker","last_success_at","checked_at"]
+        if snapshot.get("export_scope") == "source":
+            fields += ["snapshot_created_utc", "watchtower_last_checked_utc"]
         writer = csv.DictWriter(out, fieldnames=fields)
         writer.writeheader()
         for source in snapshot.get("sources", []):
             writer.writerow({key: _csv_safe(value) for key, value in {
+                **({key: snapshot.get(key) for key in ("snapshot_created_utc", "watchtower_last_checked_utc")}
+                   if snapshot.get("export_scope") == "source" else {}),
                 "source_id": source.get("id"),
                 "source_name": source.get("name"),
                 "county": source.get("county"),
@@ -104,7 +109,7 @@ def _snapshot_csv(snapshot: dict) -> str:
                 "checked_at": source.get("checked_at"),
             }.items()})
         return out.getvalue()
-    fields = ["county","status","actively_monitored","monitoring_path","county_direct_access","statewide_open_access","county_direct_source_count","parcel_dataset_fee","fee_product","last_county_update","catalog_refresh_date","county_metadata_publication_date","county_metadata_content_date","public_data_approved","parcel_data_url","parcel_viewer_url","worker_provenance","stale_source_count","contact_names","contact_source","contact_source_url","contact_verified","mngac_record_count","mngac_fields_with_values","mngac_field_count","mngac_field_population_percent","mngac_mandatory_population_percent",
+    fields = ["county","status","actively_monitored","monitoring_path","county_direct_access","county_direct_access_basis","statewide_open_access","county_direct_source_count","parcel_dataset_fee","fee_product","last_county_update","catalog_refresh_date","county_metadata_publication_date","county_metadata_content_date","public_data_approved","parcel_data_url","parcel_viewer_url","worker_provenance","stale_source_count","contact_names","contact_source","contact_source_url","contact_verified","mngac_record_count","mngac_fields_with_values","mngac_field_count","mngac_field_population_percent","mngac_mandatory_population_percent",
               "address_record_count","address_mandatory_population_percent","address_ng911_participant","address_gac_public_opt_in","address_submitted_at",
               "road_record_count","road_mandatory_population_percent","road_ng911_participant","road_gac_public_opt_in","road_submitted_at"]
     fields += ["profile_" + key for key in SUMMARY_FIELDS]
@@ -129,6 +134,7 @@ def _snapshot_csv(snapshot: dict) -> str:
             "actively_monitored": row.get("actively_monitored"),
             "monitoring_path": row.get("monitoring_path_label"),
             "county_direct_access": (row.get("parcel_access") or {}).get("county_direct_label"),
+            "county_direct_access_basis": "packaged_research",
             "statewide_open_access": (row.get("parcel_access") or {}).get("statewide_open_label"),
             "county_direct_source_count": len(row.get("direct_sources") or []),
             "parcel_dataset_fee": (row.get("parcel_access") or {}).get("parcel_dataset_fee"),
@@ -349,7 +355,7 @@ def _gac_xlsx_sheets(snapshot: dict) -> list[tuple[str, list[list]]]:
 
 
 def _snapshot_xlsx(snapshot: dict) -> bytes:
-    county_rows = [["County","Status","Actively monitored","Monitoring path","County-direct access","Statewide open access","County-direct source count","Parcel dataset fee","Fee product","MnGeo acquisition date","Catalog refresh date","County metadata publication date","County metadata content date","Public data approved","Parcel data URL","Parcel viewer URL","Contact names","Contact source","Contact source URL","Contact verified"]]
+    county_rows = [["County","Status","Actively monitored","Monitoring path","County-direct access (packaged research)","Statewide open access","County-direct source count","Parcel dataset fee (packaged research)","Fee product (packaged research)","MnGeo acquisition date","Catalog refresh date","County metadata publication date","County metadata content date","Public data approved","Parcel data URL","Parcel viewer URL","Contact names","Contact source","Contact source URL","Contact verified","Published parcel access","Published road access","Published address access","Published directory revision"]]
     source_rows = [["County","Source","Status","Record count","Worker","Reporting","Stale source","Stale worker","Last successful check","Last checked"]]
     contact_rows = [["County","Name","Title","Department","Phone","Email","Contact source","Contact source URL","Verified"]]
     directory_rows = [["County", "Public revision", "Field", "Value"]]
@@ -357,6 +363,7 @@ def _snapshot_xlsx(snapshot: dict) -> bytes:
     for row in rows:
         county = row.get("county") or ""
         parcel_access = row.get("parcel_access") or {}
+        directory = row.get("county_directory")
         county_rows.append([
             county,row.get("status"),bool(row.get("actively_monitored")),row.get("monitoring_path_label"),
             parcel_access.get("county_direct_label"),parcel_access.get("statewide_open_label"),
@@ -365,6 +372,9 @@ def _snapshot_xlsx(snapshot: dict) -> bytes:
             row.get("parcel_data_url"),row.get("parcel_viewer_url"),
             "; ".join(x.get("name","") for x in row.get("contacts",[]) if x.get("name")),
             row.get("contact_source"),row.get("contact_source_url"),row.get("contact_verified"),
+            *[published_access_summary(directory, key) if directory is not None else None
+              for key in ("parcel_polygons", "road_centerlines", "address_points")],
+            directory["public_revision"] if directory is not None else None,
         ])
         for source in row.get("direct_sources", []):
             if "sources" not in snapshot:
@@ -384,6 +394,9 @@ def _snapshot_xlsx(snapshot: dict) -> bytes:
         for source in snapshot.get("sources", []):
             source_rows.append([source.get("county"),source.get("name"),source.get("status"),source.get("feature_count"),source.get("worker"),source.get("reporting"),bool(source.get("stale")),bool(source.get("worker_stale")),source.get("last_success_at"),source.get("checked_at")])
     sheets=[("Counties",county_rows),("Sources",source_rows),("Contacts",contact_rows)]
+    if snapshot.get("export_scope") == "source":
+        sheets.insert(0, ("Export details", [["Scope", "Source ID", "Export time (UTC)", "Latest check attempt (UTC)"],
+            ["This source", snapshot["sources"][0].get("id"), snapshot.get("snapshot_created_utc"), snapshot.get("watchtower_last_checked_utc")]]))
     if len(directory_rows) > 1:
         sheets.append(("County directory", directory_rows))
     sheets.extend(_mngac_xlsx_sheets(snapshot))

@@ -351,6 +351,10 @@ A wildcard/public bind fails closed without a password. For Internet exposure, p
   own temporary directory, removed when the run ends)
 - `WATCHTOWER_EXECUTION_PROFILE`
 - `WATCHTOWER_AGGREGATE_OBJECT`
+- `WATCHTOWER_COUNTY_MONITORING_BUCKET` or `WATCHTOWER_COUNTY_MONITORING_ROOT`
+  (optional provider worker input for the county editor's private enrollment
+  object; configure only one). See [county source monitoring](county-source-monitoring.md)
+  for the required object-scoped permission and separate public/private boundaries.
 
 GCS support requires the `gcs` package extra.
 
@@ -504,6 +508,7 @@ the same server, routes, security headers and Content Security Policy as
 | `WATCHTOWER_GCS_PREFIX` | Object prefix in that bucket | empty |
 | `WATCHTOWER_AGGREGATE_OBJECT` | Aggregate object name | `aggregate-state.json` |
 | `WATCHTOWER_CONFIG` | Mounted source registry | `/secrets/data_sources.json` |
+| `WATCHTOWER_COUNTY_ADMIN_URL` | HTTPS county editor URL; adds a link to private desktop/mobile navigation. The editor keeps its own authentication. | unset (link hidden) |
 | `WATCHTOWER_PRIVATE_SYNC_SECONDS` | Minimum seconds between storage reads | `30` (5–3600) |
 | `PORT` | Listen port (set by Cloud Run) | `8080` |
 
@@ -596,7 +601,7 @@ request timeout falls back to its default.
 - `WATCHTOWER_REDIRECT_ALLOW_HOSTS` — comma-separated explicit host allowlist for any redirected host that would otherwise be rejected, including private same-host hops.
 - `WATCHTOWER_PUBLIC_REQUEST_TIMEOUT_SECONDS` — anonymous public server idle socket timeout and absolute accepted-connection socket deadline; 10 seconds default, bounded to 2–60; malformed values use the default.
 
-Enabled redirects bind urllib/curl connections to captured validated addresses and preserve Host/TLS hostname checks. Effective proxies reject redirected requests before dispatch because the proxy cannot enforce the binding. Initial operator URLs/proxy use remain supported; non-allowlisted redirect destinations must resolve exclusively public. All curl requests ignore local curl configuration (`--disable` first); curlrc options are unsupported, including automatic redirect/TLS overrides. Initial environment proxy behavior remains supported. Provider request deadlines also bound DNS caller waits; native DNS calls may continue in up to eight daemon workers, retaining capacity until completion. Resolver saturation fails closed. An observed final HTTP 429 stops remaining optional checks and retries for that source even when curl reports a failed/truncated/oversized transfer or a timeout with a usable final 429 marker.
+Enabled redirects bind urllib/curl connections to captured validated addresses and preserve Host/TLS hostname checks. Effective proxies reject redirected requests before dispatch because the proxy cannot enforce the binding. Initial operator URLs/proxy use remain supported; non-allowlisted redirect destinations must resolve exclusively public. The pending county-editor destination fix additionally requires exclusively public addresses on enrolled initial requests, count requests and redirects, regardless of the redirect allowlist; enrolled requests reject effective proxies and retain their validated addresses across fallback. See [county source monitoring](county-source-monitoring.md#public-destination-checks-pending-release). All curl requests ignore local curl configuration (`--disable` first); curlrc options are unsupported, including automatic redirect/TLS overrides. Initial environment proxy behavior for operator-configured sources remains supported. Provider request deadlines also bound DNS caller waits; native DNS calls may continue in up to eight daemon workers, retaining capacity until completion. Resolver saturation fails closed. An observed final HTTP 429 stops remaining optional checks and retries for that source even when curl reports a failed/truncated/oversized transfer or a timeout with a usable final 429 marker.
 
 Redirects from HTTPS to plain HTTP are always refused, including for
 allowlisted hosts. `NaN`, `Infinity` and out-of-range numbers in provider
@@ -717,3 +722,10 @@ or viewer-only findings; free statewide access does not override a direct fee.
 - The public server answers `HEAD` with the same status and headers as `GET`.
 
 Catalog retention timestamps/flags, public GAC observation time, compact read-only summary and revision-bound county routes, and private worker identity/receipt semantics are documented in [October 7 remediation](archive/watchtower-remediation-2026-10-07.md). These additions do not change provider cadence or execution-profile assignments.
+
+### Dashboard authentication in v0.5.1
+
+Password-free access is limited to loopback. Private IPv4, IPv6 ULA/link-local,
+public and wildcard binds require `CLEARPARCEL_WATCHTOWER_DASHBOARD_PASSWORD`.
+Use TLS at the reverse proxy when sending Basic authentication over a network.
+The read-only Cloud Run IAP frontend retains its separate trust boundary.
