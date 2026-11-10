@@ -5,6 +5,12 @@ updates:
     schedule:
       interval: "monthly"
     open-pull-requests-limit: 5
+    groups:
+      # init and analyze must run the same CodeQL version; separate PRs fail
+      # SARIF processing, so keep them in one update.
+      codeql-action:
+        patterns:
+          - "github/codeql-action*"
 
   - package-ecosystem: "pip"
     directory: "/"
