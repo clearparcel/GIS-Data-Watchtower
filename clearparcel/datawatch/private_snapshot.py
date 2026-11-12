@@ -37,7 +37,7 @@ def _record(record):
                 "adapter", "kind", "url", "county_slug"):
         if record.get(key) is not None and not isinstance(record[key], str):
             raise ValueError(f"invalid private snapshot {key}")
-    for key in ("provenance", "tracked_values", "public_metadata", "mngac_completeness", "county_records"):
+    for key in ("provenance", "tracked_values", "public_metadata", "gac_completeness", "mngac_completeness", "county_records"):
         _object(record, key)
     if record.get("changes") is not None:
         if not isinstance(record["changes"], list) or not all(isinstance(item, dict) for item in record["changes"]):

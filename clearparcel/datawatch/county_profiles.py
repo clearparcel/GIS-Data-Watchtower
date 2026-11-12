@@ -10,6 +10,7 @@ from urllib.parse import urlsplit
 
 from .aggregate import CLOCK_SKEW_TOLERANCE_SECONDS
 from .parcel_access import INVENTORY_CATEGORIES, CountyPermission
+from .gac_standards import gac_payload
 from .direct_gac_schema import direct_schema_assessment
 from .public_values import (public_access_classification, safe_public_url, provider_edit_date, county_metadata_dates,
                             sanitize_source_metadata, safe_geometry_type, safe_file_type)
@@ -139,10 +140,10 @@ def compose_county_profiles(state: dict, research: dict[str, dict], *, now: dt.d
     counties = county_identities().values()
     sources = {sid: source for sid, source in (state.get('sources') or {}).items() if isinstance(source, dict)}
     statewide = next(((sid, source) for sid, source in sources.items()
-                      if source.get('category') == 'Parcels' and isinstance(source.get('mngac_completeness'), dict)
-                      and source['mngac_completeness'].get('fields') and source['mngac_completeness'].get('counties')), (None, None))
+                      if source.get('category') == 'Parcels'
+                      and gac_payload(source, 'parcel', require=('fields', 'counties'))), (None, None))
     statewide_id, statewide_source = statewide
-    members = (statewide_source or {}).get('mngac_completeness', {}).get('counties', {})
+    members = (gac_payload(statewide_source, 'parcel', require=('fields', 'counties')) or {}).get('counties') or {}
     catalog_records = sources.get('mn-parcel-county-catalog', {}).get('county_records') or {}
     profiles = {}
     for county in counties:

@@ -32,7 +32,7 @@ from clearparcel.datawatch.brand_assets import dispatch_brand_asset
 from clearparcel.datawatch.county_profile_panel import render_county_profile_body, percentage_patterns, research_summary
 from clearparcel.datawatch.county_profile_exports import county_profiles_csv, parcel_sources_csv
 from clearparcel.datawatch.county_profiles import FreshnessPolicy, compose_county_profiles, county_profile_counts
-from clearparcel.datawatch.gac_standards import load_gac_standard, normalize_standard_key, standard_keys
+from clearparcel.datawatch.gac_standards import gac_payload, load_gac_standard, normalize_standard_key, standard_keys
 from clearparcel.datawatch.gac_projection import project_gac
 from clearparcel.datawatch.public_values import county_metadata_dates
 from clearparcel.datawatch.public_projection import sanitize_public_render_state, validate_snapshot_totals
@@ -195,15 +195,8 @@ def _load_county_boundaries() -> dict:
 def _gac_source(state: dict, standard_key: str = "parcel") -> tuple[str | None, dict | None]:
     standard_key = normalize_standard_key(standard_key)
     for source_id, source in (state.get("sources") or {}).items():
-        data = source.get("gac_completeness")
-        if isinstance(data, dict):
-            key = str(data.get("standard_key") or (data.get("standard") or {}).get("key") or "").lower()
-            if key == standard_key and data.get("fields") and data.get("counties"):
-                return source_id, source
-        if standard_key == "parcel":
-            legacy = source.get("mngac_completeness")
-            if isinstance(legacy, dict) and legacy.get("fields") and legacy.get("counties"):
-                return source_id, source
+        if gac_payload(source, standard_key, require=("fields", "counties")):
+            return source_id, source
     return None, None
 
 
@@ -212,16 +205,8 @@ def _gac_data(state: dict, standard_key: str = "parcel") -> dict | None:
     _, source = _gac_source(state, standard_key)
     if not isinstance(source, dict):
         return None
-    data = source.get("gac_completeness")
-    if isinstance(data, dict):
-        key = str(data.get("standard_key") or (data.get("standard") or {}).get("key") or "").lower()
-        if key == standard_key and data.get("fields"):
-            return project_gac(data)
-    if standard_key == "parcel":
-        legacy = source.get("mngac_completeness")
-        if isinstance(legacy, dict) and legacy.get("fields"):
-            return project_gac(legacy)
-    return None
+    data = gac_payload(source, standard_key)
+    return project_gac(data) if data else None
 
 
 def _mngac_source(state: dict) -> tuple[str | None, dict | None]:
@@ -416,7 +401,7 @@ def _county_status(config: dict, county: dict, state: dict, *, profiles: dict | 
             matches.append(src)
 
     statewide_source_id, statewide_source = _mngac_source(state)
-    statewide_data = (statewide_source or {}).get("mngac_completeness") or {}
+    statewide_data = gac_payload(statewide_source, "parcel", require=("fields", "counties")) or {}
     statewide_record = (statewide_data.get("counties") or {}).get(name)
     statewide_monitored = 'mngeo-open' in profile['monitoring']['paths']
 

@@ -72,6 +72,29 @@ def normalize_standard_key(value: object, *, default: str = "parcel") -> str:
     return key
 
 
+def gac_payload(source: object, standard_key: str = "parcel", *,
+                require: tuple[str, ...] = ("fields",)) -> dict | None:
+    """One source's completeness payload for a standard, in either stored format.
+
+    Modern observations use ``gac_completeness`` with a ``standard_key``;
+    parcel observations written before the shared engine use
+    ``mngac_completeness``. Every reader that selects parcel completeness must
+    go through this helper so the two formats yield the same county views.
+    """
+    standard_key = normalize_standard_key(standard_key)
+    if not isinstance(source, dict):
+        return None
+    candidates = []
+    modern = source.get("gac_completeness")
+    if isinstance(modern, dict):
+        key = str(modern.get("standard_key") or (modern.get("standard") or {}).get("key") or "").lower()
+        if key == standard_key:
+            candidates.append(modern)
+    if standard_key == "parcel" and isinstance(source.get("mngac_completeness"), dict):
+        candidates.append(source["mngac_completeness"])
+    return next((data for data in candidates if all(data.get(field) for field in require)), None)
+
+
 def load_gac_standard(key: str = "parcel") -> dict:
     key = normalize_standard_key(key)
     path = Path(__file__).with_name(_STANDARD_FILES[key])
