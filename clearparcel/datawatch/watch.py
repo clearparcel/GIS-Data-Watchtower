@@ -2499,7 +2499,7 @@ def _check_sources_unlocked(
     permissions = _permissions_by_slug()
 
     for source in config.get("sources", []):
-        if filtered and filtered not in source["id"].lower() and filtered not in source["name"].lower():
+        if filtered and filtered not in source["id"].lower() and filtered not in str(source.get("name") or "").lower():
             continue
         skip_reason = _profile_skip_reason(source, execution_profile) or _permission_skip_reason(source, permissions)
         if skip_reason:
@@ -2844,6 +2844,8 @@ def validate_source_registry(sources: object) -> None:
     the same ID would silently replace the first one's observation. IDs are
     compared case-insensitively because source filters already match that way.
     Every entry counts, whether or not it is enabled or assigned to this profile.
+    Entries that are not disabled must also carry a name, a URL and an adapter;
+    a disabled entry may stay minimal.
     """
     if not isinstance(sources, list):
         raise InvalidSourceRegistryError("source registry 'sources' must be a list")
@@ -2861,6 +2863,17 @@ def validate_source_registry(sources: object) -> None:
                 f"duplicate source id: entry {first_index} ({first_id!r}) and entry {index} ({source_id!r})"
             )
         seen[key] = (index, source_id)
+        if source.get("enabled") is not False:
+            # Every runnable entry needs the identity fields used to record a
+            # result or a failure; reject a malformed entry before any request
+            # instead of failing mid-run and discarding earlier observations.
+            for field in ("name", "url"):
+                value = source.get(field)
+                if not isinstance(value, str) or not value.strip():
+                    raise InvalidSourceRegistryError(f"source {source_id!r} has a missing or blank {field}")
+            adapter = source.get("adapter") or source.get("kind")
+            if not isinstance(adapter, str) or not adapter.strip():
+                raise InvalidSourceRegistryError(f"source {source_id!r} must define 'adapter' (preferred) or legacy 'kind'")
         _validate_dispatch_options(source, f"source {source_id!r}")
         if "expected_update_days" in source and not _valid_expected_days(source["expected_update_days"]):
             raise InvalidSourceRegistryError(

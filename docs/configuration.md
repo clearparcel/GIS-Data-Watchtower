@@ -63,6 +63,7 @@ The dashboard API always serves a **sanitized state representation**. There is n
 Every source normally defines:
 
 - `id` — unique across the whole registry, compared case-insensitively, including disabled sources and sources assigned to other execution profiles. A missing, blank or duplicate ID fails the run (exit 3) before any provider request, dispatch-slot claim or state write.
+- `name`, `url`, and `adapter` (or legacy `kind`) — required non-blank strings on every source that is not `"enabled": false`. A runnable entry missing one fails the whole run the same way, before any request; a disabled entry may keep only its `id`.
 - `name`
 - `provider`
 - `category`
