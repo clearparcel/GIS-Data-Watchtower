@@ -932,6 +932,22 @@ def _dashboard_auth(config: dict, host: str = "127.0.0.1") -> tuple[str | None, 
     return password, username
 
 
+def _local_host_names(bind_host: str, port: int) -> frozenset[str]:
+    """Host header values a password-free loopback dashboard answers to.
+
+    Without a password every request is authorized, so an attacker-controlled
+    hostname that resolves to loopback (DNS rebinding) must not reach it.
+    """
+    names = {"127.0.0.1", "localhost", "[::1]"}
+    bind = bind_host.strip().lower()
+    if bind:
+        names.add(f"[{bind}]" if ":" in bind and not bind.startswith("[") else bind)
+    allowed = {f"{name}:{port}" for name in names}
+    if port == 80:
+        allowed |= names
+    return frozenset(allowed)
+
+
 def _validated_content_length(value: str | None, maximum: int = 4096) -> int:
     if value is None:
         raise ValueError("Content-Length is required")
@@ -1048,6 +1064,9 @@ def serve(config: dict, host: str = "127.0.0.1", port: int = 8765, *, read_only:
         auth_password, auth_username = _trusted_frontend_auth(trusted_frontend)
     else:
         auth_password, auth_username = _dashboard_auth(config, host)
+    # Hosted IAP (trusted_frontend) and password-protected binds keep their own
+    # controls; only the password-free loopback mode is pinned to local names.
+    check_local_host = trusted_frontend is None and not auth_password
     execution_profile = None if read_only else _dashboard_execution_profile(config)
     csrf_token = "" if read_only else secrets.token_urlsafe(32)
     config["_csrf_token"] = csrf_token
@@ -1091,6 +1110,18 @@ def serve(config: dict, host: str = "127.0.0.1", port: int = 8765, *, read_only:
             return user_ok and password_ok
 
         def _require_auth(self) -> bool:
+            if check_local_host:
+                values = self.headers.get_all("Host", [])
+                allowed = _local_host_names(host, self.server.server_port)
+                if len(values) != 1 or values[0].strip().lower() not in allowed:
+                    raw = b"Request rejected"
+                    self.send_response(421)
+                    self.send_header("Content-Type", "text/plain; charset=utf-8")
+                    self.send_header("Content-Length", str(len(raw)))
+                    self.send_header("Cache-Control", "no-store")
+                    self.end_headers()
+                    self.wfile.write(raw)
+                    return True
             if self._authorized():
                 return False
             raw = b"Authentication required"

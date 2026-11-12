@@ -1,5 +1,7 @@
 """One GAC route dispatcher for both servers; exports never substitute standards."""
 import contextlib
+import email.message
+import types
 import io
 import json
 import os
@@ -120,7 +122,10 @@ class AdapterEquivalenceTests(unittest.TestCase):
 
     def _get(self, handler_class, path, query):
         handler = object.__new__(handler_class)
-        handler.headers, handler.wfile, handler.command = {}, io.BytesIO(), "GET"
+        headers = email.message.Message()
+        headers["Host"] = "127.0.0.1:8765"  # the password-free local dashboard pins its Host
+        handler.headers, handler.wfile, handler.command = headers, io.BytesIO(), "GET"
+        handler.server = types.SimpleNamespace(server_port=8765)
         handler.path = path + ("?" + query if query else "")
         recorder = Recorder()
         handler._send = recorder

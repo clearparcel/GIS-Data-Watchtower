@@ -729,3 +729,8 @@ Password-free access is limited to loopback. Private IPv4, IPv6 ULA/link-local,
 public and wildcard binds require `CLEARPARCEL_WATCHTOWER_DASHBOARD_PASSWORD`.
 Use TLS at the reverse proxy when sending Basic authentication over a network.
 The read-only Cloud Run IAP frontend retains its separate trust boundary.
+A password-free loopback dashboard also requires exactly one `Host` header naming
+`127.0.0.1`, `localhost`, `[::1]` or the bound loopback address with the served
+port; any other or duplicate `Host` receives HTTP 421 before any page, so a
+DNS-rebound hostname cannot read it. Password-protected binds and the IAP
+frontend are unchanged.
