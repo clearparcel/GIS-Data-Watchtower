@@ -32,7 +32,7 @@ from clearparcel.datawatch.brand_assets import dispatch_brand_asset
 from clearparcel.datawatch.county_profile_panel import render_county_profile_body, percentage_patterns, research_summary
 from clearparcel.datawatch.county_profile_exports import county_profiles_csv, parcel_sources_csv
 from clearparcel.datawatch.county_profiles import FreshnessPolicy, compose_county_profiles, county_profile_counts
-from clearparcel.datawatch.gac_standards import load_gac_standard, normalize_standard_key, standard_keys
+from clearparcel.datawatch.gac_standards import gac_payload, load_gac_standard, normalize_standard_key, standard_keys
 from clearparcel.datawatch.gac_projection import project_gac
 from clearparcel.datawatch.public_values import county_metadata_dates
 from clearparcel.datawatch.public_projection import sanitize_public_render_state, validate_snapshot_totals
@@ -195,15 +195,8 @@ def _load_county_boundaries() -> dict:
 def _gac_source(state: dict, standard_key: str = "parcel") -> tuple[str | None, dict | None]:
     standard_key = normalize_standard_key(standard_key)
     for source_id, source in (state.get("sources") or {}).items():
-        data = source.get("gac_completeness")
-        if isinstance(data, dict):
-            key = str(data.get("standard_key") or (data.get("standard") or {}).get("key") or "").lower()
-            if key == standard_key and data.get("fields") and data.get("counties"):
-                return source_id, source
-        if standard_key == "parcel":
-            legacy = source.get("mngac_completeness")
-            if isinstance(legacy, dict) and legacy.get("fields") and legacy.get("counties"):
-                return source_id, source
+        if gac_payload(source, standard_key, require=("fields", "counties")):
+            return source_id, source
     return None, None
 
 
@@ -212,16 +205,8 @@ def _gac_data(state: dict, standard_key: str = "parcel") -> dict | None:
     _, source = _gac_source(state, standard_key)
     if not isinstance(source, dict):
         return None
-    data = source.get("gac_completeness")
-    if isinstance(data, dict):
-        key = str(data.get("standard_key") or (data.get("standard") or {}).get("key") or "").lower()
-        if key == standard_key and data.get("fields"):
-            return project_gac(data)
-    if standard_key == "parcel":
-        legacy = source.get("mngac_completeness")
-        if isinstance(legacy, dict) and legacy.get("fields"):
-            return project_gac(legacy)
-    return None
+    data = gac_payload(source, standard_key)
+    return project_gac(data) if data else None
 
 
 def _mngac_source(state: dict) -> tuple[str | None, dict | None]:
@@ -416,7 +401,7 @@ def _county_status(config: dict, county: dict, state: dict, *, profiles: dict | 
             matches.append(src)
 
     statewide_source_id, statewide_source = _mngac_source(state)
-    statewide_data = (statewide_source or {}).get("mngac_completeness") or {}
+    statewide_data = gac_payload(statewide_source, "parcel", require=("fields", "counties")) or {}
     statewide_record = (statewide_data.get("counties") or {}).get(name)
     statewide_monitored = 'mngeo-open' in profile['monitoring']['paths']
 
@@ -586,6 +571,21 @@ def _snapshot_gac_view(state: dict, standard_key: str, views: dict | None) -> di
 
 
 
+def _gac_observation(state: dict, standard_key: str) -> dict:
+    """When one standard was last observed, kept apart from export creation time.
+
+    ``retained`` marks a result carried forward from an earlier successful
+    check because the latest attempt failed.
+    """
+    _, source = _gac_source(state, standard_key)
+    source = source if isinstance(source, dict) else {}
+    data = _gac_data(state, standard_key) or {}
+    observed = data.get("observed_at") or source.get("last_success_at") or (
+        source.get("checked_at") if source.get("status") == "ok" else None)
+    return {"observed_at": observed, "latest_attempt_at": source.get("checked_at"),
+            "retained": source.get("gac_check_status") in {"error", "unsupported"} or source.get("status") == "error"}
+
+
 def _county_snapshot(config: dict, slug: str, *, include_mngac: bool = True, state: dict | None = None,
                      profiles: dict | None = None, research: dict | None = None,
                      contact_records: dict | None = None, gac_views: dict | None = None) -> dict | None:
@@ -605,7 +605,7 @@ def _county_snapshot(config: dict, slug: str, *, include_mngac: bool = True, sta
     gac_payload = {}
     if include_mngac:
         gac_payload = {
-            key: payload for key in standard_keys()
+            key: {**payload, **_gac_observation(state, key)} for key in standard_keys()
             if (payload := _gac_county_payload(state, key, county["name"],
                                                data=_snapshot_gac_view(state, key, gac_views))) is not None
         }
@@ -932,6 +932,22 @@ def _dashboard_auth(config: dict, host: str = "127.0.0.1") -> tuple[str | None, 
     return password, username
 
 
+def _local_host_names(bind_host: str, port: int) -> frozenset[str]:
+    """Host header values a password-free loopback dashboard answers to.
+
+    Without a password every request is authorized, so an attacker-controlled
+    hostname that resolves to loopback (DNS rebinding) must not reach it.
+    """
+    names = {"127.0.0.1", "localhost", "[::1]"}
+    bind = bind_host.strip().lower()
+    if bind:
+        names.add(f"[{bind}]" if ":" in bind and not bind.startswith("[") else bind)
+    allowed = {f"{name}:{port}" for name in names}
+    if port == 80:
+        allowed |= names
+    return frozenset(allowed)
+
+
 def _validated_content_length(value: str | None, maximum: int = 4096) -> int:
     if value is None:
         raise ValueError("Content-Length is required")
@@ -1048,6 +1064,9 @@ def serve(config: dict, host: str = "127.0.0.1", port: int = 8765, *, read_only:
         auth_password, auth_username = _trusted_frontend_auth(trusted_frontend)
     else:
         auth_password, auth_username = _dashboard_auth(config, host)
+    # Hosted IAP (trusted_frontend) and password-protected binds keep their own
+    # controls; only the password-free loopback mode is pinned to local names.
+    check_local_host = trusted_frontend is None and not auth_password
     execution_profile = None if read_only else _dashboard_execution_profile(config)
     csrf_token = "" if read_only else secrets.token_urlsafe(32)
     config["_csrf_token"] = csrf_token
@@ -1091,6 +1110,18 @@ def serve(config: dict, host: str = "127.0.0.1", port: int = 8765, *, read_only:
             return user_ok and password_ok
 
         def _require_auth(self) -> bool:
+            if check_local_host:
+                values = self.headers.get_all("Host", [])
+                allowed = _local_host_names(host, self.server.server_port)
+                if len(values) != 1 or values[0].strip().lower() not in allowed:
+                    raw = b"Request rejected"
+                    self.send_response(421)
+                    self.send_header("Content-Type", "text/plain; charset=utf-8")
+                    self.send_header("Content-Length", str(len(raw)))
+                    self.send_header("Cache-Control", "no-store")
+                    self.end_headers()
+                    self.wfile.write(raw)
+                    return True
             if self._authorized():
                 return False
             raw = b"Authentication required"

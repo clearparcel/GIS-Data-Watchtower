@@ -30,17 +30,18 @@ Choose the path that matches what you want to do. For the live dashboard and a c
 | [Hybrid execution](hybrid-execution.md) | Local and cloud execution profiles |
 | [Hybrid aggregation](hybrid-aggregation.md) | Worker receipts, safe concurrency, and aggregate publication |
 | [Shared AI workflow](ai/WORKFLOW.md) | How Codex and Claude implement, review, and hand off work ([handoff template](ai/HANDOFF-TEMPLATE.md)) |
-| [Standalone readiness](data-watchtower-standalone-readiness.md) | What the open-source package needs to run outside ClearParcel's deployment |
+| [Standalone readiness](data-watchtower-standalone-readiness.md) | What the open-source package needs to run outside ClearParcel's deployment (its deployment posture section is a dated October 5 snapshot) |
 
 ## Operators and maintainers
 
 | Guide | Purpose |
 | --- | --- |
 | [Google Cloud deployment](google-cloud-deployment.md) | Optional Cloud Run and storage deployment |
-| [Provider-run alerting proposal](provider-run-alerting-proposal.md) | Proposed (not applied): alert on Watchtower failures and missed runs separately from source errors |
+| [Provider-run alerting](provider-run-alerting-proposal.md) | Activated November 3, 2026 with v0.3.10: alert on Watchtower failures and missed runs separately from source errors |
 | [Public dashboard hosting](public-dashboard-hosting.md) | Anonymous sanitized service, access boundaries, publication, and freshness |
 | [Release policy](release-policy.md) | Versioning, evidence, and rollback expectations |
-| [Current v0.5.1 review fixes](release-v0.5.1.md) | Security, recovery, audit and storage corrections |
+| [Current v0.5.2 county monitoring release](release-v0.5.2.md) | Optional policy links, policy-silent REST checks, county update frequency |
+| [v0.5.1 review fixes](release-v0.5.1.md) | Security, recovery, audit and storage corrections |
 | [v0.5.0 coordinated release](release-v0.5.0.md) | County editor, gated source monitoring, dashboards and jobs |
 | [v0.4.3 internal dashboard release](release-v0.4.3.md) | Previous internal UI rollout |
 | [v0.4.2 public dashboard release](release-v0.4.2.md) | Three-page county PDF summaries |

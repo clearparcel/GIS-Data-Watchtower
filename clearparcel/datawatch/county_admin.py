@@ -29,6 +29,9 @@ _ATTACHMENT_UPLOAD = re.compile(r"/api/counties/([a-z0-9-]+)/attachments\?(.+)")
 _ATTACHMENT_READ = re.compile(r"/api/counties/([a-z0-9-]+)/attachments/([a-f0-9]{32})(/status)?")
 _ATTACHMENT_SCAN = re.compile(r"/api/counties/([a-z0-9-]+)/attachments/([a-f0-9]{32})/scan")
 _STORE_FAILURES = (OSError, ValueError, StorageConflictError)
+# Absolute per-request deadlines enforced by the editor's HTTP server.
+_HOSTED_REQUEST_TIMEOUT = 50
+_LOCAL_REQUEST_TIMEOUT = 10
 _ASSETS = {
     "/": ("county_admin.html", "text/html; charset=utf-8"),
     "/county-admin.css": ("county_admin.css", "text/css; charset=utf-8"),
@@ -47,7 +50,7 @@ def _status_payload(status: PublicationStatus) -> dict:
 def create_county_admin_server(store: CountyDirectoryStore, *, port: int, username: str | None = None,
                                password: str | None = None, attachments: CountyAttachments | None = None,
                                hosted_auth=None, scanner=None, monitoring_store: CountyMonitoringStore | None = None,
-                               monitoring_profiles=None, backend_errors=()):
+                               monitoring_profiles=None, backend_errors=(), scan_wait_seconds=None):
     if hosted_auth is None and (not username or ":" in username or not password):
         raise ValueError("County administration requires a username and password")
     if hosted_auth is not None and (username is not None or password is not None):
@@ -55,6 +58,14 @@ def create_county_admin_server(store: CountyDirectoryStore, *, port: int, userna
     expected = f"{username}:{password}".encode("utf-8")
     token = secrets.token_urlsafe(32)
     scan_slots = threading.BoundedSemaphore(2)
+    # A scan may legitimately outlast the request deadline (scanner cold start),
+    # so a request waits only part of its own budget. A scan still running is
+    # reported as pending and finishes in the background, recording its verdict.
+    request_timeout = _HOSTED_REQUEST_TIMEOUT if hosted_auth is not None else _LOCAL_REQUEST_TIMEOUT
+    if scan_wait_seconds is None:
+        scan_wait_seconds = request_timeout * 0.6
+    if not 0 < scan_wait_seconds < request_timeout:
+        raise ValueError("the scan wait must be shorter than the editor request deadline")
     store_failures = _STORE_FAILURES + backend_errors
     backend_failures = (OSError, StorageConflictError) + backend_errors
     monitoring_store = monitoring_store or CountyMonitoringStore(store._private)
@@ -259,12 +270,24 @@ def create_county_admin_server(store: CountyDirectoryStore, *, port: int, userna
         def _try_scan(self, fips, meta):
             if scanner is None or meta["status"] != "pending" or not scan_slots.acquire(blocking=False):
                 return meta
-            try:
-                return attachments.scan(fips, meta["id"], scanner) or meta
-            except store_failures:
-                return meta
-            finally:
-                scan_slots.release()
+            outcome = {}
+
+            def run():
+                try:
+                    outcome["meta"] = attachments.scan(fips, meta["id"], scanner)
+                except Exception:
+                    # Storage or scanner failure leaves the file pending in
+                    # quarantine, as before; nothing escapes the worker thread.
+                    pass
+                finally:
+                    scan_slots.release()
+
+            worker = threading.Thread(target=run, name="county-attachment-scan", daemon=True)
+            worker.start()
+            worker.join(scan_wait_seconds)
+            # Still running: the stored attachment stays pending (quarantined) and
+            # keeps its ID; the status route and Retry file check pick up the verdict.
+            return (outcome.get("meta") or meta) if not worker.is_alive() else meta
 
         def _linked_attachment(self, county, attachment_id):
             fips = county["fips"]
@@ -415,7 +438,7 @@ def create_county_admin_server(store: CountyDirectoryStore, *, port: int, userna
 
     bind = "0.0.0.0" if hosted_auth is not None else _HOST
     return _BoundedThreadingHTTPServer((bind, port), Handler, max_connections=16,
-                                       request_timeout=50 if hosted_auth is not None else 10)
+                                       request_timeout=request_timeout)
 
 
 def serve_county_admin(*, private_root: Path, public_root: Path, port: int) -> None:

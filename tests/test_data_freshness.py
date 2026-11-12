@@ -91,11 +91,12 @@ class DataFreshnessTests(unittest.TestCase):
 
 class RegistryAndHistoryTests(unittest.TestCase):
     def test_registry_rejects_an_invalid_override(self):
-        good = [{"id": "a", "expected_update_days": 30}]
+        base = {"id": "a", "name": "A", "url": "https://example.invalid/a", "adapter": "http_file"}
+        good = [{**base, "expected_update_days": 30}]
         watch.validate_source_registry(good)
         for value in (0, "30", 30.0, 4000):
-            with self.subTest(value=value), self.assertRaises(watch.InvalidSourceRegistryError):
-                watch.validate_source_registry([{"id": "a", "expected_update_days": value}])
+            with self.subTest(value=value), self.assertRaisesRegex(watch.InvalidSourceRegistryError, "expected_update_days"):
+                watch.validate_source_registry([{**base, "expected_update_days": value}])
 
     def test_history_records_the_publisher_time(self):
         stamp = _days_ago(4)

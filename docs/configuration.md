@@ -63,6 +63,7 @@ The dashboard API always serves a **sanitized state representation**. There is n
 Every source normally defines:
 
 - `id` — unique across the whole registry, compared case-insensitively, including disabled sources and sources assigned to other execution profiles. A missing, blank or duplicate ID fails the run (exit 3) before any provider request, dispatch-slot claim or state write.
+- `name`, `url`, and `adapter` (or legacy `kind`) — required non-blank strings on every source that is not `"enabled": false`. A runnable entry missing one fails the whole run the same way, before any request; a disabled entry may keep only its `id`.
 - `name`
 - `provider`
 - `category`
@@ -242,7 +243,7 @@ public-data opt-in, and latest submission time. See
 [`mngac-completeness.md`](mngac-completeness.md) for the parcel-specific
 historical methodology.
 
-Adapter-specific keys include `expected_layers` for WMS, `expected_feature_types`/`version` for WFS, `query`/`expected_columns`/`tracked_values` for Soil Data Access, and `expected_content_type` for `http_file`. The `http_file` adapter performs a HEAD-only check and tracks ETag, Last-Modified, Content-Length, and content type without downloading the file body.
+Adapter-specific keys include `expected_layers` for WMS, `expected_feature_types`/`version` for WFS, `query`/`expected_columns`/`tracked_values` for Soil Data Access, and `expected_content_type` for `http_file`. WMS and WFS GetCapabilities replies must be a capabilities document: an OGC `ServiceExceptionReport`/`ExceptionReport` (even with HTTP 200) or any other XML root is recorded as a source error, and a capabilities document with no named layers or feature types is a warning. WMS layers are the `Name` children of `Layer` elements; the service name is not counted. The `http_file` adapter performs a HEAD-only check and tracks ETag, Last-Modified, Content-Length, and content type without downloading the file body.
 
 ## Public PostHog analytics
 
@@ -601,7 +602,7 @@ request timeout falls back to its default.
 - `WATCHTOWER_REDIRECT_ALLOW_HOSTS` — comma-separated explicit host allowlist for any redirected host that would otherwise be rejected, including private same-host hops.
 - `WATCHTOWER_PUBLIC_REQUEST_TIMEOUT_SECONDS` — anonymous public server idle socket timeout and absolute accepted-connection socket deadline; 10 seconds default, bounded to 2–60; malformed values use the default.
 
-Enabled redirects bind urllib/curl connections to captured validated addresses and preserve Host/TLS hostname checks. Effective proxies reject redirected requests before dispatch because the proxy cannot enforce the binding. Initial operator URLs/proxy use remain supported; non-allowlisted redirect destinations must resolve exclusively public. The pending county-editor destination fix additionally requires exclusively public addresses on enrolled initial requests, count requests and redirects, regardless of the redirect allowlist; enrolled requests reject effective proxies and retain their validated addresses across fallback. See [county source monitoring](county-source-monitoring.md#public-destination-checks-pending-release). All curl requests ignore local curl configuration (`--disable` first); curlrc options are unsupported, including automatic redirect/TLS overrides. Initial environment proxy behavior for operator-configured sources remains supported. Provider request deadlines also bound DNS caller waits; native DNS calls may continue in up to eight daemon workers, retaining capacity until completion. Resolver saturation fails closed. An observed final HTTP 429 stops remaining optional checks and retries for that source even when curl reports a failed/truncated/oversized transfer or a timeout with a usable final 429 marker.
+Enabled redirects bind urllib/curl connections to captured validated addresses and preserve Host/TLS hostname checks. Effective proxies reject redirected requests before dispatch because the proxy cannot enforce the binding. Initial operator URLs/proxy use remain supported; non-allowlisted redirect destinations must resolve exclusively public. Since v0.5.1, editor-enrolled sources additionally require exclusively public addresses on initial requests, count requests and redirects, regardless of the redirect allowlist; enrolled requests reject effective proxies and retain their validated addresses across fallback. See [county source monitoring](county-source-monitoring.md#public-destination-checks-v051). All curl requests ignore local curl configuration (`--disable` first); curlrc options are unsupported, including automatic redirect/TLS overrides. Initial environment proxy behavior for operator-configured sources remains supported. Provider request deadlines also bound DNS caller waits; native DNS calls may continue in up to eight daemon workers, retaining capacity until completion. Resolver saturation fails closed. An observed final HTTP 429 stops remaining optional checks and retries for that source even when curl reports a failed/truncated/oversized transfer or a timeout with a usable final 429 marker.
 
 Redirects from HTTPS to plain HTTP are always refused, including for
 allowlisted hosts. `NaN`, `Infinity` and out-of-range numbers in provider
@@ -729,3 +730,8 @@ Password-free access is limited to loopback. Private IPv4, IPv6 ULA/link-local,
 public and wildcard binds require `CLEARPARCEL_WATCHTOWER_DASHBOARD_PASSWORD`.
 Use TLS at the reverse proxy when sending Basic authentication over a network.
 The read-only Cloud Run IAP frontend retains its separate trust boundary.
+A password-free loopback dashboard also requires exactly one `Host` header naming
+`127.0.0.1`, `localhost`, `[::1]` or the bound loopback address with the served
+port; any other or duplicate `Host` receives HTTP 421 before any page, so a
+DNS-rebound hostname cannot read it. Password-protected binds and the IAP
+frontend are unchanged.
