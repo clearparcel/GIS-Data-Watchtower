@@ -237,8 +237,8 @@ class CountyPermission:
     def skip_reason(source: dict, permission: dict | None) -> str | None:
         """Why this source must not be polled, or None when a check is allowed.
 
-        ``hold-for-terms`` stays the existing parcel rule and does not depend
-        on the host. The permission gate applies only to a server the county
+        ``hold-for-terms`` and ``not-appropriate`` block every county-direct
+        parcel source and do not depend on the host or on editor enrollment. The permission gate applies only to a server the county
         operates. ``stop_requested`` also covers a direct query of the county's
         own ArcGIS Online hosted feature or map service.
         """
@@ -246,10 +246,12 @@ class CountyPermission:
         slug = str((source or {}).get("county_slug") or "").strip()
         if not slug:
             return None
+        # Both research decisions are authoritative for every county-direct
+        # parcel source, however it was configured (ordinary registry entry or
+        # editor enrollment), and on any host.
         if permission and permission.get("terms_decision") == "hold-for-terms" and CountyPermission.is_county_direct(source):
             return "hold-for-terms"
-        if (permission and permission.get("terms_decision") == "not-appropriate"
-                and CountyPermission.public_review(source) and CountyPermission.is_county_direct(source)):
+        if permission and permission.get("terms_decision") == "not-appropriate" and CountyPermission.is_county_direct(source):
             return "not-appropriate"
         county_server = CountyPermission.is_county_operated(source)
         agol_service = CountyPermission.is_county_agol_service(source)

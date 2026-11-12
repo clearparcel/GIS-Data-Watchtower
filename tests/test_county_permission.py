@@ -145,6 +145,32 @@ class CheckRuleTests(unittest.TestCase):
         self.assertEqual([source["id"] for source in checked], ["roads"])
         self.assertEqual(result["skipped_sources"]["parcels"], "hold-for-terms")
 
+    def test_not_appropriate_blocks_ordinary_parcel_sources_on_every_host(self):
+        # An ordinary registry entry carries no editor approval; the packaged
+        # not-appropriate decision must still stop it before dispatch.
+        for host in ("https://gis.winona.example/arcgis/rest/services/Parcels/MapServer/0",
+                     "https://services3.arcgis.com/abc/arcgis/rest/services/Parcels/FeatureServer/0",
+                     "https://gisdata.mn.gov/dataset/parcels"):
+            with self.subTest(host=host):
+                sources = self.sources()
+                for source in sources:
+                    source["county_slug"] = "winona"
+                sources[0]["url"] = host
+                result, checked = self.checked_sources(sources)
+                self.assertEqual([source["id"] for source in checked], ["roads"])
+                self.assertEqual(result["skipped_sources"]["parcels"], "not-appropriate")
+                self.assertEqual(CountyPermission.display_status(sources[0], CountyPermission.from_record(
+                    load_parcel_access()["Winona"])), "paused")
+
+    def test_not_appropriate_blocks_ordinary_and_enrolled_sources_alike(self):
+        permission = CountyPermission.from_record(load_parcel_access()["Goodhue"])
+        ordinary = self.sources()[0] | {"county_slug": "goodhue"}
+        enrolled = ordinary | {"monitoring_approval": {"status": "approved", "scope": "details-and-count"}}
+        self.assertEqual(CountyPermission.skip_reason(ordinary, permission), "not-appropriate")
+        self.assertEqual(CountyPermission.skip_reason(enrolled, permission), "not-appropriate")
+        roads = self.sources()[1] | {"county_slug": "goodhue"}
+        self.assertNotEqual(CountyPermission.skip_reason(roads, permission), "not-appropriate")
+
     def test_assessed_candidate_without_a_new_reply_is_still_checked(self):
         sources = self.sources()
         for source in sources:
