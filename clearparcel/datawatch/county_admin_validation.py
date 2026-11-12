@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from .county_attachments import _event_time
 from .county_directory import DATASETS, _project_contacts, _project_methods, _project_access, _public_fields
-from .county_monitoring import build_county_monitoring_sources
+from .county_monitoring import MonitoringMethodError, build_county_monitoring_sources
 from .county_profiles import county_identities
 
 
@@ -70,12 +70,17 @@ def editor_validation_errors(draft: object, *, monitoring_profiles=("cloud", "lo
             build_county_monitoring_sources(county, draft, execution_profiles=monitoring_profiles)
     except ValueError as exc:
         monitoring_failure = str(exc)
+        # A method-specific failure names the method that caused it; only a
+        # county-wide failure falls back to the first enabled method.
+        failing = (exc.dataset, exc.index) if isinstance(exc, MonitoringMethodError) else None
         access = draft.get("access", {})
         found_monitoring = False
         for dataset in DATASETS:
             data = access.get(dataset, {}) if isinstance(access, dict) else {}
             for index, method in enumerate(data.get("methods", []) if isinstance(data, dict) else []):
                 monitoring = method.get("monitoring") if isinstance(method, dict) else None
+                if failing is not None and (dataset, index) != failing:
+                    continue
                 if isinstance(monitoring, dict) and monitoring.get("enabled") is True:
                     path = f"access.{dataset}.methods.{index}.monitoring"
                     if "terms" in monitoring_failure:
