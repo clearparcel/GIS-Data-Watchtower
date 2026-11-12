@@ -58,12 +58,10 @@ records that predate this rule are accepted as public as written
 ### Source, downloadable release and deployment are different things
 
 - **Supported source** is `main`; its version is `[project].version` in `pyproject.toml`.
-- **Latest downloadable release** is the newest GitHub Release. v0.5.3 (source
-  `963fef7fc4954f3704c96039bf81ee08616d8fe4`) is tagged at deployment. The
-  deployed v0.5.2 (source `6ac707952037e9ef4c8acb7ba82581885344b434`) and
-  v0.4.0 (`f2af1474b07394a6b72b1cc13ae26b1816163470`) still need their tags and
-  GitHub Releases, which the owner publishes from a workstation; until then use
-  their release records. Tag that exact source, not a later `main`.
+- **Latest downloadable release** is the newest GitHub Release, v0.5.3 (source
+  `963fef7fc4954f3704c96039bf81ee08616d8fe4`). The v0.4.0 and v0.5.2 tags and
+  the v0.3.13, v0.4.0 and v0.5.2 GitHub Releases were published on November 12,
+  2026, each on its recorded source commit.
   Versions v0.3.0 through v0.3.9 were recorded and deployed from `main` without
   a Git tag or GitHub Release, so they do not appear on the Releases page.
 - **Operational deployment** is what the dated `docs/release-vX.Y.Z.md` records
