@@ -676,6 +676,9 @@ def serve_public(host: str = "0.0.0.0", port: int = 8080, *, county_directory_ro
                 revision = getattr(self, "_render_revision", None)
                 if revision:
                     content = content.replace("</head>", '<meta data-content-revision="' + revision + '"></head>', 1)
+                presentation = getattr(self, "_presentation_revision", None)
+                if presentation:
+                    content = content.replace("</head>", '<meta data-presentation-revision="' + presentation + '"></head>', 1)
             analytics_sources = posthog_csp_sources()
             # Only scripts our templates wrote are allowed (by hash); markers are
             # removed from every response so the per-process secret never leaves.
@@ -782,6 +785,7 @@ def serve_public(host: str = "0.0.0.0", port: int = 8080, *, county_directory_ro
                     config = {**config, "_county_directory": directory, "_directory_refresh": True,
                               "_county_pdf_enabled": pdf_enabled}
                 self._render_revision = view["summary"]["content_revision"]
+                self._presentation_revision = view["summary"].get("presentation_revision")
                 config = {**config, "_render_state": view["state"]}
                 if dispatch_public_details(self, parsed.path, parsed.query, view):
                     return
