@@ -193,6 +193,14 @@ and selected mandatory-field gaps. Long content is visibly shortened and linked
 to the full profile. Private records and detailed field tables are excluded.
 JSON, CSV and Excel remain available for full public detail.
 
+The footer labels the PDF creation time separately from observations. Page two
+shows the county's monitoring status (for example Check overdue). Each MN GAC
+standard on page three shows its own observation date and marks a result kept
+from an earlier check after a failed attempt. When storage refresh fails and a
+cached snapshot is served, every page repeats that warning. The county JSON
+export carries the same `observed_at`, `latest_attempt_at` and `retained`
+values on each `gac` standard.
+
 ## Save audit records and cache behavior (v0.5.1)
 
 Each private county save atomically appends an `audit_events` entry in the same

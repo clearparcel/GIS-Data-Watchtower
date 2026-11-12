@@ -11,7 +11,7 @@ from xml.sax.saxutils import escape, quoteattr
 from .public_values import safe_public_url
 from .gac_standards import load_gac_standard
 
-_TEMPLATE_VERSION = 3
+_TEMPLATE_VERSION = 4
 _MAX_PDF_BYTES = 4 * 1024 * 1024
 
 
@@ -30,7 +30,10 @@ def _summary(snapshot):
     profile = snapshot.get('parcel_source_profile') or {}
     identity = profile.get('county') or directory.get('county') or {}
     contacts = directory.get('contacts', snapshot.get('contacts') or [])
+    from .dashboard import _coverage_status
     result = {'county': _plain(snapshot.get('county'), 100),
+              # A cached snapshot after a failed storage refresh must say so on every page.
+              'note': _plain(snapshot.get('snapshot_note'), 200),
               'url': 'https://gis-watchtower.clear-parcel.com/county?' + urlencode({'slug': identity.get('slug') or ''}),
               'captured': _plain(snapshot.get('snapshot_created_central') or snapshot.get('snapshot_created_utc'), 40),
               'revision': directory.get('public_revision'),
@@ -47,7 +50,8 @@ def _summary(snapshot):
     monitoring = profile.get('monitoring') or {}
     result['monitoring'] = {'path': _plain(snapshot.get('monitoring_path_label')),
         'direct_count': len(snapshot.get('direct_sources') or []),
-        'last_check': _plain(monitoring.get('last_checked_at')), 'status': _plain(snapshot.get('status'))}
+        'last_check': _plain(monitoring.get('last_checked_at')), 'status': _plain(snapshot.get('status')),
+        'status_label': _plain(_coverage_status(str(snapshot.get('status')))) if snapshot.get('status') else ''}
     for key in ('parcel', 'road', 'address'):
         g = (snapshot.get('gac') or {}).get(key) or (snapshot.get('mngac') if key == 'parcel' else {}) or {}
         county = g.get('county') or {}
@@ -64,7 +68,8 @@ def _summary(snapshot):
         names = [v.get('present_in_source_schema') for v in fields.values()]
         result['gac'][key] = {k: _number(county.get(k)) for k in ('record_count', 'field_count', 'scanned_field_count', 'mandatory_field_count', 'mandatory_fields_full', 'mandatory_population_percent', 'field_population_percent')}
         result['gac'][key].update({'present': sum(v is True for v in names) if names and all(type(v) is bool for v in names) else None,
-            'gaps': sorted(gaps, key=lambda g: g['percent'])[:3], 'standard_url': spec['standard']['source_url'], 'version': spec['standard']['version']})
+            'gaps': sorted(gaps, key=lambda g: g['percent'])[:3], 'standard_url': spec['standard']['source_url'], 'version': spec['standard']['version'],
+            'observed': _plain(g.get('observed_at'), 40), 'retained': g.get('retained') is True})
     return result
 
 
@@ -129,8 +134,13 @@ def _render(template, payload):
         para(data['county'] + ' County', 44, 700, 524, 48, 28)
         text(subtitle, 44, 651, 11, muted)
         c.line(44, 48, 568, 48)
-        text('Public snapshot: ' + (profile_time(data['captured']) if data['captured'] else 'Date unavailable'), 44, 31, 8, muted)
-        text(f'{page} / 3', 542, 31, 8, muted)
+        footer = 31
+        if data['note']:
+            text(data['note'], 44, 36, 8, '#8A5A00', True)
+            footer = 24
+        text('PDF created from public snapshot: ' + (profile_time(data['captured']) if data['captured'] else 'Date unavailable')
+             + '. Each measurement shows its own check date.', 44, footer, 8, muted)
+        text(f'{page} / 3', 542, footer, 8, muted)
 
     frame(1, 'GIS contacts and data access')
     text('COUNTY GIS CONTACTS', 44, 616, 9, green, True)
@@ -186,11 +196,12 @@ def _render(template, payload):
     para(data['access']['parcel_polygons']['note'] or 'No additional public note.', 60, 288, 492, 24, 9, muted)
     text('WATCHTOWER MONITORING', 44, 239, 9, green, True)
     m = data['monitoring']
-    for i, (label, value) in enumerate((('Monitoring path', m['path'] or 'Not available'), ('County-direct monitored sources', str(m['direct_count'])), ('Last check', profile_time(m['last_check'])))):
+    for i, (label, value) in enumerate((('Monitoring path', m['path'] or 'Not available'), ('Monitoring status', m['status_label'] or 'Not available'),
+                                         ('County-direct monitored sources', str(m['direct_count'])), ('Last check', profile_time(m['last_check'])))):
         y = 215 - 27 * i
         text(label, 44, y, 9, muted); para(value, 274, y + 9, 294, 22, 9)
         c.setStrokeColor(HexColor(line)); c.line(44, y - 8, 568, y - 8)
-    para('Access methods and monitoring coverage are tracked separately. Current policy text, restrictions and supporting links are available in the full county profile.', 44, 130, 524, 42, 9, muted)
+    para('Access methods and monitoring coverage are tracked separately. Current policy text, restrictions and supporting links are available in the full county profile.', 44, 108, 524, 28, 9, muted)
     link('Open the full county profile', data['url'], 44, 76)
     c.showPage()
     frame(3, 'MN GAC field summaries')
@@ -203,9 +214,11 @@ def _render(template, payload):
         if pct is not None and pct > 100: pct = None
         text(f'{pct:.2f}%' if pct is not None else 'No data', 447, top - 25, 18, green, True)
         text('Mandatory population', 443, top - 42, 8, muted)
+        text('Observed ' + (profile_time(g['observed']) if g['observed'] else 'date unavailable'), 443, top - 54, 7.5, muted)
+        if g['retained']: text('Earlier result kept', 443, top - 64, 7.5, '#8A5A00', True)
         def n(v): return f'{v:,}' if v is not None else 'Unknown'
         metrics = f"{n(g['record_count'])} records | {n(g['present'])}/{n(g['field_count'])} field names | {n(g['mandatory_fields_full'])}/{n(g['mandatory_field_count'])} mandatory fields full"
-        para(metrics, 60, top - 55, 492, 28, 8.5)
+        para(metrics, 60, top - 55, 372, 28, 8.5)
         c.setFillColor(HexColor(line)); c.roundRect(60, top - 84, 492, 4, 2, fill=1, stroke=0)
         if pct:
             c.setFillColor(HexColor(green)); c.roundRect(60, top - 84, 492 * pct / 100, 4, 2, fill=1, stroke=0)
