@@ -571,6 +571,21 @@ def _snapshot_gac_view(state: dict, standard_key: str, views: dict | None) -> di
 
 
 
+def _gac_observation(state: dict, standard_key: str) -> dict:
+    """When one standard was last observed, kept apart from export creation time.
+
+    ``retained`` marks a result carried forward from an earlier successful
+    check because the latest attempt failed.
+    """
+    _, source = _gac_source(state, standard_key)
+    source = source if isinstance(source, dict) else {}
+    data = _gac_data(state, standard_key) or {}
+    observed = data.get("observed_at") or source.get("last_success_at") or (
+        source.get("checked_at") if source.get("status") == "ok" else None)
+    return {"observed_at": observed, "latest_attempt_at": source.get("checked_at"),
+            "retained": source.get("gac_check_status") in {"error", "unsupported"} or source.get("status") == "error"}
+
+
 def _county_snapshot(config: dict, slug: str, *, include_mngac: bool = True, state: dict | None = None,
                      profiles: dict | None = None, research: dict | None = None,
                      contact_records: dict | None = None, gac_views: dict | None = None) -> dict | None:
@@ -590,7 +605,7 @@ def _county_snapshot(config: dict, slug: str, *, include_mngac: bool = True, sta
     gac_payload = {}
     if include_mngac:
         gac_payload = {
-            key: payload for key in standard_keys()
+            key: {**payload, **_gac_observation(state, key)} for key in standard_keys()
             if (payload := _gac_county_payload(state, key, county["name"],
                                                data=_snapshot_gac_view(state, key, gac_views))) is not None
         }
