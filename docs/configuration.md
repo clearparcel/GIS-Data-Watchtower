@@ -242,7 +242,7 @@ public-data opt-in, and latest submission time. See
 [`mngac-completeness.md`](mngac-completeness.md) for the parcel-specific
 historical methodology.
 
-Adapter-specific keys include `expected_layers` for WMS, `expected_feature_types`/`version` for WFS, `query`/`expected_columns`/`tracked_values` for Soil Data Access, and `expected_content_type` for `http_file`. The `http_file` adapter performs a HEAD-only check and tracks ETag, Last-Modified, Content-Length, and content type without downloading the file body.
+Adapter-specific keys include `expected_layers` for WMS, `expected_feature_types`/`version` for WFS, `query`/`expected_columns`/`tracked_values` for Soil Data Access, and `expected_content_type` for `http_file`. WMS and WFS GetCapabilities replies must be a capabilities document: an OGC `ServiceExceptionReport`/`ExceptionReport` (even with HTTP 200) or any other XML root is recorded as a source error, and a capabilities document with no named layers or feature types is a warning. WMS layers are the `Name` children of `Layer` elements; the service name is not counted. The `http_file` adapter performs a HEAD-only check and tracks ETag, Last-Modified, Content-Length, and content type without downloading the file body.
 
 ## Public PostHog analytics
 

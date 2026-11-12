@@ -1772,21 +1772,53 @@ def _capabilities_url(url: str, parameters: dict) -> str:
                                    urllib.parse.urlencode(query), ""))
 
 
+_WMS_CAPABILITIES_ROOTS = frozenset({"WMS_Capabilities", "WMT_MS_Capabilities"})
+_WFS_CAPABILITIES_ROOTS = frozenset({"WFS_Capabilities"})
+_OGC_EXCEPTION_ROOTS = frozenset({"ServiceExceptionReport", "ExceptionReport"})
+
+
+def _ogc_capabilities_root(body: bytes, service: str, accepted: frozenset[str]):
+    """Parse a GetCapabilities reply, refusing OGC exception and unrelated documents.
+
+    OGC services often return an exception document with HTTP 200. Treating
+    that as an empty capabilities inventory would record a broken service as
+    healthy, so it is raised as a source error with a bounded diagnostic.
+    """
+    root = ET.fromstring(body)
+    name = _local_name(root.tag)
+    if name in _OGC_EXCEPTION_ROOTS:
+        messages = [(element.text or "").strip() for element in root.iter()
+                    if _local_name(element.tag) in {"ServiceException", "ExceptionText"} and (element.text or "").strip()]
+        codes = [element.get("exceptionCode") or element.get("code") for element in root.iter()
+                 if _local_name(element.tag) in {"ServiceException", "Exception"}]
+        detail = "; ".join([c for c in codes if c] + messages) or "no exception text"
+        raise RuntimeError(f"{service} service exception: {_safe_diagnostic(detail, 200)}")
+    if name not in accepted:
+        raise RuntimeError(f"{service} GetCapabilities returned an unexpected document ({_safe_diagnostic(name, 60)})")
+    return root
+
+
 def _wms(source: dict, timeout: int) -> dict:
     query = {
         "service": "WMS",
         "request": "GetCapabilities",
     }
     body, meta = _request(_capabilities_url(source["url"], query), timeout, prefer_curl=bool(source.get("prefer_curl")))
-    root = ET.fromstring(body)
+    root = _ogc_capabilities_root(body, "WMS", _WMS_CAPABILITIES_ROOTS)
+    # Only a Name that is a direct child of a Layer names a map layer;
+    # Service/Name ("WMS") and Style/Name are not layers.
     names = sorted({
-        (element.text or "").strip()
+        (child.text or "").strip()
         for element in root.iter()
-        if _local_name(element.tag) == "Name" and (element.text or "").strip()
+        if _local_name(element.tag) == "Layer"
+        for child in element
+        if _local_name(child.tag) == "Name" and (child.text or "").strip()
     })
     expected = source.get("expected_layers", [])
     missing = [x for x in expected if x not in names]
     problems = ["expected WMS layers missing: " + ", ".join(missing)] if missing else []
+    if not names:
+        problems.append("WMS capabilities list no named layers")
     return {
         "http_status": meta["status"],
         "transport": meta.get("transport"),
@@ -1808,7 +1840,7 @@ def _wfs(source: dict, timeout: int) -> dict:
         timeout,
         prefer_curl=bool(source.get("prefer_curl")),
     )
-    root = ET.fromstring(body)
+    root = _ogc_capabilities_root(body, "WFS", _WFS_CAPABILITIES_ROOTS)
     feature_types = []
     for element in root.iter():
         if _local_name(element.tag) != "FeatureType":
@@ -1824,6 +1856,8 @@ def _wfs(source: dict, timeout: int) -> dict:
         ["expected WFS feature types missing: " + ", ".join(missing)]
         if missing else []
     )
+    if not feature_types:
+        problems.append("WFS capabilities list no feature types")
     return {
         "http_status": meta["status"],
         "transport": meta.get("transport"),
