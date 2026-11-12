@@ -1,8 +1,8 @@
 # Versioning and release policy
 
 The public and internal dashboards, county editor, regular cloud worker and
-public publisher run **v0.5.2**, deployed November 9. See the
-[release record](release-v0.5.2.md) for scope and validation. Rollback targets
+public publisher run **v0.5.3**, deployed November 12. See the
+[release record](release-v0.5.3.md) for scope and validation. Rollback targets
 are recorded in the private deployment record. Older release records are in the
 [archive](README.md#historical-engineering-and-release-records). Daily cloud
 provider polling was separately approved and activated on October 10;
@@ -58,7 +58,8 @@ records that predate this rule are accepted as public as written
 ### Source, downloadable release and deployment are different things
 
 - **Supported source** is `main`; its version is `[project].version` in `pyproject.toml`.
-- **Latest downloadable release** is the newest GitHub Release, v0.5.1. The
+- **Latest downloadable release** is the newest GitHub Release. v0.5.3 (source
+  `963fef7fc4954f3704c96039bf81ee08616d8fe4`) is tagged at deployment. The
   deployed v0.5.2 (source `6ac707952037e9ef4c8acb7ba82581885344b434`) and
   v0.4.0 (`f2af1474b07394a6b72b1cc13ae26b1816163470`) still need their tags and
   GitHub Releases, which the owner publishes from a workstation; until then use
@@ -81,9 +82,9 @@ Public page footers display **only the semantic application version** (for examp
 
 The source commit and build environment **remain inside immutable `build_info.json` and release/provenance records**, and may continue to inform optional analytics. They are intentionally not shown in the public footer. Container builds still require `WATCHTOWER_BUILD_REVISION` (full commit SHA) and `WATCHTOWER_BUILD_ENVIRONMENT` (`preview` or `production`). The production source package and visible version must agree. Build only from a clean, committed checkout; do not infer revision identity from the runtime Git state.
 
-**The coordinated application surfaces use v0.5.2 as of November 9, 2026.** The next
-application-code release must advance beyond v0.5.2. The
-[v0.5.2 release record](release-v0.5.2.md) identifies the deployed source and
+**The coordinated application surfaces use v0.5.3 as of November 12, 2026.** The next
+application-code release must advance beyond v0.5.3. The
+[v0.5.3 release record](release-v0.5.3.md) identifies the deployed source and
 verification limits. Always recheck live identity before promotion.
 
 ## Security fixes

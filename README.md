@@ -8,11 +8,11 @@
 
 **[Explore the live public dashboard](https://gis-watchtower.clear-parcel.com/)** · **[User guide](docs/user-guide.md)** · **[Documentation index](docs/README.md)**
 
-**Source version: v0.5.3.** See the [release record](docs/release-v0.5.3.md) (candidate, not yet deployed).
+**Source version: v0.5.3.** See the [release record](docs/release-v0.5.3.md).
 
 The public dashboard, internal dashboard, county editor, regular cloud worker
-and public publisher run **v0.5.2**, deployed November 9, 2026. See the
-[release record](docs/release-v0.5.2.md).
+and public publisher run **v0.5.3**, deployed November 12, 2026. See the
+[release record](docs/release-v0.5.3.md).
 The release includes [public destination validation](docs/county-source-monitoring.md#public-destination-checks-v051)
 for editor-enrolled source checks and the [repository review corrections](docs/review-remediation-v0.5.1.md).
 The [internal UI guide](docs/internal-dashboard-ui.md) describes attention lists, saved changes, reading-safe updates, terms filters and scoped downloads.
