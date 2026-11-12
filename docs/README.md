@@ -40,7 +40,8 @@ Choose the path that matches what you want to do. For the live dashboard and a c
 | [Provider-run alerting](provider-run-alerting-proposal.md) | Activated November 3, 2026 with v0.3.10: alert on Watchtower failures and missed runs separately from source errors |
 | [Public dashboard hosting](public-dashboard-hosting.md) | Anonymous sanitized service, access boundaries, publication, and freshness |
 | [Release policy](release-policy.md) | Versioning, evidence, and rollback expectations |
-| [Current v0.5.2 county monitoring release](release-v0.5.2.md) | Optional policy links, policy-silent REST checks, county update frequency |
+| [Current v0.5.3 review fixes release](release-v0.5.3.md) | November 12 review fixes: county holds, OGC errors, registry checks, PDF freshness |
+| [v0.5.2 county monitoring release](release-v0.5.2.md) | Optional policy links, policy-silent REST checks, county update frequency |
 | [v0.5.1 review fixes](release-v0.5.1.md) | Security, recovery, audit and storage corrections |
 | [v0.5.0 coordinated release](release-v0.5.0.md) | County editor, gated source monitoring, dashboards and jobs |
 | [v0.4.3 internal dashboard release](release-v0.4.3.md) | Previous internal UI rollout |

@@ -1,5 +1,18 @@
 # Project status
 
+## v0.5.3 review fixes — deployed, 2026-11-12
+
+This release applies the November 12 repository review fixes. A
+`not-appropriate` decision now blocks every county-direct parcel source. OGC
+capabilities errors are now reported as source errors. The modern GAC parcel
+result counts toward coverage. Incomplete registry entries stop a run before
+dispatch. The loopback dashboard is protected from rebinding, and editor scans
+stay within the request deadline. The public page refreshes when county
+freshness changes, and county PDFs show observation dates and the cache warning
+on every page. The public site reports v0.5.3. Production provider schedules and
+monitoring registries were not changed, and no provider run was started for this
+release. See the [release notes](docs/release-v0.5.3.md).
+
 ## v0.5.2 county monitoring — deployed, 2026-11-09
 
 This release makes policy links and permission dates optional in the County
