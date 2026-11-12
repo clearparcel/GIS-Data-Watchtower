@@ -41,6 +41,13 @@ start provider checks. The footer shows application version/build and whether
 the dashboard is view-only. An ordinary writable local dashboard retains its
 existing separately controlled **Check now** action.
 
+The public page also reloads (or offers **Update view** while you read) when a
+county's reporting state changes with time alone, for example from actively
+checked to check overdue after provider checks stop. `/api/summary` carries a
+`presentation_revision` for this, separate from `content_revision`, which
+still identifies only the observations. Reporting is recomputed at most every
+ten minutes.
+
 The next-release review fix also preserves the pause choice and open sections
 when returning through a link to a particular recorded change. Linked evidence
 opens after the saved preferences are restored.
