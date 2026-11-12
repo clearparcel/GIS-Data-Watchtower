@@ -70,8 +70,10 @@ The repository is already public. The original release prerequisites are complet
 
 Aitkin and Morrison provider-use questions remain tracked as **deployment/provider constraints**, not blockers to repository visibility, because the public repository does not ship the private production source registry or redistribute those providers' raw data.
 
-## Current deployment posture
+## Deployment posture on October 5, 2026 (historical)
 
-A local production schedule remains authoritative while a private hybrid staging deployment is validated over multiple daily cycles. Cloud Run and GCS have passed one-cycle hardened validation; Authoritative GIS-provider scheduling remains disabled pending the multi-day validation gate; the separate sanitized publisher has a recorded 10-minute schedule.
+This section is a dated snapshot and is no longer current. On October 5, a local production schedule was authoritative while a private hybrid staging deployment was validated; Cloud Run and GCS had passed one-cycle hardened validation, authoritative GIS-provider scheduling in the cloud was disabled, and the sanitized publisher had a recorded 10-minute schedule.
+
+Since then the legacy local scheduled task was retired and daily cloud provider polling was activated (October 10, 2026). Use [current-status.md](current-status.md) and [google-cloud-deployment.md](google-cloud-deployment.md) for the current posture.
 
 See [current-status.md](current-status.md) and [google-cloud-deployment.md](google-cloud-deployment.md).
