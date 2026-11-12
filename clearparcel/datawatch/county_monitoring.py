@@ -133,6 +133,18 @@ def _source_kind(method: dict) -> tuple[str, str]:
     raise ValueError("regular checks support direct GIS service and data file links")
 
 
+class MonitoringMethodError(ValueError):
+    """An enrollment rule failed for one specific access method.
+
+    ``dataset`` and ``index`` name the method in the draft so the editor can
+    point at the field that actually caused the rejection.
+    """
+
+    def __init__(self, message: str, dataset: str, index: int):
+        super().__init__(message)
+        self.dataset, self.index = dataset, index
+
+
 def build_county_monitoring_sources(county: dict, draft: object, *, execution_profiles=("cloud", "local")) -> list[dict]:
     """Build bounded source records from a private draft; never from public URL input alone."""
     if not isinstance(draft, dict) or draft.get("fips") != county.get("fips"):
@@ -148,56 +160,66 @@ def build_county_monitoring_sources(county: dict, draft: object, *, execution_pr
         methods = record.get("methods", [])
         if not isinstance(methods, list):
             raise ValueError("county data access methods are invalid")
-        enabled.extend((dataset, record, method) for method in methods
+        enabled.extend((dataset, record, method, index) for index, method in enumerate(methods)
                        if isinstance(method, dict) and isinstance(method.get("monitoring"), dict)
                        and method["monitoring"].get("enabled") is True)
     if not enabled:
         return []
     research = load_parcel_access().get(county.get("name"), {})
     county_decision = (research.get("monitoring") or {}).get("decision")
-    has_parcels = any(dataset == "parcel_polygons" for dataset, _record, _method in enabled)
-    if has_parcels and county_decision in {"hold-for-terms", "not-appropriate"}:
-        raise ValueError("this county's current monitoring decision does not allow new direct checks")
+    parcels = [(dataset, index) for dataset, _record, _method, index in enabled if dataset == "parcel_polygons"]
+    if parcels and county_decision in {"hold-for-terms", "not-appropriate"}:
+        raise MonitoringMethodError("this county's current monitoring decision does not allow new direct checks", *parcels[0])
     monitoring = research.get("monitoring") or {}
     if monitoring.get("stop_requested") is True or monitoring.get("reply") in {"declined", "stop"}:
         raise ValueError("the county asked Watchtower not to check its direct sources")
 
     sources, seen_urls = [], set()
-    for dataset, record, method in enabled:
-        category, label = _DATASETS[dataset]
-        options = method["monitoring"]
-        if record.get("classification") != "open":
-            raise ValueError("only open data sources can be included in regular checks")
-        restrictions = record.get("restrictions") or {}
-        if not isinstance(restrictions, dict) or restrictions.get("status") != "reviewed_none":
-            raise ValueError("review this dataset's use restrictions before enabling checks")
-        adapter, url = _source_kind(method)
-        if (dataset == "parcel_polygons" and adapter != "arcgis_layer"
-                and monitoring.get("scope") == "none"):
-            raise ValueError("this county's current monitoring decision does not allow new direct checks")
-        identity = (dataset, url)
-        if identity in seen_urls:
-            raise ValueError("the same direct source is listed more than once")
-        seen_urls.add(identity)
-        approval = _monitoring_options(options, adapter=adapter)
-        if approval["execution_profile"] not in execution_profiles:
-            raise ValueError("choose an available monitoring worker")
-        digest = hashlib.sha256(f"{county['slug']}\0{dataset}\0{url}".encode("utf-8")).hexdigest()[:16]
-        source = {
-            "id": f"county-{county['slug']}-{digest}",
-            "name": f"{county['name']} County {label}",
-            "provider": f"{county['name']} County",
-            "category": category,
-            "kind": adapter,
-            "url": url,
-            "county_slug": county["slug"],
-            "execution_profiles": [approval["execution_profile"]],
-            "monitoring_approval": approval,
-        }
-        if adapter == "arcgis_layer":
-            source["count"] = True
-        sources.append(source)
+    for dataset, record, method, index in enabled:
+        try:
+            sources.append(_enrolled_source(county, dataset, record, method, monitoring, seen_urls, execution_profiles))
+        except MonitoringMethodError:
+            raise
+        except ValueError as exc:
+            raise MonitoringMethodError(str(exc), dataset, index) from exc
     return sources
+
+
+def _enrolled_source(county: dict, dataset: str, record: dict, method: dict, monitoring: dict,
+                     seen_urls: set, execution_profiles) -> dict:
+    category, label = _DATASETS[dataset]
+    options = method["monitoring"]
+    if record.get("classification") != "open":
+        raise ValueError("only open data sources can be included in regular checks")
+    restrictions = record.get("restrictions") or {}
+    if not isinstance(restrictions, dict) or restrictions.get("status") != "reviewed_none":
+        raise ValueError("review this dataset's use restrictions before enabling checks")
+    adapter, url = _source_kind(method)
+    if (dataset == "parcel_polygons" and adapter != "arcgis_layer"
+            and monitoring.get("scope") == "none"):
+        raise ValueError("this county's current monitoring decision does not allow new direct checks")
+    identity = (dataset, url)
+    if identity in seen_urls:
+        raise ValueError("the same direct source is listed more than once")
+    seen_urls.add(identity)
+    approval = _monitoring_options(options, adapter=adapter)
+    if approval["execution_profile"] not in execution_profiles:
+        raise ValueError("choose an available monitoring worker")
+    digest = hashlib.sha256(f"{county['slug']}\0{dataset}\0{url}".encode("utf-8")).hexdigest()[:16]
+    source = {
+        "id": f"county-{county['slug']}-{digest}",
+        "name": f"{county['name']} County {label}",
+        "provider": f"{county['name']} County",
+        "category": category,
+        "kind": adapter,
+        "url": url,
+        "county_slug": county["slug"],
+        "execution_profiles": [approval["execution_profile"]],
+        "monitoring_approval": approval,
+    }
+    if adapter == "arcgis_layer":
+        source["count"] = True
+    return source
 
 
 def _validate_source(source: object, slug: str) -> dict:
