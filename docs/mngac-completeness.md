@@ -63,7 +63,15 @@ Consumers must distinguish `false` from `null`.
 
 The validated ClearParcel deployment calculates these statistics from MnGeo's standardized **Plan Parcels Open** parcel layer:
 
-https://enterprise.gisdata.mn.gov/aghost/rest/services/us_mn_state_mngeo/plan_parcels_open/FeatureServer/1
+https://enterprise.gisdata.mn.gov/aghost/rest/services/us_mn_state_mngeo/plan_parcels_open/FeatureServer/0
+
+MnGeo renumbered this service between the November 10 and November 11, 2026
+Watchtower checks. Layer 0 is now
+**Open Parcels In Minnesota** (the parcel layer) and layer 1 is now **Open
+Parcels Metadata Layer** (one row per county). Before that refresh the parcel
+layer was layer 1, which is the ID that older audit notes cite. A registry that
+still points the statewide parcel source at layer 1, or the county catalog at
+layer 0, reports errors until the private registry is corrected.
 
 This source already uses the GAC transfer-schema field names, which gives counties one consistent comparison basis.
 
