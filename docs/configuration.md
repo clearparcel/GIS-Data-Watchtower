@@ -81,6 +81,12 @@ Optional common controls include:
 - `expected_update_days`: how often the publisher is expected to update this
   source's data, in whole days (1–3650). Overrides the learned or default
   interval; see [data freshness](#data-freshness).
+- `expected_layer_name`: for an ArcGIS layer source, the layer name the URL
+  should return (compared without regard to case or surrounding space). If the
+  provider renumbers layers inside a service, the layer definition names a
+  different dataset; the source then fails with a "layer name mismatch" error
+  before any count or completeness query. MnGeo swapped `plan_parcels_open`
+  layers 0 and 1 in November 2026, so set this on statewide parcel sources.
 - `execution_profiles`: for example `["cloud"]`, `["local"]`, or `["any"]`.
   A worker polls an assigned source only when it declares a matching profile
   through `--execution-profile` or `WATCHTOWER_EXECUTION_PROFILE` (the
