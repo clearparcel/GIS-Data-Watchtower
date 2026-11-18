@@ -57,7 +57,7 @@ class PublicDashboardTests(unittest.TestCase):
         self.assertIn('2 days ago', page)
         self.assertIn('Source checks: 2 overdue', page)
         self.assertIn('Reporting on time', page)
-        self.assertEqual(metric(page, 'Last successful source check'), '—')
+        self.assertEqual(metric(page, 'Last fully successful worker run'), '—')
         self.assertIn('without running a new source check', page)
         state['sources'] = {'missing': {'checked_at': None}, 'invalid': {'checked_at': 'invalid'}}
         with patch('clearparcel.datawatch.public_dashboard._dashboard_state', return_value=state):

@@ -1,5 +1,20 @@
 # Project status
 
+## Third review fixes — merged to main, not deployed
+
+Fixes from the third review of `2310764` (v0.5.6). They are on `main` only;
+production still runs v0.5.6.
+
+Publication integrity: a source's measured values are ordered by its provider
+check time, so overlapping workers can no longer republish an older
+observation in either arrival order, and `last_success_at` is the source's own
+check time (T01). The publisher refuses an aggregate dated more than five
+minutes ahead of its clock, and stored or published future times no longer
+block a corrected aggregate (T02). A mistyped source status is refused instead
+of publishing beside an all-clear fleet (T03). A worker whose first report is
+filtered records only its heartbeat until its first complete report (T10). The
+public worker card now reads "Last fully successful worker run" (T11).
+
 ## v0.5.6 follow-up review fixes — deployed, 2026-11-18
 
 Deployed November 18, 2026 from `9979b63` (PRs #266 to #272); see the

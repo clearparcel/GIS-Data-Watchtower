@@ -214,8 +214,17 @@ class WorkerHealthTests(unittest.TestCase):
         self.assertEqual(state["sources"]["a"]["checked_at"], stamp(10))  # the source itself still updates
 
     def test_first_report_from_a_worker_may_be_filtered(self):
+        """Third review T10: the heartbeat and source land, fleet-wide health waits."""
         state = merge_states({}, report(0, ["a"], scope="source"), "cloud", now=LATER)
-        self.assertEqual(state["workers"]["cloud"]["source_count"], 1)
+        worker = state["workers"]["cloud"]
+        self.assertEqual(worker["last_report_at"], stamp(0))
+        self.assertEqual(worker["last_partial_report_at"], stamp(0))
+        for key in ("overall", "source_count", "last_success_at", "checked_at", "counts"):
+            self.assertNotIn(key, worker)
+        self.assertEqual(state["sources"]["a"]["status"], "ok")
+        state = merge_states(state, report(5, ["a", "b"]), "cloud", now=LATER)
+        worker = state["workers"]["cloud"]
+        self.assertEqual((worker["overall"], worker["source_count"], worker["last_success_at"]), ("ok", 2, stamp(5)))
 
 
 class ClockSkewTests(unittest.TestCase):

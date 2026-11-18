@@ -12,7 +12,8 @@ from clearparcel.datawatch import strict_json
 from clearparcel.datawatch.public_projection import (InvalidSnapshotError, validate_snapshot_structure,
                                                      validate_snapshot_totals)
 from clearparcel.datawatch.storage import GCSStorage, StorageBackend, StorageConflictError, gcs_object_identity
-from clearparcel.datawatch.aggregate import CLOCK_SKEW_TOLERANCE_SECONDS, _parse_time
+from clearparcel.datawatch.aggregate import (CLOCK_SKEW_TOLERANCE_SECONDS, _parse_time, _plausible_time,
+                                             observation_rolls_back)
 from clearparcel.datawatch.provider_watchdog import run_provider_watchdog
 
 
@@ -102,13 +103,57 @@ def validate_private_aggregate(raw: object) -> None:
             value = raw["counts"][key]
             if isinstance(value, bool) or not isinstance(value, int) or value < 0:
                 raise InvalidSnapshotError(f"private aggregate count {key} is invalid")
+    # A mistyped status is tallied nowhere, so it could sit beside an all-clear
+    # fleet. Aggregation writes only ok/warn/error; an absent or legacy
+    # "unknown" status stays visible as unknown (third review T03).
+    for source_id, record in raw["sources"].items():
+        if "status" in record and record["status"] not in _PRIVATE_SOURCE_STATUSES:
+            raise InvalidSnapshotError(f"private aggregate source {str(source_id)[:80]!r} has an invalid status")
     validate_snapshot_totals(raw)
 
 
-def _snapshot_is_superseded(candidate: dict, current: dict) -> bool:
-    """Refuse rollback of known fleet, worker, or retained source observations."""
+_PRIVATE_SOURCE_STATUSES = {"ok", "warn", "error", "unknown", None}
+
+
+def _ordering_times(state: dict):
+    """Every time the rollback guard orders publications by."""
+    yield "generated_at", state.get("generated_at")
+    for name, worker in (state.get("workers") or {}).items():
+        for key in ("last_report_at", "checked_at"):
+            yield f"workers.{name}.{key}", worker.get(key)
+    for name, worker in (state.get("retired_workers") or {}).items():
+        yield f"retired_workers.{name}.retired_at", worker.get("retired_at")
+    for name, source in (state.get("sources") or {}).items():
+        for key in ("last_report_at", "checked_at"):
+            yield f"sources.{name}.{key}", source.get(key)
+    for name, tombstone in (state.get("retired_sources") or {}).items():
+        if isinstance(tombstone, dict):
+            yield f"retired_sources.{name}.retired_at", tombstone.get("retired_at")
+
+
+def validate_ordering_clocks(state: dict, now: dt.datetime) -> None:
+    """Refuse a publication dated ahead of this publisher's clock.
+
+    A future time would win every later rollback comparison and block valid
+    publications until real time caught up (third review T02).
+    """
+    limit = now + dt.timedelta(seconds=CLOCK_SKEW_TOLERANCE_SECONDS)
+    for label, value in _ordering_times(state):
+        stamp = _parse_time(value)
+        if stamp is not None and stamp > limit:
+            raise InvalidSnapshotError(f"aggregate time {label[:120]} is in the future; check the worker clock")
+
+
+def _snapshot_is_superseded(candidate: dict, current: dict, now: dt.datetime | None = None) -> bool:
+    """Refuse rollback of known fleet, worker, or retained source observations.
+
+    A destination time beyond the skew tolerance in the future is not evidence
+    of a newer publication: it never blocks recovery (third review T02).
+    """
+    now = now or dt.datetime.now(dt.timezone.utc)
+
     def older(new, old):
-        old_time, new_time = _parse_time(old), _parse_time(new)
+        old_time, new_time = _plausible_time(old, now), _parse_time(new)
         return old_time is not None and (new_time is None or new_time < old_time)
     if older(candidate.get("generated_at"), current.get("generated_at")):
         return True
@@ -137,7 +182,11 @@ def _snapshot_is_superseded(candidate: dict, current: dict) -> bool:
             tombstone = (candidate.get("retired_sources") or {}).get(name)
             if not isinstance(tombstone, dict) or older(tombstone.get("retired_at"), source_seen):
                 return True
-        elif older(incoming.get("last_report_at") or incoming.get("checked_at"), source_seen):
+        elif _plausible_time(source.get("checked_at"), now) is not None and observation_rolls_back(incoming, source):
+            # Ordered by provider observation, not worker report time (T01).
+            return True
+        elif _plausible_time(source.get("checked_at"), now) is None and older(
+                incoming.get("last_report_at") or incoming.get("checked_at"), source_seen):
             return True
     for name, tombstone in (current.get("retired_sources") or {}).items():
         retired_at = tombstone.get("retired_at") if isinstance(tombstone, dict) else None
@@ -145,7 +194,7 @@ def _snapshot_is_superseded(candidate: dict, current: dict) -> bool:
         incoming_tombstone = (candidate.get("retired_sources") or {}).get(name)
         if incoming is not None:
             incoming_at = incoming.get("last_report_at") or incoming.get("checked_at")
-            if _parse_time(retired_at) is not None and (
+            if _plausible_time(retired_at, now) is not None and (
                 _parse_time(incoming_at) is None or _parse_time(incoming_at) <= _parse_time(retired_at)
             ):
                 return True
@@ -192,6 +241,7 @@ def publish_public_snapshot(
         # The same contract the public reader applies: a snapshot it would
         # reject must never replace the last accepted publication.
         validate_snapshot_structure(public)
+        validate_ordering_clocks(public, dt.datetime.now(dt.timezone.utc))
         current_path = scratch_root / "destination.json"
         published = False
         for attempt in range(8):
