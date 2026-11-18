@@ -422,7 +422,7 @@ class ReviewRegressions(unittest.TestCase):
             try:
                 os.utime(state.with_suffix(".json.lock"), (time.time()-61, time.time()-61))
                 with self.assertRaises(watch.WatchtowerRunLockedError):
-                    successor = watch._acquire_run_lock(state, 60)
+                    successor = watch._acquire_run_lock(state, 60, wait_seconds=0.1)
                     watch._release_run_lock(successor)
             finally:
                 watch._release_run_lock(owner)

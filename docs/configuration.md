@@ -16,7 +16,7 @@ Start from `config/example_sources.json`. The public example is deliberately pro
 | `alerts_file` | Structured alert output | optional |
 | `alerts_text_file` | Human-readable alert output | optional |
 | `history_max_mb` | Rotate history when this approximate size is reached | `10` |
-| `run_lock_stale_seconds` | Legacy compatibility key; ignored by process-owned locks. Process termination releases the lock immediately; age never transfers ownership. | `7200` |
+| `run_lock_stale_seconds` | Legacy compatibility key; ignored by process-owned locks. Process termination releases the lock (on Windows, possibly a moment later; a new check waits up to five seconds for it before reporting that another check is running). Age never transfers ownership. | `7200` |
 | `sources` | Source definitions | `[]` |
 
 The supported history size key is `history_max_mb`. Older experimental keys such as `history_max_lines` and `history_max_bytes` are not supported.

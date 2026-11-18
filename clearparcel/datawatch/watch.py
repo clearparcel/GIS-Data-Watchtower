@@ -2540,12 +2540,22 @@ class WatchtowerRunLockedError(RuntimeError):
     pass
 
 
-def _acquire_run_lock(state_path: Path, stale_seconds: int = 7200) -> FileLock:
+# How long a new run waits for the run lock before reporting contention.
+# Windows releases a killed process's byte-range lock asynchronously, so a
+# restart right after the owner exits can briefly find it still held (review
+# finding 07). A live owner still holds the lock past this wait, so exclusion
+# is unchanged; only a lock that frees up within the bound is acquired.
+_RUN_LOCK_WAIT_SECONDS = 5.0
+
+
+def _acquire_run_lock(state_path: Path, stale_seconds: int = 7200, *,
+                      wait_seconds: float | None = None) -> FileLock:
     # Retain the configuration argument for compatibility; age never transfers
     # ownership. The OS releases the lock when the owning process exits.
     lock = state_path.with_suffix(state_path.suffix + ".lock")
+    wait = _RUN_LOCK_WAIT_SECONDS if wait_seconds is None else wait_seconds
     try:
-        return FileLock(lock).acquire()
+        return FileLock(lock, timeout=max(0.0, float(wait))).acquire()
     except TimeoutError as exc:
         raise WatchtowerRunLockedError(f"another Watchtower check is already running: {lock}") from exc
 

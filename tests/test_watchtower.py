@@ -1071,7 +1071,7 @@ class DataWatchTests(unittest.TestCase):
             state = Path(td) / 'state.json'
             lock = datawatch._acquire_run_lock(state, stale_seconds=60)
             with self.assertRaises(datawatch.WatchtowerRunLockedError):
-                datawatch._acquire_run_lock(state, stale_seconds=60)
+                datawatch._acquire_run_lock(state, stale_seconds=60, wait_seconds=0.1)
             datawatch._release_run_lock(lock)
             stale = state.with_suffix('.json.lock')
             stale.write_text('stale', encoding='utf-8')
