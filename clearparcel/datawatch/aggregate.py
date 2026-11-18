@@ -65,8 +65,10 @@ def merge_states(base: dict | None, partial: dict, worker: str, *, now: dt.datet
     workers = deepcopy(base.get("workers") or {})
     retired_sources = deepcopy(base.get("retired_sources") or {})
     previous_worker = workers.get(worker) or {}
-    previous_worker_time = _parse_time(previous_worker.get("last_report_at")
-                                       or (workers.get(worker) or {}).get("checked_at"))
+    # A stored time beyond the skew tolerance in the future came from a skewed
+    # clock; it is not evidence and must not block later valid reports (T02).
+    previous_worker_time = _plausible_time(previous_worker.get("last_report_at")
+                                           or previous_worker.get("checked_at"), now)
     if previous_worker_time and incoming_time <= previous_worker_time:
         return base
     shrink_refused = 0
@@ -102,8 +104,7 @@ def merge_states(base: dict | None, partial: dict, worker: str, *, now: dt.datet
         retired_at = _parse_time(tombstone.get("retired_at"))
         if retired_at is not None and incoming_time <= retired_at:
             continue
-        seen = _parse_time(previous.get("last_report_at") or previous.get("checked_at"))
-        if seen and seen >= incoming_time:
+        if _source_update_is_stale(record, previous, incoming_time, worker, now):
             continue
         if shrink_refused and previous.get("worker") not in (None, worker):
             # A report that failed the inventory guard (for example a wrong
@@ -114,7 +115,9 @@ def merge_states(base: dict | None, partial: dict, worker: str, *, now: dt.datet
         retired_sources.pop(source_id, None)
         record["last_report_at"] = generated
         if record.get("status") == "ok":
-            record["last_success_at"] = generated
+            # When this source's provider check succeeded, not when its run started.
+            observed = record.get("checked_at")
+            record["last_success_at"] = observed if _parse_time(observed) else generated
         elif previous.get("last_success_at"):
             record["last_success_at"] = previous["last_success_at"]
         # The provider answered (ok or warn), even if checks raised warnings;
@@ -133,10 +136,11 @@ def merge_states(base: dict | None, partial: dict, worker: str, *, now: dt.datet
     # Report publication is the worker heartbeat even when one or more sources fail.
     # Keep that clock separate from the most recent all-clear worker run.
     worker_status = _normalized_status(partial.get("overall"))
-    if (scope_type in _PARTIAL_SCOPES or shrink_refused) and previous_worker:
+    if scope_type in _PARTIAL_SCOPES or shrink_refused:
         # A filtered run, or a fleet report whose inventory shrink was refused,
         # proves the worker is alive but cannot vouch for its whole inventory:
-        # keep the fleet-level health from the last full run.
+        # keep the fleet-level health from the last full run. A worker whose
+        # first report is filtered has no fleet-level health yet (T10).
         workers[worker] = {**previous_worker, "last_report_at": generated, "last_partial_report_at": generated}
     else:
         workers[worker] = {
@@ -154,7 +158,7 @@ def merge_states(base: dict | None, partial: dict, worker: str, *, now: dt.datet
             workers[worker]["inventory_shrink_refused"] = shrink_refused
         else:
             workers[worker].pop("inventory_shrink_refused", None)
-    previous_generated = _parse_time(base.get("generated_at"))
+    previous_generated = _plausible_time(base.get("generated_at"), now)
     fleet_generated = base["generated_at"] if previous_generated and previous_generated > incoming_time else generated
     return {
         "schema_version": max(int(base.get("schema_version") or 2), int(partial.get("schema_version") or 2), 3),
@@ -229,6 +233,48 @@ def _parse_time(value):
         return parsed if parsed.tzinfo else parsed.replace(tzinfo=dt.timezone.utc)
     except ValueError:
         return None
+
+
+def _plausible_time(value, now: dt.datetime):
+    """A parsed time, or None when missing, invalid or beyond the skew tolerance after ``now``."""
+    parsed = _parse_time(value)
+    if parsed is None or parsed > now + dt.timedelta(seconds=CLOCK_SKEW_TOLERANCE_SECONDS):
+        return None
+    return parsed
+
+
+def observation_rolls_back(incoming: dict, existing: dict) -> bool:
+    """True when ``incoming`` carries an older provider observation than ``existing``.
+
+    Ordering follows when the provider was checked (``checked_at``), not when a
+    worker's run started or reported: overlapping workers can report an older
+    observation after a newer one (third review T01). Records without a check
+    time fall back to report time.
+    """
+    existing_checked, incoming_checked = _parse_time(existing.get("checked_at")), _parse_time(incoming.get("checked_at"))
+    if existing_checked is not None and incoming_checked is not None:
+        return incoming_checked < existing_checked
+    existing_seen = _parse_time(existing.get("last_report_at") or existing.get("checked_at"))
+    incoming_seen = _parse_time(incoming.get("last_report_at") or incoming.get("checked_at"))
+    return existing_seen is not None and (incoming_seen is None or incoming_seen < existing_seen)
+
+
+def _source_update_is_stale(record: dict, previous: dict, incoming_time: dt.datetime, worker: str,
+                            now: dt.datetime) -> bool:
+    """Whether a reported source record must not replace the stored one."""
+    if not previous:
+        return False
+    previous_checked = _plausible_time(previous.get("checked_at"), now)
+    incoming_checked = _parse_time(record.get("checked_at"))
+    if previous_checked is not None and incoming_checked is not None:
+        # Both carry a provider observation: the older one never wins.
+        return incoming_checked < previous_checked
+    if previous_checked is not None and previous.get("worker") not in (None, worker):
+        # A record without an observation (a deferred first check) never
+        # replaces another worker's measured observation.
+        return True
+    seen = _plausible_time(previous.get("last_report_at") or previous.get("checked_at"), now)
+    return seen is not None and seen >= incoming_time
 
 
 def _age_seconds(now: dt.datetime, seen: dt.datetime) -> float:

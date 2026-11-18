@@ -192,7 +192,7 @@ def render_public_dashboard(config: dict) -> str:
             f'<span class="subtext" data-worker-report="{_esc(name)}">{_esc({"ok": "Checks passing", "warn": "Some checks need attention", "error": "Checks failed"}.get(status, "Unknown"))} · {_esc(reporting)}</span></div>'
             '<div class="worker-meta">'
             f'<div><span class="muted">Sources</span><strong>{_esc(worker.get("source_count", "—"))}</strong></div>'
-            f'<div><span class="muted">Last successful source check</span><strong>{_esc(_public_time(worker.get("last_success_at")))}</strong></div>'
+            f'<div><span class="muted">Last fully successful worker run</span><strong>{_esc(_public_time(worker.get("last_success_at")))}</strong></div>'
             f'<div><span class="muted">Latest monitoring report</span><strong>{_esc(_public_time(worker.get("last_report_at") or worker.get("checked_at")))}</strong></div>'
             '</div></div>'
         )
