@@ -383,7 +383,9 @@ A county has a **monitoring path** when Watchtower observes its parcel data thro
 county-direct source, the single statewide MnGeo parcel check, or both; representation in the
 statewide check counts without a separate provider request for each county. Since the owner's
 2026-10-13 decision, a county is **actively checked** only when it has a monitoring path *and* its
-latest check is within the freshness window; otherwise it is shown as **check overdue**. The
+latest check is within the freshness window; otherwise it is shown as **check overdue**. A path whose
+check or worker-report time is unknown (for example a missing worker report) is not within the window, so
+it is also shown and counted as check overdue; current plus overdue equals the counties with a path. The
 61-of-87 example above used the earlier meaning (any monitoring path).
 
 This definition is intentionally different from county-direct source count, which remains a

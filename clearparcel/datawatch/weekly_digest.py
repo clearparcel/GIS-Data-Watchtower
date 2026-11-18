@@ -98,8 +98,14 @@ def build_digest(state: dict, config: dict, histories: dict, *, now: dt.datetime
     stale = sorted(((sid, row) for sid, row in rows.items() if row["state"] == "stale"),
                    key=lambda item: -(item[1]["age_days"] or 0))
     unknown = sorted(sid for sid, row in rows.items() if row["state"] == "unknown")
-    overdue_checks = sorted(sid for sid, src in sources.items() if src.get("stale"))
-    overdue_workers = sorted(name for name, w in (state.get("workers") or {}).items() if w.get("stale"))
+    # The combined reporting state: a recent check whose assigned worker report
+    # is stale or missing is still overdue (follow-up review F09).
+    overdue_checks = sorted(sid for sid, src in sources.items()
+                            if src.get("stale") or src.get("reporting") == "stale")
+    workers = state.get("workers") or {}
+    missing_workers = sorted({str(src.get("worker")) for src in sources.values()
+                              if src.get("worker") and not isinstance(workers.get(src.get("worker")), dict)})
+    overdue_workers = sorted([name for name, w in workers.items() if w.get("stale")] + missing_workers)
     try:
         from zoneinfo import ZoneInfo
         local = now.astimezone(ZoneInfo(CENTRAL))
@@ -117,7 +123,8 @@ def build_digest(state: dict, config: dict, histories: dict, *, now: dt.datetime
          [f"  {_name(sid, sources[sid])}: {row['age_days']} days since update "
           f"(expected within {row['expected_days']})" for sid, row in stale]),
         ("No publisher update time:", [f"  {_name(sid, sources[sid])}" for sid in unknown]),
-        ("Checks overdue:", [f"  {name} worker" for name in overdue_workers]
+        ("Checks overdue:", [f"  {name} worker" + (" (no report on record)" if name in missing_workers else "")
+                             for name in overdue_workers]
          + [f"  {_name(sid, sources[sid])}" for sid in overdue_checks]),
     ]
     terms_headline, terms_sections, terms_overdue = _terms_lines(terms, now)
@@ -158,6 +165,10 @@ def run_weekly_digest(config: dict, storage, stream, *, aggregate_object: str = 
         storage.download(history, root / history)
         storage.download(HISTORY_ARCHIVE, root / HISTORY_ARCHIVE)
         state = load_state(str(aggregate_path))
+        # A digest needs a real fleet: an empty or malformed object is an input
+        # error, never a routine "0 stale" notice (follow-up review F10).
+        from clearparcel.datawatch.public_publish import validate_private_aggregate
+        validate_private_aggregate(state)
         _, histories = load_history_index(history_config, (state.get("sources") or {}).keys(),
                                           limit=HISTORY_LIMIT)
     digest = build_digest(state, config, histories, now=now, terms=_terms_snapshot())

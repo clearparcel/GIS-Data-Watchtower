@@ -442,7 +442,9 @@ def _county_status(config: dict, county: dict, state: dict, *, profiles: dict | 
         status = profile['monitoring']['health']
         # A healthy result that has not been re-checked within the freshness
         # window is not "actively checked": keep availability and check age apart.
-        if profile['monitoring'].get('reporting') == 'overdue' and status in ('ok', 'unknown'):
+        # An unknown clock (for example a missing worker report) is not current
+        # either; the owner's coverage rule shows it as check overdue.
+        if profile['monitoring'].get('reporting') in ('overdue', 'unknown') and status in ('ok', 'unknown'):
             status = 'overdue'
     blocked = [src for src in matches if src.get("_permission_blocked")]
     # A paused county-server check must not be shown as a failed check. MnGeo
