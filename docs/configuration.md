@@ -220,6 +220,13 @@ in worker reports, the shared aggregate, or the public projection. Runs with
 repeating them against a host that has just returned 429.
 
 ArcGIS layer checks may use `count`, `expected_geometry`, `expected_wkid`, `required_fields`, `parcel_quality`, `geometry_sample`, and `geometry_sample_size`.
+
+The geometry sample's `geometry_sample_multipart` and
+`geometry_sample_multipart_percent` count sampled shapes with **more than one
+ring**. A polygon with one interior hole counts, the same as a polygon with two
+separate parts, because rings alone do not say which is which. The dashboard
+labels the measure "Shapes with multiple parts or holes". The names are kept
+for compatibility with saved state and the public projection.
 A layer that reports no spatial reference while `expected_wkid` is set is a
 warning (`quality_warnings`), not a pass; a different WKID is an error. A field
 completeness measure whose missing count exceeds the total is reported as
@@ -329,7 +336,12 @@ use that constraint file and pin the Python base image by OCI digest. CI runs a
 pinned dependency vulnerability audit, CodeQL analysis, and a Trivy scan that
 fails on fixable High/Critical container findings. The container lane also
 generates CycloneDX SBOM and build-provenance JSON files and uploads them with
-the built image ID as a workflow artifact.
+the built image ID as a workflow artifact. The provenance record (schema v2)
+names that value `image_config_digest`: Docker's image ID is the digest of the
+image configuration, not the registry manifest digest a deployment references.
+When a release image has been pushed, pass its manifest digest with
+`--registry-manifest-digest` so the record carries both. Schema v1 called the
+configuration digest `image_digest`.
 
 The lock and base-image digest are deliberate release inputs. Refresh them in a
 reviewed dependency-update change rather than allowing an ordinary rebuild to
@@ -378,8 +390,10 @@ A wildcard/public bind fails closed without a password. For Internet exposure, p
 - `WATCHTOWER_STORAGE_ROOT`
 - `WATCHTOWER_GCS_BUCKET`
 - `WATCHTOWER_GCS_PREFIX`
-- `WATCHTOWER_WORKDIR` (optional; when unset, each `cloud-job` run uses its
-  own temporary directory, removed when the run ends)
+- `WATCHTOWER_WORKDIR` (optional). Each `cloud-job` run uses its own
+  temporary directory, removed when the run ends. When this is set, that
+  directory is created inside it, so overlapping runs never share downloaded
+  files; when unset, it is created in the system temporary directory.
 - `WATCHTOWER_EXECUTION_PROFILE`
 - `WATCHTOWER_AGGREGATE_OBJECT`
 - `WATCHTOWER_COUNTY_MONITORING_BUCKET` or `WATCHTOWER_COUNTY_MONITORING_ROOT`
@@ -407,7 +421,7 @@ attempts.
 | Code | Meaning |
 | --- | --- |
 | 0 | Every checked source is OK. |
-| 1 | At least one warning (an expected non-zero exit for scheduled runs). |
+| 1 | At least one warning (an expected non-zero exit for scheduled runs). `status` also exits 1 when there is no state file yet; its JSON then has `"uninitialized": true` and `"overall": "unknown"`. |
 | 2 | A source reported an error, or the run checked no sources (`scope.type=empty`). |
 | 3 | Watchtower itself failed: bad configuration, a storage conflict, a refused aggregate merge or an unexpected exception. |
 | 4 | The run was refused by the minimum provider-run spacing (`WATCHTOWER_MIN_DISPATCH_HOURS`) before any provider request. No report or run receipt is written. An invalid guard setting or unreadable guard record exits 3. |

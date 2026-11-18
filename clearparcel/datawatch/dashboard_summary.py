@@ -12,6 +12,7 @@ from collections import Counter
 from .direct_gac_schema import load_direct_schema_assessments
 from .gac_standards import standard_keys
 from .public_projection import sanitize_public_render_state
+from .public_values import catalog_date
 
 
 def _count(value) -> str:
@@ -40,16 +41,14 @@ def catalog_summary(state: dict, county_names: list[str], *, now: dt.datetime | 
         if county not in records:
             buckets["No catalog entry"] += 1
             continue
-        value = records[county].get("acqdate")
-        try:
-            date = (dt.datetime.fromtimestamp(value / 1000, dt.timezone.utc) if type(value) is int
-                    else dt.datetime.fromisoformat(value.replace("Z", "+00:00")))
-            if date.tzinfo is None:
-                date = date.replace(tzinfo=dt.timezone.utc)
-            days = max(0, (now - date).days)
-            key = "0–30 days" if days <= 30 else "31–90 days" if days <= 90 else "91–365 days" if days <= 365 else "Over 1 year"
-        except (AttributeError, ValueError, TypeError, OverflowError, OSError):
+        # The same calendar-date reading as the county page and exports; an
+        # implausibly future date is unknown rather than recent (review 20).
+        day = catalog_date(records[county].get("acqdate"), now=now)
+        if day is None:
             key = "Provider supplied no date"
+        else:
+            days = max(0, (now.astimezone(dt.timezone.utc).date() - day).days)
+            key = "0–30 days" if days <= 30 else "31–90 days" if days <= 90 else "91–365 days" if days <= 365 else "Over 1 year"
         buckets[key] += 1
     return {"buckets": buckets, "observed_at": observed,
             "latest_attempt_at": source.get("checked_at"), "status": source.get("status", "unknown"),

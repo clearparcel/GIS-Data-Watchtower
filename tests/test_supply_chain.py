@@ -147,7 +147,7 @@ class SupplyChainTests(unittest.TestCase):
                     "--constraints", str(ROOT / "constraints.txt"),
                     "--revision", revision,
                     "--base-image", "python:3.13-slim@sha256:" + "b" * 64,
-                    "--image-digest", "sha256:" + "c" * 64,
+                    "--image-config-digest", "sha256:" + "c" * 64,
                     "--runtime-inventory", str(runtime),
                     "--os-inventory", str(os_inventory),
                     "--sbom", str(sbom),
@@ -160,7 +160,8 @@ class SupplyChainTests(unittest.TestCase):
             self.assertEqual(sbom_data["bomFormat"], "CycloneDX")
             self.assertEqual(sbom_data["specVersion"], "1.6")
             self.assertEqual(len(sbom_data["components"]), 3)
-            self.assertIn({"name": "clearparcel:artifact_subject", "value": "sha256:" + "c" * 64}, sbom_data["metadata"]["properties"])
+            self.assertIn({"name": "clearparcel:image_config_digest", "value": "sha256:" + "c" * 64}, sbom_data["metadata"]["properties"])
+            self.assertEqual(prov_data["image_config_digest"], "sha256:" + "c" * 64)
             self.assertIn({"name": "clearparcel:constraints_inventory_scope", "value": "dependency-input-only"}, sbom_data["metadata"]["properties"])
             self.assertEqual(prov_data["source_revision"], revision)
             self.assertEqual(prov_data["runtime_python_components"], 1)

@@ -95,7 +95,7 @@ The job downloads the last saved state/history into ephemeral `/tmp`, performs o
 - `WATCHTOWER_STORAGE=gcs`
 - `WATCHTOWER_GCS_BUCKET=<bucket>`
 - optional `WATCHTOWER_GCS_PREFIX=<prefix>`
-- optional `WATCHTOWER_WORKDIR=<dir>` (default: a per-run temporary directory)
+- optional `WATCHTOWER_WORKDIR=<dir>`: the parent of each run's own temporary directory (default: the system temporary directory)
 
 Use the Cloud Run Job's service account and IAM instead of JSON service-account keys. The service account needs object read/write access only to the Watchtower bucket/prefix.
 

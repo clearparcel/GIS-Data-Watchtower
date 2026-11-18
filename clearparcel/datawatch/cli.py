@@ -217,8 +217,16 @@ def main() -> int:
             print(json.dumps(result, indent=2) if args.json else _render(result), end="" if not args.json else "\n")
             return _exit_code(result)
         if args.command == "status":
-            result = load_state(config.get("aggregate_state_file") or config["state_file"])
+            state_path = Path(config.get("aggregate_state_file") or config["state_file"])
+            result = load_state(state_path)
+            if not state_path.exists():
+                # No state file is not health evidence (review 23): report it
+                # as uninitialized and exit 1, never 0.
+                result = {**result, "overall": "unknown", "uninitialized": True,
+                          "error": "no Watchtower state file yet; run a check first"}
             print(json.dumps(result, indent=2) if args.json else _render(result), end="" if not args.json else "\n")
+            if result.get("overall") not in ("ok", "warn", "error"):
+                return EXIT_WARN
             return _exit_code(result)
         if args.command == "history":
             result = load_history(config, source_filter=args.source, limit=args.limit)

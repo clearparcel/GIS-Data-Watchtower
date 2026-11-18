@@ -34,7 +34,7 @@ from clearparcel.datawatch.county_profile_exports import county_profiles_csv, pa
 from clearparcel.datawatch.county_profiles import FreshnessPolicy, compose_county_profiles, county_profile_counts
 from clearparcel.datawatch.gac_standards import gac_payload, load_gac_standard, normalize_standard_key, standard_keys
 from clearparcel.datawatch.gac_projection import project_gac
-from clearparcel.datawatch.public_values import county_metadata_dates
+from clearparcel.datawatch.public_values import catalog_approval, catalog_date, county_metadata_dates
 from clearparcel.datawatch.public_projection import sanitize_public_render_state, validate_snapshot_totals
 from clearparcel.datawatch import strict_json
 
@@ -407,7 +407,7 @@ def _county_status(config: dict, county: dict, state: dict, *, profiles: dict | 
 
     catalog = ((state.get("sources") or {}).get("mn-parcel-county-catalog") or {})
     catalog_record = (catalog.get("county_records") or {}).get(name)
-    open_approved = str((catalog_record or {}).get("gac_open_approval", "")).lower() == "true"
+    open_approved = catalog_approval((catalog_record or {}).get("gac_open_approval")) is True
     has_data = bool((catalog_record or {}).get("data_url"))
 
     permission = (profile.get("monitoring") or {}).get("permission")
@@ -484,12 +484,9 @@ def _county_monitoring_counts(config: dict, state: dict) -> dict:
 
 
 def _format_arcgis_date(value) -> str:
-    if not isinstance(value, (int, float)):
-        return "—"
-    try:
-        return dt.datetime.fromtimestamp(value / 1000.0, tz=dt.timezone.utc).date().isoformat()
-    except (OverflowError, OSError, ValueError):
-        return "—"
+    """A catalog date as YYYY-MM-DD, read the same way as the age summary, or a dash."""
+    day = catalog_date(value)
+    return day.isoformat() if day else "—"
 
 
 def _bar_chart(items: list[tuple[str, float]], *, title: str, suffix: str = "") -> str:
@@ -588,9 +585,12 @@ def _gac_observation(state: dict, standard_key: str) -> dict:
 
 def _county_snapshot(config: dict, slug: str, *, include_mngac: bool = True, state: dict | None = None,
                      profiles: dict | None = None, research: dict | None = None,
-                     contact_records: dict | None = None, gac_views: dict | None = None) -> dict | None:
+                     contact_records: dict | None = None, gac_views: dict | None = None,
+                     county: dict | None = None) -> dict | None:
     state = _dashboard_state(config) if state is None else state
-    county = next((x for x in _load_counties() if x.get("slug") == slug), None)
+    # A statewide build passes the identity it already loaded (review 22).
+    if county is None or county.get("slug") != slug:
+        county = next((x for x in _load_counties() if x.get("slug") == slug), None)
     if not county:
         return None
     contact_records = _load_county_contact_records() if contact_records is None else contact_records
@@ -638,7 +638,7 @@ def _county_snapshot(config: dict, slug: str, *, include_mngac: bool = True, sta
         "catalog_refresh_date": _format_arcgis_date(catalog.get("rundate")),
         "county_metadata_publication_date": county_metadata_dates(catalog)["publication_date"] or "",
         "county_metadata_content_date": county_metadata_dates(catalog)["content_date"] or "",
-        "public_data_approved": str(catalog.get("gac_open_approval") or "").lower() == "true",
+        "public_data_approved": catalog_approval(catalog.get("gac_open_approval")),
         "parcel_data_url": _safe_url(catalog.get("data_url")) or "",
         "parcel_viewer_url": _safe_url(catalog.get("viewer_url")) or "",
         "parcel_access": {
@@ -692,7 +692,8 @@ def _statewide_snapshot(config: dict) -> dict:
     views: dict = {}
     for county in _load_counties():
         item = _county_snapshot(config, county["slug"], include_mngac=False, state=state, profiles=profiles,
-                                research=research, contact_records=contact_records, gac_views=views)
+                                research=research, contact_records=contact_records, gac_views=views,
+                                county=county)
         if item:
             counties.append(item)
     aggregate_sources = []
@@ -708,7 +709,10 @@ def _statewide_snapshot(config: dict) -> dict:
             "stale": bool(source.get("stale")),
             "worker_stale": bool(source.get("worker_stale")),
             "last_success_at": source.get("last_success_at"),
-            "checked_at": source.get("checked_at") or source.get("last_report_at"),
+            # A deferred first observation has no check time; never substitute
+            # the worker's report time for a provider check (review 13).
+            "checked_at": source.get("checked_at"),
+            "last_report_at": source.get("last_report_at"),
         })
     aggregate_sources.sort(key=lambda row: (str(row.get("county") or ""), str(row.get("name") or "")))
     return {

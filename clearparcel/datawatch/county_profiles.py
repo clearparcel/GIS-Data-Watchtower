@@ -12,7 +12,7 @@ from .aggregate import CLOCK_SKEW_TOLERANCE_SECONDS
 from .parcel_access import INVENTORY_CATEGORIES, CountyPermission
 from .gac_standards import gac_payload
 from .direct_gac_schema import direct_schema_assessment
-from .public_values import (public_access_classification, safe_public_url, provider_edit_date, county_metadata_dates,
+from .public_values import (catalog_date, public_access_classification, safe_public_url, provider_edit_date, county_metadata_dates,
                             sanitize_source_metadata, safe_geometry_type, safe_file_type)
 
 
@@ -95,8 +95,8 @@ def _source(item, observed, sid, state, now, policy, *, count=None, basis=None, 
         'geometry_type': metadata.get('geometry_type') or safe_geometry_type(item.get('geometry_type')), 'feature_count': count, 'feature_count_basis': basis,
         'provider_updated_at': metadata.get('provider_updated_at'),
         # Catalog acquisition/refresh values are calendar dates, not instants.
-        'county_acquired_at': provider_edit_date(catalog.get('acqdate')),
-        'catalog_refreshed_at': provider_edit_date(catalog.get('rundate')),
+        'county_acquired_at': (day.isoformat() if (day := catalog_date(catalog.get('acqdate'))) else None),
+        'catalog_refreshed_at': (day.isoformat() if (day := catalog_date(catalog.get('rundate'))) else None),
         'county_metadata_published_at': county_metadata_dates(catalog)['publication_date'],
         'county_metadata_content_at': county_metadata_dates(catalog)['content_date'],
         'checked_at': observed.get('checked_at') if _timestamp(observed.get('checked_at')) else None,
