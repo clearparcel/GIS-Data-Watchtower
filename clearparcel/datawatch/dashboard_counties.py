@@ -20,8 +20,10 @@ def render_counties(config: dict) -> str:
     active_count = sum(1 for x in counties if x["actively_monitored"])
     # Overdue is about check age, independent of health: a stale warning or
     # failure is overdue too, even though its status pill keeps the health.
+    # A path whose check or worker-report time is unknown is not current, so it
+    # counts as overdue (AGENTS.md coverage rule); current + overdue = paths.
     overdue_count = sum(1 for x in counties if x["actively_monitored"]
-                        and (x.get("profile") or {}).get("monitoring", {}).get("reporting") == "overdue")
+                        and (x.get("profile") or {}).get("monitoring", {}).get("reporting") != "current")
     direct_count = sum(1 for x in counties if "county-direct" in x["monitoring_paths"])
     mngeo_count = sum(1 for x in counties if "mngeo-open" in x["monitoring_paths"])
     status_counts = {}
@@ -44,12 +46,15 @@ def render_counties(config: dict) -> str:
     for info in counties:
         monitoring = info["profile"].get("monitoring") or {}
         checked = profile_time(monitoring.get("last_checked_at"))
-        overdue = '<br><span class="subtext">Latest check overdue</span>' if monitoring.get("reporting") == "overdue" else ""
+        overdue = ('<br><span class="subtext">Latest check overdue</span>' if monitoring.get("reporting") == "overdue"
+                   else '<br><span class="subtext">Latest check overdue: check or report time unavailable</span>'
+                   if info["actively_monitored"] and monitoring.get("reporting") != "current" else "")
         statewide = statewide_copy_label(
             info.get("parcel_access"), (info.get("statewide_record") is not None) if mngac else None)
         # Check age and health are separate filters: an actively checked county
         # can still need attention, and an overdue one keeps its health label.
-        reporting = (monitoring.get("reporting") or "unknown") if info["actively_monitored"] else "none"
+        reporting = (("current" if monitoring.get("reporting") == "current" else "overdue")
+                     if info["actively_monitored"] else "none")
         rows.append(
             f'<tr data-name="{_dashboard._esc(info["name"].lower())}" data-status="{_dashboard._esc(info["status"])}" '
             f'data-reporting="{_dashboard._esc(reporting)}">'

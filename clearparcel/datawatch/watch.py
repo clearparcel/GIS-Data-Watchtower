@@ -75,13 +75,15 @@ def _retry_after_seconds(value: str | None, now: dt.datetime, default: int = _RA
     # Provider-supplied header: never let a malformed value escape this function.
     seconds = None
     try:
-        text = str(value or "").strip()[:64]
+        text = str(value or "").strip()
         if re.fullmatch(r"[0-9]+", text):
-            # HTTP allows any number of digits. Ignore leading zeros, and treat
-            # a value too long to matter as beyond the maximum (an operator hold).
+            # HTTP allows any number of digits. Classify the whole value before
+            # capping it: strip leading zeros first, and treat a value too long
+            # to matter as beyond the maximum (an operator hold). Truncating
+            # first would turn a padded long delay into the minimum.
             digits = text.lstrip("0") or "0"
             seconds = int(digits) if len(digits) <= 10 else _RATE_LIMIT_MAX_SECONDS
-        elif text:
+        elif text and len(text) <= 64:
             when = email.utils.parsedate_to_datetime(text)
             if when.tzinfo is None:
                 when = when.replace(tzinfo=dt.timezone.utc)
@@ -167,9 +169,19 @@ def _resolve_execution_profile(execution_profile: str | None) -> str | None:
     return profile
 
 
+def source_disabled(source: dict) -> bool:
+    """Whether a registry entry is parked. Fails closed on a malformed flag.
+
+    Only an absent ``enabled`` or JSON ``true`` runs; a string such as
+    ``"false"`` or a number is never read as enabled (registry validation
+    also rejects it before any request).
+    """
+    return "enabled" in source and source["enabled"] is not True
+
+
 def _profile_skip_reason(source: dict, execution_profile: str | None) -> str | None:
     """Explain why a source must not be polled by this worker, if it must not."""
-    if source.get("enabled") is False:
+    if source_disabled(source):
         return "disabled"
     profiles = source.get("execution_profiles")
     if execution_profile:
@@ -918,6 +930,14 @@ def _arcgis_count_query(url: str, where: str, timeout: int, *, prefer_curl: bool
     return _validated_provider_count(data.get("count"), label="ArcGIS count")
 
 
+def _response_features(data: object, label: str) -> list:
+    """The ``features`` array of an ArcGIS query reply; a malformed reply is not an empty one."""
+    features = data.get("features") if isinstance(data, dict) else None
+    if not isinstance(features, list) or not all(isinstance(feature, dict) for feature in features):
+        raise RuntimeError(f"{label} response has no valid features array")
+    return features
+
+
 def _arcgis_duplicate_id_summary(url: str, field: str, timeout: int, *, prefer_curl: bool = False) -> dict:
     field = _sql_identifier(field)
     query_url = url.rstrip("/") + "/query?" + urllib.parse.urlencode({
@@ -929,9 +949,12 @@ def _arcgis_duplicate_id_summary(url: str, field: str, timeout: int, *, prefer_c
         "returnGeometry": "false", "resultRecordCount": "2000", "f": "json",
     })
     data, _ = _json_request(query_url, timeout, prefer_curl=prefer_curl)
-    groups = data.get("features") or []
+    groups = _response_features(data, "ArcGIS duplicate-ID statistics")
     duplicate_groups = len(groups)
-    duplicate_rows = sum(max(0, int((x.get("attributes") or {}).get("n") or 0) - 1) for x in groups)
+    # A group without a valid count is malformed, never a measured zero.
+    duplicate_rows = sum(max(0, _validated_provider_count((x.get("attributes") or {}).get("n"),
+                                                          label="ArcGIS duplicate-ID group count") - 1)
+                         for x in groups)
     # A provider transfer limit below 2,000 also truncates the groups: the
     # totals are then lower bounds, not a complete scan (audit WT31-08).
     capped = len(groups) >= 2000 or data.get("exceededTransferLimit") is True
@@ -1165,7 +1188,7 @@ def _arcgis_gac_completeness(
         if data.get("exceededTransferLimit") is True:
             raise RuntimeError("GAC statistics response exceeded the provider transfer limit")
         batch_denominators: dict[str, tuple[str | None, int]] = {}
-        for feature in data.get("features") or []:
+        for feature in _response_features(data, "GAC statistics"):
             attrs = feature.get("attributes") or {}
             raw_county_name = str(attrs.get(county_field) or "").strip()
             county_name = (
@@ -1440,7 +1463,7 @@ def _arcgis_gac_metadata(
     if data.get("exceededTransferLimit") is True:
         raise RuntimeError("GAC participation metadata response exceeded the provider transfer limit")
     counties = {}
-    for feature in data.get("features") or []:
+    for feature in _response_features(data, "GAC participation metadata"):
         attrs = feature.get("attributes") or {}
         raw_county_name = str(attrs.get("county_name") or attrs.get("agency_county") or "").strip()
         county_name = canonical_minnesota_county(raw_county_name)
@@ -1469,7 +1492,7 @@ def _arcgis_geometry_sample(url: str, timeout: int, *, sample_size: int = 250, p
         "f": "json",
     })
     data, _ = _json_request(query_url, timeout, prefer_curl=prefer_curl)
-    features = data.get("features") or []
+    features = _response_features(data, "ArcGIS geometry sample")
     sampled = len(features)
     empty = 0
     multipart = 0
@@ -1982,7 +2005,7 @@ def _arcgis_county_catalog(source: dict, timeout: int) -> dict:
                                      "the provider may have renumbered layers in this service; check the source URL's layer id")
     county_field = source.get("county_field", "countyname")
     records = {}
-    for feature in data.get("features", []):
+    for feature in _response_features(data, "ArcGIS county catalog"):
         attrs = feature.get("attributes") or {}
         county = attrs.get(county_field)
         if county:
@@ -1994,6 +2017,17 @@ def _arcgis_county_catalog(source: dict, timeout: int) -> dict:
         # the last complete county records, as for a truncated page.
         raise PermanentProviderError(200, f"ArcGIS county catalog returned {len(records)} county records; "
                                      f"expected {expected}. The last complete catalog is kept")
+    if source.get("county_membership") == "minnesota" or source.get("id") == "mn-parcel-county-catalog":
+        # A full-sized catalog can still have lost a county (a misspelled or
+        # replaced name). The Minnesota catalog must name each county once.
+        canonical = {canonical_minnesota_county(name) for name in records}
+        unknown = sorted(name for name in records if canonical_minnesota_county(name) is None)
+        if unknown or None in canonical or len(canonical) != len(records) or (
+                expected is not None and len(canonical) != int(expected)):
+            raise PermanentProviderError(
+                200, f"ArcGIS county catalog membership is not the Minnesota county list "
+                     f"(unrecognized: {', '.join(_safe_diagnostic(x)[:40] for x in unknown[:5]) or 'none'}; "
+                     f"distinct counties: {len(canonical - {None})}). The last complete catalog is kept")
     stable = {name: records[name] for name in sorted(records)}
     result = {
         "http_status": meta.get("status"),
@@ -2289,21 +2323,59 @@ _BASELINE_KEYS = ("schema_hash", "parcel_schema_hash", "parcel_layer_id", "featu
                   "spatial_extent", "observation_fingerprint")
 
 
+# Which baseline field each change type compares.
+_CHANGE_BASELINE_KEY = {"schema": "schema_hash", "parcel_schema": "parcel_schema_hash",
+                        "parcel_layer": "parcel_layer_id", "feature_count": "feature_count",
+                        "tracked_value": "tracked_values", "spatial_extent": "spatial_extent",
+                        "observation": "observation_fingerprint"}
+
+
 def _is_observation(record: object) -> bool:
-    return isinstance(record, dict) and any(key in record for key in _BASELINE_KEYS)
+    # A 429 record carries the previous observation's fields for display, but
+    # it observed nothing itself; its comparison_baseline holds the real times.
+    return (isinstance(record, dict) and record.get("rate_limited") is not True
+            and any(key in record for key in _BASELINE_KEYS))
 
 
 def _comparison_baseline(previous: object) -> dict | None:
-    """The last usable observation behind ``previous``, for comparing the next check."""
+    """The last usable value of each compared field behind ``previous``.
+
+    A partial observation (for example a service listing whose parcel layer
+    could not be read) replaces only the fields it measured; the others keep
+    their last valid value and when it was observed (``field_observed_at``).
+    """
     if not isinstance(previous, dict):
         return None
+    carried = previous.get("comparison_baseline")
+    carried = dict(carried) if isinstance(carried, dict) else None
     if not _is_observation(previous):
         # A failed check observed nothing: keep whatever baseline it carried.
-        baseline = previous.get("comparison_baseline")
-        return dict(baseline) if isinstance(baseline, dict) else None
-    baseline = {key: previous[key] for key in _BASELINE_KEYS if key in previous}
+        return carried
+    baseline = carried or {}
+    times = dict(baseline.get("field_observed_at") or {})
+    for key in _BASELINE_KEYS:
+        if key in baseline and key not in times:
+            times[key] = baseline.get("observed_at")
+    for key in _BASELINE_KEYS:
+        if key in previous:
+            baseline[key] = previous[key]
+            times[key] = previous.get("checked_at")
     baseline["observed_at"] = previous.get("checked_at")
+    baseline["field_observed_at"] = times
     return baseline
+
+
+def _carried_baseline(baseline: dict | None, details: dict) -> dict | None:
+    """Baseline fields this observation did not measure, kept for the next check."""
+    if not baseline:
+        return None
+    times = baseline.get("field_observed_at") or {}
+    kept = {key: baseline[key] for key in _BASELINE_KEYS if key in baseline and key not in details}
+    if not kept:
+        return None
+    kept["field_observed_at"] = {key: times.get(key, baseline.get("observed_at")) for key in kept}
+    kept["observed_at"] = baseline.get("observed_at")
+    return kept
 
 
 def _compare(previous: dict | None, current: dict, source: dict | None = None) -> list[dict]:
@@ -2664,10 +2736,17 @@ def _check_sources_unlocked(
                 previous_observation = previous_sources.get(source["id"])
                 baseline = _comparison_baseline(previous_observation)
                 changes = _compare(baseline, details, source)
-                if baseline is not None and not _is_observation(previous_observation):
-                    # Compared across one or more failed checks: say which observation.
+                if baseline is not None:
+                    # A value compared across failed or partial checks names the
+                    # observation it came from, field by field.
+                    immediate = (previous_observation.get("checked_at")
+                                 if _is_observation(previous_observation) else None)
+                    times = baseline.get("field_observed_at") or {}
                     for change in changes:
-                        change["previous_observed_at"] = baseline.get("observed_at")
+                        observed = times.get(_CHANGE_BASELINE_KEY.get(change.get("type")), baseline.get("observed_at"))
+                        if observed != immediate:
+                            change["previous_observed_at"] = observed
+                carried_baseline = _carried_baseline(baseline, details)
                 problems = list(details.get("problems", []))
                 # A change configured as an error fails the source, its alert and the exit code.
                 problems += [change["message"] for change in changes if change.get("severity") == "error"]
@@ -2698,6 +2777,8 @@ def _check_sources_unlocked(
                     **details,
                     "changes": changes,
                 }
+                if carried_baseline:
+                    records[source["id"]]["comparison_baseline"] = carried_baseline
                 if problems or gac_failures:
                     records[source["id"]]["problems"] = problems + gac_failures
             except Exception as exc:
@@ -2983,6 +3064,9 @@ def validate_source_registry(sources: object) -> None:
                 f"duplicate source id: entry {first_index} ({first_id!r}) and entry {index} ({source_id!r})"
             )
         seen[key] = (index, source_id)
+        if "enabled" in source and type(source["enabled"]) is not bool:
+            # A stringified or numeric flag must never be read as "not disabled".
+            raise InvalidSourceRegistryError(f"source {source_id!r} enabled must be true or false")
         if source.get("enabled") is not False:
             # Every runnable entry needs the identity fields used to record a
             # result or a failure; reject a malformed entry before any request
@@ -3005,13 +3089,27 @@ def validate_source_registry(sources: object) -> None:
         if "expected_layer_name" in source and (
                 not isinstance(source["expected_layer_name"], str) or not source["expected_layer_name"].strip()):
             raise InvalidSourceRegistryError(f"source {source_id!r} expected_layer_name must be a non-blank string")
-        if "expected_layer_name" in source and (source.get("adapter") or source.get("kind")) not in _LAYER_NAME_ADAPTERS:
-            # Only layer checks read the layer definition; elsewhere the guard would be ignored.
-            raise InvalidSourceRegistryError(
-                f"source {source_id!r} expected_layer_name is only supported on arcgis_layer and arcgis_service sources")
+        if "expected_layer_name" in source:
+            # Only layer checks read the layer definition; elsewhere the guard
+            # would be ignored. Judge the canonical adapter (legacy aliases
+            # included), and a service only when it selects a parcel layer.
+            try:
+                adapter_name = _adapter_name(source)
+            except ValueError:
+                adapter_name = None
+            if adapter_name not in _LAYER_NAME_ADAPTERS or (
+                    adapter_name == "arcgis_service" and not source.get("discover_parcel_layer")):
+                raise InvalidSourceRegistryError(
+                    f"source {source_id!r} expected_layer_name is only supported on arcgis_layer sources and "
+                    "arcgis_service sources with discover_parcel_layer")
         thresholds = source.get("thresholds")
         if thresholds is not None and not isinstance(thresholds, dict):
             raise InvalidSourceRegistryError(f"source {source_id!r} thresholds must be an object")
+        if isinstance(thresholds, dict):
+            # Numeric thresholds are read during comparison; a NaN or text value
+            # would silently disable the warning, so refuse it up front.
+            _validate_dispatch_options({key: value for key, value in thresholds.items() if value is not None},
+                                       f"source {source_id!r} thresholds", _THRESHOLD_OPTIONS)
         for key in ("schema_change_severity", "extent_change_severity"):
             if isinstance(thresholds, dict) and key in thresholds and thresholds[key] not in _CHANGE_SEVERITIES:
                 raise InvalidSourceRegistryError(
@@ -3022,6 +3120,7 @@ def validate_source_registry(sources: object) -> None:
 
 
 _CHANGE_SEVERITIES = frozenset({"info", "warn", "error"})
+_THRESHOLD_OPTIONS = {"feature_count_change_percent": float, "extent_shift_percent": float}
 _LAYER_NAME_ADAPTERS = frozenset({"arcgis_layer", "arcgis_service"})
 _MAX_RETRY_DELAY_SECONDS = 3600
 _DISPATCH_INT_OPTIONS = ("timeout_seconds", "retries")

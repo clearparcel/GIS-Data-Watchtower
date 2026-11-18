@@ -22,6 +22,7 @@ def _ms(days_ago: float) -> int:
 def _state(sources: dict, *, checked: dt.datetime = NOW, worker_report: dt.datetime = NOW) -> dict:
     stamp = checked.isoformat()
     return {"schema_version": 2, "generated_at": stamp, "overall": "ok",
+            "counts": {"ok": len(sources), "warn": 0, "error": 0},
             "workers": {"cloud": {"overall": "ok", "last_report_at": worker_report.isoformat()}},
             "sources": {sid: {"id": sid, "status": "ok", "worker": "cloud", "checked_at": stamp, **rec}
                         for sid, rec in sources.items()}}
@@ -133,6 +134,42 @@ class RunFromStorageTests(unittest.TestCase):
     def test_missing_aggregate_fails_loudly(self):
         with tempfile.TemporaryDirectory() as td, self.assertRaises(FileNotFoundError):
             run_weekly_digest({}, LocalStorage(td), io.StringIO(), aggregate_object="aggregate.json", now=NOW)
+
+
+class FollowUpReviewTests(unittest.TestCase):
+    """Follow-up review of f8f0997: F09 (missing worker) and F10 (empty aggregate)."""
+
+    def test_missing_assigned_worker_is_reported_overdue(self):
+        state = _state({"a": {}})
+        state["workers"] = {}
+        digest = build_digest(state, {}, {}, now=NOW)
+        self.assertEqual(digest["overdue_checks"], 1)
+        self.assertEqual(digest["overdue_workers"], 1)
+        self.assertIn("cloud worker (no report on record)", digest["body"])
+        self.assertIn("2 overdue", digest["subject"])
+
+    def test_current_fleet_reports_nothing_overdue(self):
+        digest = build_digest(_state({"a": {}}), {}, {}, now=NOW)
+        self.assertEqual((digest["overdue_checks"], digest["overdue_workers"]), (0, 0))
+
+    def test_empty_or_malformed_aggregate_is_an_input_error(self):
+        for body in ({}, {"sources": {}, "workers": {}}, {"counts": {}, "sources": [], "workers": {}},
+                     {"counts": {}, "sources": {"a": "x"}, "workers": {}}):
+            with self.subTest(body=body), tempfile.TemporaryDirectory() as td:
+                (Path(td) / "aggregate.json").write_text(json.dumps(body), encoding="utf-8")
+                out = io.StringIO()
+                # Malformed containers are refused by the state loader; an empty
+                # object by the aggregate check. Either way nothing is logged.
+                with self.assertRaises((ValueError, RuntimeError)):
+                    run_weekly_digest({}, LocalStorage(td), out, aggregate_object="aggregate.json", now=NOW)
+                self.assertEqual(out.getvalue(), "")
+
+    def test_valid_empty_fleet_keeps_its_meaning(self):
+        with tempfile.TemporaryDirectory() as td:
+            (Path(td) / "aggregate.json").write_text(json.dumps(
+                {"counts": {"ok": 0, "warn": 0, "error": 0}, "sources": {}, "workers": {}}), encoding="utf-8")
+            digest = run_weekly_digest({}, LocalStorage(td), io.StringIO(), aggregate_object="aggregate.json", now=NOW)
+        self.assertEqual(digest["overdue_checks"], 0)
 
 
 class CliTests(unittest.TestCase):
