@@ -74,7 +74,9 @@ Optional common controls include:
 
 - `enabled`: set `false` to park a source. A disabled source is never polled,
   is excluded from candidate manifests, and is reported in the run's
-  `skipped_sources` with reason `disabled`. Defaults to enabled.
+  `skipped_sources` with reason `disabled`. Defaults to enabled. When present it
+  must be a JSON boolean; a string such as `"false"`, a number or `null` is
+  rejected by the registry check, and is never read as enabled.
 - `timeout_seconds`
 - `retries`
 - `prefer_curl`
@@ -199,11 +201,15 @@ any request, so a malformed later entry can no longer abort a run after an
 earlier host has signaled a 429. Values must be finite and not negative, and
 `retry_delay_seconds` is at most 3600. The registry check also requires
 `execution_profiles`, when present, to be a list of exact names (`cloud`,
-`local`, `any`), and accepts `expected_layer_name` only on `arcgis_layer` and
-`arcgis_service` sources, which read the layer definition.
+`local`, `any`), and accepts `expected_layer_name` only on `arcgis_layer`
+sources and on `arcgis_service` sources with `discover_parcel_layer`, which read
+the selected layer's definition. Legacy adapter aliases such as
+`arcgis-feature-layer` are judged by their canonical adapter. The numeric
+change thresholds `feature_count_change_percent` and `extent_shift_percent`
+must be finite, nonnegative numbers.
 
-`not_before` honors `Retry-After` (delta-seconds of any length, leading zeros
-allowed, or HTTP-date) in full, with a
+`not_before` honors `Retry-After` (delta-seconds of any length, any number of
+leading zeros allowed, or HTTP-date) in full, with a
 60-second minimum and a one-year maximum (an effectively indefinite hold); a
 requested backoff is never shortened. Backoffs longer than a week are marked
 `"operator_review": true` in the private `rate_limits` entry so an operator can
@@ -444,7 +450,9 @@ every private-dashboard refresh claims the slot before polling, so a
 scheduled run, a manual execution and a single-source recheck all count
 toward the same spacing. A `check` whose filter and profile select no source
 makes no request and claims no slot; it exits 2 with `scope.type=empty` (CLI
-JSON keeps that scope and adds `source_filter`). The claim is a version-conditional write: of two runs
+JSON keeps that scope and adds `source_filter`). Likewise, a `cloud-job` whose
+worker profile has no eligible source (every source disabled or assigned to
+another profile, including a deliberate inventory drain) claims no slot. The claim is a version-conditional write: of two runs
 started together, only one proceeds. Slots are kept per execution profile
 (`cloud`, `local`), because hybrid workers poll different sources while
 sharing one storage backend. While the guard is on, a run that declares no

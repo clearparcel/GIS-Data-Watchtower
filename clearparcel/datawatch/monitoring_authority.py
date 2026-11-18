@@ -84,7 +84,7 @@ def reconciliation_receipt(sources, research, approvals, cadences, *, as_of):
                "research_decision": decision, "status": "needs_review", "gaps": []}
         rows.append(row)
         gaps = row["gaps"]
-        if source.get("enabled") is False:
+        if "enabled" in source and source["enabled"] is not True:  # malformed flag fails closed
             row["status"] = "disabled"
             continue
         if category and not category.startswith("parcel"):

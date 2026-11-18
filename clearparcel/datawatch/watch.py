@@ -75,13 +75,15 @@ def _retry_after_seconds(value: str | None, now: dt.datetime, default: int = _RA
     # Provider-supplied header: never let a malformed value escape this function.
     seconds = None
     try:
-        text = str(value or "").strip()[:64]
+        text = str(value or "").strip()
         if re.fullmatch(r"[0-9]+", text):
-            # HTTP allows any number of digits. Ignore leading zeros, and treat
-            # a value too long to matter as beyond the maximum (an operator hold).
+            # HTTP allows any number of digits. Classify the whole value before
+            # capping it: strip leading zeros first, and treat a value too long
+            # to matter as beyond the maximum (an operator hold). Truncating
+            # first would turn a padded long delay into the minimum.
             digits = text.lstrip("0") or "0"
             seconds = int(digits) if len(digits) <= 10 else _RATE_LIMIT_MAX_SECONDS
-        elif text:
+        elif text and len(text) <= 64:
             when = email.utils.parsedate_to_datetime(text)
             if when.tzinfo is None:
                 when = when.replace(tzinfo=dt.timezone.utc)
@@ -167,9 +169,19 @@ def _resolve_execution_profile(execution_profile: str | None) -> str | None:
     return profile
 
 
+def source_disabled(source: dict) -> bool:
+    """Whether a registry entry is parked. Fails closed on a malformed flag.
+
+    Only an absent ``enabled`` or JSON ``true`` runs; a string such as
+    ``"false"`` or a number is never read as enabled (registry validation
+    also rejects it before any request).
+    """
+    return "enabled" in source and source["enabled"] is not True
+
+
 def _profile_skip_reason(source: dict, execution_profile: str | None) -> str | None:
     """Explain why a source must not be polled by this worker, if it must not."""
-    if source.get("enabled") is False:
+    if source_disabled(source):
         return "disabled"
     profiles = source.get("execution_profiles")
     if execution_profile:
@@ -2983,6 +2995,9 @@ def validate_source_registry(sources: object) -> None:
                 f"duplicate source id: entry {first_index} ({first_id!r}) and entry {index} ({source_id!r})"
             )
         seen[key] = (index, source_id)
+        if "enabled" in source and type(source["enabled"]) is not bool:
+            # A stringified or numeric flag must never be read as "not disabled".
+            raise InvalidSourceRegistryError(f"source {source_id!r} enabled must be true or false")
         if source.get("enabled") is not False:
             # Every runnable entry needs the identity fields used to record a
             # result or a failure; reject a malformed entry before any request
@@ -3005,13 +3020,27 @@ def validate_source_registry(sources: object) -> None:
         if "expected_layer_name" in source and (
                 not isinstance(source["expected_layer_name"], str) or not source["expected_layer_name"].strip()):
             raise InvalidSourceRegistryError(f"source {source_id!r} expected_layer_name must be a non-blank string")
-        if "expected_layer_name" in source and (source.get("adapter") or source.get("kind")) not in _LAYER_NAME_ADAPTERS:
-            # Only layer checks read the layer definition; elsewhere the guard would be ignored.
-            raise InvalidSourceRegistryError(
-                f"source {source_id!r} expected_layer_name is only supported on arcgis_layer and arcgis_service sources")
+        if "expected_layer_name" in source:
+            # Only layer checks read the layer definition; elsewhere the guard
+            # would be ignored. Judge the canonical adapter (legacy aliases
+            # included), and a service only when it selects a parcel layer.
+            try:
+                adapter_name = _adapter_name(source)
+            except ValueError:
+                adapter_name = None
+            if adapter_name not in _LAYER_NAME_ADAPTERS or (
+                    adapter_name == "arcgis_service" and not source.get("discover_parcel_layer")):
+                raise InvalidSourceRegistryError(
+                    f"source {source_id!r} expected_layer_name is only supported on arcgis_layer sources and "
+                    "arcgis_service sources with discover_parcel_layer")
         thresholds = source.get("thresholds")
         if thresholds is not None and not isinstance(thresholds, dict):
             raise InvalidSourceRegistryError(f"source {source_id!r} thresholds must be an object")
+        if isinstance(thresholds, dict):
+            # Numeric thresholds are read during comparison; a NaN or text value
+            # would silently disable the warning, so refuse it up front.
+            _validate_dispatch_options({key: value for key, value in thresholds.items() if value is not None},
+                                       f"source {source_id!r} thresholds", _THRESHOLD_OPTIONS)
         for key in ("schema_change_severity", "extent_change_severity"):
             if isinstance(thresholds, dict) and key in thresholds and thresholds[key] not in _CHANGE_SEVERITIES:
                 raise InvalidSourceRegistryError(
@@ -3022,6 +3051,7 @@ def validate_source_registry(sources: object) -> None:
 
 
 _CHANGE_SEVERITIES = frozenset({"info", "warn", "error"})
+_THRESHOLD_OPTIONS = {"feature_count_change_percent": float, "extent_shift_percent": float}
 _LAYER_NAME_ADAPTERS = frozenset({"arcgis_layer", "arcgis_service"})
 _MAX_RETRY_DELAY_SECONDS = 3600
 _DISPATCH_INT_OPTIONS = ("timeout_seconds", "retries")

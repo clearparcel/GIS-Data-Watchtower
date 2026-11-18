@@ -33,7 +33,7 @@ def candidate_manifest(config: dict, build: dict | None = None) -> dict:
     expected = {"cloud": [], "local": []}
     seen = set()
     for source in config.get("sources", []):
-        if source.get("enabled") is False:
+        if "enabled" in source and source["enabled"] is not True:  # malformed flag fails closed
             continue
         sid = source.get("id")
         profiles = source.get("execution_profiles")

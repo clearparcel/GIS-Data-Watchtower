@@ -102,8 +102,9 @@ class LayerNameGuardTests(unittest.TestCase):
     """14: the layer-name guard is refused where it would be ignored."""
 
     def test_guard_only_on_layer_adapters(self):
-        for adapter in ("arcgis_layer", "arcgis_service"):
-            watch.validate_source_registry([_source(adapter=adapter, expected_layer_name="Parcels")])
+        watch.validate_source_registry([_source(adapter="arcgis_layer", expected_layer_name="Parcels")])
+        watch.validate_source_registry([_source(adapter="arcgis_service", discover_parcel_layer=True,
+                                                expected_layer_name="Parcels")])
         for adapter in ("arcgis_county_catalog", "wms", "http_file"):
             with self.subTest(adapter=adapter), self.assertRaises(watch.InvalidSourceRegistryError):
                 watch.validate_source_registry([_source(adapter=adapter, expected_layer_name="Parcels")])

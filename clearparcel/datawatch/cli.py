@@ -256,7 +256,11 @@ def main() -> int:
                 if configured_min_hours() is not None or args.override_min_interval is not None:
                     # Refuse a run that cannot poll before it uses the day's provider-run slot.
                     config = preflight_cloud_job(config)
-                    _guard(config, args.config, "cloud-job", args.override_min_interval, job_profile())
+                    from clearparcel.datawatch.watch import has_selected_sources
+                    if has_selected_sources(config, source_filter=None, execution_profile=job_profile()):
+                        # A worker with no eligible source makes no provider request
+                        # (an inventory drain included), so it never claims the slot.
+                        _guard(config, args.config, "cloud-job", args.override_min_interval, job_profile())
                 result = run_cloud_job(args.config, prepared_config=config)
             except DispatchRefused:
                 raise  # Refused before any provider request: no run receipt.
