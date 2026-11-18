@@ -1,5 +1,16 @@
 # Project status
 
+## Dashboard table filters — in review, not deployed
+
+Table filters now hide rows with the `hidden` attribute, and the table CSS keeps
+hidden rows hidden at phone widths. Before this change, the mobile table rule
+kept every row visible, so county, source and MnGeo field searches had no effect
+at widths up to 760 px. On the counties page, **Actively checked** and **Check
+overdue** now filter on check age, separate from health, so a current county
+that needs attention is still listed as actively checked. A new **Checks
+passing** option filters on health. These are findings 01 and 12 of the
+November 18 review of `ff9f9a7`. Nothing is deployed yet.
+
 ## v0.5.4 layer renumbering check — deployed, 2026-11-18
 
 This release lets an ArcGIS layer source name the layer it expects, so a

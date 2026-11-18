@@ -72,7 +72,7 @@ Read the [MN GAC methodology](gac-standards.md) and [parcel-specific explanation
 
 ## 4. Browse county access and contacts
 
-The **Counties** section lists **County**, **Data from the county**, **Free statewide copy**, and **Check status**. Search by county name or filter check status. A county may charge for its own data while a free statewide copy is available.
+The **Counties** section lists **County**, **Data from the county**, **Free statewide copy**, and **Check status**. Search by county name or filter check status. **Actively checked** and **Check overdue** filter on how recent the latest check is, whatever its result; **Needs attention**, **Check failed** and **Checks passing** filter on the result. A county may charge for its own data while a free statewide copy is available.
 
 The **Counties being checked** card counts counties with recent source checks and monitoring reports. Coverage with overdue checks is stated separately. Open a county profile for source names, contacts, access links, and dates. **Connect in GIS software** opens a service connection; **Download parcel data** opens the published download page. Access-information update time records when the directory was published, not when the underlying dataset was updated.
 

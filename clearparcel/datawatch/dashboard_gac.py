@@ -236,7 +236,7 @@ def _render_gac_standard(config: dict, standard_key: str, county: dict | None = 
  {percentage_color_js()}
  function update(){{const k=metric.value,mm=meta(k);paths.forEach(p=>{{const v=value(p.dataset.county,k);p.style.fill=percentageColor(v);p.setAttribute('aria-label',p.dataset.county+' County, '+(mm.label||k)+', '+(typeof v==='number'?v.toFixed(2)+'%':'no data'))}})}}
  metric.addEventListener('change',update);root.querySelectorAll('.mngac-field-select').forEach(b=>b.addEventListener('click',()=>{{metric.value=b.dataset.field;update();root.getElementById('mngac-map').scrollIntoView({{behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'center'}})}}));
- function filter(){{const t=(q.value||'').toLowerCase(),c=inc.value;root.querySelectorAll('#mngac-fields tbody tr').forEach(r=>r.style.display=(!t||r.dataset.name.includes(t))&&(!c||r.dataset.inclusion===c)?'':'none')}}q.addEventListener('input',filter);inc.addEventListener('change',filter);update();
+ function filter(){{const t=(q.value||'').toLowerCase(),c=inc.value;root.querySelectorAll('#mngac-fields tbody tr').forEach(r=>{{r.hidden=!((!t||r.dataset.name.includes(t))&&(!c||r.dataset.inclusion===c))}})}}q.addEventListener('input',filter);inc.addEventListener('change',filter);update();
 }})();
 </script>
 {publication}
@@ -451,7 +451,7 @@ def render_mngac(config: dict, standard_key: str = "parcel", *, county: str = ''
   root.querySelectorAll('.mngac-field-select').forEach(b=>b.addEventListener('click',()=>{{metric.value=b.dataset.field;updateMap();root.getElementById('mngac-map').scrollIntoView({{behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'center'}})}}));
   function filterFields(){{
     const text=(q.value||'').toLowerCase(),cat=inc.value;
-    root.querySelectorAll('#mngac-fields tbody tr').forEach(row=>{{row.style.display=(!text||row.dataset.name.includes(text))&&(!cat||row.dataset.inclusion===cat)?'':'none'}});
+    root.querySelectorAll('#mngac-fields tbody tr').forEach(row=>{{row.hidden=!((!text||row.dataset.name.includes(text))&&(!cat||row.dataset.inclusion===cat))}});
   }}
   q.addEventListener('input',filterFields); inc.addEventListener('change',filterFields);
   updateMap();
@@ -501,7 +501,7 @@ def _render_county_mngac(state: dict, county: dict) -> str:
   <div class="filters"><input id="cmq" placeholder="Filter MNGAC fields…" aria-label="Filter county MNGAC fields"><select id="cmi" aria-label="Filter county inclusion category"><option value="">All field requirements</option><option value="Mandatory">Required</option><option value="Conditional">Required in some cases</option><option value="If Available">When available</option><option value="Optional">Optional</option></select></div>
   <div class="mngac-table-wrap"><table id="county-mngac-fields"><thead><tr><th>Field</th><th>Standard requirement</th><th>Records with value</th><th>Records included</th><th>Share filled</th></tr></thead><tbody>{rows}</tbody></table></div>
 </details>
-{SCRIPT_TAG}(function(){{const q=document.getElementById('cmq'),i=document.getElementById('cmi');function f(){{const t=(q.value||'').toLowerCase(),c=i.value;document.querySelectorAll('#county-mngac-fields tbody tr').forEach(r=>r.style.display=(!t||r.dataset.name.includes(t))&&(!c||r.dataset.inclusion===c)?'':'none')}}q.addEventListener('input',f);i.addEventListener('change',f)}})();</script>
+{SCRIPT_TAG}(function(){{const q=document.getElementById('cmq'),i=document.getElementById('cmi');function f(){{const t=(q.value||'').toLowerCase(),c=i.value;document.querySelectorAll('#county-mngac-fields tbody tr').forEach(r=>{{r.hidden=!((!t||r.dataset.name.includes(t))&&(!c||r.dataset.inclusion===c))}})}}q.addEventListener('input',f);i.addEventListener('change',f)}})();</script>
 """
 
 def _render_county_gac_summaries(state: dict, county: dict) -> str:
