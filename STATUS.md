@@ -15,6 +15,18 @@ of publishing beside an all-clear fleet (T03). A worker whose first report is
 filtered records only its heartbeat until its first complete report (T10). The
 public worker card now reads "Last fully successful worker run" (T11).
 
+Provider options and change detection: request-producing options (`count`,
+`discover_parcel_layer`, `parcel_quality`, `geometry_sample`, `item_metadata`,
+`prefer_curl`) must be JSON booleans (T04). The Minnesota county catalog must
+name all 87 counties once, checked per raw row, with aliases stored under the
+canonical name (T05). A statistics group without its county attribute, or a
+duplicate-ID group smaller than two, is malformed rather than zero (T06). A
+check that did not read the parcel layer reports no parcel-schema change, and
+tracked values keep a per-key baseline (T07). An explicit `null`
+`extent_shift_percent` is refused before any request (T08). Before deploying,
+check the private registry for non-boolean request options and a null extent
+threshold.
+
 ## v0.5.6 follow-up review fixes — deployed, 2026-11-18
 
 Deployed November 18, 2026 from `9979b63` (PRs #266 to #272); see the

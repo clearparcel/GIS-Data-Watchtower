@@ -11,6 +11,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from tests.catalog_fixtures import full_minnesota_catalog
 from clearparcel.datawatch import watch
 from clearparcel.datawatch.dashboard_summary import catalog_summary
 
@@ -72,10 +73,10 @@ class ShortCatalogTests(unittest.TestCase):
     def _catalog(self, root: Path) -> dict:
         return {"state_file": str(root / "state.json"), "history_file": str(root / "history.jsonl"), "retries": 0,
                 "sources": [{"id": "mn-parcel-county-catalog", "name": "Catalog", "kind": "arcgis_county_catalog",
-                             "url": "https://gis.example/0", "expected_count": 2}]}
+                             "url": "https://gis.example/0", "expected_count": 87}]}
 
     def test_short_catalog_keeps_the_complete_rows_and_observation_time(self):
-        complete = {"features": [{"attributes": {"countyname": "Aitkin"}}, {"attributes": {"countyname": "Anoka"}}]}
+        complete = full_minnesota_catalog([])
         short = {"features": [{"attributes": {"countyname": "Anoka"}}]}
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
@@ -88,8 +89,8 @@ class ShortCatalogTests(unittest.TestCase):
         self.assertEqual(request.call_count, 1)  # rejected without a retry
         record = result["sources"]["mn-parcel-county-catalog"]
         self.assertEqual(record["status"], "error")
-        self.assertIn("returned 1 county records; expected 2", record["error"])
-        self.assertEqual(set(record["county_records"]), {"Aitkin", "Anoka"})
+        self.assertIn("missing: 86", record["error"])
+        self.assertEqual(len(record["county_records"]), 87)
         self.assertTrue(record["catalog_retained"])
         self.assertEqual(record["catalog_observed_at"],
                          first["sources"]["mn-parcel-county-catalog"]["catalog_observed_at"])

@@ -131,10 +131,13 @@ class NumericThresholdTests(unittest.TestCase):
                     watch.validate_source_registry([_source(thresholds={key: value})])
 
     def test_ordinary_thresholds_are_accepted(self):
-        for value in (0, 10, 2.5, "10", None):
+        for value in (0, 10, 2.5, "10"):
             with self.subTest(value=value):
                 watch.validate_source_registry([_source(thresholds={
                     "feature_count_change_percent": value, "extent_shift_percent": value})])
+        # A null count threshold means "no warning"; a null extent threshold is
+        # refused (third review T08).
+        watch.validate_source_registry([_source(thresholds={"feature_count_change_percent": None})])
 
 
 if __name__ == "__main__":

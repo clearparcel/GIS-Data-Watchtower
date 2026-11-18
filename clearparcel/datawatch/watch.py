@@ -951,10 +951,15 @@ def _arcgis_duplicate_id_summary(url: str, field: str, timeout: int, *, prefer_c
     data, _ = _json_request(query_url, timeout, prefer_curl=prefer_curl)
     groups = _response_features(data, "ArcGIS duplicate-ID statistics")
     duplicate_groups = len(groups)
-    # A group without a valid count is malformed, never a measured zero.
-    duplicate_rows = sum(max(0, _validated_provider_count((x.get("attributes") or {}).get("n"),
-                                                          label="ArcGIS duplicate-ID group count") - 1)
-                         for x in groups)
+    # A group without a valid count is malformed, never a measured zero. The
+    # query asks only for groups larger than one, so a smaller count is too.
+    duplicate_rows = 0
+    for group in groups:
+        size = _validated_provider_count((group.get("attributes") or {}).get("n"),
+                                         label="ArcGIS duplicate-ID group count")
+        if size < 2:
+            raise ValueError("ArcGIS duplicate-ID group count is below the requested minimum of 2")
+        duplicate_rows += size - 1
     # A provider transfer limit below 2,000 also truncates the groups: the
     # totals are then lower bounds, not a complete scan (audit WT31-08).
     capped = len(groups) >= 2000 or data.get("exceededTransferLimit") is True
@@ -1190,6 +1195,10 @@ def _arcgis_gac_completeness(
         batch_denominators: dict[str, tuple[str | None, int]] = {}
         for feature in _response_features(data, "GAC statistics"):
             attrs = feature.get("attributes") or {}
+            # A group without its grouping attributes is malformed, never an
+            # empty county; a present null county is a genuine null group.
+            if county_field not in attrs:
+                raise RuntimeError(f"GAC statistics group is missing its {county_field} attribute")
             raw_county_name = str(attrs.get(county_field) or "").strip()
             county_name = (
                 raw_county_name
@@ -2004,12 +2013,20 @@ def _arcgis_county_catalog(source: dict, timeout: int) -> dict:
                                      "county records would be incomplete. If this layer was a small catalog before, "
                                      "the provider may have renumbered layers in this service; check the source URL's layer id")
     county_field = source.get("county_field", "countyname")
-    records = {}
-    for feature in _response_features(data, "ArcGIS county catalog"):
-        attrs = feature.get("attributes") or {}
-        county = attrs.get(county_field)
-        if county:
-            records[str(county)] = attrs
+    minnesota = source.get("county_membership") == "minnesota" or source.get("id") == "mn-parcel-county-catalog"
+    features = _response_features(data, "ArcGIS county catalog")
+    membership_error = None
+    if minnesota:
+        records, membership_error = _minnesota_catalog_records(features, county_field)
+    else:
+        records = {}
+        for feature in features:
+            attrs = feature.get("attributes") or {}
+            county = attrs.get(county_field)
+            if county:
+                records[str(county)] = attrs
+    if membership_error:
+        raise PermanentProviderError(200, membership_error)
     problems = []
     expected = source.get("expected_count")
     if expected is not None and len(records) != int(expected):
@@ -2017,17 +2034,6 @@ def _arcgis_county_catalog(source: dict, timeout: int) -> dict:
         # the last complete county records, as for a truncated page.
         raise PermanentProviderError(200, f"ArcGIS county catalog returned {len(records)} county records; "
                                      f"expected {expected}. The last complete catalog is kept")
-    if source.get("county_membership") == "minnesota" or source.get("id") == "mn-parcel-county-catalog":
-        # A full-sized catalog can still have lost a county (a misspelled or
-        # replaced name). The Minnesota catalog must name each county once.
-        canonical = {canonical_minnesota_county(name) for name in records}
-        unknown = sorted(name for name in records if canonical_minnesota_county(name) is None)
-        if unknown or None in canonical or len(canonical) != len(records) or (
-                expected is not None and len(canonical) != int(expected)):
-            raise PermanentProviderError(
-                200, f"ArcGIS county catalog membership is not the Minnesota county list "
-                     f"(unrecognized: {', '.join(_safe_diagnostic(x)[:40] for x in unknown[:5]) or 'none'}; "
-                     f"distinct counties: {len(canonical - {None})}). The last complete catalog is kept")
     stable = {name: records[name] for name in sorted(records)}
     result = {
         "http_status": meta.get("status"),
@@ -2044,6 +2050,39 @@ def _arcgis_county_catalog(source: dict, timeout: int) -> dict:
         if signal:
             result["_auxiliary_rate_limit"] = signal
     return result
+
+
+def _minnesota_catalog_records(features: list[dict], county_field: str) -> tuple[dict, str | None]:
+    """County rows keyed by canonical name; every Minnesota county exactly once.
+
+    Each raw row is checked before keying, so a duplicate cannot silently
+    replace an earlier row, an alias is stored under the name the dashboard
+    reads, and completeness never depends on an optional ``expected_count``
+    (third review T05). Returns the rows and, on any violation, the error
+    that fails the source and keeps the last complete catalog.
+    """
+    from clearparcel.datawatch.gac_standards import minnesota_county_names
+    records: dict[str, dict] = {}
+    unknown, duplicates = [], []
+    for feature in features:
+        attrs = feature.get("attributes") or {}
+        raw = attrs.get(county_field)
+        canonical = canonical_minnesota_county(raw)
+        if canonical is None:
+            unknown.append(str(raw))
+        elif canonical in records:
+            duplicates.append(canonical)
+        else:
+            records[canonical] = {**attrs, county_field: canonical} if raw != canonical else attrs
+    missing = sorted(minnesota_county_names() - set(records))
+    if not (unknown or duplicates or missing):
+        return records, None
+
+    def names(values):
+        return ", ".join(_safe_diagnostic(x)[:40] for x in sorted(values)[:5]) or "none"
+    return records, (f"ArcGIS county catalog membership is not the Minnesota county list "
+                     f"(unrecognized: {names(unknown)}; duplicated: {names(duplicates)}; missing: {len(missing)}; "
+                     f"distinct counties: {len(records)}). The last complete catalog is kept")
 
 
 # A county's own ArcGIS item, as linked from MnGeo's catalog (hub, opendata or
@@ -2356,10 +2395,20 @@ def _comparison_baseline(previous: object) -> dict | None:
     for key in _BASELINE_KEYS:
         if key in baseline and key not in times:
             times[key] = baseline.get("observed_at")
+    carried_tracked = baseline.get("tracked_values") if isinstance(baseline.get("tracked_values"), dict) else {}
     for key in _BASELINE_KEYS:
         if key in previous:
             baseline[key] = previous[key]
             times[key] = previous.get("checked_at")
+    previous_tracked = previous.get("tracked_values")
+    if isinstance(previous_tracked, dict):
+        # Tracked values are compared key by key: a key this observation could
+        # not measure keeps its last value and time (third review T07).
+        for name in carried_tracked:
+            times.setdefault(_tracked_time_key(name), times.get("tracked_values"))
+        for name in previous_tracked:
+            times[_tracked_time_key(name)] = previous.get("checked_at")
+        baseline["tracked_values"] = {**carried_tracked, **previous_tracked}
     baseline["observed_at"] = previous.get("checked_at")
     baseline["field_observed_at"] = times
     return baseline
@@ -2371,11 +2420,24 @@ def _carried_baseline(baseline: dict | None, details: dict) -> dict | None:
         return None
     times = baseline.get("field_observed_at") or {}
     kept = {key: baseline[key] for key in _BASELINE_KEYS if key in baseline and key not in details}
+    tracked_times = {}
+    if isinstance(baseline.get("tracked_values"), dict) and isinstance(details.get("tracked_values"), dict):
+        unmeasured = {name: value for name, value in baseline["tracked_values"].items()
+                      if name not in details["tracked_values"]}
+        if unmeasured:
+            kept["tracked_values"] = unmeasured
+            tracked_times = {_tracked_time_key(name): times.get(_tracked_time_key(name),
+                                                                times.get("tracked_values", baseline.get("observed_at")))
+                             for name in unmeasured}
     if not kept:
         return None
-    kept["field_observed_at"] = {key: times.get(key, baseline.get("observed_at")) for key in kept}
+    kept["field_observed_at"] = {key: times.get(key, baseline.get("observed_at")) for key in kept} | tracked_times
     kept["observed_at"] = baseline.get("observed_at")
     return kept
+
+
+def _tracked_time_key(name: object) -> str:
+    return f"tracked_values.{name}"
 
 
 def _compare(previous: dict | None, current: dict, source: dict | None = None) -> list[dict]:
@@ -2396,7 +2458,10 @@ def _compare(previous: dict | None, current: dict, source: dict | None = None) -
 
     # A service check fingerprints only its layer listing; the selected parcel
     # sublayer keeps its own schema hash.
-    if previous.get("parcel_schema_hash") and current.get("parcel_schema_hash") != previous.get("parcel_schema_hash"):
+    # Only a check that read the parcel layer measured its schema: a listing
+    # without a selectable layer carries no new evidence (third review T07).
+    if (previous.get("parcel_schema_hash") and "parcel_schema_hash" in current
+            and current.get("parcel_schema_hash") != previous.get("parcel_schema_hash")):
         layer_note = ("" if current.get("parcel_layer_id") == previous.get("parcel_layer_id")
                       else f" (layer {previous.get('parcel_layer_id')} -> {current.get('parcel_layer_id')})")
         changes.append({
@@ -2450,7 +2515,9 @@ def _compare(previous: dict | None, current: dict, source: dict | None = None) -
             })
 
     extent_delta = _extent_change(previous.get("spatial_extent"), current.get("spatial_extent"))
-    if extent_delta and extent_delta["max_extent_shift_percent"] > float(thresholds.get("extent_shift_percent", 0.5)):
+    extent_limit = thresholds.get("extent_shift_percent")
+    extent_limit = 0.5 if extent_limit is None else float(extent_limit)
+    if extent_delta and extent_delta["max_extent_shift_percent"] > extent_limit:
         changes.append({
             "severity": thresholds.get("extent_change_severity", "info"),
             "type": "spatial_extent",
@@ -2743,7 +2810,10 @@ def _check_sources_unlocked(
                                  if _is_observation(previous_observation) else None)
                     times = baseline.get("field_observed_at") or {}
                     for change in changes:
-                        observed = times.get(_CHANGE_BASELINE_KEY.get(change.get("type")), baseline.get("observed_at"))
+                        key = _CHANGE_BASELINE_KEY.get(change.get("type"))
+                        if change.get("type") == "tracked_value":
+                            key = _tracked_time_key(change.get("key")) if _tracked_time_key(change.get("key")) in times else key
+                        observed = times.get(key, baseline.get("observed_at"))
                         if observed != immediate:
                             change["previous_observed_at"] = observed
                 carried_baseline = _carried_baseline(baseline, details)
@@ -3079,6 +3149,10 @@ def validate_source_registry(sources: object) -> None:
             if not isinstance(adapter, str) or not adapter.strip():
                 raise InvalidSourceRegistryError(f"source {source_id!r} must define 'adapter' (preferred) or legacy 'kind'")
         _validate_dispatch_options(source, f"source {source_id!r}")
+        for key in _REQUEST_FLAG_OPTIONS:
+            # Truthiness would read "false" as on and add provider requests.
+            if source.get(key) is not None and type(source[key]) is not bool:
+                raise InvalidSourceRegistryError(f"source {source_id!r} {key} must be true or false")
         if "execution_profiles" in source:
             profiles = source["execution_profiles"]
             # A string would match profiles by substring; require exact names.
@@ -3098,7 +3172,7 @@ def validate_source_registry(sources: object) -> None:
             except ValueError:
                 adapter_name = None
             if adapter_name not in _LAYER_NAME_ADAPTERS or (
-                    adapter_name == "arcgis_service" and not source.get("discover_parcel_layer")):
+                    adapter_name == "arcgis_service" and source.get("discover_parcel_layer") is not True):
                 raise InvalidSourceRegistryError(
                     f"source {source_id!r} expected_layer_name is only supported on arcgis_layer sources and "
                     "arcgis_service sources with discover_parcel_layer")
@@ -3108,6 +3182,10 @@ def validate_source_registry(sources: object) -> None:
         if isinstance(thresholds, dict):
             # Numeric thresholds are read during comparison; a NaN or text value
             # would silently disable the warning, so refuse it up front.
+            if "extent_shift_percent" in thresholds and thresholds["extent_shift_percent"] is None:
+                # Read on every comparable extent; null would fail a healthy source later.
+                raise InvalidSourceRegistryError(
+                    f"source {source_id!r} thresholds extent_shift_percent must be a number; omit it for the default")
             _validate_dispatch_options({key: value for key, value in thresholds.items() if value is not None},
                                        f"source {source_id!r} thresholds", _THRESHOLD_OPTIONS)
         for key in ("schema_change_severity", "extent_change_severity"):
@@ -3121,6 +3199,9 @@ def validate_source_registry(sources: object) -> None:
 
 _CHANGE_SEVERITIES = frozenset({"info", "warn", "error"})
 _THRESHOLD_OPTIONS = {"feature_count_change_percent": float, "extent_shift_percent": float}
+# Source options that add provider requests when on.
+_REQUEST_FLAG_OPTIONS = ("count", "discover_parcel_layer", "parcel_quality", "geometry_sample", "item_metadata",
+                         "prefer_curl")
 _LAYER_NAME_ADAPTERS = frozenset({"arcgis_layer", "arcgis_service"})
 _MAX_RETRY_DELAY_SECONDS = 3600
 _DISPATCH_INT_OPTIONS = ("timeout_seconds", "retries")
