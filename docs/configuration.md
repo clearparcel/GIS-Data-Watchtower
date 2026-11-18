@@ -186,15 +186,24 @@ source that received it. Watchtower:
    embargo cannot be written, or exists but cannot be read, the job stops
    instead of polling. To clear an operator hold (`hold_until_cleared`) on a
    cloud worker, remove the host from both `state.json` and
-   `rate-limit-embargo.json`.
+   `rate-limit-embargo.json`. A stored entry whose `not_before` cannot be read
+   (missing, naive or malformed) never releases its host: it is treated as an
+   operator hold marked `"invalid_backoff": true` until an operator repairs or
+   clears it. Merged backoffs compare deadlines as UTC instants, whatever
+   offset they were written with.
 
 Numeric dispatch options (`timeout_seconds` and `retries` on any source, and
 the top-level `timeout_seconds`, `retries`, `retry_delay_seconds`, and
 `rate_limit_default_backoff_seconds`) are validated with the registry before
 any request, so a malformed later entry can no longer abort a run after an
-earlier host has signaled a 429.
+earlier host has signaled a 429. Values must be finite and not negative, and
+`retry_delay_seconds` is at most 3600. The registry check also requires
+`execution_profiles`, when present, to be a list of exact names (`cloud`,
+`local`, `any`), and accepts `expected_layer_name` only on `arcgis_layer` and
+`arcgis_service` sources, which read the layer definition.
 
-`not_before` honors `Retry-After` (delta-seconds or HTTP-date) in full, with a
+`not_before` honors `Retry-After` (delta-seconds of any length, leading zeros
+allowed, or HTTP-date) in full, with a
 60-second minimum and a one-year maximum (an effectively indefinite hold); a
 requested backoff is never shortened. Backoffs longer than a week are marked
 `"operator_review": true` in the private `rate_limits` entry so an operator can
@@ -419,7 +428,9 @@ provider-polling runs a technical control rather than a procedure. Every
 `cloud-job` and `check` run (including `check --source` and `--no-save`) and
 every private-dashboard refresh claims the slot before polling, so a
 scheduled run, a manual execution and a single-source recheck all count
-toward the same spacing. The claim is a version-conditional write: of two runs
+toward the same spacing. A `check` whose filter and profile select no source
+makes no request and claims no slot; it exits 2 with `scope.type=empty` (CLI
+JSON keeps that scope and adds `source_filter`). The claim is a version-conditional write: of two runs
 started together, only one proceeds. Slots are kept per execution profile
 (`cloud`, `local`), because hybrid workers poll different sources while
 sharing one storage backend. While the guard is on, a run that declares no

@@ -76,8 +76,11 @@ def _retry_after_seconds(value: str | None, now: dt.datetime, default: int = _RA
     seconds = None
     try:
         text = str(value or "").strip()[:64]
-        if re.fullmatch(r"[0-9]{1,10}", text):
-            seconds = int(text)
+        if re.fullmatch(r"[0-9]+", text):
+            # HTTP allows any number of digits. Ignore leading zeros, and treat
+            # a value too long to matter as beyond the maximum (an operator hold).
+            digits = text.lstrip("0") or "0"
+            seconds = int(digits) if len(digits) <= 10 else _RATE_LIMIT_MAX_SECONDS
         elif text:
             when = email.utils.parsedate_to_datetime(text)
             if when.tzinfo is None:
@@ -114,24 +117,40 @@ def _source_hosts(source: dict) -> list[str]:
     return list(dict.fromkeys(host for host in hosts if host))
 
 
+def _rate_limit_not_before(entry: object) -> dt.datetime | None:
+    """The entry's backoff deadline as an aware instant, or None when unreadable."""
+    if not isinstance(entry, dict):
+        return None
+    try:
+        not_before = dt.datetime.fromisoformat(str(entry.get("not_before")))
+    except ValueError:
+        return None
+    return not_before if not_before.tzinfo is not None else None
+
+
 def _active_rate_limits(previous: object, now: dt.datetime) -> dict:
-    """Return persisted per-host 429 backoffs that have not yet expired."""
+    """Return persisted per-host 429 backoffs that have not yet expired.
+
+    A damaged entry for a named host never releases that host: it becomes an
+    operator hold (``invalid_backoff``) until someone repairs or clears it.
+    """
     active = {}
     if not isinstance(previous, dict):
         return active
     for host, entry in previous.items():
-        if not isinstance(host, str) or not isinstance(entry, dict):
+        if not isinstance(host, str) or not host:
             continue
-        try:
-            not_before = dt.datetime.fromisoformat(str(entry.get("not_before")))
-        except ValueError:
-            continue
-        if not_before.tzinfo is None:
-            continue
-        if entry.get("hold_until_cleared") is True:
+        if isinstance(entry, dict) and entry.get("hold_until_cleared") is True:
             # The provider asked for longer than the maximum: stay blocked until
-            # an operator clears the entry, however much time passes.
+            # an operator clears the entry, however much time passes. Checked
+            # before the deadline, so a hold never depends on a readable time.
             active[host] = dict(entry)
+            continue
+        not_before = _rate_limit_not_before(entry)
+        if not_before is None:
+            # Fail closed: an unreadable deadline is not evidence the backoff ended.
+            active[host] = {**(entry if isinstance(entry, dict) else {}),
+                            "hold_until_cleared": True, "operator_review": True, "invalid_backoff": True}
             continue
         if not_before > now:
             # Re-bound stored values only to the (year-long) maximum; a provider's
@@ -2918,6 +2937,23 @@ def _check_sources_unlocked(
     return result
 
 
+def has_selected_sources(config: dict, *, source_filter: str | None, execution_profile: str | None) -> bool:
+    """Whether a check with this filter and profile would select any source.
+
+    Uses the same filter, profile and permission rules as a check, without a
+    request, so a selection mistake never claims the provider-run slot.
+    """
+    filtered = source_filter.lower() if source_filter else None
+    profile = _resolve_execution_profile(execution_profile)
+    permissions = _permissions_by_slug()
+    for source in config.get("sources", []):
+        if filtered and filtered not in source["id"].lower() and filtered not in str(source.get("name") or "").lower():
+            continue
+        if not (_profile_skip_reason(source, profile) or _permission_skip_reason(source, permissions)):
+            return True
+    return False
+
+
 class InvalidSourceRegistryError(ValueError):
     """The source registry cannot be checked as a whole; nothing was polled or saved."""
 
@@ -2960,9 +2996,20 @@ def validate_source_registry(sources: object) -> None:
             if not isinstance(adapter, str) or not adapter.strip():
                 raise InvalidSourceRegistryError(f"source {source_id!r} must define 'adapter' (preferred) or legacy 'kind'")
         _validate_dispatch_options(source, f"source {source_id!r}")
+        if "execution_profiles" in source:
+            profiles = source["execution_profiles"]
+            # A string would match profiles by substring; require exact names.
+            if profiles is not None and (not isinstance(profiles, list) or not all(
+                    isinstance(name, str) and name in _EXECUTION_PROFILES | {"any"} for name in profiles)):
+                raise InvalidSourceRegistryError(
+                    f"source {source_id!r} execution_profiles must be a list of: any, cloud, local")
         if "expected_layer_name" in source and (
                 not isinstance(source["expected_layer_name"], str) or not source["expected_layer_name"].strip()):
             raise InvalidSourceRegistryError(f"source {source_id!r} expected_layer_name must be a non-blank string")
+        if "expected_layer_name" in source and (source.get("adapter") or source.get("kind")) not in _LAYER_NAME_ADAPTERS:
+            # Only layer checks read the layer definition; elsewhere the guard would be ignored.
+            raise InvalidSourceRegistryError(
+                f"source {source_id!r} expected_layer_name is only supported on arcgis_layer and arcgis_service sources")
         thresholds = source.get("thresholds")
         if thresholds is not None and not isinstance(thresholds, dict):
             raise InvalidSourceRegistryError(f"source {source_id!r} thresholds must be an object")
@@ -2976,6 +3023,8 @@ def validate_source_registry(sources: object) -> None:
 
 
 _CHANGE_SEVERITIES = frozenset({"info", "warn", "error"})
+_LAYER_NAME_ADAPTERS = frozenset({"arcgis_layer", "arcgis_service"})
+_MAX_RETRY_DELAY_SECONDS = 3600
 _DISPATCH_INT_OPTIONS = ("timeout_seconds", "retries")
 _CONFIG_DISPATCH_OPTIONS = {"timeout_seconds": int, "retries": int, "retry_delay_seconds": float,
                             "rate_limit_default_backoff_seconds": int}
@@ -2996,7 +3045,9 @@ def _validate_dispatch_options(values: dict, label: str, options: dict | None = 
             if isinstance(value, bool):
                 raise ValueError
             converted = kind(value)
-            if converted < 0 or converted != converted:
+            if converted < 0 or not math.isfinite(converted):
+                raise ValueError
+            if key == "retry_delay_seconds" and converted > _MAX_RETRY_DELAY_SECONDS:
                 raise ValueError
         except (TypeError, ValueError, OverflowError):
             raise InvalidSourceRegistryError(f"{label} has an invalid {key}: {value!r}") from None

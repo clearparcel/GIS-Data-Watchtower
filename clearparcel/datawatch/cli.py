@@ -200,13 +200,20 @@ def main() -> int:
             if profile and not args.no_save:
                 from clearparcel.datawatch.cloud_job import require_publishable_profile
                 require_publishable_profile(config, profile)
-            _guard(config, args.config, "check", args.override_min_interval, profile)
+            from clearparcel.datawatch.watch import has_selected_sources
+            if has_selected_sources(config, source_filter=args.source, execution_profile=profile):
+                # A selection that matches nothing makes no request, so it never
+                # claims the provider-run slot; check_sources reports it below.
+                _guard(config, args.config, "check", args.override_min_interval, profile)
             result = check_sources(config, source_filter=args.source, save=not args.no_save, execution_profile=profile)
             if profile and not args.no_save:
                 from clearparcel.datawatch.cloud_job import publish_worker_result
                 publish_worker_result(config, result, profile)
-            if args.source and args.json:
+            if args.source and args.json and (result.get("scope") or {}).get("type") != "empty":
                 result["scope"] = {"type": "source_filter", "filter": args.source, "note": "counts and active_alerts in this response cover only the checked source(s); saved state retains fleet-wide status"}
+            elif args.source and args.json:
+                # Keep the documented empty-scope signal; name the filter beside it.
+                result["source_filter"] = args.source
             print(json.dumps(result, indent=2) if args.json else _render(result), end="" if not args.json else "\n")
             return _exit_code(result)
         if args.command == "status":

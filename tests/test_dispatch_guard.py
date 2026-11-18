@@ -169,14 +169,23 @@ class GuardTests(unittest.TestCase):
 class CliGuardTests(unittest.TestCase):
     CONFIG = Path(__file__).resolve().parents[1] / "config" / "example_sources.json"
 
-    def run_cli(self, root, argv, env_extra=None):
+    def cloud_config(self, root):
+        """The example registry with every source assigned to the cloud worker."""
+        config = json.loads(self.CONFIG.read_text(encoding="utf-8"))
+        for source in config["sources"]:
+            source["execution_profiles"] = ["cloud"]
+        path = Path(root) / "cloud-config.json"
+        path.write_text(json.dumps(config), encoding="utf-8")
+        return path
+
+    def run_cli(self, root, argv, env_extra=None, config=None):
         env = {"WATCHTOWER_STORAGE": "local", "WATCHTOWER_STORAGE_ROOT": str(root),
                "WATCHTOWER_RUN_RECEIPTS": "0", "WATCHTOWER_ALLOW_EXAMPLE_CONFIG": "1",
                "WATCHTOWER_EXECUTION_PROFILE": "cloud", **(env_extra or {})}
         stdout, stderr = io.StringIO(), io.StringIO()
         result = {"overall": "ok", "counts": {}, "sources": {}}
         with patch.dict(os.environ, env), \
-                patch("sys.argv", ["watchtower", "--config", str(self.CONFIG), *argv]), \
+                patch("sys.argv", ["watchtower", "--config", str(config or self.CONFIG), *argv]), \
                 patch("clearparcel.datawatch.cloud_job.run_cloud_job", return_value=result) as job, \
                 patch("clearparcel.datawatch.cli.check_sources", return_value=result) as check, \
                 contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
@@ -195,7 +204,8 @@ class CliGuardTests(unittest.TestCase):
             code, polled, _ = self.run_cli(Path(td), ["cloud-job"], env)
             self.assertEqual((code, polled), (cli.EXIT_OK, 1))
             code, polled, stderr = self.run_cli(
-                Path(td), ["check", "--source", "x", "--no-save", "--execution-profile", "cloud"], env)
+                Path(td), ["check", "--source", "example-wms", "--no-save", "--execution-profile", "cloud"], env,
+                config=self.cloud_config(td))
             self.assertEqual((code, polled), (cli.EXIT_DISPATCH_REFUSED, 0))
             self.assertIn("watchtower_dispatch_refused", stderr)
             code, polled, stderr = self.run_cli(
@@ -203,6 +213,20 @@ class CliGuardTests(unittest.TestCase):
             self.assertEqual((code, polled), (cli.EXIT_OK, 1))
             self.assertIn('"override": true', stderr)
             self.assertNotIn("owner-approved recheck", stderr)
+
+    def test_a_selection_that_matches_nothing_does_not_use_the_slot(self):
+        # Review of ff9f9a7, finding 28: a filter typo must not delay the real check.
+        env = {"WATCHTOWER_MIN_DISPATCH_HOURS": "23"}
+        with tempfile.TemporaryDirectory() as td:
+            config = self.cloud_config(td)
+            code, polled, _ = self.run_cli(Path(td), ["check", "--source", "no-such-source", "--execution-profile",
+                                                      "cloud"], env, config=config)
+            self.assertEqual(polled, 1)  # check_sources reports the empty selection; it polls nothing
+            self.assertFalse((Path(td) / GUARD_OBJECT).exists())
+            code, polled, _ = self.run_cli(Path(td), ["check", "--source", "example-wms", "--execution-profile",
+                                                      "cloud"], env, config=config)
+            self.assertEqual((code, polled), (cli.EXIT_OK, 1))
+            self.assertTrue((Path(td) / GUARD_OBJECT).exists())
 
     def test_placeholder_refusal_does_not_use_the_slot(self):
         env = {"WATCHTOWER_MIN_DISPATCH_HOURS": "23", "WATCHTOWER_ALLOW_EXAMPLE_CONFIG": "0"}
