@@ -9,7 +9,8 @@ from pathlib import Path
 
 from clearparcel.datawatch.public_dashboard import sanitize_public_render_state, sanitize_source_metadata
 from clearparcel.datawatch import strict_json
-from clearparcel.datawatch.public_projection import InvalidSnapshotError, validate_snapshot_structure
+from clearparcel.datawatch.public_projection import (InvalidSnapshotError, validate_snapshot_structure,
+                                                     validate_snapshot_totals)
 from clearparcel.datawatch.storage import GCSStorage, StorageBackend, StorageConflictError, gcs_object_identity
 from clearparcel.datawatch.aggregate import CLOCK_SKEW_TOLERANCE_SECONDS, _parse_time
 from clearparcel.datawatch.provider_watchdog import run_provider_watchdog
@@ -92,6 +93,16 @@ def validate_private_aggregate(raw: object) -> None:
         container = raw.get(key, {})
         if not isinstance(container, dict) or not all(isinstance(record, dict) for record in container.values()):
             raise InvalidSnapshotError(f"private aggregate {key} contains a malformed record")
+    # Projection drops an invalid tally, which would leave an empty, healthy
+    # looking publication; check the supplied totals before anything is
+    # discarded (follow-up review F01). The fleet tally is derived from the
+    # sources (aggregate.merge_states), so it must also agree with them.
+    for key in ("ok", "warn", "error"):
+        if key in raw["counts"]:
+            value = raw["counts"][key]
+            if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+                raise InvalidSnapshotError(f"private aggregate count {key} is invalid")
+    validate_snapshot_totals(raw)
 
 
 def _snapshot_is_superseded(candidate: dict, current: dict) -> bool:

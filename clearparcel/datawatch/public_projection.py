@@ -43,7 +43,13 @@ def _catalog_date(value: object) -> int | str | None:
 
 
 def _approval(value: object) -> str | bool | None:
-    return value if type(value) is bool or isinstance(value, str) and value.lower() in {'true', 'false', 'yes', 'no'} else None
+    # The same tri-state reading as public_values.catalog_approval: padded
+    # " YES " is yes, not unknown (follow-up review F11).
+    if type(value) is bool:
+        return value
+    if isinstance(value, str) and value.strip().lower() in {'true', 'false', 'yes', 'no'}:
+        return value.strip()
+    return None
 
 
 def _project(record: object, schema: dict) -> dict:

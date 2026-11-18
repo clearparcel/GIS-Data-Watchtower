@@ -58,7 +58,7 @@ def profile_time(value: object) -> str:
         instant = dt.datetime.fromisoformat(text.replace("Z", "+00:00"))
         if instant.tzinfo is not None:
             return instant.astimezone(ZoneInfo("America/Chicago")).strftime("%Y-%m-%d %H:%M %Z")
-    except ValueError:
+    except (ValueError, OverflowError):
         pass
     return text
 

@@ -51,7 +51,9 @@ def catalog_date(value: object, *, now: dt.datetime | None = None) -> dt.date | 
             else:
                 parsed = dt.datetime.fromisoformat(text.replace("Z", "+00:00"))
                 day = (parsed if parsed.tzinfo is None else parsed.astimezone(dt.timezone.utc)).date()
-        except ValueError:
+        except (ValueError, OverflowError):
+            # An offset instant at the year 1 or 9999 boundary has no UTC date:
+            # it is unknown, never a reason to fail the county output.
             day = None
     if day is None:
         return None
