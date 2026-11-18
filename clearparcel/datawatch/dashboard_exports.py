@@ -87,7 +87,7 @@ def _csv_safe(value) -> str:
 def _snapshot_csv(snapshot: dict) -> str:
     out = io.StringIO()
     if "sources" in snapshot:
-        fields = ["source_id","source_name","county","status","feature_count","worker","reporting","stale_source","stale_worker","last_success_at","checked_at"]
+        fields = ["source_id","source_name","county","status","feature_count","worker","reporting","stale_source","stale_worker","last_success_at","checked_at","last_report_at"]
         if snapshot.get("export_scope") == "source":
             fields += ["snapshot_created_utc", "watchtower_last_checked_utc"]
         writer = csv.DictWriter(out, fieldnames=fields)
@@ -107,6 +107,7 @@ def _snapshot_csv(snapshot: dict) -> str:
                 "stale_worker": source.get("worker_stale"),
                 "last_success_at": source.get("last_success_at"),
                 "checked_at": source.get("checked_at"),
+                "last_report_at": source.get("last_report_at"),
             }.items()})
         return out.getvalue()
     fields = ["county","status","actively_monitored","monitoring_path","county_direct_access","county_direct_access_basis","statewide_open_access","county_direct_source_count","parcel_dataset_fee","fee_product","last_county_update","catalog_refresh_date","county_metadata_publication_date","county_metadata_content_date","public_data_approved","parcel_data_url","parcel_viewer_url","worker_provenance","stale_source_count","contact_names","contact_source","contact_source_url","contact_verified","mngac_record_count","mngac_fields_with_values","mngac_field_count","mngac_field_population_percent","mngac_mandatory_population_percent",
@@ -356,7 +357,7 @@ def _gac_xlsx_sheets(snapshot: dict) -> list[tuple[str, list[list]]]:
 
 def _snapshot_xlsx(snapshot: dict) -> bytes:
     county_rows = [["County","Status","Actively monitored","Monitoring path","County-direct access (packaged research)","Statewide open access","County-direct source count","Parcel dataset fee (packaged research)","Fee product (packaged research)","MnGeo acquisition date","Catalog refresh date","County metadata publication date","County metadata content date","Public data approved","Parcel data URL","Parcel viewer URL","Contact names","Contact source","Contact source URL","Contact verified","Published parcel access","Published road access","Published address access","Published directory revision"]]
-    source_rows = [["County","Source","Status","Record count","Worker","Reporting","Stale source","Stale worker","Last successful check","Last checked"]]
+    source_rows = [["County","Source","Status","Record count","Worker","Reporting","Stale source","Stale worker","Last successful check","Last checked","Worker last reported"]]
     contact_rows = [["County","Name","Title","Department","Phone","Email","Contact source","Contact source URL","Verified"]]
     directory_rows = [["County", "Public revision", "Field", "Value"]]
     rows = snapshot.get("counties") if "counties" in snapshot else [snapshot]
@@ -368,7 +369,7 @@ def _snapshot_xlsx(snapshot: dict) -> bytes:
             county,row.get("status"),bool(row.get("actively_monitored")),row.get("monitoring_path_label"),
             parcel_access.get("county_direct_label"),parcel_access.get("statewide_open_label"),
             len(row.get("direct_sources") or []),parcel_access.get("parcel_dataset_fee"),parcel_access.get("fee_product"),
-            row.get("last_county_update"),row.get("catalog_refresh_date"),row.get("county_metadata_publication_date"),row.get("county_metadata_content_date"),bool(row.get("public_data_approved")),
+            row.get("last_county_update"),row.get("catalog_refresh_date"),row.get("county_metadata_publication_date"),row.get("county_metadata_content_date"),row.get("public_data_approved"),
             row.get("parcel_data_url"),row.get("parcel_viewer_url"),
             "; ".join(x.get("name","") for x in row.get("contacts",[]) if x.get("name")),
             row.get("contact_source"),row.get("contact_source_url"),row.get("contact_verified"),
@@ -378,7 +379,7 @@ def _snapshot_xlsx(snapshot: dict) -> bytes:
         ])
         for source in row.get("direct_sources", []):
             if "sources" not in snapshot:
-                source_rows.append([county,source.get("name"),source.get("status"),source.get("feature_count"),source.get("worker"),source.get("reporting"),bool(source.get("stale")),bool(source.get("worker_stale")),source.get("last_success_at"),source.get("checked_at")])
+                source_rows.append([county,source.get("name"),source.get("status"),source.get("feature_count"),source.get("worker"),source.get("reporting"),bool(source.get("stale")),bool(source.get("worker_stale")),source.get("last_success_at"),source.get("checked_at"),source.get("last_report_at")])
         for contact in row.get("contacts", []):
             contact_rows.append([county,contact.get("name"),contact.get("title"),contact.get("department"),contact.get("phone"),contact.get("email"),row.get("contact_source"),contact.get("source_url") or row.get("contact_source_url"),contact.get("verified_on") or row.get("contact_verified")])
         directory = row.get("county_directory")
@@ -392,7 +393,7 @@ def _snapshot_xlsx(snapshot: dict) -> bytes:
                     directory_rows.append([county, directory["public_revision"], label, value[start:start + 16_000]])
     if "sources" in snapshot:
         for source in snapshot.get("sources", []):
-            source_rows.append([source.get("county"),source.get("name"),source.get("status"),source.get("feature_count"),source.get("worker"),source.get("reporting"),bool(source.get("stale")),bool(source.get("worker_stale")),source.get("last_success_at"),source.get("checked_at")])
+            source_rows.append([source.get("county"),source.get("name"),source.get("status"),source.get("feature_count"),source.get("worker"),source.get("reporting"),bool(source.get("stale")),bool(source.get("worker_stale")),source.get("last_success_at"),source.get("checked_at"),source.get("last_report_at")])
     sheets=[("Counties",county_rows),("Sources",source_rows),("Contacts",contact_rows)]
     if snapshot.get("export_scope") == "source":
         sheets.insert(0, ("Export details", [["Scope", "Source ID", "Export time (UTC)", "Latest check attempt (UTC)"],

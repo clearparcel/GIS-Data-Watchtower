@@ -14,7 +14,12 @@ def main() -> int:
     parser.add_argument("--constraints", default="constraints.txt")
     parser.add_argument("--revision", required=True)
     parser.add_argument("--base-image", required=True)
-    parser.add_argument("--image-digest", required=True)
+    # Docker's local image ID is the digest of the image *configuration*, not
+    # the registry manifest digest a deployment references (review 27).
+    # --image-digest is the former name, kept so older invocations still work.
+    parser.add_argument("--image-config-digest", "--image-digest", dest="image_config_digest", required=True)
+    parser.add_argument("--registry-manifest-digest", default=None,
+                        help="sha256 manifest/index digest of a pushed release image, when one exists")
     parser.add_argument("--runtime-inventory", required=True)
     parser.add_argument("--os-inventory", required=True)
     parser.add_argument("--sbom", required=True)
@@ -22,6 +27,10 @@ def main() -> int:
     args = parser.parse_args()
     if not re.fullmatch(r"\S+@sha256:[0-9a-f]{64}", args.base_image):
         raise SystemExit(f"--base-image must be a digest-pinned reference (name@sha256:<64 hex>): {args.base_image!r}")
+    for flag, value in (("--image-config-digest", args.image_config_digest),
+                        ("--registry-manifest-digest", args.registry_manifest_digest)):
+        if value is not None and not re.fullmatch(r"sha256:[0-9a-f]{64}", value):
+            raise SystemExit(f"{flag} must be sha256:<64 hex>: {value!r}")
 
     constraints = Path(args.constraints)
     lock_bytes = constraints.read_bytes()
@@ -70,18 +79,22 @@ def main() -> int:
                 {"name": "clearparcel:base_image", "value": args.base_image},
                 {"name": "clearparcel:constraints_sha256", "value": hashlib.sha256(lock_bytes).hexdigest()},
                 {"name": "clearparcel:constraints_inventory_scope", "value": "dependency-input-only"},
-                {"name": "clearparcel:artifact_subject", "value": args.image_digest},
+                {"name": "clearparcel:image_config_digest", "value": args.image_config_digest},
+                *([{"name": "clearparcel:registry_manifest_digest", "value": args.registry_manifest_digest}]
+                  if args.registry_manifest_digest else []),
                 {"name": "clearparcel:runtime_interpreter", "value": runtime["python"]},
             ],
         },
         "components": components,
     }
     provenance = {
-        "schema": "clearparcel.watchtower.build-provenance.v1",
+        "schema": "clearparcel.watchtower.build-provenance.v2",
         "generated_at": generated,
         "source_revision": args.revision,
         "base_image": args.base_image,
-        "image_digest": args.image_digest,
+        # v2 renamed v1's ambiguous "image_digest" to say what it identifies.
+        "image_config_digest": args.image_config_digest,
+        "registry_manifest_digest": args.registry_manifest_digest,
         "constraints_sha256": hashlib.sha256(lock_bytes).hexdigest(),
         "runtime_python_components": sum(
             1 for row in runtime.get("components", [])

@@ -24,3 +24,6 @@ tests
 # Only the public example configuration enters a local build context.
 config/*
 !config/example_sources.json
+
+# Project-local git worktrees never enter a local build context (review R2).
+.worktrees/

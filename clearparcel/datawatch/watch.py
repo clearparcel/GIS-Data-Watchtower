@@ -918,20 +918,6 @@ def _arcgis_count_query(url: str, where: str, timeout: int, *, prefer_curl: bool
     return _validated_provider_count(data.get("count"), label="ArcGIS count")
 
 
-def _arcgis_statistics_query(url: str, field: str, timeout: int, *, prefer_curl: bool = False) -> dict:
-    field = _sql_identifier(field)
-    stats = [
-        {"statisticType": "count", "onStatisticField": field, "outStatisticFieldName": "nonnull_count"},
-        {"statisticType": "count", "onStatisticField": field, "outStatisticFieldName": "row_count"},
-    ]
-    query_url = url.rstrip("/") + "/query?" + urllib.parse.urlencode({
-        "where": "1=1", "outStatistics": json.dumps(stats), "returnGeometry": "false", "f": "json",
-    })
-    data, _ = _json_request(query_url, timeout, prefer_curl=prefer_curl)
-    attrs = ((data.get("features") or [{}])[0].get("attributes") or {})
-    return attrs
-
-
 def _arcgis_duplicate_id_summary(url: str, field: str, timeout: int, *, prefer_curl: bool = False) -> dict:
     field = _sql_identifier(field)
     query_url = url.rstrip("/") + "/query?" + urllib.parse.urlencode({
@@ -1497,6 +1483,9 @@ def _arcgis_geometry_sample(url: str, timeout: int, *, sample_size: int = 250, p
             empty += 1
             continue
         ring_count = len(rings)
+        # Counts shapes with more than one ring: a second exterior part OR an
+        # interior hole. The field names keep "multipart" for compatibility;
+        # they are multiple-ring metrics (review 30, documented in configuration.md).
         multipart += 1 if ring_count > 1 else 0
         rings_total += ring_count
         vertices = sum(len(ring or []) for ring in rings)

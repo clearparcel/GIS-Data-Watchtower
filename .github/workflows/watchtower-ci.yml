@@ -42,7 +42,13 @@ jobs:
           WATCHTOWER_REQUIRE_NODE: "1"
         run: python -W error::ResourceWarning -m unittest discover -s tests -q
       - name: CLI smoke test
-        run: watchtower --config config/example_sources.json status --json
+        # The fresh example has no state file: status must report it as
+        # uninitialized with exit 1 rather than as healthy.
+        run: >-
+          python -c "import json, subprocess, sys;
+          r = subprocess.run(['watchtower', '--config', 'config/example_sources.json', 'status', '--json'], capture_output=True, text=True);
+          body = json.loads(r.stdout);
+          sys.exit(0 if r.returncode == 1 and body.get('uninitialized') is True else 1)"
 
       - name: Linux cloud development smoke test
         if: matrix.os == 'ubuntu-24.04' && matrix.python-version == '3.13'
@@ -98,7 +104,7 @@ jobs:
           python scripts/generate_supply_chain.py \
             --revision "${{ github.sha }}" \
             --base-image "$(sed -n 's/^FROM //p' Dockerfile | head -n 1)" \
-            --image-digest "$(cat watchtower-image-id.txt)" \
+            --image-config-digest "$(cat watchtower-image-id.txt)" \
             --runtime-inventory watchtower-runtime-python.json \
             --os-inventory watchtower-runtime-os.tsv \
             --sbom watchtower-sbom.cdx.json \

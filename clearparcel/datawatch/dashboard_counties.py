@@ -4,7 +4,7 @@ from clearparcel.datawatch.csp import SCRIPT_TAG
 from clearparcel.datawatch import dashboard as _dashboard
 from clearparcel.datawatch.dashboard_summary import catalog_summary
 from clearparcel.datawatch.county_profile_panel import profile_time
-from clearparcel.datawatch.public_values import county_metadata_dates
+from clearparcel.datawatch.public_values import catalog_approval, county_metadata_dates
 from clearparcel.datawatch.product import page_title
 from .dashboard_activity import compact_time
 from .dashboard_source import RESULTS, check_timing
@@ -167,7 +167,7 @@ def render_county(config: dict, slug: str) -> str:
         source_cards += f'<div class="card"><h3>{_dashboard._esc(src.get("name"))}</h3><p><strong>{"Status" if public else "Latest check result"}:</strong> {_dashboard._esc(result)}<br><strong>Records:</strong> {_dashboard._esc(f"{src.get("feature_count"):,}" if isinstance(src.get("feature_count"), int) else "—")}<br><strong>Provided by:</strong> {_dashboard._esc(src.get("provider","—"))}<br><strong>Last checked:</strong> {checked}</p>{timing_note}</div>'
     catalog = info.get("catalog") or {}
     if not source_cards and catalog:
-        approval = str(catalog.get("gac_open_approval") or "—")
+        approval = {True: "Yes", False: "No"}.get(catalog_approval(catalog.get("gac_open_approval")), "—")
         data_url = _dashboard._safe_url(catalog.get("data_url"))
         viewer_url = _dashboard._safe_url(catalog.get("viewer_url"))
         county_dates = county_metadata_dates(catalog)

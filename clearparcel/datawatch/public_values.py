@@ -28,6 +28,49 @@ def provider_edit_date(value: object) -> str | None:
     return stamp[:10] if stamp else None
 
 
+# A catalog date this far past today is implausible, not recent (review 20).
+CATALOG_FUTURE_TOLERANCE = dt.timedelta(days=2)
+
+
+def catalog_date(value: object, *, now: dt.datetime | None = None) -> dt.date | None:
+    """One calendar-date reading of a MnGeo catalog ``acqdate``/``rundate``.
+
+    Accepts ArcGIS epoch milliseconds (kept as the UTC calendar date) and ISO
+    date or date-time text. A date more than ``CATALOG_FUTURE_TOLERANCE`` past
+    today is unknown, so every view treats it the same way.
+    """
+    day = None
+    if type(value) is int:
+        stamp = provider_edit_date(value)
+        day = dt.date.fromisoformat(stamp) if stamp else None
+    elif isinstance(value, str) and 0 < len(value) <= 80:
+        text = value.strip()
+        try:
+            if _ISO_DAY.fullmatch(text):
+                day = dt.date.fromisoformat(text)
+            else:
+                parsed = dt.datetime.fromisoformat(text.replace("Z", "+00:00"))
+                day = (parsed if parsed.tzinfo is None else parsed.astimezone(dt.timezone.utc)).date()
+        except ValueError:
+            day = None
+    if day is None:
+        return None
+    today = (now or dt.datetime.now(dt.timezone.utc)).astimezone(dt.timezone.utc).date()
+    return None if day > today + CATALOG_FUTURE_TOLERANCE else day
+
+
+_APPROVAL_VALUES = {"true": True, "yes": True, "false": False, "no": False}
+
+
+def catalog_approval(value: object) -> bool | None:
+    """MnGeo ``gac_open_approval`` as True, False or None (unknown); never guess False."""
+    if type(value) is bool:
+        return value
+    if isinstance(value, str):
+        return _APPROVAL_VALUES.get(value.strip().lower())
+    return None
+
+
 _ITEM_METADATA_STATUSES = frozenset({"ok", "unavailable", "deferred", "skipped", "held"})
 _ISO_DAY = re.compile(r"\d{4}-\d{2}-\d{2}")
 

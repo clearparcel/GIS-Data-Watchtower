@@ -101,8 +101,7 @@ class QueryFieldTests(unittest.TestCase):
                 watch._sql_identifier(name)
         with patch.object(watch, "_request") as request:
             for call in (lambda f: watch._field_completeness("https://example.invalid/0", f, 10, 2),
-                         lambda f: watch._arcgis_duplicate_id_summary("https://example.invalid/0", f, 2),
-                         lambda f: watch._arcgis_statistics_query("https://example.invalid/0", f, 2)):
+                         lambda f: watch._arcgis_duplicate_id_summary("https://example.invalid/0", f, 2)):
                 with self.assertRaises(ValueError):
                     call("OWNER OR 1=1")
             request.assert_not_called()

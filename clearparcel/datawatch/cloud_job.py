@@ -199,11 +199,16 @@ def preflight_cloud_job(config: dict) -> dict:
 
 
 def run_cloud_job(config_path: str | Path, *, prepared_config: dict | None = None) -> dict:
+    # A private per-run directory: concurrent or leftover runs never share
+    # downloaded state. A configured WATCHTOWER_WORKDIR is the parent of that
+    # directory, not the directory itself (review 29): two overlapping jobs on
+    # one filesystem would otherwise swap each other's downloaded inputs.
     configured = os.environ.get("WATCHTOWER_WORKDIR")
+    parent = None
     if configured:
-        return _run_cloud_job(config_path, Path(configured).expanduser(), prepared_config=prepared_config)
-    # A private per-run directory: concurrent or leftover runs never share downloaded state.
-    with tempfile.TemporaryDirectory(prefix="watchtower-job-") as scratch:
+        parent = Path(configured).expanduser()
+        parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="watchtower-job-", dir=parent) as scratch:
         return _run_cloud_job(config_path, Path(scratch), prepared_config=prepared_config)
 
 

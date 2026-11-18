@@ -109,6 +109,30 @@ def _monitoring_options(value: object, *, adapter: str) -> dict:
     }
 
 
+_MAX_REST_PATH = 2048
+
+
+def _is_rest_layer_path(path: str) -> bool:
+    """``.../rest/services/<one or more segments>/(FeatureServer|MapServer)/<layer>``.
+
+    Segment checks replace an ambiguous ``.+`` regular expression whose
+    backtracking CodeQL flagged (review 16). Linear in the path length.
+    """
+    if len(path) > _MAX_REST_PATH:
+        return False
+    parts = path.split("/")
+    if len(parts) < 6 or not parts[-1].isascii() or not parts[-1].isdigit():
+        return False
+    if parts[-2].lower() not in ("featureserver", "mapserver"):
+        return False
+    lowered = [part.lower() for part in parts[:-2]]
+    for index in range(len(lowered) - 1):
+        if lowered[index] == "rest" and lowered[index + 1] == "services":
+            # At least one service-name segment before the server type.
+            return len(lowered) - (index + 2) >= 1 and any(lowered[index + 2:])
+    return False
+
+
 def _source_kind(method: dict) -> tuple[str, str]:
     kind = method.get("kind")
     url = safe_public_url(method.get("url"))
@@ -117,8 +141,7 @@ def _source_kind(method: dict) -> tuple[str, str]:
     parsed = urlsplit(url)
     path = parsed.path.rstrip("/")
     if kind == "direct_rest":
-        match = re.search(r"/rest/services/.+/(?:FeatureServer|MapServer)/([0-9]+)$", path, re.IGNORECASE)
-        if not match:
+        if not _is_rest_layer_path(path):
             raise ValueError("use a direct ArcGIS REST layer link ending in a layer number")
         if any(key.lower() != "f" or value.lower() not in {"json", "pjson"}
                for key, value in parse_qsl(parsed.query, keep_blank_values=True)):
