@@ -169,6 +169,8 @@ def fetch_status(url: str, client_id: str, client_secret: str, *, opener=None,
             content_type = response.headers.get("Content-Type", "")
             raw = response.read(MAX_BYTES + 1)
     except urllib.error.HTTPError as exc:
+        # The error carries an open response body; release it (third review T13).
+        exc.close()
         raise TermsStatusError(f"CRM terms status returned HTTP {exc.code}") from None
     except (urllib.error.URLError, http.client.HTTPException, TimeoutError, OSError, ValueError) as exc:
         raise TermsStatusError(f"CRM terms status unreachable ({type(exc).__name__})") from None

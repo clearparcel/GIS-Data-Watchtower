@@ -40,6 +40,35 @@ def _stop(child: subprocess.Popen) -> None:
             stream.close()
 
 
+def _stop_gracefully(child: subprocess.Popen) -> None:
+    """End a live owner by closing its stdin, so it releases the lock and exits normally.
+
+    Killing it leaves Windows to release the lock file handle asynchronously,
+    which made temporary-directory cleanup fail (WinError 32, third review T12).
+    The kill-and-reacquire behavior keeps its own test above.
+    """
+    if child.poll() is None and child.stdin is not None:
+        try:
+            child.stdin.close()
+            child.wait(timeout=10)
+        except (OSError, subprocess.TimeoutExpired):
+            pass
+    _stop(child)
+
+
+class _LockDirectory(tempfile.TemporaryDirectory):
+    """A temporary directory whose removal retries briefly while Windows releases a handle."""
+
+    def cleanup(self):
+        for attempt in range(20):
+            try:
+                return super().cleanup()
+            except PermissionError:
+                if attempt == 19:
+                    raise
+                time.sleep(0.1)
+
+
 class TransientReleaseTests(unittest.TestCase):
     def test_lock_released_shortly_after_a_refusal_is_acquired(self):
         """Emulate Windows: the OS reports the dead owner's lock for a moment."""
@@ -74,7 +103,7 @@ class TransientReleaseTests(unittest.TestCase):
 
 class LiveOwnerTests(unittest.TestCase):
     def test_live_owner_in_another_process_is_still_excluded(self):
-        with tempfile.TemporaryDirectory() as td:
+        with _LockDirectory() as td:
             state = Path(td) / "state.json"
             child = _hold_lock_in_child(state)
             try:
@@ -84,7 +113,7 @@ class LiveOwnerTests(unittest.TestCase):
                         watch._acquire_run_lock(state, wait_seconds=0.3)
                     self.assertGreaterEqual(time.monotonic() - started, 0.25)
             finally:
-                _stop(child)
+                _stop_gracefully(child)
 
     def test_check_reports_genuine_contention_before_any_request(self):
         with tempfile.TemporaryDirectory() as td:
