@@ -69,6 +69,19 @@ class OverdueWorkersTests(unittest.TestCase):
         aggregate["retired_workers"] = {"local": {"retired_at": "2026-10-10T00:00:00+00:00"}}
         self.assertEqual(overdue_workers(aggregate, now=NOW), ([], 1))
 
+    def test_assigned_worker_without_a_record_is_missing_by_default(self):
+        """Third review T09: the default expects every worker a current source is assigned to."""
+        aggregate = _agg()
+        aggregate["sources"] = {"s": {"status": "ok", "worker": "cloud", "checked_at": "2026-11-03T11:00:00+00:00"}}
+        findings, checked = overdue_workers(aggregate, now=NOW)
+        self.assertEqual(checked, 1)
+        self.assertEqual([(f["worker"], f["reason"]) for f in findings], [("cloud", "missing")])
+        # An intentionally empty fleet expects nobody.
+        self.assertEqual(overdue_workers(_agg(), now=NOW), ([], 0))
+        # A retired worker's leftover assignment is not expected.
+        aggregate["retired_workers"] = {"cloud": {"retired_at": "2026-11-02T00:00:00+00:00"}}
+        self.assertEqual(overdue_workers(aggregate, now=NOW), ([], 0))
+
 
 class RunProviderWatchdogTests(unittest.TestCase):
     def test_logs_one_error_line_per_overdue_worker(self):

@@ -655,7 +655,7 @@ rollback; it never contacts GIS providers.
 | `WATCHTOWER_PUBLIC_DEST_OBJECT` | Sanitized snapshot object name | `aggregate-state.json` |
 | `WATCHTOWER_PUBLIC_PUBLISH_WORKDIR` | Parent of the unique temporary directory each publication uses | `/tmp/watchtower-public-publish` |
 | `WATCHTOWER_PROVIDER_WATCHDOG` | `0` turns off the provider-run watchdog | on |
-| `WATCHTOWER_WATCHDOG_WORKERS` | Comma-separated workers the watchdog expects to report | every current worker in the aggregate |
+| `WATCHTOWER_WATCHDOG_WORKERS` | Comma-separated workers the watchdog expects to report | every current worker in the aggregate, plus every non-retired worker a source is assigned to |
 | `WATCHTOWER_WORKER_STALE_MINUTES` | Watchdog staleness window | `1560` |
 
 Before sanitizing, the publisher's provider-run watchdog logs one `ERROR`

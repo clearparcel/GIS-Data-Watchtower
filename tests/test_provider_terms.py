@@ -136,6 +136,14 @@ class FetchTests(unittest.TestCase):
             self.assertNotIn("secret", str(caught.exception))
             self.assertNotIn("Sign in", str(caught.exception))
 
+    def test_http_error_body_is_closed(self):
+        """Third review T13: the error response is released, never left for the finalizer."""
+        body = io.BytesIO(b"secret page")
+        error = urllib.error.HTTPError(TERMS_URL, 403, "Forbidden", {}, body)
+        with self.assertRaises(TermsStatusError):
+            fetch_status(TERMS_URL, "id", "secret-value", opener=FakeOpener(error))
+        self.assertTrue(body.closed)
+
     def test_refuses_plain_http(self):
         with self.assertRaises(TermsStatusError):
             fetch_status("http://crm.example.test/api/terms/status", "id", "s", opener=FakeOpener(None))

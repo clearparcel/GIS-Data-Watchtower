@@ -44,12 +44,23 @@ def overdue_workers(aggregate: dict, *, now: dt.datetime, stale_minutes: int = D
     """Return (overdue findings, number of workers checked).
 
     ``expected`` names the workers that must report. When it is ``None``, every
-    current (non-retired) worker in the aggregate is expected. An expected
-    worker missing from the aggregate is overdue with reason ``missing``.
+    current (non-retired) worker in the aggregate is expected, and so is every
+    worker a current source is assigned to (third review T09), unless that
+    worker is retired. An expected worker missing from the aggregate is overdue
+    with reason ``missing``.
     """
     workers = aggregate.get("workers") if isinstance(aggregate, dict) else None
     workers = workers if isinstance(workers, dict) else {}
-    names = sorted(expected) if expected is not None else sorted(workers)
+    if expected is None:
+        sources = aggregate.get("sources") if isinstance(aggregate, dict) else None
+        retired = aggregate.get("retired_workers") if isinstance(aggregate, dict) else None
+        retired = retired if isinstance(retired, dict) else {}
+        assigned = {source.get("worker") for source in (sources.values() if isinstance(sources, dict) else ())
+                    if isinstance(source, dict)}
+        assigned = {name for name in assigned if isinstance(name, str) and name.strip() and name not in retired}
+        names = sorted(set(workers) | assigned)
+    else:
+        names = sorted(expected)
     now = now.astimezone(dt.timezone.utc)
     findings = []
     for name in names:

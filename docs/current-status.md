@@ -29,6 +29,13 @@ tracked values keep a per-key baseline (T07). An explicit `null`
 check the private registry for non-boolean request options and a null extent
 threshold.
 
+Operations and test reliability: the publisher watchdog's default now also
+expects every non-retired worker a source is assigned to, so a missing
+assigned worker alerts even without `WATCHTOWER_WATCHDOG_WORKERS` (T09). The
+Windows live-lock contention test stops its owner gracefully and retries
+temporary-directory cleanup (T12). The CRM terms client closes HTTP error
+responses (T13).
+
 ## v0.5.6 follow-up review fixes — deployed, 2026-11-18
 
 Deployed November 18, 2026 from `9979b63` (PRs #266 to #272); see the

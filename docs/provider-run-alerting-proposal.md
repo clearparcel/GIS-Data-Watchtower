@@ -93,7 +93,7 @@ Watchdog settings on the publisher job:
 | Variable | Meaning | Default |
 | --- | --- | --- |
 | `WATCHTOWER_PROVIDER_WATCHDOG` | `0` turns the watchdog off | on |
-| `WATCHTOWER_WATCHDOG_WORKERS` | Comma-separated workers that must report (an empty list falls back to the default) | every current (non-retired) worker in the aggregate |
+| `WATCHTOWER_WATCHDOG_WORKERS` | Comma-separated workers that must report (an empty list falls back to the default) | every current (non-retired) worker in the aggregate, plus every non-retired worker a source is assigned to |
 | `WATCHTOWER_WORKER_STALE_MINUTES` | Staleness window, shared with the dashboards | `1560` |
 
 Set `WATCHTOWER_WATCHDOG_WORKERS=cloud` in production so a historical worker
