@@ -524,9 +524,16 @@ does not take a provider-run slot. The line carries:
   configured, provider-terms follow-ups), then lists terms follow-ups that are
   overdue, due this week or unanswered for 14+ days, stale sources oldest
   first, sources with no publisher time, and workers and sources past the
-  check window. Each list is cut after eight entries with "and N more",
+  check window. A source counts as overdue when its own check or its assigned
+  worker's report is stale, and an assigned worker with no report on record is
+  listed as overdue ("no report on record"). Each list is cut after eight entries with "and N more",
   and cut further if the body would exceed the limit;
 - `counts`: the current, stale and unknown totals.
+
+The aggregate must have `counts`, `sources` and `workers` objects (an
+intentionally empty fleet keeps that shape). An empty or malformed object
+stops the command with exit 3 and logs no digest, instead of a routine
+"0 stale" notice.
 
 The digest reads only the history in the configured storage, so a local-only
 source (whose history stays on the local worker) learns no interval there; it

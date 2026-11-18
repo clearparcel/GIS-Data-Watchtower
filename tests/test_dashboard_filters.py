@@ -108,5 +108,28 @@ console.log(JSON.stringify(out));
         self.assertEqual(card, page.count('data-reporting="current"'))
 
 
+class UnknownReportClockTests(unittest.TestCase):
+    """Follow-up review of f8f0997, F08: an unknown worker clock is check overdue."""
+
+    def _page(self) -> str:
+        now = dt.datetime.now(dt.timezone.utc).isoformat()
+        sources = [{**_source("wabasha", "ok", now), "worker": "cloud"}, _source("rice", "ok", now)]
+        state = {"generated_at": now, "workers": {}, "sources": {x["id"]: x for x in sources}}
+        return render_counties({"_render_state": state, "state_file": "unused.json"})
+
+    def test_missing_worker_report_is_counted_and_filtered_as_overdue(self):
+        page = self._page()
+        row = _row(page, "wabasha")
+        self.assertIn('data-reporting="overdue"', row)
+        self.assertIn('data-status="overdue"', row)
+        self.assertIn('data-reporting="current"', _row(page, "rice"))
+        self.assertIn("report time unavailable", page)
+        card = re.search(r'Counties being checked</div><div class="metric">(\d+)</div>'
+                         r'<span class="subtext">Counties with a source for checks: (\d+)\. Checks overdue: (\d+)\.', page)
+        checked, paths, overdue = (int(card.group(i)) for i in (1, 2, 3))
+        self.assertEqual((checked, overdue), (1, 1))
+        self.assertEqual(checked + overdue, paths)
+
+
 if __name__ == "__main__":
     unittest.main()
