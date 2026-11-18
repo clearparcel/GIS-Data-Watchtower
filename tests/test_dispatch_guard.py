@@ -201,7 +201,7 @@ class CliGuardTests(unittest.TestCase):
     def test_second_run_within_the_minimum_is_refused_before_polling(self):
         env = {"WATCHTOWER_MIN_DISPATCH_HOURS": "23"}
         with tempfile.TemporaryDirectory() as td:
-            code, polled, _ = self.run_cli(Path(td), ["cloud-job"], env)
+            code, polled, _ = self.run_cli(Path(td), ["cloud-job"], env, config=self.cloud_config(td))
             self.assertEqual((code, polled), (cli.EXIT_OK, 1))
             code, polled, stderr = self.run_cli(
                 Path(td), ["check", "--source", "example-wms", "--no-save", "--execution-profile", "cloud"], env,
@@ -209,7 +209,8 @@ class CliGuardTests(unittest.TestCase):
             self.assertEqual((code, polled), (cli.EXIT_DISPATCH_REFUSED, 0))
             self.assertIn("watchtower_dispatch_refused", stderr)
             code, polled, stderr = self.run_cli(
-                Path(td), ["cloud-job", "--override-min-interval", "owner-approved recheck"], env)
+                Path(td), ["cloud-job", "--override-min-interval", "owner-approved recheck"], env,
+                config=self.cloud_config(td))
             self.assertEqual((code, polled), (cli.EXIT_OK, 1))
             self.assertIn('"override": true', stderr)
             self.assertNotIn("owner-approved recheck", stderr)
@@ -228,6 +229,24 @@ class CliGuardTests(unittest.TestCase):
             self.assertEqual((code, polled), (cli.EXIT_OK, 1))
             self.assertTrue((Path(td) / GUARD_OBJECT).exists())
 
+    def test_cloud_job_without_an_eligible_source_does_not_use_the_slot(self):
+        # Follow-up review of f8f0997, F05: a cloud job whose sources are all
+        # assigned elsewhere polls nothing, so it must not claim the slot that a
+        # corrected assignment needs straight afterward.
+        env = {"WATCHTOWER_MIN_DISPATCH_HOURS": "23"}
+        with tempfile.TemporaryDirectory() as td:
+            config = json.loads(self.CONFIG.read_text(encoding="utf-8"))
+            for source in config["sources"]:
+                source["execution_profiles"] = ["local"]
+            local_only = Path(td) / "local-config.json"
+            local_only.write_text(json.dumps(config), encoding="utf-8")
+            code, polled, _ = self.run_cli(Path(td), ["cloud-job"], env, config=local_only)
+            self.assertEqual(code, cli.EXIT_OK)
+            self.assertFalse((Path(td) / GUARD_OBJECT).exists())
+            code, polled, _ = self.run_cli(Path(td), ["cloud-job"], env, config=self.cloud_config(td))
+            self.assertEqual((code, polled), (cli.EXIT_OK, 1))
+            self.assertTrue((Path(td) / GUARD_OBJECT).exists())
+
     def test_placeholder_refusal_does_not_use_the_slot(self):
         env = {"WATCHTOWER_MIN_DISPATCH_HOURS": "23", "WATCHTOWER_ALLOW_EXAMPLE_CONFIG": "0"}
         with tempfile.TemporaryDirectory() as td:
@@ -240,7 +259,7 @@ class CliGuardTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             (Path(td) / "runs").mkdir()
             (Path(td) / GUARD_OBJECT).write_text("{", encoding="utf-8")
-            code, polled, stderr = self.run_cli(Path(td), ["cloud-job"], env)
+            code, polled, stderr = self.run_cli(Path(td), ["cloud-job"], env, config=self.cloud_config(td))
             self.assertEqual((code, polled), (cli.EXIT_TOOL_FAILURE, 0))
             self.assertIn("dispatch guard", stderr)
 
