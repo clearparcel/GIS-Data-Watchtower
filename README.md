@@ -44,7 +44,7 @@ reviewed direct links to bounded regular checks and their public results.
 
 ![Live Watchtower overview with source health, county coverage, and a Minnesota county map](docs/images/watchtower-overview.png)
 
-*Actual public dashboard, captured October 12, 2026. Counts, check times, and field-population percentages change as new observations arrive.*
+*Actual public dashboard (v0.5.4), captured November 18, 2026. Counts, check times, and field-population percentages change as new observations arrive.*
 
 ## What is Watchtower?
 
@@ -81,7 +81,7 @@ See the [illustrated public user guide](docs/user-guide.md) for step-by-step ins
 
 ![Live public dashboard with Olmsted County selected and separate monitoring and field-population evidence](docs/images/watchtower-county.png)
 
-*Illustrative county selection as of October 12, 2026. Direct-feed observations are not county-wide compliance findings.*
+*County selection on the public dashboard (v0.5.4), captured November 18, 2026. Direct-feed observations are not county-wide compliance findings.*
 
 ## Data, freshness, and responsible use
 

@@ -1,6 +1,15 @@
 # Project status
 
-## Low-severity review cleanup — in review, not deployed
+## Repository housekeeping — in review
+
+Items R4 to R6 of the November 18 review. The three missing triage labels
+(`needs-triage`, `needs-info`, `ready-for-human`) now exist in the issue
+tracker, and the audit digest issue (#254) states the pilot and the
+November 18 review with links. The user guide and README screenshots were
+recaptured from the public dashboard running v0.5.4; the October 12 captures
+are archived under `docs/images/archive/2026-10-12/`.
+
+## Low-severity review cleanup — merged (#262), not deployed
 
 Findings 13, 16, 19, 20, 22, 23, 26, 27, 29 and 30 and repository item R2 of
 the November 18 review of `ff9f9a7`. The statewide export no longer fills a
