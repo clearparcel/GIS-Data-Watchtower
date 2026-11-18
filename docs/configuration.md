@@ -103,17 +103,30 @@ Optional common controls include:
   into a warning. A failed check keeps the last usable observation as a private
   `comparison_baseline`, so the first successful check after an outage still
   reports schema and count changes against it (`previous_observed_at` names
-  that observation). A service check with `discover_parcel_layer` also compares
-  the selected parcel layer's own schema (`parcel_schema`).
+  that observation). A partial observation, such as a service listing whose
+  parcel layer could not be read, or an HTTP 429 that carries the previous
+  values for display, replaces only the fields it measured: the others keep
+  their last valid value and observation time (`field_observed_at`), and a
+  later change to them names that earlier observation. A service check with
+  `discover_parcel_layer` also compares the selected parcel layer's own schema
+  (`parcel_schema`).
 
 The `arcgis_county_catalog` adapter (MnGeo's county catalog) reads one result
 page. If the provider flags that page with `exceededTransferLimit`, the source
 fails for that run without a retry or further pages, and the last complete
 county records are kept (`catalog_retained`). A page whose county count differs
 from `expected_count` is rejected the same way: the complete records and their
-observation time are kept, and a first catalog that is short is unavailable. An ArcGIS duplicate-ID summary
+observation time are kept, and a first catalog that is short is unavailable.
+The Minnesota catalog (`mn-parcel-county-catalog`, or any catalog with
+`county_membership: "minnesota"`) must also name each Minnesota county exactly
+once: an unrecognized or duplicated county name is rejected the same way, even
+when the total matches. Other catalogs keep only the count rule. An ArcGIS duplicate-ID summary
 whose group query is flagged the same way is reported with
-`duplicate_scan_capped: true`, so its totals are lower bounds. It also accepts:
+`duplicate_scan_capped: true`, so its totals are lower bounds. A statistics,
+duplicate-ID or geometry-sample reply without a valid `features` array (or a
+duplicate group without its count) is malformed rather than an empty result:
+the measurement is marked unavailable and the previous completeness values are
+kept, never reported as zero. It also accepts:
 
 - `item_metadata`: `true` reads the county's own ArcGIS item metadata record
   for each catalog county whose `data_url` links a hub or opendata dataset
