@@ -58,8 +58,13 @@ def _health(source, state, now, policy):
     skew = dt.timedelta(seconds=CLOCK_SKEW_TOLERANCE_SECONDS)
     reporting = ('unknown' if observed is None or observed - now > skew
                  else 'overdue' if now - observed > dt.timedelta(minutes=policy.source_stale_minutes) else 'current')
-    worker = (state.get('workers') or {}).get(source.get('worker'))
-    if isinstance(worker, dict):
+    assigned = source.get('worker')
+    worker = (state.get('workers') or {}).get(assigned)
+    if assigned and not isinstance(worker, dict):
+        # An assigned source needs its worker's report too; without it the
+        # second clock is unknown. Legacy unassigned records keep source time only.
+        reporting = 'unknown' if reporting != 'overdue' else reporting
+    elif isinstance(worker, dict):
         report = _timestamp(worker.get('last_report_at')) or _timestamp(worker.get('checked_at'))
         if report is None or report - now > skew:
             reporting = 'unknown' if reporting != 'overdue' else reporting
@@ -185,8 +190,11 @@ def compose_county_profiles(state: dict, research: dict[str, dict], *, now: dt.d
             category = 'county_download' if adapter == 'http_file' else 'county_arcgis_rest' if adapter in ('arcgis_layer', 'arcgis_service') else None
             if category and not any(s.get('monitored_source_id') == sid for s in categories[category]['sources']):
                 categories[category]['sources'].append(_source({}, observed, sid, state, now, freshness_policy))
-        active = dict(direct)
-        paths = ['county-direct'] if direct else []
+        permission = CountyPermission.from_record(record) if record.get('monitoring') else None
+        # A stored observation from a source the current decision blocks stays in
+        # the profile as history, but it is not an active monitoring path.
+        active = {sid: source for sid, source in direct.items() if not CountyPermission.skip_reason(source, permission)}
+        paths = ['county-direct'] if active else []
         if isinstance(members.get(name), dict):
             active[statewide_id] = statewide_source
             paths.append('mngeo-open')
@@ -196,7 +204,6 @@ def compose_county_profiles(state: dict, research: dict[str, dict], *, now: dt.d
         evidence = _evidence(record)
         # The research dataset is the sole authority for monitoring decisions.
         decision = (record.get('monitoring') or {}).get('decision')
-        permission = CountyPermission.from_record(record) if record.get('monitoring') else None
         permission_note = CountyPermission.public_note(permission)
         if any(CountyPermission.public_review(source) and not CountyPermission.skip_reason(source, permission)
                for source in direct.values()):

@@ -92,7 +92,8 @@ class CountyProfilesTests(unittest.TestCase):
         for slug, source_id in ids.items():
             self.assertEqual(profiles[slug]['county_arcgis_rest']['sources'][0]['monitored_source_id'], source_id)
             self.assertEqual(profiles[slug]['county_arcgis_rest']['sources'][0]['feature_count'], 17)
-            self.assertEqual(profiles[slug]['monitoring']['active_parcel_source_count'], 1)
+            # Swift is hold-for-terms: its stored observation is not active coverage.
+            self.assertEqual(profiles[slug]['monitoring']['active_parcel_source_count'], 0 if slug == 'swift' else 1)
         for category in ('mngeo_public_repository', 'county_download'):
             self.assertEqual(profiles['wabasha'][category]['sources'][0]['feature_count'], 17)
         self.assertIsNone(profiles['washington']['county_arcgis_rest']['sources'][0]['feature_count'])
@@ -322,7 +323,10 @@ class CountyProfilesTests(unittest.TestCase):
         self.assertEqual(profile['access']['monitoring_decision'], 'hold-for-terms')
         self.assertEqual(source['monitored_source_id'], source_id)
         self.assertEqual(source['feature_count'], 42)
-        self.assertTrue(profile['monitoring']['active'])
+        # The observation is kept as history, but a held county-direct source is
+        # not an active monitoring path (review of ff9f9a7, finding 11).
+        self.assertFalse(profile['monitoring']['active'])
+        self.assertNotIn('county-direct', profile['monitoring']['paths'])
         self.assertFalse(profile['research']['complete'])
 
     def test_hub_download_and_rest_share_one_observation(self):
@@ -381,7 +385,9 @@ class CountyProfilesTests(unittest.TestCase):
         for key in ('county_arcgis_rest', 'county_download'):
             research[county['name']]['source_inventory'][key].update(availability='yes', sources=[copy.deepcopy(item)])
         p = compose(state, research)
-        self.assertEqual(county_profile_counts(p), {'total': 87, 'active': 70, 'county_direct': 24, 'mngeo_open': 59, 'both': 13})
+        # The fixture's 24 direct observations include 7 counties whose research
+        # decision blocks county-direct checks; those do not count as active paths.
+        self.assertEqual(county_profile_counts(p), {'total': 87, 'active': 68, 'county_direct': 17, 'mngeo_open': 59, 'both': 8})
         self.assertEqual(p[county['slug']]['monitoring']['active_parcel_source_count'], 2)
         self.assertEqual(p[county['slug']]['county_download']['sources'][0]['feature_count'], 2000)
 

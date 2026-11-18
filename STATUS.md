@@ -1,6 +1,18 @@
 # Project status
 
-## Provider-control review fixes — in review, not deployed
+## Publisher and coverage review fixes — in review, not deployed
+
+Findings 04, 10 and 11 of the November 18 review of `ff9f9a7`. The public
+publisher now rejects a private aggregate whose `counts`, `sources` or
+`workers` containers are missing or malformed before projecting it, so a fresh
+destination can no longer receive a healthy-looking empty fleet. An assigned
+source whose worker record is missing is no longer counted as current. A stored
+observation from a county-direct source that the county's research decision
+now blocks (`hold-for-terms`, `not-appropriate`, or a stop request) is kept in
+the county profile as history but no longer counts as an active monitoring
+path; a valid statewide path still counts.
+
+## Provider-control review fixes — merged (#259), not deployed
 
 Findings 05, 06, 09, 14, 17, 24, 25 and 28 of the November 18 review of
 `ff9f9a7`. The registry check now refuses `execution_profiles` that are not a
