@@ -1,6 +1,18 @@
 # Project status
 
-## Dashboard table filters — in review, not deployed
+## Review fixes for ff9f9a7 — in review, not deployed
+
+Monitoring accuracy (findings 02, 03, 08, 15, 18, 21): a failed check keeps
+the last usable observation as its comparison baseline, so a schema or count
+change made during an outage is reported on recovery. A county catalog with
+fewer counties than `expected_count` is rejected and the complete catalog kept.
+A change configured at `error` severity fails the source, and unsupported
+severities stop the run before any request. Service checks compare the
+selected parcel layer's schema. A configured WKID the layer no longer reports
+is a warning, and inconsistent completeness counts are unavailable rather than
+0%. Provider requests and cadence are unchanged.
+
+### Dashboard table filters
 
 Table filters now hide rows with the `hidden` attribute, and the table CSS keeps
 hidden rows hidden at phone widths. Before this change, the mobile table rule
