@@ -8,7 +8,7 @@
 
 **[Explore the live public dashboard](https://gis-watchtower.clear-parcel.com/)** · **[User guide](docs/user-guide.md)** · **[Documentation index](docs/README.md)**
 
-**Source version: v0.5.6.** See the [release record](docs/release-v0.5.6.md).
+**Source version: v0.5.7.** See the [release record](docs/release-v0.5.7.md) (candidate, not yet deployed).
 
 The public dashboard, internal dashboard, county editor, regular cloud worker
 and public publisher run **v0.5.6**, deployed November 18, 2026. See the
