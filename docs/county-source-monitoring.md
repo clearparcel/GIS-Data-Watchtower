@@ -74,6 +74,9 @@ publication. The saved private record owns enrollment even when publishing the
 public directory needs a retry, so disabling a check does not depend on public
 publication succeeding. A failed registry sync is shown separately and can be
 retried with **Retry updates** or a subsequent authenticated status read.
+That status read replays the last saved private record into the enrollment
+object. This is an accepted side effect; see
+[ADR 0001](adr/0001-status-read-reconciles-county-enrollment.md).
 
 Terms review and permission evidence remain private in both the draft and the
 enrollment object. They are excluded from the public directory, worker results,

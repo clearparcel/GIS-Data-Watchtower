@@ -7,6 +7,7 @@ import hmac
 import json
 import re
 import secrets
+import socket
 import threading
 import time
 from http.server import BaseHTTPRequestHandler
@@ -32,6 +33,29 @@ _STORE_FAILURES = (OSError, ValueError, StorageConflictError)
 # Absolute per-request deadlines enforced by the editor's HTTP server.
 _HOSTED_REQUEST_TIMEOUT = 50
 _LOCAL_REQUEST_TIMEOUT = 10
+_UNREAD_BODY_DRAIN_BYTES = 1024 * 1024
+_UNREAD_BODY_DRAIN_SECONDS = 1.0
+
+
+def _drain_unread_request(connection) -> None:
+    """Let the client read an early rejection before the socket closes.
+
+    Closing a socket with unread request bytes makes Windows (and some other
+    stacks) send a reset, which can discard a 403/413/415 response the client has
+    not read yet. Half-close our side, then discard a bounded amount of input.
+    """
+    try:
+        connection.shutdown(socket.SHUT_WR)
+        connection.settimeout(_UNREAD_BODY_DRAIN_SECONDS)
+        deadline = time.monotonic() + _UNREAD_BODY_DRAIN_SECONDS
+        remaining = _UNREAD_BODY_DRAIN_BYTES
+        while remaining > 0 and time.monotonic() < deadline:
+            chunk = connection.recv(min(65536, remaining))
+            if not chunk:
+                break
+            remaining -= len(chunk)
+    except OSError:
+        pass
 _ASSETS = {
     "/": ("county_admin.html", "text/html; charset=utf-8"),
     "/county-admin.css": ("county_admin.css", "text/css; charset=utf-8"),
@@ -102,8 +126,20 @@ def create_county_admin_server(store: CountyDirectoryStore, *, port: int, userna
         return summary
 
     class Handler(BaseHTTPRequestHandler):
+        _request_body_read = False
+
         def log_message(self, format, *args):
             pass
+
+        def finish(self):
+            try:
+                super().finish()
+            finally:
+                headers = getattr(self, "headers", None)
+                if (headers is not None and not self._request_body_read
+                        and ("Transfer-Encoding" in headers
+                             or (headers.get("Content-Length") or "0").strip() not in ("", "0"))):
+                    _drain_unread_request(self.connection)
 
         def _one(self, name):
             values = self.headers.get_all(name, [])
@@ -219,6 +255,7 @@ def create_county_admin_server(store: CountyDirectoryStore, *, port: int, userna
                     raise ValueError
                 length = _validated_content_length(raw_length, maximum)
                 raw = self.rfile.read(length)
+                self._request_body_read = True
                 if len(raw) != length:
                     raise ValueError
             except OverflowError:

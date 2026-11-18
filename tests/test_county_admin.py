@@ -2,6 +2,7 @@ import base64
 import http.client
 import json
 import os
+import socket
 import tempfile
 import threading
 import unittest
@@ -134,6 +135,27 @@ class CountyAdminTests(unittest.TestCase):
             with self.subTest(override=override):
                 self.assertEqual(self.json_request("POST", path, self.apply_payload(), {**headers, **override})[0], expected)
         self.assertEqual(self.json_request("GET", path)[1]["revision"], 0)
+
+    def test_early_rejection_is_readable_when_request_body_is_left_unread(self):
+        # The server answers 403 before reading the body. Closing with unread
+        # request bytes used to reset the socket and discard that response
+        # (WinError 10053 on Windows CI).
+        body = b"x" * 200_000
+        head = (f"POST /api/counties/aitkin HTTP/1.1\r\nHost: 127.0.0.1:{self.port}\r\n"
+                f"Authorization: {self.headers['Authorization']}\r\nContent-Type: application/json\r\n"
+                f"X-Watchtower-CSRF: bad\r\nContent-Length: {len(body)}\r\nConnection: close\r\n\r\n").encode()
+        with socket.create_connection(("127.0.0.1", self.port), timeout=3) as client:
+            client.sendall(head)
+            try:
+                client.sendall(body)
+            except OSError:
+                pass
+            threading.Event().wait(0.3)
+            received = b""
+            while chunk := client.recv(65536):
+                received += chunk
+        self.assertTrue(received.startswith(b"HTTP/1.0 403"), received[:40])
+        self.assertIn(b"request_rejected", received)
 
     def test_failed_publication_returns_pending_then_retries_and_handles_conflict(self):
         self.public.unavailable = True
