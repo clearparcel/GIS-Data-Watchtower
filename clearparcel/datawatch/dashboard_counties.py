@@ -47,8 +47,12 @@ def render_counties(config: dict) -> str:
         overdue = '<br><span class="subtext">Latest check overdue</span>' if monitoring.get("reporting") == "overdue" else ""
         statewide = statewide_copy_label(
             info.get("parcel_access"), (info.get("statewide_record") is not None) if mngac else None)
+        # Check age and health are separate filters: an actively checked county
+        # can still need attention, and an overdue one keeps its health label.
+        reporting = (monitoring.get("reporting") or "unknown") if info["actively_monitored"] else "none"
         rows.append(
-            f'<tr data-name="{_dashboard._esc(info["name"].lower())}" data-status="{_dashboard._esc(info["status"])}">'
+            f'<tr data-name="{_dashboard._esc(info["name"].lower())}" data-status="{_dashboard._esc(info["status"])}" '
+            f'data-reporting="{_dashboard._esc(reporting)}">'
             f'<td><a href="/county?slug={_dashboard.urllib.parse.quote(info["slug"])}"><strong>{_dashboard._esc(info["name"])} County</strong></a></td>'
             f'<td>{_dashboard._esc(access_summary(info))}</td><td>{_dashboard._esc(statewide)}</td>'
             f'<td><span class="pill {_dashboard._esc(info["status"])}">{_dashboard._esc(_dashboard._friendly_status(info["status"]))}</span>'
@@ -68,7 +72,7 @@ def render_counties(config: dict) -> str:
 </div>
 <div class="card"><h2>Find a county</h2>
 <p>County data may require payment even when a free statewide copy is available. Check status describes Watchtower’s checks, not data accuracy or access rights.</p>
-<div class="filters"><input id="cq" type="search" aria-label="Search counties" placeholder="Search counties…"><select id="cs" aria-label="Filter by check status"><option value="">All check statuses</option><option value="ok">Actively checked</option><option value="overdue">Check overdue</option><option value="catalog">MnGeo listing only</option><option value="needs-source">Not currently checked</option><option value="not-configured">No source information yet</option><option value="warn">Needs attention</option><option value="error">Check failed</option><option value="paused">Paused</option><option value="awaiting-permission">Awaiting permission</option></select></div>
+<div class="filters"><input id="cq" type="search" aria-label="Search counties" placeholder="Search counties…"><select id="cs" aria-label="Filter by check status"><option value="">All check statuses</option><option value="reporting:current">Actively checked</option><option value="reporting:overdue">Check overdue</option><option value="ok">Checks passing</option><option value="catalog">MnGeo listing only</option><option value="needs-source">Not currently checked</option><option value="not-configured">No source information yet</option><option value="warn">Needs attention</option><option value="error">Check failed</option><option value="paused">Paused</option><option value="awaiting-permission">Awaiting permission</option></select></div>
 <table id="counties"><thead><tr><th>County</th><th>Data from the county</th><th>Free statewide copy</th><th>Check status</th></tr></thead><tbody>{"".join(rows)}</tbody></table>
 <p id="counties-no-results" hidden role="status">No counties match. Try another name or check status.</p></div>
 {mngac_card}
@@ -76,7 +80,7 @@ def render_counties(config: dict) -> str:
 <div class="grid"><div class="card">{_dashboard._bar_chart([(_dashboard._friendly_status(k), v) for k, v in sorted(status_counts.items())], title="County check status")}<p class="subtext">A county is actively checked when its source check and monitoring report are recent. Older results show as overdue.</p></div>
 <div class="card">{_dashboard._bar_chart(list(age_buckets.items()), title="Age of parcel data listed by MnGeo")}<p class="subtext">Age of the county data date listed by MnGeo, separate from the Watchtower check time. {_dashboard._esc(catalog_notice)}</p></div></div>
 <h3>Parcel source research</h3>{_dashboard.research_summary(profiles)}</details>
-{SCRIPT_TAG}function filterCounties(){{const q=document.getElementById('cq').value.toLowerCase(),s=document.getElementById('cs').value;let visible=0;document.querySelectorAll('#counties tbody tr').forEach(r=>{{const show=(!q||r.dataset.name.includes(q))&&(!s||r.dataset.status===s);r.style.display=show?'':'none';if(show)visible++}});document.getElementById('counties-no-results').hidden=visible>0}}document.getElementById('cq').addEventListener('input',filterCounties);document.getElementById('cs').addEventListener('change',filterCounties);</script>
+{SCRIPT_TAG}function filterCounties(){{const q=document.getElementById('cq').value.toLowerCase(),s=document.getElementById('cs').value;let visible=0;document.querySelectorAll('#counties tbody tr').forEach(r=>{{const match=!s||(s.startsWith('reporting:')?r.dataset.reporting===s.slice(10):r.dataset.status===s),show=(!q||r.dataset.name.includes(q))&&match;r.hidden=!show;if(show)visible++}});document.getElementById('counties-no-results').hidden=visible>0}}document.getElementById('cq').addEventListener('input',filterCounties);document.getElementById('cs').addEventListener('change',filterCounties);</script>
 '''
     return _dashboard._layout(page_title("Minnesota county parcel data"), '<p><a href="/">← Watchtower overview</a></p>'+body, static=bool(config.get("_public_mode")), csrf_token=str(config.get("_csrf_token") or ""))
 

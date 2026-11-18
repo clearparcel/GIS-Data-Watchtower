@@ -375,7 +375,7 @@ def render_public_dashboard(config: dict) -> str:
 }})();
 function filterRows(){{
   const q=document.getElementById('q').value.toLowerCase(),h=document.getElementById('health').value;
-  document.querySelectorAll('#datasets tbody tr').forEach(r=>r.style.display=(!q||r.dataset.name.includes(q))&&(!h||r.dataset.status===h)?'':'none');
+  document.querySelectorAll('#datasets tbody tr').forEach(r=>{{r.hidden=!((!q||r.dataset.name.includes(q))&&(!h||r.dataset.status===h))}});
 }}
 document.getElementById('q').addEventListener('input',filterRows);
 document.getElementById('health').addEventListener('change',filterRows);

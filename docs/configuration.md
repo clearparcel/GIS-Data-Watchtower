@@ -93,12 +93,23 @@ Optional common controls include:
   command-line flag wins). Without a declared profile, only unassigned legacy
   sources and `["any"]` sources run; other assigned sources are skipped with
   reason `execution-profile-unresolved`.
-- `thresholds`
+- `thresholds`: change-detection settings. `schema_change_severity` (default
+  `warn`) and `extent_change_severity` (default `info`) accept `info`, `warn`
+  or `error`; any other value stops the run before a request. A change at
+  `error` fails the source, its alert and the CLI exit status.
+  `feature_count_change_percent` turns a count change of at least that percent
+  into a warning. A failed check keeps the last usable observation as a private
+  `comparison_baseline`, so the first successful check after an outage still
+  reports schema and count changes against it (`previous_observed_at` names
+  that observation). A service check with `discover_parcel_layer` also compares
+  the selected parcel layer's own schema (`parcel_schema`).
 
 The `arcgis_county_catalog` adapter (MnGeo's county catalog) reads one result
 page. If the provider flags that page with `exceededTransferLimit`, the source
 fails for that run without a retry or further pages, and the last complete
-county records are kept (`catalog_retained`). An ArcGIS duplicate-ID summary
+county records are kept (`catalog_retained`). A page whose county count differs
+from `expected_count` is rejected the same way: the complete records and their
+observation time are kept, and a first catalog that is short is unavailable. An ArcGIS duplicate-ID summary
 whose group query is flagged the same way is reported with
 `duplicate_scan_capped: true`, so its totals are lower bounds. It also accepts:
 
@@ -200,6 +211,10 @@ in worker reports, the shared aggregate, or the public projection. Runs with
 repeating them against a host that has just returned 429.
 
 ArcGIS layer checks may use `count`, `expected_geometry`, `expected_wkid`, `required_fields`, `parcel_quality`, `geometry_sample`, and `geometry_sample_size`.
+A layer that reports no spatial reference while `expected_wkid` is set is a
+warning (`quality_warnings`), not a pass; a different WKID is an error. A field
+completeness measure whose missing count exceeds the total is reported as
+unavailable with `inconsistent_counts: true` and its raw counts, not as 0%.
 
 Minnesota GAC completeness is implemented by a shared standards engine. New
 sources use `gac_completeness` with `standard` set to `parcel`, `address`, or

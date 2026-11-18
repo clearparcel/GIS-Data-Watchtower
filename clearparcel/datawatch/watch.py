@@ -980,6 +980,11 @@ def _missing_predicate(field: str, field_type: object = None) -> str:
 
 
 def _completeness_from_missing(field: str, total: int | None, missing: int | None) -> dict:
+    if total is not None and missing is not None and missing > total:
+        # The two counts saw different moments of a changing layer. Keep the raw
+        # counts for diagnosis; a clamped 0% would look like a real measurement.
+        return {"field": field, "missing": missing, "populated": None, "complete_percent": None,
+                "total": total, "inconsistent_counts": True}
     populated = None if total is None or missing is None else max(0, total - missing)
     pct = None if total in (None, 0) or populated is None else round((populated / total) * 100.0, 2)
     return {"field": field, "missing": missing, "populated": populated, "complete_percent": pct}
@@ -1702,6 +1707,9 @@ def _arcgis_layer(source: dict, timeout: int) -> dict:
     expected_wkid = source.get("expected_wkid")
     if expected_wkid and result["wkid"] not in (expected_wkid, None):
         problems.append(f'WKID changed: expected {expected_wkid}, got {result["wkid"]}')
+    elif expected_wkid and result["wkid"] is None:
+        # The expectation could not be evaluated; never report it as passing.
+        result["quality_warnings"] = [f"WKID unavailable: expected {expected_wkid}, layer reported no spatial reference"]
     missing = sorted(set(source.get("required_fields", [])) - set(result["field_names"]))
     if missing:
         problems.append("required fields missing: " + ", ".join(missing))
@@ -1758,6 +1766,8 @@ def _arcgis_service(source: dict, timeout: int) -> dict:
             "geometry_sample_rings": layer.get("geometry_sample_rings"), "geometry_sample_status": layer.get("geometry_sample_status"),
         })
         result["problems"].extend(layer.get("problems", []))
+        if layer.get("quality_warnings"):
+            result["quality_warnings"] = list(layer["quality_warnings"])
         if 'editing_info' in layer:
             result['editing_info'] = layer['editing_info']
     return result
@@ -1972,7 +1982,10 @@ def _arcgis_county_catalog(source: dict, timeout: int) -> dict:
     problems = []
     expected = source.get("expected_count")
     if expected is not None and len(records) != int(expected):
-        problems.append(f"expected {expected} county records, got {len(records)}")
+        # A catalog missing counties is not the catalog: fail this run and keep
+        # the last complete county records, as for a truncated page.
+        raise PermanentProviderError(200, f"ArcGIS county catalog returned {len(records)} county records; "
+                                     f"expected {expected}. The last complete catalog is kept")
     stable = {name: records[name] for name in sorted(records)}
     result = {
         "http_status": meta.get("status"),
@@ -2262,6 +2275,29 @@ def _dispatch_source_check(source: dict, timeout: int) -> dict:
     if kind == "http_file":
         return _http_file(source, timeout)
     raise ValueError(f"Unsupported source adapter: {kind}")
+# Observation fields change detection compares. A failed check keeps them in
+# ``comparison_baseline`` so a change made during an outage is still detected.
+_BASELINE_KEYS = ("schema_hash", "parcel_schema_hash", "parcel_layer_id", "feature_count", "tracked_values",
+                  "spatial_extent", "observation_fingerprint")
+
+
+def _is_observation(record: object) -> bool:
+    return isinstance(record, dict) and any(key in record for key in _BASELINE_KEYS)
+
+
+def _comparison_baseline(previous: object) -> dict | None:
+    """The last usable observation behind ``previous``, for comparing the next check."""
+    if not isinstance(previous, dict):
+        return None
+    if not _is_observation(previous):
+        # A failed check observed nothing: keep whatever baseline it carried.
+        baseline = previous.get("comparison_baseline")
+        return dict(baseline) if isinstance(baseline, dict) else None
+    baseline = {key: previous[key] for key in _BASELINE_KEYS if key in previous}
+    baseline["observed_at"] = previous.get("checked_at")
+    return baseline
+
+
 def _compare(previous: dict | None, current: dict, source: dict | None = None) -> list[dict]:
     changes = []
     if not previous:
@@ -2276,6 +2312,19 @@ def _compare(previous: dict | None, current: dict, source: dict | None = None) -
             "message": "schema/capability fingerprint changed",
             "previous": previous.get("schema_hash"),
             "current": current.get("schema_hash"),
+        })
+
+    # A service check fingerprints only its layer listing; the selected parcel
+    # sublayer keeps its own schema hash.
+    if previous.get("parcel_schema_hash") and current.get("parcel_schema_hash") != previous.get("parcel_schema_hash"):
+        layer_note = ("" if current.get("parcel_layer_id") == previous.get("parcel_layer_id")
+                      else f" (layer {previous.get('parcel_layer_id')} -> {current.get('parcel_layer_id')})")
+        changes.append({
+            "severity": thresholds.get("schema_change_severity", "warn"),
+            "type": "parcel_schema",
+            "message": "parcel layer schema fingerprint changed" + layer_note,
+            "previous": previous.get("parcel_schema_hash"),
+            "current": current.get("parcel_schema_hash"),
         })
 
     if "feature_count" in current and previous.get("feature_count") is not None:
@@ -2369,6 +2418,7 @@ def _build_alerts(
             ]
             message = _safe_diagnostic(
                 "; ".join(str(change.get("message", "source warning")) for change in warning_changes)
+                or "; ".join(str(x) for x in current.get("quality_warnings") or [])
                 or "; ".join(str(x) for x in current.get("problems", []))
                 or (_DEFERRED_MESSAGE if current.get("deferred") else "")
                 or "source warning"
@@ -2593,11 +2643,21 @@ def _check_sources_unlocked(
                     details["catalog_observed_at"] = source_checked_at
                     details["catalog_retained"] = False
                     details["catalog_time_inferred"] = False
-                changes = _compare(previous_sources.get(source["id"]), details, source)
-                problems = details.get("problems", [])
+                previous_observation = previous_sources.get(source["id"])
+                baseline = _comparison_baseline(previous_observation)
+                changes = _compare(baseline, details, source)
+                if baseline is not None and not _is_observation(previous_observation):
+                    # Compared across one or more failed checks: say which observation.
+                    for change in changes:
+                        change["previous_observed_at"] = baseline.get("observed_at")
+                problems = list(details.get("problems", []))
+                # A change configured as an error fails the source, its alert and the exit code.
+                problems += [change["message"] for change in changes if change.get("severity") == "error"]
                 gac_failures = ([details.get("gac_check_error") or "configured GAC quality check failed"]
                                 if details.get("gac_check_status") in {"error", "unsupported"} else [])
-                status = "error" if problems else ("warn" if gac_failures or any(x["severity"] == "warn" for x in changes) else "ok")
+                quality_warnings = [str(x) for x in details.get("quality_warnings") or []]
+                status = "error" if problems else ("warn" if gac_failures or quality_warnings
+                                                   or any(x["severity"] == "warn" for x in changes) else "ok")
                 records[source["id"]] = {
                     "id": source["id"],
                     "name": source["name"],
@@ -2620,8 +2680,8 @@ def _check_sources_unlocked(
                     **details,
                     "changes": changes,
                 }
-                if gac_failures:
-                    records[source["id"]]["problems"] = list(problems) + gac_failures
+                if problems or gac_failures:
+                    records[source["id"]]["problems"] = problems + gac_failures
             except Exception as exc:
                 # Malformed provider-derived values must fail only this source;
                 # they must never abort later sources or fleet publication.
@@ -2650,6 +2710,9 @@ def _check_sources_unlocked(
                 "error": _safe_diagnostic(f"{type(last_error).__name__}: {last_error}"),
                 "changes": [],
             }
+            baseline = _comparison_baseline(previous_sources.get(source["id"]))
+            if baseline is not None:
+                records[source["id"]]["comparison_baseline"] = baseline
             quality_key = "gac_completeness" if source.get("gac_completeness") else (
                 "mngac_completeness" if source.get("mngac_completeness") else None
             )
@@ -2900,11 +2963,19 @@ def validate_source_registry(sources: object) -> None:
         if "expected_layer_name" in source and (
                 not isinstance(source["expected_layer_name"], str) or not source["expected_layer_name"].strip()):
             raise InvalidSourceRegistryError(f"source {source_id!r} expected_layer_name must be a non-blank string")
+        thresholds = source.get("thresholds")
+        if thresholds is not None and not isinstance(thresholds, dict):
+            raise InvalidSourceRegistryError(f"source {source_id!r} thresholds must be an object")
+        for key in ("schema_change_severity", "extent_change_severity"):
+            if isinstance(thresholds, dict) and key in thresholds and thresholds[key] not in _CHANGE_SEVERITIES:
+                raise InvalidSourceRegistryError(
+                    f"source {source_id!r} {key} must be one of {', '.join(sorted(_CHANGE_SEVERITIES))}")
         if "expected_update_days" in source and not _valid_expected_days(source["expected_update_days"]):
             raise InvalidSourceRegistryError(
                 f"source {source_id!r} expected_update_days must be a whole number of days from 1 to 3650")
 
 
+_CHANGE_SEVERITIES = frozenset({"info", "warn", "error"})
 _DISPATCH_INT_OPTIONS = ("timeout_seconds", "retries")
 _CONFIG_DISPATCH_OPTIONS = {"timeout_seconds": int, "retries": int, "retry_delay_seconds": float,
                             "rate_limit_default_backoff_seconds": int}

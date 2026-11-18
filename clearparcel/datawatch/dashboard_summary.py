@@ -53,7 +53,10 @@ def catalog_summary(state: dict, county_names: list[str], *, now: dt.datetime | 
         buckets[key] += 1
     return {"buckets": buckets, "observed_at": observed,
             "latest_attempt_at": source.get("checked_at"), "status": source.get("status", "unknown"),
-            "retained": source.get("catalog_retained") is True or (bool(records) and source.get("status") == "error"),
+            # Current records say whether rows were retained; only legacy records
+            # without the flag infer it from an error that still has rows.
+            "retained": (source.get("catalog_retained") is True if "catalog_retained" in source
+                         else bool(records) and source.get("status") == "error"),
             "time_inferred": source.get("catalog_time_inferred") is True or bool(observed and not source.get("catalog_observed_at"))}
 
 

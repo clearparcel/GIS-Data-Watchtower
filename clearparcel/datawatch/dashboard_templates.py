@@ -260,6 +260,8 @@ def _accessible_tables(body: str) -> str:
 _TABLE_CSS = """
 .table-scroll{overflow-x:auto;max-width:100%;margin:8px 0}.table-scroll:focus-visible{outline:2px solid #6ea8fe;outline-offset:3px}
 @media(max-width:760px){.table-scroll table{display:table!important;min-width:640px;width:100%}.table-scroll thead{display:table-header-group!important}.table-scroll tbody{display:table-row-group!important}.table-scroll tr{display:table-row!important}.table-scroll th,.table-scroll td{display:table-cell!important;width:auto!important;vertical-align:top}}
+/* Filters hide rows with the hidden attribute; it must beat the mobile table-row rule above. */
+tr[hidden],.table-scroll tr[hidden]{display:none!important}
 .public-nav-row{display:flex;align-items:center;position:sticky;top:88px;z-index:20;background:#080b12ed;margin-bottom:24px;border-bottom:1px solid var(--line)}
 .public-nav-row .public-tabs{position:static;flex:1;min-width:0;margin:0;border:0}.public-nav-row .public-tools{position:relative;flex:none;padding:0 8px}
 @media(max-width:760px){.public-header{height:88px;gap:8px}.public-header>div:first-child{min-width:0;flex:1}.public-header h1{font-size:17px;line-height:1.2}.brand-eyebrow{letter-spacing:1px}.live-state{flex:none;gap:6px}.live-state>span:not(.live-dot){display:none}.live-state button{font-size:12px;max-width:110px;white-space:normal}.public-nav-row{top:88px;margin:0 -12px 18px}.public-nav-row .public-tabs{margin:0;padding:0 12px}.public-nav-row .public-tools{margin-left:0}}
