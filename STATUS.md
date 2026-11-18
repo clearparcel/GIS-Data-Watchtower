@@ -1,5 +1,17 @@
 # Project status
 
+## v0.5.4 layer renumbering check — deployed, 2026-11-18
+
+This release lets an ArcGIS layer source name the layer it expects, so a
+provider renumbering layers inside a service fails with a clear "layer name
+mismatch" error. It also gives the county catalog's transfer-limit error a real
+status and message, and updates `opentelemetry-api` to 1.45.2. MnGeo swapped
+the Plan Parcels Open layers in November 2026; the private registry was updated
+separately on November 17 and both statewide MnGeo sources recovered on the
+November 18 run. The public site reports v0.5.4. Production provider schedules
+were not changed, and no provider run was started for this release. See the
+[release notes](docs/release-v0.5.4.md).
+
 ## v0.5.3 review fixes — deployed, 2026-11-12
 
 This release applies the November 12 repository review fixes. A
