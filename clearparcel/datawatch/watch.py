@@ -1489,8 +1489,29 @@ def _arcgis_geometry_sample(url: str, timeout: int, *, sample_size: int = 250, p
     }
 
 
+def _check_expected_layer_name(source: dict, actual: object) -> None:
+    """Refuse a layer whose name differs from the registry's ``expected_layer_name``.
+
+    Providers sometimes renumber layers inside a service (MnGeo swapped
+    plan_parcels_open layers 0 and 1 in November 2026). The URL then still
+    answers, but with a different dataset. Stopping on the layer definition
+    names the real cause and avoids count or completeness queries against the
+    wrong layer.
+    """
+    expected = source.get("expected_layer_name")
+    if not isinstance(expected, str) or not expected.strip():
+        return
+    if str(actual or "").strip().casefold() != expected.strip().casefold():
+        raise PermanentProviderError(
+            200,
+            f"layer name mismatch: expected {expected.strip()!r}, provider returned {actual!r}; "
+            "the provider may have renumbered layers in this service, so check the source URL's layer id",
+        )
+
+
 def _arcgis_layer(source: dict, timeout: int) -> dict:
     data, meta = _json_request(_arcgis_url(source["url"]), timeout, prefer_curl=bool(source.get("prefer_curl")))
+    _check_expected_layer_name(source, data.get("name"))
     fields = [
         {
             "name": f.get("name"),
@@ -1938,8 +1959,9 @@ def _arcgis_county_catalog(source: dict, timeout: int) -> dict:
     if data.get("exceededTransferLimit") is True:
         # One page of a larger result is not the catalog. Fail this source
         # without a retry or more pages; the last complete catalog is kept.
-        raise PermanentProviderError("ArcGIS county catalog response exceeded the provider transfer limit; "
-                                     "county records would be incomplete")
+        raise PermanentProviderError(200, "ArcGIS county catalog response exceeded the provider transfer limit; "
+                                     "county records would be incomplete. If this layer was a small catalog before, "
+                                     "the provider may have renumbered layers in this service; check the source URL's layer id")
     county_field = source.get("county_field", "countyname")
     records = {}
     for feature in data.get("features", []):
@@ -2875,6 +2897,9 @@ def validate_source_registry(sources: object) -> None:
             if not isinstance(adapter, str) or not adapter.strip():
                 raise InvalidSourceRegistryError(f"source {source_id!r} must define 'adapter' (preferred) or legacy 'kind'")
         _validate_dispatch_options(source, f"source {source_id!r}")
+        if "expected_layer_name" in source and (
+                not isinstance(source["expected_layer_name"], str) or not source["expected_layer_name"].strip()):
+            raise InvalidSourceRegistryError(f"source {source_id!r} expected_layer_name must be a non-blank string")
         if "expected_update_days" in source and not _valid_expected_days(source["expected_update_days"]):
             raise InvalidSourceRegistryError(
                 f"source {source_id!r} expected_update_days must be a whole number of days from 1 to 3650")
