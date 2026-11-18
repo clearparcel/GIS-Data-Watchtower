@@ -265,7 +265,10 @@ def with_freshness(state: dict, *, worker_stale_minutes: int = 1560, source_stal
         seen = _source_check_time(source)
         source["clock_skew"] = bool(seen and _age_seconds(now, seen) < -CLOCK_SKEW_TOLERANCE_SECONDS)
         source["stale"] = not seen or source["clock_skew"] or _age_seconds(now, seen) > source_stale_minutes * 60
-        source["worker_stale"] = bool((workers.get(source.get("worker")) or {}).get("stale"))
+        assigned = source.get("worker")
+        # An assigned source whose worker record is missing has no worker report: stale, not current.
+        source["worker_stale"] = bool(assigned) and (not isinstance(workers.get(assigned), dict)
+                                                     or bool(workers[assigned].get("stale")))
         status = source.get("status")
         source["health"] = "healthy" if status == "ok" else "unhealthy" if status in ("warn", "error") else "unknown"
         source["reporting"] = "stale" if source.get("stale") or source.get("worker_stale") else "current"

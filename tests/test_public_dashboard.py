@@ -191,8 +191,9 @@ class PublicDashboardTests(unittest.TestCase):
         from clearparcel.datawatch.dashboard import _county_monitoring_counts
         public = sanitize_public_render_state(coverage_state())
         profiles = compose_county_profiles(public, load_parcel_access(), now=NOW, freshness_policy=FreshnessPolicy())
-        self.assertEqual(county_profile_counts(profiles)['active'], 70)
-        self.assertEqual(_county_monitoring_counts({}, public)['active'], 70)
+        # 70 observed, less 2 direct-only counties whose decision blocks county-direct checks.
+        self.assertEqual(county_profile_counts(profiles)['active'], 68)
+        self.assertEqual(_county_monitoring_counts({}, public)['active'], 68)
         observed = next(source for source in profiles['aitkin']['mngac_public_parcels']['sources'] if source['monitored_source_id'] == 'statewide')
         self.assertEqual(observed['feature_count'], 1000)
         self.assertEqual(public, sanitize_public_render_state(public))

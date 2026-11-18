@@ -9,7 +9,7 @@ from pathlib import Path
 
 from clearparcel.datawatch.public_dashboard import sanitize_public_render_state, sanitize_source_metadata
 from clearparcel.datawatch import strict_json
-from clearparcel.datawatch.public_projection import validate_snapshot_structure
+from clearparcel.datawatch.public_projection import InvalidSnapshotError, validate_snapshot_structure
 from clearparcel.datawatch.storage import GCSStorage, StorageBackend, StorageConflictError, gcs_object_identity
 from clearparcel.datawatch.aggregate import CLOCK_SKEW_TOLERANCE_SECONDS, _parse_time
 from clearparcel.datawatch.provider_watchdog import run_provider_watchdog
@@ -74,6 +74,24 @@ def validate_public_state(state: dict) -> None:
             metadata = source['public_metadata']
             if not isinstance(metadata, dict) or sanitize_source_metadata({'public_metadata': metadata}) != metadata:
                 raise RuntimeError('public snapshot contains invalid public_metadata')
+
+
+def validate_private_aggregate(raw: object) -> None:
+    """Reject a private aggregate whose containers are missing or malformed.
+
+    Projection keeps only known leaves and creates empty containers, so it
+    cannot tell a malformed fleet from an empty one. A structurally valid empty
+    fleet still declares its containers (as ``aggregate.merge_states`` does).
+    """
+    if not isinstance(raw, dict):
+        raise InvalidSnapshotError("private aggregate is not an object")
+    for key in ("counts", "sources", "workers"):
+        if not isinstance(raw.get(key), dict):
+            raise InvalidSnapshotError(f"private aggregate {key} is missing or not an object")
+    for key in ("sources", "workers", "retired_sources", "retired_workers"):
+        container = raw.get(key, {})
+        if not isinstance(container, dict) or not all(isinstance(record, dict) for record in container.values()):
+            raise InvalidSnapshotError(f"private aggregate {key} contains a malformed record")
 
 
 def _snapshot_is_superseded(candidate: dict, current: dict) -> bool:
@@ -154,6 +172,9 @@ def publish_public_snapshot(
             raise FileNotFoundError(f"source aggregate not found: {source_object}")
 
         raw = strict_json.loads(raw_path.read_text(encoding="utf-8"))
+        # Before projection: projecting creates empty containers, so a malformed
+        # private aggregate would otherwise publish as a healthy empty fleet.
+        validate_private_aggregate(raw)
         watchdog = run_provider_watchdog(raw, watchdog_stream) if watchdog_stream is not None else None
         public = sanitize_public_render_state(raw)
         validate_public_state(public)
