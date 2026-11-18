@@ -13,6 +13,7 @@ from . import strict_json
 from .watch import (
     _EXECUTION_PROFILES,
     _active_rate_limits,
+    _rate_limit_not_before,
     _resolve_execution_profile,
     _validated_state,
     check_sources,
@@ -100,6 +101,17 @@ def _upload_backoff_checkpoint(storage, state_path: Path | None, downloaded: str
     return True
 
 
+def _later_deadline(entry: dict, current: dict) -> bool:
+    """Whether ``entry`` ends later than ``current``, comparing UTC instants, not text.
+
+    An unreadable deadline counts as the later one, so a merge never shortens a backoff.
+    """
+    new, old = _rate_limit_not_before(entry), _rate_limit_not_before(current)
+    if new is None or old is None:
+        return new is None and old is not None
+    return new > old
+
+
 def _merge_backoffs(*sources: dict) -> dict:
     """Combine per-host backoffs; the longer (or operator-held) embargo wins."""
     merged: dict = {}
@@ -111,7 +123,7 @@ def _merge_backoffs(*sources: dict) -> dict:
                 continue
             if current.get("hold_until_cleared") is True:
                 continue
-            if entry.get("hold_until_cleared") is True or str(entry.get("not_before")) > str(current.get("not_before")):
+            if entry.get("hold_until_cleared") is True or _later_deadline(entry, current):
                 merged[host] = dict(entry)
     return merged
 

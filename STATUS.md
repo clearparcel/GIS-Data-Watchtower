@@ -1,6 +1,18 @@
 # Project status
 
-## Review fixes for ff9f9a7 — in review, not deployed
+## Provider-control review fixes — in review, not deployed
+
+Findings 05, 06, 09, 14, 17, 24, 25 and 28 of the November 18 review of
+`ff9f9a7`. The registry check now refuses `execution_profiles` that are not a
+list of exact profile names, `expected_layer_name` on adapters that cannot
+honor it, and non-finite or over-hour retry delays, all before any request. A
+stored backoff with an unreadable deadline becomes an operator hold instead of
+releasing its host, and merged backoffs compare instants rather than text.
+`Retry-After` accepts any number of digits. A `check` that selects no source no
+longer claims the provider-run slot, and its CLI JSON keeps `scope.type=empty`.
+Provider cadence and 429 handling are otherwise unchanged.
+
+## Review fixes for ff9f9a7 — merged (#258), not deployed
 
 Monitoring accuracy (findings 02, 03, 08, 15, 18, 21): a failed check keeps
 the last usable observation as its comparison baseline, so a schema or count
@@ -21,7 +33,7 @@ at widths up to 760 px. On the counties page, **Actively checked** and **Check
 overdue** now filter on check age, separate from health, so a current county
 that needs attention is still listed as actively checked. A new **Checks
 passing** option filters on health. These are findings 01 and 12 of the
-November 18 review of `ff9f9a7`. Nothing is deployed yet.
+November 18 review of `ff9f9a7`. Merged in #258; not deployed yet.
 
 ## v0.5.4 layer renumbering check — deployed, 2026-11-18
 

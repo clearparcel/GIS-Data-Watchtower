@@ -265,7 +265,12 @@ class RateLimitTests(ProviderComplianceBase):
              "naive.example": {"not_before": "2099-01-01T00:00:00"},
              "expired.example": {"not_before": "2020-01-01T00:00:00+00:00"},
              "bad.example": {"not_before": "soon"}}, now)
-        self.assertEqual(set(active), {"h.example"})
+        # A damaged deadline (naive or unreadable) keeps its host blocked as an
+        # operator hold; only a readable, expired deadline releases it (review finding 06).
+        self.assertEqual(set(active), {"h.example", "naive.example", "bad.example"})
+        for host in ("naive.example", "bad.example"):
+            self.assertTrue(active[host]["hold_until_cleared"])
+            self.assertTrue(active[host]["invalid_backoff"])
         # Only re-bounded to the year-long maximum: a requested backoff is never shortened.
         self.assertEqual(dt.datetime.fromisoformat(active["h.example"]["not_before"]), now + dt.timedelta(days=365))
         month = (now + dt.timedelta(days=30)).isoformat()
@@ -283,7 +288,8 @@ class RateLimitTests(ProviderComplianceBase):
         self.assertEqual(watch._retry_after_seconds("Tue, 13 Oct 2026 12:30:00 GMT", now), 1800)
         self.assertEqual(watch._retry_after_seconds(None, now, default=900), 900)
         self.assertEqual(watch._retry_after_seconds("\xb2", now), 3600)  # isdigit() but not int()
-        self.assertEqual(watch._retry_after_seconds("9" * 5000, now), 3600)
+        # Any number of digits is valid delta-seconds; an enormous one is the maximum (review finding 09).
+        self.assertEqual(watch._retry_after_seconds("9" * 5000, now), 365 * 24 * 3600)
         self.assertEqual(watch._retry_after_seconds("Mon, 99 Foo 2026 25:61:00 GMT", now), 3600)
 
 
