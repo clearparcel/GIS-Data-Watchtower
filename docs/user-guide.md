@@ -4,7 +4,7 @@
 
 **Audience:** Minnesota county and municipal staff, GIS practitioners, researchers, and other people exploring publicly available geospatial data.
 
-**Screenshots:** Captured from the actual public dashboard on **October 12, 2026**. They predate the plain-language UI updates prepared in this branch. Navigation labels, source counts, timestamps, and measurements may differ.
+**Screenshots:** Captured from the public dashboard running **v0.5.4** on **November 18, 2026**. Source counts, timestamps and measurements change with each check. Earlier captures from October 12, 2026 are kept in [`images/archive/2026-10-12/`](images/archive/2026-10-12/) for reference.
 
 ## Before you begin
 
