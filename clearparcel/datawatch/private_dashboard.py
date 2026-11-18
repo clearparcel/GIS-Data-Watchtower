@@ -88,6 +88,11 @@ class StateSync:
                     os.replace(temp_path, destination)
                 elif name in self.required:
                     raise FileNotFoundError(f"required hosted object not found: {name}")
+                else:
+                    # A False download is a confirmed absence (a storage failure
+                    # raises instead), so drop the cached copy: a warm instance
+                    # must not keep serving history a cold one no longer has.
+                    destination.unlink(missing_ok=True)
                 results[name] = bool(found)
             finally:
                 temp_path.unlink(missing_ok=True)

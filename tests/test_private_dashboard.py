@@ -97,6 +97,40 @@ class StateSyncTests(unittest.TestCase):
             self.sync.sync()
         self.assertEqual((self.out / "agg.json").read_bytes(), good)
 
+    def test_deleted_hosted_history_leaves_the_cache(self):
+        # Follow-up review of f8f0997, F15: warm and cold instances converge.
+        store = Path(self.tmp.name) / "store"
+        row = json.dumps(_aggregate())
+        (store / HISTORY_OBJECT).write_text(row + "\n", encoding="utf-8")
+        self.assertTrue(self.sync.sync()[HISTORY_OBJECT])
+        self.assertTrue((self.out / "history.jsonl").is_file())
+        (store / HISTORY_OBJECT).unlink()
+        self.assertFalse(self.sync.sync()[HISTORY_OBJECT])
+        self.assertFalse((self.out / "history.jsonl").exists())
+        self.assertFalse(self.sync.status["refresh_failed"])
+        cold = Path(self.tmp.name) / "cold"
+        StateSync(self.storage, {"aggregate-state.json": cold / "agg.json", HISTORY_OBJECT: cold / "history.jsonl"},
+                  interval=30, required=("aggregate-state.json",), clock=self.clock).sync()
+        self.assertEqual(sorted(x.name for x in self.out.iterdir()), sorted(x.name for x in cold.iterdir()))
+
+    def test_storage_failure_keeps_cached_history(self):
+        store = Path(self.tmp.name) / "store"
+        (store / HISTORY_OBJECT).write_text(json.dumps(_aggregate()) + "\n", encoding="utf-8")
+        self.sync.sync()
+        cached = (self.out / "history.jsonl").read_bytes()
+        original = LocalStorage.download
+
+        def flaky(name, destination):
+            if name == HISTORY_OBJECT:
+                raise OSError("network")
+            return original(self.storage, name, destination)
+
+        self.storage.download = flaky
+        with self.assertRaises(OSError):
+            self.sync.sync()
+        self.assertEqual((self.out / "history.jsonl").read_bytes(), cached)
+        self.assertTrue(self.sync.status["refresh_failed"])
+
 
 class PreparePrivateDashboardTests(unittest.TestCase):
     def test_config_points_only_at_synced_files(self):
