@@ -5,6 +5,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from tests.catalog_fixtures import full_minnesota_catalog
 from clearparcel.datawatch import watch
 
 META = {"status": 200, "transport": "test"}
@@ -39,8 +40,7 @@ class TransferLimitTests(unittest.TestCase):
                       "retries": 2, "retry_delay_seconds": 0,
                       "sources": [{"id": "mn-parcel-county-catalog", "name": "Catalog",
                                    "adapter": "arcgis_county_catalog", "url": "https://gis.example/0"}]}
-            complete = {"features": [{"attributes": {"countyname": "Aitkin"}},
-                                     {"attributes": {"countyname": "Anoka"}}]}
+            complete = full_minnesota_catalog([])
             with patch.object(watch, "_json_request", return_value=(complete, META)):
                 watch.check_sources(config, save=True)
             partial = {"features": [{"attributes": {"countyname": "Aitkin"}}], "exceededTransferLimit": True}
@@ -50,7 +50,7 @@ class TransferLimitTests(unittest.TestCase):
             record = result["sources"]["mn-parcel-county-catalog"]
             self.assertEqual(record["status"], "error")
             self.assertIn("transfer limit", record["error"])
-            self.assertEqual(set(record["county_records"]), {"Aitkin", "Anoka"})
+            self.assertEqual(len(record["county_records"]), 87)
             self.assertTrue(record["catalog_retained"])
 
     def test_complete_catalog_is_unchanged(self):

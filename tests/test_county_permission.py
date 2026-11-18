@@ -6,6 +6,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from tests.catalog_fixtures import full_minnesota_catalog
 from clearparcel.datawatch import watch
 from clearparcel.datawatch.aggregate import merge_states
 from clearparcel.datawatch.dashboard import _health_status, load_parcel_access
@@ -450,9 +451,9 @@ class CoverageAndPageTests(unittest.TestCase):
             "contacted_date": "2026-10-29", "reply": "stop", "scope": "none", "stop_requested": True,
         })
         item = "bf8ef9d0b3f1455c9af61ef6b60329e2"
-        catalog = {"features": [{"attributes": {
+        catalog = full_minnesota_catalog([{"attributes": {
             "countyname": "Wabasha",
-            "data_url": f"https://hub.arcgis.com/api/v3/datasets/{item}_0/downloads/data"}}]}
+            "data_url": f"https://hub.arcgis.com/api/v3/datasets/{item}_0/downloads/data"}}])
         calls = []
 
         def request(url, timeout, **_kwargs):

@@ -133,6 +133,11 @@ def _county_name_lookup() -> dict[str, str]:
     return lookup
 
 
+def minnesota_county_names() -> frozenset[str]:
+    """The 87 canonical Minnesota county names."""
+    return frozenset(_county_name_lookup().values())
+
+
 def canonical_minnesota_county(value: object) -> str | None:
     name = " ".join(str(value or "").split()).strip()
     if not name:

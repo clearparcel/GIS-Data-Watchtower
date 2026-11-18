@@ -107,7 +107,10 @@ Optional common controls include:
   parcel layer could not be read, or an HTTP 429 that carries the previous
   values for display, replaces only the fields it measured: the others keep
   their last valid value and observation time (`field_observed_at`), and a
-  later change to them names that earlier observation. A service check with
+  later change to them names that earlier observation. Tracked values are kept
+  key by key, so a value missing from one check is still compared when it
+  returns. A check that did not read the parcel layer reports no parcel-schema
+  change. A service check with
   `discover_parcel_layer` also compares the selected parcel layer's own schema
   (`parcel_schema`).
 
@@ -119,12 +122,16 @@ from `expected_count` is rejected the same way: the complete records and their
 observation time are kept, and a first catalog that is short is unavailable.
 The Minnesota catalog (`mn-parcel-county-catalog`, or any catalog with
 `county_membership: "minnesota"`) must also name each Minnesota county exactly
-once: an unrecognized or duplicated county name is rejected the same way, even
-when the total matches. Other catalogs keep only the count rule. An ArcGIS duplicate-ID summary
+once: an unrecognized, duplicated or missing county is rejected the same way,
+even when the total matches and whether or not `expected_count` is set. Each
+raw row is checked before it is keyed, and a recognized alias (such as
+`Saint Louis`) is stored under the canonical county name the dashboard reads. Other catalogs keep only the count rule. An ArcGIS duplicate-ID summary
 whose group query is flagged the same way is reported with
 `duplicate_scan_capped: true`, so its totals are lower bounds. A statistics,
 duplicate-ID or geometry-sample reply without a valid `features` array (or a
-duplicate group without its count) is malformed rather than an empty result:
+duplicate group without its count, a duplicate group smaller than two, or a
+statistics group without its county attribute) is malformed rather than an
+empty result:
 the measurement is marked unavailable and the previous completeness values are
 kept, never reported as zero. It also accepts:
 
@@ -219,7 +226,11 @@ sources and on `arcgis_service` sources with `discover_parcel_layer`, which read
 the selected layer's definition. Legacy adapter aliases such as
 `arcgis-feature-layer` are judged by their canonical adapter. The numeric
 change thresholds `feature_count_change_percent` and `extent_shift_percent`
-must be finite, nonnegative numbers.
+must be finite, nonnegative numbers; `extent_shift_percent` cannot be `null`
+(omit it for the 0.5 default). Options that add provider requests (`count`,
+`discover_parcel_layer`, `parcel_quality`, `geometry_sample`, `item_metadata`,
+`prefer_curl`) must be JSON booleans when set, so a string such as `"false"`
+can never turn a request on.
 
 `not_before` honors `Retry-After` (delta-seconds of any length, any number of
 leading zeros allowed, or HTTP-date) in full, with a

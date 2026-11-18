@@ -16,7 +16,9 @@ FGDC = b"""<?xml version="1.0"?><metadata><idinfo><citation><citeinfo><origin>Ex
 ARCGIS = b"""<metadata xml:lang="en"><Esri><ModDate>20260707</ModDate></Esri><dataIdInfo><idCitation>
 <resTitle>Parcels</resTitle><date><pubDate>2026-01-30T00:00:00</pubDate><reviseDate>2026-02-15T09:30:00</reviseDate>
 </date></idCitation></dataIdInfo><mdDateSt>20260708</mdDateSt></metadata>"""
-CATALOG = {"features": [
+from tests.catalog_fixtures import full_minnesota_catalog
+
+CATALOG = full_minnesota_catalog([
     {"attributes": {"countyname": "Wabasha", "acqdate": 1784764800000, "rundate": 1785974400000,
                     "data_url": f"https://hub.arcgis.com/api/v3/datasets/{ITEM_A}_0/downloads/data?format=fgdb"}},
     {"attributes": {"countyname": "Houston", "acqdate": 1782691200000, "rundate": 1785974400000,
@@ -27,7 +29,7 @@ CATALOG = {"features": [
                     "data_url": "https://gisdata.metc.state.mn.us/gisdata/Parcels/plan_regional_parcels.zip"}},
     {"attributes": {"countyname": "Brown", "acqdate": 1782691200000, "rundate": 1785974400000,
                     "data_url": f"https://hub.arcgis.com/api/v3/datasets/{ITEM_HELD}_0/downloads/data"}},
-]}
+])
 SOURCE = {"id": "mn-parcel-county-catalog", "kind": "arcgis_county_catalog",
           "url": "https://catalog.example.invalid/arcgis/rest/services/x/FeatureServer/0"}
 
@@ -119,7 +121,7 @@ class CatalogMetadataTests(unittest.TestCase):
         result, _ = self.run_catalog({**SOURCE, "item_metadata": True},
                                      {ITEM_A: RuntimeError("404"), ITEM_B: b"<not xml"})
         self.assertEqual({r["item_metadata"]["status"] for c, r in result["county_records"].items()
-                          if c not in ("Anoka", "Brown")}, {"unavailable"})
+                          if c not in ("Anoka", "Brown") and "item_metadata" in r}, {"unavailable"})
         self.assertEqual(result["problems"], [])
 
     def test_backed_off_metadata_host_is_not_contacted(self):
@@ -135,7 +137,7 @@ class CatalogMetadataTests(unittest.TestCase):
         self.assertEqual(result["_auxiliary_rate_limit"], {"host": "www.arcgis.com", "retry_after": "60"})
         self.assertEqual({r["item_metadata"]["status"] for c, r in result["county_records"].items()
                           if c in ("Houston", "Wabasha", "Fillmore")}, {"deferred"})
-        self.assertEqual(result["county_record_count"], 5)
+        self.assertEqual(result["county_record_count"], 87)
 
     def test_held_counties_are_never_read(self):
         result, calls = self.run_catalog({**SOURCE, "item_metadata": True}, {ITEM_A: FGDC, ITEM_B: FGDC})
