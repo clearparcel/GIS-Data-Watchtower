@@ -1,6 +1,9 @@
-# GIS Data Watchtower v0.5.5 candidate
+# GIS Data Watchtower v0.5.5
 
-This patch candidate contains the fixes from the November 18 review of
+Deployed November 18, 2026. Built from merged source commit
+`f8f09973f40c8c630df9d59f18791d5b8643a106`, merged through PR #264.
+
+This patch release contains the fixes from the November 18 review of
 `ff9f9a7`, merged through PRs #258 to #263:
 
 - **#258, dashboard filters and monitoring accuracy:**
@@ -43,6 +46,30 @@ Deployment notes:
   - A script that treated `watchtower status` exit 0 as healthy without a state file now sees exit 1.
   - A consumer of the provenance file's `image_digest` should read `image_config_digest`.
 
-The candidate was validated with the repository's required test, compile,
-current-status and diff checks. Each merged PR passed CI on all six
-Windows/Linux Python combinations, CodeQL and the security check.
+## Validation and promotion
+
+- PRs #258 to #264 passed all six Windows/Linux Python combinations, CodeQL
+  and the security check. Local validation passed the required test, compile,
+  current-status and diff checks.
+- The release-version preflight confirmed the live v0.5.4 and the v0.5.5
+  candidate. The immutable image passed 268 installed-image tests, and its
+  installed identity and source hashes matched the reviewed commit.
+- The private registry passed the stricter v0.5.5 checks before rollout, and
+  the coverage counts predicted from the current aggregate matched the live
+  dashboard, so no coverage count dropped.
+- The staging county services were updated first, and their runtime settings,
+  access controls and IAM were preserved. Synthetic staging-storage validation
+  passed: audit replay, public privacy, bounded attachment metadata reads and
+  hash-verified downloads. The synthetic objects were removed afterward.
+- Production candidate revisions were verified ready with no traffic before
+  promotion. The public dashboard, internal dashboard, county editor, regular
+  cloud worker and public publisher now use v0.5.5. The public site displayed
+  v0.5.5, and its health, county directory, county page and export checks
+  passed.
+- All 25 source observations and the worker provenance matched the
+  pre-release aggregate, and 87 county profiles remain available. Runtime
+  settings, IAM and scheduler configuration were unchanged.
+- No provider job or publisher run was started manually, and no schedule was
+  changed. The scanner and weekly digest images were outside this release.
+  Previous revisions and images remain the rollback targets. Detailed
+  deployment identifiers remain in the private deployment record.
