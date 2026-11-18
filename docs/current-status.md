@@ -17,8 +17,12 @@ the weekly digest reports missing workers and refuses an empty aggregate
 (#268). The publisher refuses invalid or disagreeing counts, padded approval
 values publish, and year-boundary dates are unknown instead of failing county
 output (#269). The private dashboard drops cached history after a confirmed
-hosted removal (#270). Finding F16 (status-GET enrollment reconciliation) awaits
-an owner decision. Before deploying, the private registry needs the added
+hosted removal (#270). Finding F16 is accepted as designed: the editor's
+status read may replay the saved private enrollment
+([ADR 0001](adr/0001-status-read-reconciles-county-enrollment.md)). The
+county editor now lets a client read an early 403/413/415 rejection before
+closing a connection with an unread body, which fixes an intermittent Windows
+connection abort (WinError 10053) in CI. Before deploying, the private registry needs the added
 checks: JSON-boolean `enabled`, finite thresholds, `expected_layer_name` on a
 service only with `discover_parcel_layer`, and catalog county names that all
 resolve to Minnesota counties.
