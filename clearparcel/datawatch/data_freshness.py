@@ -25,7 +25,7 @@ import datetime as dt
 import math
 import statistics
 
-from clearparcel.datawatch.public_values import _metadata_date, catalog_day, provider_edit_timestamp
+from clearparcel.datawatch.public_values import _metadata_date, catalog_instant, provider_edit_timestamp
 
 DEFAULT_EXPECTED_DAYS = 90
 MIN_DISTINCT_UPDATES = 3
@@ -55,35 +55,25 @@ def publisher_updated_at(record: object) -> str | None:
     if isinstance(catalog, dict):
         # MnGeo's county catalog: the newest county acquisition date is when
         # the statewide data last took in a county update.
-        # Either accepted encoding (epoch milliseconds or ISO text) is read as
-        # its UTC calendar date, as the county views read it (fifth review V12);
-        # the future-date rule is applied below by ``data_freshness``.
-        stamps = [_catalog_stamp(row.get("acqdate")) for row in catalog.values() if isinstance(row, dict)]
-        stamps = [stamp for stamp in stamps if stamp]
+        stamps = [stamp for row in catalog.values() if isinstance(row, dict)
+                  if (stamp := catalog_instant(row.get("acqdate"))) is not None]
         if stamps:
-            return max(stamps, key=_parse)
+            return max(stamps).isoformat()
     stamp = record.get("data_updated_at")  # already normalized (history rows)
     return _metadata_date(stamp) if isinstance(stamp, str) else None
-
-
-def _catalog_stamp(value: object) -> str | None:
-    """Epoch milliseconds as their instant; ISO text as UTC midnight of its UTC calendar date."""
-    if type(value) is int:
-        return provider_edit_timestamp(value)
-    day = catalog_day(value) if isinstance(value, str) else None
-    return dt.datetime.combine(day, dt.time(), dt.timezone.utc).isoformat() if day else None
 
 
 def valid_expected_days(value: object) -> bool:
     return type(value) is int and 1 <= value <= MAX_EXPECTED_DAYS
 
 
-def expected_interval(source_config: object, history: object = ()) -> tuple[int, str]:
+def expected_interval(source_config: object, history: object = (), *, now: dt.datetime | None = None) -> tuple[int, str]:
     """``(days, basis)`` where basis is ``configured``, ``observed`` or ``default``."""
     configured = source_config.get("expected_update_days") if isinstance(source_config, dict) else None
     if valid_expected_days(configured):
         return configured, "configured"
-    times = sorted({_parse(row.get("data_updated_at")) for row in (history or ()) if isinstance(row, dict)} - {None})
+    now = now or dt.datetime.now(dt.timezone.utc)
+    times = sorted({stamp for stamp, _ in _credible_history(history, now)})
     if len(times) >= MIN_DISTINCT_UPDATES:
         gaps = [(b - a).total_seconds() / 86400 for a, b in zip(times, times[1:])]
         days = math.ceil(statistics.median(gaps) * LEARNED_HEADROOM)
@@ -95,8 +85,10 @@ def data_freshness(record: object, *, source_config: object = None, history: obj
                    now: dt.datetime | None = None) -> dict:
     """Classify one source's data age."""
     now = (now or dt.datetime.now(dt.timezone.utc)).astimezone(dt.timezone.utc)
-    days, basis = expected_interval(source_config, history)
-    stamp = publisher_updated_at(record) or _latest_in_history(history)
+    days, basis = expected_interval(source_config, history, now=now)
+    stamp = publisher_updated_at(record)
+    if stamp is None:
+        stamp = max(_credible_history(history, now), default=(None, None))[1]
     seen = _parse(stamp)
     result = {"data_updated_at": stamp, "expected_days": days, "basis": basis, "age_days": None}
     if seen is None or seen - now > FUTURE_TOLERANCE:
@@ -113,10 +105,12 @@ def summarize(states: object) -> dict:
     return counts
 
 
-def _latest_in_history(history: object) -> str | None:
-    times = [(parsed, row["data_updated_at"]) for row in (history or ()) if isinstance(row, dict)
-             for parsed in [_parse(row.get("data_updated_at"))] if parsed]
-    return max(times)[1] if times else None
+def _credible_history(history: object, now: dt.datetime):
+    for row in history or ():
+        if isinstance(row, dict):
+            stamp = _parse(row.get("data_updated_at"))
+            if stamp is not None and stamp - now <= FUTURE_TOLERANCE:
+                yield stamp, row["data_updated_at"]
 
 
 def _parse(value: object) -> dt.datetime | None:

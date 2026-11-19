@@ -10,6 +10,7 @@ from copy import deepcopy
 from pathlib import Path
 
 from . import strict_json
+from .watch import _EXECUTION_PROFILES
 from .file_lock import atomic_write
 from .parcel_access import CountyPermission
 from .storage import StorageBackend, StorageConflictError
@@ -35,10 +36,8 @@ def merge_states(base: dict | None, partial: dict, worker: str, *, now: dt.datet
             future beyond the clock-skew tolerance, checked no sources, or
             comes from a retired worker.
     """
-    if not isinstance(worker, str) or not worker.strip() or worker != worker.strip():
-        # A padded name is a different worker to the watchdog and is dropped by
-        # the public projection (fifth review V06).
-        raise ValueError("worker name must be a non-blank name without surrounding whitespace")
+    if not isinstance(worker, str) or worker not in _EXECUTION_PROFILES:
+        raise ValueError("worker name must be a supported execution profile")
     base = deepcopy(base or {})
     merged_sources = deepcopy(base.get("sources") or {})
     partial_sources = deepcopy(partial.get("sources") or {})
@@ -148,19 +147,10 @@ def merge_states(base: dict | None, partial: dict, worker: str, *, now: dt.datet
         record["worker"] = worker
         retired_sources.pop(source_id, None)
         record["last_report_at"] = generated
-        if record.get("status") == "ok":
-            # When this source's provider check succeeded, not when its run started.
-            observed = record.get("checked_at")
-            record["last_success_at"] = observed if _parse_time(observed) else generated
-        elif previous.get("last_success_at"):
-            record["last_success_at"] = previous["last_success_at"]
-        # The provider answered (ok or warn), even if checks raised warnings;
-        # deferred (rate-limit backoff) records made no request.
-        if record.get("status") in ("ok", "warn") and not record.get("deferred") and not record.get("rate_limited"):
-            observed = record.get("checked_at")
-            record["last_available_at"] = observed if _parse_time(observed) else generated
-        elif previous.get("last_available_at"):
-            record["last_available_at"] = previous["last_available_at"]
+        # Inherit only trustworthy history. A fast clock can otherwise mask the
+        # first failed check made after the clock was corrected.
+        _inherit_history(record, previous, ("last_success_at", "last_available_at"), now)
+        _merge_history(record, record, generated, now)
         merged_sources[source_id] = record
 
     counts = {
@@ -170,11 +160,16 @@ def merge_states(base: dict | None, partial: dict, worker: str, *, now: dt.datet
     # Report publication is the worker heartbeat even when one or more sources fail.
     # Keep that clock separate from the most recent all-clear worker run.
     worker_status = _normalized_status(partial.get("overall"))
+    if _plausible_time(previous_worker.get("last_success_at"), now) is None:
+        previous_worker.pop("last_success_at", None)
     if scope_type in _PARTIAL_SCOPES or shrink_refused:
         # A filtered run, or a fleet report whose inventory shrink was refused,
         # proves the worker is alive but cannot vouch for its whole inventory:
         # keep the fleet-level health from the last full run. A worker whose
         # first report is filtered has no fleet-level health yet (T10).
+        if (previous_worker.get("checked_at") is not None
+                and _plausible_time(previous_worker["checked_at"], now) is None):
+            previous_worker = {}  # Its last fleet check cannot establish health.
         workers[worker] = {**previous_worker, "last_report_at": generated, "last_partial_report_at": generated}
     else:
         workers[worker] = {
@@ -296,10 +291,21 @@ def _history_times(record: dict, generated: str) -> tuple[str | None, str | None
     observed = record.get("checked_at")
     stamp = observed if _parse_time(observed) else generated
     status = record.get("status")
-    success = stamp if status == "ok" else None
+    success = stamp if status == "ok" and not record.get("deferred") else None
     available = (stamp if status in ("ok", "warn") and not record.get("deferred")
                  and not record.get("rate_limited") else None)
     return success, available
+
+
+def _inherit_history(record: dict, previous: dict, keys: tuple[str, ...], now: dt.datetime) -> None:
+    """Keep the latest trustworthy historical evidence from either copy."""
+    for key in keys:
+        prior = _plausible_time(previous.get(key), now)
+        current = _plausible_time(record.get(key), now)
+        if prior is not None and (current is None or prior > current):
+            record[key] = previous[key]
+        elif current is None:
+            record.pop(key, None)
 
 
 def _merge_history(stored: dict, record: dict, generated: str, now: dt.datetime) -> None:
@@ -329,7 +335,11 @@ def _carry_measurement(previous: dict, record: dict) -> dict:
     """A deferred record over the last stored measurement, as ``watch._deferred_record`` builds it."""
     carried = {key: value for key, value in previous.items() if key not in _DEFERRED_CARRY_EXCLUDE}
     carried.update({key: value for key, value in record.items() if value is not None})
-    carried["checked_at"] = previous.get("checked_at")
+    for key in ("checked_at", "last_success_at", "last_available_at", "worker"):
+        if key in previous:
+            carried[key] = previous[key]
+        else:
+            carried.pop(key, None)
     if previous.get("status") == "error":
         # Never report healthier than the last real observation.
         carried["status"] = "error"
@@ -383,7 +393,9 @@ def _source_check_time(source: dict) -> dt.datetime | None:
     it. Legacy records without a check time fall back to report time.
     """
     checked = _parse_time(source.get("checked_at"))
-    if checked or source.get("deferred"):
+    if source.get("check_withheld"):
+        return None
+    if source.get("checked_at") is not None or source.get("deferred"):
         return checked
     return _parse_time(source.get("last_report_at") or source.get("last_success_at"))
 
@@ -407,9 +419,9 @@ def with_freshness(state: dict, *, worker_stale_minutes: int = 1560, source_stal
         source["stale"] = not seen or source["clock_skew"] or _age_seconds(now, seen) > source_stale_minutes * 60
         assigned = source.get("worker")
         # An assigned source whose worker record is missing has no worker report: stale, not current.
-        source["worker_stale"] = bool(assigned) and (not isinstance(assigned, str)
-                                                     or not isinstance(workers.get(assigned), dict)
-                                                     or bool(workers[assigned].get("stale")))
+        source["worker_stale"] = bool(source.get("worker_unverified")) or (assigned is not None and (
+            not isinstance(assigned, str) or assigned not in _EXECUTION_PROFILES
+            or not isinstance(workers.get(assigned), dict) or bool(workers[assigned].get("stale"))))
         status = source.get("status")
         source["health"] = "healthy" if status == "ok" else "unhealthy" if status in ("warn", "error") else "unknown"
         source["reporting"] = "stale" if source.get("stale") or source.get("worker_stale") else "current"

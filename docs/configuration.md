@@ -507,15 +507,16 @@ changed its data recently, and is always shown separately.
 
 - **Publisher time.** Taken from what a check already observes: ArcGIS
   `editingInfo.lastEditDate`, then an HTTP `Last-Modified` header, then (for
-  the MnGeo county catalog) the newest county acquisition date, read in either
-  accepted encoding: ArcGIS epoch milliseconds, or ISO date text taken as UTC
-  midnight of its UTC calendar date, as the county views read it. Each run's
+  the MnGeo county catalog) the newest county acquisition time. ArcGIS epoch
+  milliseconds and ISO timestamps preserve the same UTC instant. Date-only ISO
+  values start at midnight UTC. County views display the UTC calendar date. Each run's
   history records it per source as `data_updated_at`. When the latest check
   observed no time (for example, because it failed), the newest time in the
-  source's history is used.
+  source's history within the one-day future tolerance is used.
 - **Expected interval.** A source's optional `expected_update_days` (whole days,
   1–3650; anything else fails registry validation) wins. Otherwise, once its
-  history holds at least three distinct publisher times, the interval is the
+  history holds at least three distinct publisher times within the same
+  future tolerance, the interval is the
   median gap between them plus 50%. Otherwise it is 90 days. The dashboard and
   the weekly digest both learn from the same window (the newest 1,000 history
   rows per source).

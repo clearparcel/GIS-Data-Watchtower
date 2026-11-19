@@ -189,6 +189,8 @@ A compatible ArcGIS layer can enable the scan with:
 }
 ```
 
+A selected layer discovered through an ArcGIS service reports the same completeness result, observation time and failure status as a directly configured layer. Every statistics batch must agree on recognized and excluded county counts. A participation response must identify each row by a text county name and include both participation flags for each recognized county. Explicit null flags mean unknown. On malformed data the check warns and retains the previous valid observation and its date.
+
 The default batch size is 12. On the current 91-field MnGeo statewide parcel layer this produces eight grouped-statistics requests. Batch size is capped at 20 so a configuration mistake cannot turn the scan into one oversized statistics expression set.
 
 The source must contain `CO_NAME`, `CO_CODE`, an object-id field, and at least some standard GAC fields. Missing standard fields remain explicitly identified in the observation.

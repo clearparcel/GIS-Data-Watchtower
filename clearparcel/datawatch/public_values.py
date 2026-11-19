@@ -48,23 +48,22 @@ def catalog_date(value: object, *, now: dt.datetime | None = None) -> dt.date | 
 
 def catalog_day(value: object) -> dt.date | None:
     """The UTC calendar date of a catalog date in either accepted encoding, without a future check."""
-    day = None
+    instant = catalog_instant(value)
+    return instant.date() if instant is not None else None
+
+
+def catalog_instant(value: object) -> dt.datetime | None:
+    """UTC acquisition instant. Date-only and naive ISO values are interpreted in UTC."""
     if type(value) is int:
-        stamp = provider_edit_date(value)
-        day = dt.date.fromisoformat(stamp) if stamp else None
-    elif isinstance(value, str) and 0 < len(value) <= 80:
-        text = value.strip()
+        stamp = provider_edit_timestamp(value)
+        return dt.datetime.fromisoformat(stamp) if stamp else None
+    if isinstance(value, str) and 0 < len(value) <= 80:
         try:
-            if _ISO_DAY.fullmatch(text):
-                day = dt.date.fromisoformat(text)
-            else:
-                parsed = dt.datetime.fromisoformat(text.replace("Z", "+00:00"))
-                day = (parsed if parsed.tzinfo is None else parsed.astimezone(dt.timezone.utc)).date()
+            stamp = dt.datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
+            return stamp.replace(tzinfo=dt.timezone.utc) if stamp.tzinfo is None else stamp.astimezone(dt.timezone.utc)
         except (ValueError, OverflowError):
-            # An offset instant at the year 1 or 9999 boundary has no UTC date:
-            # it is unknown, never a reason to fail the county output.
-            day = None
-    return day
+            return None
+    return None
 
 
 _APPROVAL_VALUES = {"true": True, "yes": True, "false": False, "no": False}

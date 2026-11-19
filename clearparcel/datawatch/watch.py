@@ -67,7 +67,7 @@ _RATE_LIMIT_MIN_SECONDS = 60
 # backoffs longer than a week are flagged for operator review rather than shortened.
 _RATE_LIMIT_MAX_SECONDS = 365 * 24 * 3600
 _RATE_LIMIT_REVIEW_SECONDS = 7 * 24 * 3600
-_EXECUTION_PROFILES = {"cloud", "local"}
+_EXECUTION_PROFILES = frozenset({"cloud", "local"})
 
 
 def _retry_after_seconds(value: str | None, now: dt.datetime, default: int = _RATE_LIMIT_DEFAULT_SECONDS) -> int:
@@ -1010,11 +1010,20 @@ def _extent_basis(data: dict) -> dict | None:
     # comparison baseline (fifth review V11). Unmeasured keeps the last bounds.
     if not _valid_bounds(extent):
         return None
-    return {k: extent[k] for k in keys} | {"wkid": _spatial_wkid(data)}
+    # An explicit reference describes these coordinates even if the layer uses
+    # another native system. Do not infer a numeric ID for a custom reference.
+    wkid = _spatial_wkid(extent) if "spatialReference" in extent else _spatial_wkid(data)
+    return {k: extent[k] for k in keys} | {"wkid": wkid, "reference_version": 2}
 
 
 def _extent_change(previous: dict | None, current: dict | None) -> dict | None:
     if not _valid_bounds(previous) or not _valid_bounds(current):
+        return None
+    if previous.get("reference_version") != current.get("reference_version"):
+        # A legacy baseline may have been labeled with the native layer WKID.
+        # Take the first corrected observation as the new comparison baseline.
+        return None
+    if previous.get("wkid") is None and current.get("wkid") is None:
         return None
     if previous.get("wkid") != current.get("wkid"):
         # Coordinates in different reference systems (or units) cannot be
@@ -1146,7 +1155,7 @@ def _arcgis_gac_completeness(
     if standard_key == "parcel":
         scope = "all"
         text_mode = "nonblank"
-        if population_scope not in (None, "", "all"):
+        if str(population_scope or "all").strip().lower() != "all":
             raise ValueError("parcel GAC population_scope must be all")
     else:
         scope = str(population_scope or defaults["routine_population_scope"]).strip().lower()
@@ -1191,10 +1200,8 @@ def _arcgis_gac_completeness(
     counties: dict[str, dict] = {}
     county_denominators: dict[str, tuple[str | None, int]] | None = None
     query_count = 0
-    excluded_county_names: set[str] = set()
-    # Rows in null-county and non-Minnesota groups: provider evidence for the
-    # whole-layer reconciliation even though no county represents them (V08).
-    other_group_records: int | None = None
+    # Null and non-Minnesota groups also belong to the layer denominator.
+    excluded_counts: dict[str, int] | None = None
     for offset in range(0, len(scanned_specs), batch_size):
         batch = scanned_specs[offset:offset + batch_size]
         stats = [{
@@ -1234,7 +1241,7 @@ def _arcgis_gac_completeness(
         if data.get("exceededTransferLimit") is True:
             raise RuntimeError("GAC statistics response exceeded the provider transfer limit")
         batch_denominators: dict[str, tuple[str | None, int]] = {}
-        batch_other_records = 0
+        batch_excluded: dict[str, int] = {}
         for feature in _response_features(data, "GAC statistics"):
             attrs = feature.get("attributes") or {}
             # A group without its grouping attributes is malformed, never an
@@ -1250,10 +1257,9 @@ def _arcgis_gac_completeness(
             # county: an alias or typo is never a separate county (fourth review Q06).
             county_name = canonical_minnesota_county(raw_county_name)
             if not county_name:
-                if raw_county_name:
-                    excluded_county_names.add(raw_county_name)
-                batch_other_records += _validated_provider_count(
+                count = _validated_provider_count(
                     attrs.get("record_count"), label=f"{standard_key} GAC unrepresented group row count")
+                batch_excluded[raw_county_name] = batch_excluded.get(raw_county_name, 0) + count
                 continue
             record_count = _validated_provider_count(
                 attrs.get("record_count"),
@@ -1287,14 +1293,15 @@ def _arcgis_gac_completeness(
                     "record_count": record_count,
                     "percent": pct,
                 }
-        if other_group_records is None:
-            other_group_records = batch_other_records
         if county_denominators is None:
             county_denominators = batch_denominators
-        elif batch_denominators != county_denominators:
+            excluded_counts = batch_excluded
+        elif batch_denominators != county_denominators or batch_excluded != excluded_counts:
             raise RuntimeError("GAC statistics batches returned inconsistent county groups or record counts")
 
 
+    excluded_counts = excluded_counts or {}
+    excluded_county_names = sorted(name for name in excluded_counts if name)
     all_field_count = len(specs)
     mandatory_fields = [x["field"] for x in specs if x.get("inclusion") == "Mandatory"]
     for entry in counties.values():
@@ -1421,8 +1428,8 @@ def _arcgis_gac_completeness(
         "source_schema_missing_fields": missing_fields,
         "statistics_queries": query_count,
         "excluded_county_groups": len(excluded_county_names),
-        "excluded_county_names": sorted(excluded_county_names),
-        "unrepresented_group_record_count": other_group_records or 0,
+        "excluded_county_names": excluded_county_names,
+        "unrepresented_group_record_count": sum(excluded_counts.values()),
         "field_population_percent": overall_population,
         "mandatory_population_percent": (
             None if not total_records or not mandatory_fields else round(
@@ -1525,7 +1532,12 @@ def _arcgis_gac_metadata(
         attrs = feature.get("attributes") if isinstance(feature, dict) else None
         if not isinstance(attrs, dict):
             raise RuntimeError("GAC participation metadata row has no attributes object")
-        raw_county_name = str(attrs.get("county_name") or attrs.get("agency_county") or "").strip()
+        raw_county_name = attrs.get("county_name")
+        if raw_county_name is None or raw_county_name == "":
+            raw_county_name = attrs.get("agency_county")
+        if raw_county_name is not None and not isinstance(raw_county_name, str):
+            raise RuntimeError("GAC participation metadata has a non-text county identifier")
+        raw_county_name = (raw_county_name or "").strip()
         if not raw_county_name:
             # A row without a county identifier may be any county: skipping it
             # would silently drop that county's participation (fifth review V07).
@@ -1536,7 +1548,9 @@ def _arcgis_gac_metadata(
             continue
         flags = {}
         for flag in ("gac_open", "ng911_upload"):
-            value = attrs.get(flag)
+            if flag not in attrs:
+                raise RuntimeError(f"GAC participation metadata is missing {flag} for {county_name}")
+            value = attrs[flag]
             flags[flag] = _gac_bool(value)
             if flags[flag] is None and value is not None and not (isinstance(value, str) and not value.strip()):
                 # A null flag is a genuine unknown; an unreadable one is malformed
@@ -1886,8 +1900,9 @@ def _arcgis_service(source: dict, timeout: int) -> dict:
         result["problems"].extend(layer.get("problems", []))
         if layer.get("quality_warnings"):
             result["quality_warnings"] = list(layer["quality_warnings"])
-        if 'editing_info' in layer:
-            result['editing_info'] = layer['editing_info']
+        for key in ("editing_info", "gac_completeness", "mngac_completeness", "gac_check_status", "gac_check_error"):
+            if key in layer:
+                result[key] = layer[key]
     return result
 
 def _arcgis_image(source: dict, timeout: int) -> dict:
