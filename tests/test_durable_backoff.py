@@ -1,5 +1,7 @@
 """A provider 429 backoff survives a run that fails or is interrupted (audit WT31-02)."""
+import datetime as dt
 import json
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -40,6 +42,38 @@ class DurableBackoffTests(unittest.TestCase):
             except Interrupted:
                 pass
         return calls
+
+    def test_interrupted_curl_stops_host_and_preserves_retry_after_across_runs(self):
+        def interrupted_transfer(command, **kwargs):
+            headers = Path(command[command.index("-D") + 1])
+            headers.write_bytes(b"HTTP/1.1 103 Early Hints\r\nRetry-After: 60\r\n\r\n"
+                                b"HTTP/2 429\r\nRetry-After: 7200\r\n\r\n")
+            raise subprocess.TimeoutExpired(command, kwargs["timeout"])
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            sources = [
+                dict(source, url=f"https://a.example/{index}", prefer_curl=True)
+                for index, source in enumerate(_sources())
+            ]
+            config = _config(root, sources, retries=1, retry_delay_seconds=0)
+            with (patch.object(watch.shutil, "which", return_value="curl"),
+                  patch.object(watch.subprocess, "run", side_effect=interrupted_transfer) as transfer):
+                first = watch.check_sources(config, save=True)["sources"]
+                transfer.assert_called_once()
+                self.assertEqual(first["a"]["attempts"], 1)
+                self.assertEqual(first["b"]["deferred"]["reason"], "provider-rate-limit")
+                saved = json.loads((root / "state.json").read_text(encoding="utf-8"))
+                backoff = saved["rate_limits"]["a.example"]
+                recorded = dt.datetime.fromisoformat(backoff["recorded_at"])
+                deadline = dt.datetime.fromisoformat(backoff["not_before"])
+                self.assertEqual(deadline - recorded, dt.timedelta(hours=2))
+
+                transfer.reset_mock()
+                second = watch.check_sources(config, save=True)["sources"]
+                transfer.assert_not_called()
+                for source in ("a", "b"):
+                    self.assertEqual(second[source]["deferred"]["reason"], "provider-rate-limit")
 
     def test_backoff_is_on_disk_before_the_next_source_runs(self):
         with tempfile.TemporaryDirectory() as td:

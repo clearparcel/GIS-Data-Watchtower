@@ -545,8 +545,13 @@ def _curl_response_metadata(output: bytes | str | None, headers_path: Path) -> t
     try:
         if headers_path.is_file() and headers_path.stat().st_size <= 256 * 1024:
             header_text = headers_path.read_text(encoding="iso-8859-1", errors="replace")
-            # Proxy/1xx header blocks can precede the provider's final response.
-            final_headers = re.split(r"(?m)^HTTP/[^\r\n]+\r?\n", header_text)[-1]
+            # An interrupted curl may have dumped the response headers before
+            # emitting its stdout marker. Only the last response can impose a stop.
+            final_block = re.split(r"(?m)(?=^HTTP/)", header_text)[-1]
+            status_line, newline, final_headers = final_block.partition("\n")
+            if newline and (status is None or status < 200):
+                if re.fullmatch(r"HTTP/[0-9]+(?:\.[0-9]+)?[ \t]+429(?:[ \t].*)?", status_line):
+                    status = 429
             match = re.search(r"(?im)^Retry-After:[ \t]*([^\r\n]+)", final_headers)
             retry_after = match.group(1).strip() if match else None
     except OSError:
@@ -587,6 +592,7 @@ def _curl_request_once(
             "--proto", "=http,https",
             "-A", USER_AGENT,
             "-sS",
+            "--suppress-connect-headers",
             "-D", str(headers_path),
             "-o", str(body_path),
             "-w", "\n__CP_HTTP__%{http_code}\n__CP_REDIRECT__%{redirect_url}",
