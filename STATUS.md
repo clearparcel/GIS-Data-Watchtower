@@ -1,5 +1,12 @@
 # Project status
 
+## v0.6.2 deployed November 19, 2026
+
+The dashboards, county editor, cloud worker, public publisher and weekly digest
+use v0.6.2 from `f66846c`. Curl now requests configured URLs literally, including
+paths containing braces or brackets. See the
+[release record](docs/release-v0.6.2.md) and [PR #291](https://github.com/clearparcel/GIS-Data-Watchtower/pull/291).
+
 ## v0.6.1 deployed November 19, 2026
 
 The dashboards, county editor, cloud worker, public publisher and weekly digest

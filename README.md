@@ -11,8 +11,8 @@
 **Source version: v0.6.2.** See the [release notes](docs/release-v0.6.2.md).
 
 The public dashboard, internal dashboard, county editor, regular cloud worker,
-public publisher and weekly digest run **v0.6.1**, deployed November 19, 2026. See the
-[release record](docs/release-v0.6.1.md).
+public publisher and weekly digest run **v0.6.2**, deployed November 19, 2026. See the
+[release record](docs/release-v0.6.2.md).
 The release includes [public destination validation](docs/county-source-monitoring.md#public-destination-checks-v051)
 for editor-enrolled source checks and the [repository review corrections](docs/review-remediation-v0.5.1.md).
 The [internal UI guide](docs/internal-dashboard-ui.md) describes attention lists, saved changes, reading-safe updates, terms filters and scoped downloads.
