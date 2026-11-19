@@ -1,10 +1,14 @@
 # Project status
 
-## Fifth review fixes — not deployed
+## v0.5.9 fifth review fixes — deployed, 2026-11-19
 
-Fixes from the fifth review of `395e3cf` (v0.5.8), regression tests in
-`tests/test_fifth_review.py`. Not deployed; a release needs the owner's
-approval.
+Deployed November 19, 2026 from `ddc1c39` (PRs #282 and #283); see the
+[release notes](docs/release-v0.5.9.md). Regression tests are in
+`tests/test_fifth_review.py`. The private registry and stored aggregate passed
+the added checks before rollout (every completeness settings object passes the
+new validation, no stored worker name or source `worker` carries surrounding
+whitespace), with no registry change needed. The weekly digest job runs the
+release image too.
 
 Publication integrity: a single source or worker record already in private
 storage with an unreadable or future time no longer stalls the whole fleet. The
