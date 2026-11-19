@@ -39,6 +39,15 @@ def catalog_date(value: object, *, now: dt.datetime | None = None) -> dt.date | 
     date or date-time text. A date more than ``CATALOG_FUTURE_TOLERANCE`` past
     today is unknown, so every view treats it the same way.
     """
+    day = catalog_day(value)
+    if day is None:
+        return None
+    today = (now or dt.datetime.now(dt.timezone.utc)).astimezone(dt.timezone.utc).date()
+    return None if day > today + CATALOG_FUTURE_TOLERANCE else day
+
+
+def catalog_day(value: object) -> dt.date | None:
+    """The UTC calendar date of a catalog date in either accepted encoding, without a future check."""
     day = None
     if type(value) is int:
         stamp = provider_edit_date(value)
@@ -55,10 +64,7 @@ def catalog_date(value: object, *, now: dt.datetime | None = None) -> dt.date | 
             # An offset instant at the year 1 or 9999 boundary has no UTC date:
             # it is unknown, never a reason to fail the county output.
             day = None
-    if day is None:
-        return None
-    today = (now or dt.datetime.now(dt.timezone.utc)).astimezone(dt.timezone.utc).date()
-    return None if day > today + CATALOG_FUTURE_TOLERANCE else day
+    return day
 
 
 _APPROVAL_VALUES = {"true": True, "yes": True, "false": False, "no": False}

@@ -25,7 +25,7 @@ import datetime as dt
 import math
 import statistics
 
-from clearparcel.datawatch.public_values import _metadata_date, provider_edit_timestamp
+from clearparcel.datawatch.public_values import _metadata_date, catalog_day, provider_edit_timestamp
 
 DEFAULT_EXPECTED_DAYS = 90
 MIN_DISTINCT_UPDATES = 3
@@ -55,12 +55,23 @@ def publisher_updated_at(record: object) -> str | None:
     if isinstance(catalog, dict):
         # MnGeo's county catalog: the newest county acquisition date is when
         # the statewide data last took in a county update.
-        stamps = [provider_edit_timestamp(row.get("acqdate")) for row in catalog.values() if isinstance(row, dict)]
+        # Either accepted encoding (epoch milliseconds or ISO text) is read as
+        # its UTC calendar date, as the county views read it (fifth review V12);
+        # the future-date rule is applied below by ``data_freshness``.
+        stamps = [_catalog_stamp(row.get("acqdate")) for row in catalog.values() if isinstance(row, dict)]
         stamps = [stamp for stamp in stamps if stamp]
         if stamps:
             return max(stamps, key=_parse)
     stamp = record.get("data_updated_at")  # already normalized (history rows)
     return _metadata_date(stamp) if isinstance(stamp, str) else None
+
+
+def _catalog_stamp(value: object) -> str | None:
+    """Epoch milliseconds as their instant; ISO text as UTC midnight of its UTC calendar date."""
+    if type(value) is int:
+        return provider_edit_timestamp(value)
+    day = catalog_day(value) if isinstance(value, str) else None
+    return dt.datetime.combine(day, dt.time(), dt.timezone.utc).isoformat() if day else None
 
 
 def valid_expected_days(value: object) -> bool:

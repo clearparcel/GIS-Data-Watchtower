@@ -64,7 +64,19 @@ an excluded group, and a non-text name is a malformed response. If grouped
 records ever exceed the layer's independently counted total, the quality check
 fails and the last valid measurement is kept. Participation metadata with
 conflicting rows for one county, a malformed row, or no usable county rows
-fails the check the same way.
+fails the check the same way. So does a participation row without any county
+identifier, or a participation flag that is neither a recognized yes/no value
+nor null (null stays a genuine unknown); a named row outside Minnesota's 87
+counties is an exclusion. The grouped-total check counts every returned group,
+including null-county and excluded groups, against the layer total, while the
+represented-versus-ungrouped split still covers only Minnesota counties.
+
+Extent changes are compared only within one spatial reference. When the
+reference changes, the check records an informational `spatial_reference`
+change instead of a coordinate shift. Bounds that are not finite or have a
+minimum above its maximum count as unmeasured and keep the last valid bounds.
+ArcGIS layer URLs may carry a query string (for example `?f=pjson`): count,
+statistics, metadata and sublayer requests are built from the parsed path.
 
 Address points group by `CO_NAME`, normalized to the canonical 87 Minnesota
 county names. The county-code field remains schema-checked but is not part of

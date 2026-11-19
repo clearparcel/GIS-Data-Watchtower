@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+from copy import deepcopy
 import os
 import sys
 import tempfile
@@ -9,12 +10,15 @@ from pathlib import Path
 
 from clearparcel.datawatch.public_dashboard import sanitize_public_render_state, sanitize_source_metadata
 from clearparcel.datawatch import strict_json
-from clearparcel.datawatch.public_projection import (InvalidSnapshotError, validate_snapshot_structure,
-                                                     validate_snapshot_totals)
+from clearparcel.datawatch.public_projection import (InvalidSnapshotError, _overall, _status_counts,
+                                                     validate_snapshot_structure, validate_snapshot_totals)
 from clearparcel.datawatch.storage import GCSStorage, StorageBackend, StorageConflictError, gcs_object_identity
-from clearparcel.datawatch.aggregate import (CLOCK_SKEW_TOLERANCE_SECONDS, _latest_time, _parse_time,
-                                             _plausible_time, observation_rolls_back)
-from clearparcel.datawatch.provider_watchdog import run_provider_watchdog
+from clearparcel.datawatch.aggregate import (CLOCK_SKEW_TOLERANCE_SECONDS, _carry_measurement, _latest_time,
+                                             _parse_time, _plausible_time, observation_rolls_back,
+                                             unmeasured_deferral)
+from clearparcel.datawatch.provider_watchdog import _emit, run_provider_watchdog
+
+QUARANTINE_LOG_KEY = "watchtower_publisher_clock_quarantine"
 
 
 _FORBIDDEN_PUBLIC_KEYS = {
@@ -111,8 +115,12 @@ def validate_private_aggregate(raw: object) -> None:
             raise InvalidSnapshotError(f"private aggregate source {str(source_id)[:80]!r} has an invalid status")
         # Aggregation writes a worker name; any other assignment is unreadable
         # input, never a silent watchdog or digest failure (fourth review Q10).
+        # A padded name is a separate worker to the watchdog but no known
+        # worker publicly, so one source would be stale privately and current
+        # publicly (fifth review V06).
         if record.get("worker") is not None and (not isinstance(record["worker"], str)
-                                                 or not record["worker"].strip()):
+                                                 or not record["worker"].strip()
+                                                 or record["worker"] != record["worker"].strip()):
             raise InvalidSnapshotError(f"private aggregate source {str(source_id)[:80]!r} has an invalid worker")
     validate_snapshot_totals(raw)
 
@@ -147,6 +155,70 @@ def validate_ordering_clocks(state: dict, now: dt.datetime) -> None:
         stamp = _parse_time(value)
         if stamp is not None and stamp > limit:
             raise InvalidSnapshotError(f"aggregate time {label[:120]} is in the future; check the worker clock")
+
+
+_SOURCE_CLOCKS = ("checked_at", "last_report_at", "last_success_at", "last_available_at")
+_WORKER_CLOCKS = ("checked_at", "last_report_at", "last_success_at")
+
+
+def _untrusted_clock(value, now: dt.datetime) -> bool:
+    """A present clock that is unreadable or beyond the skew tolerance after ``now``."""
+    if value is None or value == "":
+        return False
+    parsed = _parse_time(value) if isinstance(value, str) else None
+    return parsed is None or parsed > now + dt.timedelta(seconds=CLOCK_SKEW_TOLERANCE_SECONDS)
+
+
+def untrusted_clocks(raw: dict, now: dt.datetime) -> dict[str, list[str]]:
+    """Private records whose stored clocks cannot order a publication (fifth review V01/V04).
+
+    One such record, for example one written before the private future-time
+    guard or by a worker merging against its own fast clock, must not hold the
+    whole fleet's publication: the publisher keeps that record's last
+    published version instead and reports it.
+    """
+    def bad(container, keys):
+        return sorted(str(name) for name, record in (raw.get(container) or {}).items()
+                      if isinstance(record, dict) and any(_untrusted_clock(record.get(key), now) for key in keys))
+    return {"sources": sorted(set(bad("sources", _SOURCE_CLOCKS)) | set(bad("retired_sources", ("retired_at",)))),
+            "workers": sorted(set(bad("workers", _WORKER_CLOCKS)) | set(bad("retired_workers", ("retired_at",))))}
+
+
+def _quarantine(candidate: dict, current: dict, untrusted: dict[str, list[str]], now: dt.datetime) -> None:
+    """Replace each untrusted record with its last published version, or drop it."""
+    sections = {"sources": ("sources", "retired_sources"), "workers": ("workers", "retired_workers")}
+    for kind, names in untrusted.items():
+        clocks = _SOURCE_CLOCKS if kind == "sources" else _WORKER_CLOCKS
+        for name in names:
+            for section in sections[kind]:
+                previous = (current.get(section) or {}).get(name)
+                keys = clocks if section in ("sources", "workers") else ("retired_at",)
+                if isinstance(previous, dict) and not any(_untrusted_clock(previous.get(key), now) for key in keys):
+                    candidate.setdefault(section, {})[name] = deepcopy(previous)
+                else:
+                    (candidate.get(section) or {}).pop(name, None)
+
+
+def _carry_published_measurements(candidate: dict, current: dict, now: dt.datetime) -> bool:
+    """Keep a published measurement under a rebuilt candidate's zero-attempt deferral (V04)."""
+    carried = False
+    for name, record in (candidate.get("sources") or {}).items():
+        previous = (current.get("sources") or {}).get(name)
+        if (isinstance(previous, dict) and unmeasured_deferral(record)
+                and _plausible_time(previous.get("checked_at"), now) is not None):
+            candidate["sources"][name] = _carry_measurement(previous, record)
+            carried = True
+    return carried
+
+
+def _retally(candidate: dict) -> None:
+    """Totals and overall follow the sources after quarantine or carry, as aggregation derives them."""
+    derived = _status_counts(candidate.get("sources") or {})
+    for key in ("ok", "warn", "error"):
+        if key in candidate.get("counts", {}):
+            candidate["counts"][key] = derived[key]
+    if candidate.get("overall") is not None:
+        candidate["overall"] = _overall(derived)
 
 
 def _snapshot_is_superseded(candidate: dict, current: dict, now: dt.datetime | None = None) -> bool:
@@ -205,8 +277,9 @@ def _snapshot_is_superseded(candidate: dict, current: dict, now: dt.datetime | N
         if incoming is not None:
             # Reinstatement needs evidence after the retirement: the provider
             # check when the record carries one, as in aggregation (Q01).
+            # A deferral without a check made no request: no evidence (V03).
             incoming_at = (incoming.get("checked_at") if _parse_time(incoming.get("checked_at"))
-                           else incoming.get("last_report_at"))
+                           else None if incoming.get("deferred") else incoming.get("last_report_at"))
             if _plausible_time(retired_at, now) is not None and (
                 _parse_time(incoming_at) is None or _parse_time(incoming_at) <= _parse_time(retired_at)
             ):
@@ -226,11 +299,15 @@ def publish_public_snapshot(
     destination_object: str = "aggregate-state.json",
     workdir: str | Path,
     watchdog_stream=None,
+    log_stream=None,
 ) -> dict:
     """Read the unified aggregate, sanitize it, and publish only the public representation.
 
     With ``watchdog_stream`` set, the provider-run watchdog checks the private
     aggregate's worker report times first and logs overdue workers to it.
+    Records whose stored clocks are unreadable or in the future keep their last
+    published version; they are logged to ``log_stream`` (default: the
+    watchdog stream, else standard error) and listed in the summary.
     """
     # Before any read or write: the destination must never be the private input.
     _refuse_alias(_identity(source, source_object), _identity(destination, destination_object))
@@ -251,18 +328,34 @@ def publish_public_snapshot(
         # Before projection: projecting creates empty containers, so a malformed
         # private aggregate would otherwise publish as a healthy empty fleet.
         validate_private_aggregate(raw)
-        public = sanitize_public_render_state(raw)
-        validate_public_state(public)
+        sanitized = sanitize_public_render_state(raw)
+        validate_public_state(sanitized)
         # The same contract the public reader applies: a snapshot it would
         # reject must never replace the last accepted publication.
-        validate_snapshot_structure(public)
-        validate_ordering_clocks(public, dt.datetime.now(dt.timezone.utc))
+        validate_snapshot_structure(sanitized)
+        now = dt.datetime.now(dt.timezone.utc)
+        # A future fleet time is a whole-fleet clock error: refuse it. Per-record
+        # clock errors are quarantined below instead (fifth review V01).
+        validate_ordering_clocks({"generated_at": sanitized.get("generated_at")}, now)
+        untrusted = untrusted_clocks(raw, now)
+        quarantined = {kind: names for kind, names in untrusted.items() if names}
+        if quarantined:
+            stream = log_stream if log_stream is not None else (
+                watchdog_stream if watchdog_stream is not None else sys.stderr)
+            _emit(stream, {"severity": "ERROR", QUARANTINE_LOG_KEY: quarantined})
+        public = sanitized
         current_path = scratch_root / "destination.json"
         published = False
         for attempt in range(8):
             try:
                 exists, version = destination.download_versioned(destination_object, current_path)
                 current = strict_json.loads(current_path.read_text(encoding="utf-8")) if exists else {}
+                public = deepcopy(sanitized)
+                _quarantine(public, current, untrusted, now)
+                if _carry_published_measurements(public, current, now) or quarantined:
+                    _retally(public)
+                validate_snapshot_structure(public)
+                validate_ordering_clocks(public, now)
                 if _snapshot_is_superseded(public, current):
                     public = current
                     break
@@ -295,6 +388,8 @@ def publish_public_snapshot(
         }
         if watchdog is not None:
             summary["provider_watchdog"] = watchdog
+        if quarantined:
+            summary["clock_quarantine"] = quarantined
         return summary
 
 

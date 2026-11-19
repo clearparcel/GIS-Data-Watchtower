@@ -150,21 +150,27 @@ def emit_digest(digest: dict, stream) -> None:
     stream.flush()
 
 
-def validate_digest_clock(state: dict) -> None:
+def validate_digest_clock(state: dict, now: dt.datetime | None = None) -> None:
     """Refuse an aggregate whose declared schema or generation time is invalid.
 
     The publisher applies the same contract. A legacy fleet without a
     generation time is accepted only with explicit ok/warn/error tallies, so
-    bare empty maps never yield a routine notice (fourth review Q11).
+    bare empty maps never yield a routine notice (fourth review Q11). A
+    generation time beyond the clock-skew tolerance after ``now`` is refused,
+    as the publisher refuses it (fifth review V13).
     """
-    from clearparcel.datawatch.aggregate import _parse_time
+    from clearparcel.datawatch.aggregate import CLOCK_SKEW_TOLERANCE_SECONDS, _parse_time
     if "schema_version" in state:
         version = state["schema_version"]
         if type(version) is not int or version < 1:
             raise ValueError("aggregate schema_version is invalid")
     if "generated_at" in state:
-        if not isinstance(state["generated_at"], str) or _parse_time(state["generated_at"]) is None:
+        generated = _parse_time(state["generated_at"]) if isinstance(state["generated_at"], str) else None
+        if generated is None:
             raise ValueError("aggregate generated_at is invalid")
+        now = (now or dt.datetime.now(dt.timezone.utc)).astimezone(dt.timezone.utc)
+        if generated > now + dt.timedelta(seconds=CLOCK_SKEW_TOLERANCE_SECONDS):
+            raise ValueError("aggregate generated_at is in the future; check the worker clock")
     elif not all(key in (state.get("counts") or {}) for key in ("ok", "warn", "error")):
         raise ValueError("aggregate has no generated_at and no explicit ok/warn/error tallies")
 
@@ -188,7 +194,7 @@ def run_weekly_digest(config: dict, storage, stream, *, aggregate_object: str = 
         # error, never a routine "0 stale" notice (follow-up review F10).
         from clearparcel.datawatch.public_publish import validate_private_aggregate
         validate_private_aggregate(state)
-        validate_digest_clock(state)
+        validate_digest_clock(state, now)
         _, histories = load_history_index(history_config, (state.get("sources") or {}).keys(),
                                           limit=HISTORY_LIMIT)
     digest = build_digest(state, config, histories, now=now, terms=_terms_snapshot())

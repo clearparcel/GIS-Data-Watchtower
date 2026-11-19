@@ -35,6 +35,10 @@ def merge_states(base: dict | None, partial: dict, worker: str, *, now: dt.datet
             future beyond the clock-skew tolerance, checked no sources, or
             comes from a retired worker.
     """
+    if not isinstance(worker, str) or not worker.strip() or worker != worker.strip():
+        # A padded name is a different worker to the watchdog and is dropped by
+        # the public projection (fifth review V06).
+        raise ValueError("worker name must be a non-blank name without surrounding whitespace")
     base = deepcopy(base or {})
     merged_sources = deepcopy(base.get("sources") or {})
     partial_sources = deepcopy(partial.get("sources") or {})
@@ -63,6 +67,10 @@ def merge_states(base: dict | None, partial: dict, worker: str, *, now: dt.datet
         # A future check time would win every later ordering comparison and
         # block publication; refuse it here, at the private write (fourth review Q02).
         checked = _parse_time(record.get("checked_at"))
+        if record.get("checked_at") is not None and checked is None:
+            # An unreadable check time is not an absent legacy one: it would fall
+            # back to report-time ordering and look current (fifth review V04).
+            raise ValueError(f"worker report source {str(source_id)[:80]!r} checked_at is not a valid time")
         if checked is not None and checked > limit:
             raise ValueError(f"worker report source {str(source_id)[:80]!r} checked_at is in the future; "
                              "check the worker clock")
@@ -115,10 +123,16 @@ def merge_states(base: dict | None, partial: dict, worker: str, *, now: dt.datet
         retired_at = _parse_time(tombstone.get("retired_at"))
         # Reinstatement needs evidence after the retirement: the provider check
         # when the record carries one (a deferred record carries an older
-        # measurement), otherwise the report time (fourth review Q01).
-        if retired_at is not None and (_parse_time(record.get("checked_at")) or incoming_time) <= retired_at:
+        # measurement), otherwise the report time (fourth review Q01). A
+        # deferral without a check made no request: it is no evidence (V03).
+        if retired_at is not None and (unmeasured_deferral(record) or (
+                _parse_time(record.get("checked_at")) or incoming_time) <= retired_at):
             continue
         if _source_update_is_stale(record, previous, incoming_time, worker, now):
+            # An older observation is not the current state, but its success
+            # or availability is still history: arrival order must not erase
+            # it (fifth review V05).
+            _merge_history(previous, record, generated, now)
             continue
         if (record.get("deferred") and _parse_time(record.get("checked_at")) is None
                 and _plausible_time(previous.get("checked_at"), now) is not None):
@@ -215,7 +229,9 @@ def retire_worker(state: dict, worker: str, retired_at: str, *, now: dt.datetime
         raise ValueError('worker is not active')
     for value in (state.get('generated_at'), prior.get('last_report_at'), prior.get('checked_at'),
                   prior.get('last_success_at')):
-        seen = _parse_time(value)
+        # A stored time beyond the skew tolerance is not evidence; with the
+        # future-retirement guard it would leave no acceptable time (V02).
+        seen = _plausible_time(value, now)
         if seen is not None and stamp <= seen:
             raise ValueError('worker retirement must follow retained observations')
     result = deepcopy(state)
@@ -268,6 +284,33 @@ def _plausible_time(value, now: dt.datetime):
     if parsed is None or parsed > now + dt.timedelta(seconds=CLOCK_SKEW_TOLERANCE_SECONDS):
         return None
     return parsed
+
+
+def unmeasured_deferral(record: dict) -> bool:
+    """A rate-limit deferral that carries no provider check: zero attempts, no evidence."""
+    return bool(record.get("deferred")) and _parse_time(record.get("checked_at")) is None
+
+
+def _history_times(record: dict, generated: str) -> tuple[str | None, str | None]:
+    """When ``record`` proves a successful and an available provider check, as merge records them."""
+    observed = record.get("checked_at")
+    stamp = observed if _parse_time(observed) else generated
+    status = record.get("status")
+    success = stamp if status == "ok" else None
+    available = (stamp if status in ("ok", "warn") and not record.get("deferred")
+                 and not record.get("rate_limited") else None)
+    return success, available
+
+
+def _merge_history(stored: dict, record: dict, generated: str, now: dt.datetime) -> None:
+    """Advance ``stored`` last-success/availability times with an older report's evidence."""
+    for key, value in zip(("last_success_at", "last_available_at"), _history_times(record, generated)):
+        candidate = _plausible_time(value, now)
+        if candidate is None:
+            continue
+        known = _plausible_time(stored.get(key), now)
+        if known is None or candidate > known:
+            stored[key] = value
 
 
 def _latest_time(record: dict, now: dt.datetime):
