@@ -21,6 +21,9 @@ Start from `config/example_sources.json`. The public example is deliberately pro
 
 The supported history size key is `history_max_mb`. Older experimental keys such as `history_max_lines` and `history_max_bytes` are not supported.
 
+Curl treats each requested URL literally, including braces and brackets in the
+path. This applies to both curl-preferred requests and fallback requests.
+
 Automatic whole-source retries stop after HTTP 401, 403, 404, or 410, as well as
 the separate HTTP 429 stop/backoff signal. If a curl transfer is interrupted
 after the provider returns 429 headers, Watchtower still honors the host-wide

@@ -1,5 +1,7 @@
 import http.server
 import io
+import os
+import shutil
 import socket
 import threading
 import time
@@ -431,6 +433,38 @@ class TransportSecurityTests(unittest.TestCase):
         self.assertNotIn('PRIVATE', str(failure.exception))
 
 class CurlReviewRegressionTests(unittest.TestCase):
+    @unittest.skipUnless(shutil.which("curl") or shutil.which("curl.exe"), "requires the curl executable")
+    def test_configured_service_url_receives_exactly_one_literal_curl_request(self):
+        paths = []
+        service_path = "/rest/services/Boundaries/{County,City}/MapServer"
+
+        class Handler(http.server.BaseHTTPRequestHandler):
+            def do_GET(self):
+                paths.append(self.path)
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.write(b'{"mapName":"Boundaries","layers":[]}')
+
+            def log_message(self, *args):
+                pass
+
+        with http.server.HTTPServer(("127.0.0.1", 0), Handler) as server:
+            worker = threading.Thread(target=server.serve_forever, daemon=True)
+            worker.start()
+            try:
+                source = {
+                    "adapter": "arcgis_service", "prefer_curl": True,
+                    "url": f"http://127.0.0.1:{server.server_port}{service_path}",
+                }
+                with patch.dict(os.environ, {"no_proxy": "127.0.0.1", "NO_PROXY": "127.0.0.1"}):
+                    result = watch._source_check(source, 5)
+            finally:
+                server.shutdown()
+                worker.join()
+
+        self.assertEqual(paths, [service_path + "?f=json"])
+        self.assertEqual(result["service_name"], "Boundaries")
+
     def _run_result(self, status, exit_code, body=b'{}'):
         from pathlib import Path
         from types import SimpleNamespace
@@ -449,6 +483,7 @@ class CurlReviewRegressionTests(unittest.TestCase):
                 invoke()
                 command = run.call_args.args[0]
                 self.assertEqual(command[1], '--disable')
+                self.assertIn('--globoff', command)
                 self.assertIn('--suppress-connect-headers', command)
                 self.assertNotIn('--noproxy', command)
                 self.assertNotIn('--location', command)
