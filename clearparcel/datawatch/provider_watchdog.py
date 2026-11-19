@@ -55,8 +55,10 @@ def overdue_workers(aggregate: dict, *, now: dt.datetime, stale_minutes: int = D
         sources = aggregate.get("sources") if isinstance(aggregate, dict) else None
         retired = aggregate.get("retired_workers") if isinstance(aggregate, dict) else None
         retired = retired if isinstance(retired, dict) else {}
+        # Only a readable assignment names a worker: one malformed value must
+        # not hide every other worker's alert (fourth review Q10).
         assigned = {source.get("worker") for source in (sources.values() if isinstance(sources, dict) else ())
-                    if isinstance(source, dict)}
+                    if isinstance(source, dict) and isinstance(source.get("worker"), str)}
         assigned = {name for name in assigned if isinstance(name, str) and name.strip() and name not in retired}
         names = sorted(set(workers) | assigned)
     else:

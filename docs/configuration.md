@@ -277,6 +277,10 @@ for backward compatibility.
 }
 ```
 
+Each setting must be `true` (default settings), `false`, or a settings object;
+other types (for example the string `"false"`) are refused before any request.
+An empty object is off.
+
 Parcel retains `CO_NAME` / `CO_CODE`. Address defaults to canonicalized
 `CO_NAME` grouping, while Road defaults to canonicalized `CO_NAME_L` so
 each statewide road segment contributes to one Minnesota county denominator.

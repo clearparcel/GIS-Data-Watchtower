@@ -56,6 +56,16 @@ def merge_states(base: dict | None, partial: dict, worker: str, *, now: dt.datet
     if not partial_sources and not (scope_type == "fleet" and partial.get("allow_inventory_shrink") is True):
         # Judge by contents, not the label: only an explicit fleet drain may be empty.
         raise ValueError("refusing to merge a worker report with no source observations")
+    limit = now + dt.timedelta(seconds=CLOCK_SKEW_TOLERANCE_SECONDS)
+    for source_id, record in partial_sources.items():
+        if not isinstance(record, dict):
+            raise ValueError(f"worker report source {str(source_id)[:80]!r} is not an object")
+        # A future check time would win every later ordering comparison and
+        # block publication; refuse it here, at the private write (fourth review Q02).
+        checked = _parse_time(record.get("checked_at"))
+        if checked is not None and checked > limit:
+            raise ValueError(f"worker report source {str(source_id)[:80]!r} checked_at is in the future; "
+                             "check the worker clock")
     retired_workers = deepcopy(base.get('retired_workers') or {})
     if worker in retired_workers:
         retired_at = _parse_time(retired_workers[worker].get('retired_at'))
@@ -78,8 +88,9 @@ def merge_states(base: dict | None, partial: dict, worker: str, *, now: dt.datet
         owned = [sid for sid, record in merged_sources.items() if record.get("worker") == worker]
         retirable = []
         for source_id in owned:
-            record = merged_sources[source_id]
-            seen = _parse_time(record.get("last_report_at") or record.get("checked_at"))
+            # The newest retained time, report or provider check: a source
+            # measured after this report started is not retired by it (Q01).
+            seen = _latest_time(merged_sources[source_id], now)
             if source_id not in partial_sources and (seen is None or seen <= incoming_time):
                 retirable.append(source_id)
         # Refuse to retire most of a worker's inventory from one report (for
@@ -102,10 +113,19 @@ def merge_states(base: dict | None, partial: dict, worker: str, *, now: dt.datet
         previous = merged_sources.get(source_id) or {}
         tombstone = retired_sources.get(source_id) or {}
         retired_at = _parse_time(tombstone.get("retired_at"))
-        if retired_at is not None and incoming_time <= retired_at:
+        # Reinstatement needs evidence after the retirement: the provider check
+        # when the record carries one (a deferred record carries an older
+        # measurement), otherwise the report time (fourth review Q01).
+        if retired_at is not None and (_parse_time(record.get("checked_at")) or incoming_time) <= retired_at:
             continue
         if _source_update_is_stale(record, previous, incoming_time, worker, now):
             continue
+        if (record.get("deferred") and _parse_time(record.get("checked_at")) is None
+                and _plausible_time(previous.get("checked_at"), now) is not None):
+            # A deferred first check (a worker rebuilding its local state) made
+            # no request: keep the last measurement and its check time, with
+            # the new backoff warning (fourth review Q04).
+            record = _carry_measurement(previous, record)
         if shrink_refused and previous.get("worker") not in (None, worker):
             # A report that failed the inventory guard (for example a wrong
             # registry) must not take sources over from another worker.
@@ -172,15 +192,22 @@ def merge_states(base: dict | None, partial: dict, worker: str, *, now: dt.datet
     }
 
 
-def retire_worker(state: dict, worker: str, retired_at: str) -> dict:
+def retire_worker(state: dict, worker: str, retired_at: str, *, now: dt.datetime | None = None) -> dict:
     """Archive an inactive worker after its sources have migrated, without deleting observations.
 
     Raises:
-        ValueError: The worker owns sources, is unknown, or retirement would roll back time.
+        ValueError: The worker owns sources, is unknown, retirement would roll
+            back time, or the retirement is dated in the future.
     """
     stamp = _parse_time(retired_at)
     if stamp is None:
         raise ValueError('worker retirement requires a valid timestamp')
+    now = now or dt.datetime.now(dt.timezone.utc)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=dt.timezone.utc)
+    if stamp > now + dt.timedelta(seconds=CLOCK_SKEW_TOLERANCE_SECONDS):
+        # A future retirement would block publication (fourth review Q02).
+        raise ValueError('worker retirement is dated in the future; check the clock')
     if any(source.get('worker') == worker for source in (state.get('sources') or {}).values()):
         raise ValueError('worker still owns source observations')
     prior = (state.get('workers') or {}).get(worker)
@@ -241,6 +268,30 @@ def _plausible_time(value, now: dt.datetime):
     if parsed is None or parsed > now + dt.timedelta(seconds=CLOCK_SKEW_TOLERANCE_SECONDS):
         return None
     return parsed
+
+
+def _latest_time(record: dict, now: dt.datetime):
+    """The newest plausible report or provider-check time of a stored record."""
+    times = [t for t in (_plausible_time(record.get(key), now) for key in ("last_report_at", "checked_at"))
+             if t is not None]
+    return max(times) if times else None
+
+
+# Fields a deferred record never takes from the stored record it replaces.
+_DEFERRED_CARRY_EXCLUDE = {"error", "changes", "deferred", "problems", "status", "rate_limited",
+                           "last_report_at", "last_success_at", "last_available_at", "worker"}
+
+
+def _carry_measurement(previous: dict, record: dict) -> dict:
+    """A deferred record over the last stored measurement, as ``watch._deferred_record`` builds it."""
+    carried = {key: value for key, value in previous.items() if key not in _DEFERRED_CARRY_EXCLUDE}
+    carried.update({key: value for key, value in record.items() if value is not None})
+    carried["checked_at"] = previous.get("checked_at")
+    if previous.get("status") == "error":
+        # Never report healthier than the last real observation.
+        carried["status"] = "error"
+        carried["error"] = previous.get("error") or record.get("error")
+    return carried
 
 
 def observation_rolls_back(incoming: dict, existing: dict) -> bool:
@@ -313,7 +364,8 @@ def with_freshness(state: dict, *, worker_stale_minutes: int = 1560, source_stal
         source["stale"] = not seen or source["clock_skew"] or _age_seconds(now, seen) > source_stale_minutes * 60
         assigned = source.get("worker")
         # An assigned source whose worker record is missing has no worker report: stale, not current.
-        source["worker_stale"] = bool(assigned) and (not isinstance(workers.get(assigned), dict)
+        source["worker_stale"] = bool(assigned) and (not isinstance(assigned, str)
+                                                     or not isinstance(workers.get(assigned), dict)
                                                      or bool(workers[assigned].get("stale")))
         status = source.get("status")
         source["health"] = "healthy" if status == "ok" else "unhealthy" if status in ("warn", "error") else "unknown"
