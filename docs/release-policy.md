@@ -1,8 +1,8 @@
 # Versioning and release policy
 
 The public and internal dashboards, county editor, regular cloud worker,
-public publisher and weekly digest run **v0.5.9**, deployed November 19. See the
-[release record](release-v0.5.9.md) for scope and validation. Rollback targets
+public publisher and weekly digest run **v0.6.0**, deployed November 19. See the
+[release record](release-v0.6.0.md) for scope and validation. Rollback targets
 are recorded in the private deployment record. Older release records are in the
 [archive](README.md#historical-engineering-and-release-records). Daily cloud
 provider polling was separately approved and activated on October 10;
@@ -58,9 +58,9 @@ records that predate this rule are accepted as public as written
 ### Source, downloadable release and deployment are different things
 
 - **Supported source** is `main`; its version is `[project].version` in `pyproject.toml`.
-- **Latest downloadable release** is the newest GitHub Release. v0.5.9 (source
-  `ddc1c390d290f8b5872e05f43484c8f4ab32d16f`) is tagged at deployment; v0.5.8
-  (source `f923be911b3add2a9d4b3bf3f9c2a82fb3271980`) precedes it. The v0.4.0 and v0.5.2 tags and
+- **Latest downloadable release** is the newest GitHub Release. v0.6.0 (source
+  `ecfd83206370e6a3bb8dc65bbe5dd51feaef1910`) is tagged at deployment; v0.5.9
+  (source `ddc1c390d290f8b5872e05f43484c8f4ab32d16f`) precedes it. The v0.4.0 and v0.5.2 tags and
   the v0.3.13, v0.4.0 and v0.5.2 GitHub Releases were published on November 12,
   2026, each on its recorded source commit.
   Versions v0.3.0 through v0.3.9 were recorded and deployed from `main` without
@@ -81,9 +81,9 @@ Public page footers display **only the semantic application version** (for examp
 
 The source commit and build environment **remain inside immutable `build_info.json` and release/provenance records**, and may continue to inform optional analytics. They are intentionally not shown in the public footer. Container builds still require `WATCHTOWER_BUILD_REVISION` (full commit SHA) and `WATCHTOWER_BUILD_ENVIRONMENT` (`preview` or `production`). The production source package and visible version must agree. Build only from a clean, committed checkout; do not infer revision identity from the runtime Git state.
 
-**The coordinated application surfaces use v0.5.9 as of November 19, 2026.** The next
-application-code release must advance beyond v0.5.9. The
-[v0.5.9 release record](release-v0.5.9.md) identifies the deployed source and
+**The coordinated application surfaces use v0.6.0 as of November 19, 2026.** The next
+application-code release must advance beyond v0.6.0. The
+[v0.6.0 release record](release-v0.6.0.md) identifies the deployed source and
 verification limits. Always recheck live identity before promotion.
 
 ## Security fixes
