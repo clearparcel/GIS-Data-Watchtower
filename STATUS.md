@@ -1,5 +1,15 @@
 # Project status
 
+## Sixth review fixes awaiting release
+
+The repository fixes address S01–S14. The public publisher can advance healthy
+sources while retaining or marking unavailable records with unreliable clocks.
+Corrected workers report failures immediately. The changes also preserve deferred
+measurement ownership, reconcile GAC batches and participation, use the bounds’
+coordinate system for extent checks, and align catalog timestamps and cadence history.
+The regression cases run with synthetic provider responses and local storage in
+`tests/test_sixth_review.py`. The deployment record below covers v0.5.9.
+
 ## v0.5.9 fifth review fixes — deployed, 2026-11-19
 
 Deployed November 19, 2026 from `ddc1c39` (PRs #282 and #283); see the

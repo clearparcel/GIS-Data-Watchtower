@@ -9,6 +9,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 from .aggregate import CLOCK_SKEW_TOLERANCE_SECONDS
+from .watch import _EXECUTION_PROFILES
 from .parcel_access import INVENTORY_CATEGORIES, CountyPermission
 from .gac_standards import gac_payload
 from .direct_gac_schema import direct_schema_assessment
@@ -48,19 +49,25 @@ def _evidence(record):
 
 
 def _health(source, state, now, policy):
+    if source.get("check_withheld"):
+        return ("error" if source.get("status") == "error" else "unknown"), "unknown"
     checked = _timestamp(source.get('checked_at'))
     success = _timestamp(source.get('last_success_at'))
     health = source.get('status') if checked and source.get('status') in {'ok', 'warn', 'error'} else 'unknown'
     # Provider-check time decides freshness; a deferred record's report time
     # does not, because no request was made (legacy records fall back).
-    observed = checked if (checked or source.get('deferred')) else (_timestamp(source.get('last_report_at')) or success)
+    observed = checked
+    if source.get("checked_at") is None and not source.get("deferred"):
+        observed = _timestamp(source.get("last_report_at")) or success
     # A time beyond the clock-skew tolerance in the future proves no current check.
     skew = dt.timedelta(seconds=CLOCK_SKEW_TOLERANCE_SECONDS)
     reporting = ('unknown' if observed is None or observed - now > skew
                  else 'overdue' if now - observed > dt.timedelta(minutes=policy.source_stale_minutes) else 'current')
     assigned = source.get('worker')
-    worker = (state.get('workers') or {}).get(assigned)
-    if assigned and not isinstance(worker, dict):
+    worker = None
+    if isinstance(assigned, str) and assigned in _EXECUTION_PROFILES:
+        worker = (state.get('workers') or {}).get(assigned)
+    if source.get("worker_unverified") or (assigned is not None and not isinstance(worker, dict)):
         # An assigned source needs its worker's report too; without it the
         # second clock is unknown. Legacy unassigned records keep source time only.
         reporting = 'unknown' if reporting != 'overdue' else reporting

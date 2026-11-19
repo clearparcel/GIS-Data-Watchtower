@@ -466,7 +466,7 @@ class ExtentComparabilityTests(unittest.TestCase):
         record = result["sources"]["s"]
         self.assertEqual(record["status"], "ok")
         self.assertFalse([c for c in record.get("changes") or [] if c.get("type") == "spatial_extent"])
-        self.assertEqual(extent(0), {**record["spatial_extent"]})
+        self.assertEqual({**extent(0), "reference_version": 2}, record["spatial_extent"])
 
 
 class CatalogDateEncodingTests(unittest.TestCase):

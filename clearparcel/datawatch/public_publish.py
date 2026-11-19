@@ -10,12 +10,12 @@ from pathlib import Path
 
 from clearparcel.datawatch.public_dashboard import sanitize_public_render_state, sanitize_source_metadata
 from clearparcel.datawatch import strict_json
-from clearparcel.datawatch.public_projection import (InvalidSnapshotError, _overall, _status_counts,
+from clearparcel.datawatch.public_projection import (InvalidSnapshotError, _overall, _status_counts, _worker_name,
                                                      validate_snapshot_structure, validate_snapshot_totals)
 from clearparcel.datawatch.storage import GCSStorage, StorageBackend, StorageConflictError, gcs_object_identity
-from clearparcel.datawatch.aggregate import (CLOCK_SKEW_TOLERANCE_SECONDS, _carry_measurement, _latest_time,
+from clearparcel.datawatch.aggregate import (CLOCK_SKEW_TOLERANCE_SECONDS, _carry_measurement, _inherit_history, _latest_time,
                                              _parse_time, _plausible_time, observation_rolls_back,
-                                             unmeasured_deferral)
+                                             can_reinstate_source, unmeasured_deferral)
 from clearparcel.datawatch.provider_watchdog import _emit, run_provider_watchdog
 
 QUARANTINE_LOG_KEY = "watchtower_publisher_clock_quarantine"
@@ -115,12 +115,9 @@ def validate_private_aggregate(raw: object) -> None:
             raise InvalidSnapshotError(f"private aggregate source {str(source_id)[:80]!r} has an invalid status")
         # Aggregation writes a worker name; any other assignment is unreadable
         # input, never a silent watchdog or digest failure (fourth review Q10).
-        # A padded name is a separate worker to the watchdog but no known
-        # worker publicly, so one source would be stale privately and current
-        # publicly (fifth review V06).
-        if record.get("worker") is not None and (not isinstance(record["worker"], str)
-                                                 or not record["worker"].strip()
-                                                 or record["worker"] != record["worker"].strip()):
+        # Dropping an unknown assignment in projection would make a missing
+        # worker look like a current, unassigned source.
+        if record.get("worker") is not None and _worker_name(record["worker"]) is None:
             raise InvalidSnapshotError(f"private aggregate source {str(source_id)[:80]!r} has an invalid worker")
     validate_snapshot_totals(raw)
 
@@ -163,7 +160,7 @@ _WORKER_CLOCKS = ("checked_at", "last_report_at", "last_success_at")
 
 def _untrusted_clock(value, now: dt.datetime) -> bool:
     """A present clock that is unreadable or beyond the skew tolerance after ``now``."""
-    if value is None or value == "":
+    if value is None:
         return False
     parsed = _parse_time(value) if isinstance(value, str) else None
     return parsed is None or parsed > now + dt.timedelta(seconds=CLOCK_SKEW_TOLERANCE_SECONDS)
@@ -185,40 +182,102 @@ def untrusted_clocks(raw: dict, now: dt.datetime) -> dict[str, list[str]]:
 
 
 def _quarantine(candidate: dict, current: dict, untrusted: dict[str, list[str]], now: dt.datetime) -> None:
-    """Replace each untrusted record with its last published version, or drop it."""
-    sections = {"sources": ("sources", "retired_sources"), "workers": ("workers", "retired_workers")}
-    for kind, names in untrusted.items():
-        clocks = _SOURCE_CLOCKS if kind == "sources" else _WORKER_CLOCKS
-        for name in names:
-            for section in sections[kind]:
+    """Restore trusted destination evidence without reviving retired ownership."""
+    active_sources = candidate["sources"].copy()
+    for active, retired, clocks in (("workers", "retired_workers", _WORKER_CLOCKS),
+                                    ("sources", "retired_sources", _SOURCE_CLOCKS)):
+        for name in untrusted[active]:
+            for section in (active, retired):
+                candidate[section].pop(name, None)
                 previous = (current.get(section) or {}).get(name)
-                keys = clocks if section in ("sources", "workers") else ("retired_at",)
-                if isinstance(previous, dict) and not any(_untrusted_clock(previous.get(key), now) for key in keys):
-                    candidate.setdefault(section, {})[name] = deepcopy(previous)
+                if not isinstance(previous, dict):
+                    continue
+                keys = clocks if section == active else ("retired_at",)
+                if not any(_untrusted_clock(previous.get(key), now) for key in keys):
+                    candidate[section][name] = deepcopy(previous)
+                elif section == active:
+                    candidate[section][name] = _withheld_record(active, previous, now)
                 else:
-                    (candidate.get(section) or {}).pop(name, None)
+                    # Membership still records the retirement. Its unusable
+                    # timestamp cannot establish a chronological lower bound.
+                    candidate[section][name] = {}
+
+            if active == "sources" and name in candidate[active]:
+                previous = candidate[active][name]
+                if previous.get("worker") in candidate["retired_workers"]:
+                    # The old worker's measurement cannot become the new worker's.
+                    candidate[active][name] = _withheld_record(active, previous, now)
+
+    if active_sources and not candidate["sources"]:
+        # Without any publishable source, expose unavailable observations in
+        # the fleet tally. A genuinely empty inventory still has no rows.
+        for name in untrusted["sources"]:
+            if name in active_sources and name not in candidate["retired_sources"]:
+                candidate["sources"][name] = _withheld_record("sources", active_sources[name], now,
+                                                              keep_ordering=False)
 
 
-def _carry_published_measurements(candidate: dict, current: dict, now: dt.datetime) -> bool:
-    """Keep a published measurement under a rebuilt candidate's zero-attempt deferral (V04)."""
+def _withheld_record(section: str, previous: dict, now: dt.datetime, *, keep_ordering: bool = True) -> dict:
+    if section == "workers":
+        record = {"overall": "error"}
+    else:
+        record = {key: previous[key] for key in ("name", "provider", "category", "county_slug") if key in previous}
+        record.update(status="error", check_withheld=True)
+    # Preserve only trusted destination ordering evidence so an older replay
+    # cannot displace this row. Withheld sources never count as a fresh check.
+    if keep_ordering:
+        for key in ("checked_at", "last_report_at"):
+            if _plausible_time(previous.get(key), now) is not None:
+                record[key] = previous[key]
+    return record
+
+
+def _recover_published_evidence(candidate: dict, current: dict, now: dt.datetime) -> bool:
+    """Preserve measurements and known good history through rebuilds and clock corrections."""
     carried = False
-    for name, record in (candidate.get("sources") or {}).items():
-        previous = (current.get("sources") or {}).get(name)
-        if (isinstance(previous, dict) and unmeasured_deferral(record)
-                and _plausible_time(previous.get("checked_at"), now) is not None):
-            candidate["sources"][name] = _carry_measurement(previous, record)
+    # A rebuilt writer may have lost a retirement that the destination witnessed.
+    # Keep an undated marker until an actual later check can reinstate its source.
+    for name, marker in (current.get("retired_sources") or {}).items():
+        marker = marker if isinstance(marker, dict) else {}
+        if name in candidate["retired_sources"] or _plausible_time(marker.get("retired_at"), now) is not None:
+            continue
+        incoming = candidate["sources"].get(name)
+        if incoming is None or not can_reinstate_source(
+                incoming, marker, incoming.get("last_report_at"), current.get("generated_at"), now):
+            candidate["sources"].pop(name, None)
+            worker = _worker_name(marker.get("worker"))
+            candidate["retired_sources"][name] = {"worker": worker} if worker else {}
             carried = True
+    for section, history_keys in (("sources", ("last_success_at", "last_available_at")),
+                                  ("workers", ("last_success_at",))):
+        for name, record in candidate[section].items():
+            previous = (current.get(section) or {}).get(name)
+            if not isinstance(previous, dict) or record.get("check_withheld"):
+                continue
+            if (section == "sources" and unmeasured_deferral(record) and not previous.get("check_withheld")
+                    and _plausible_time(previous.get("checked_at"), now) is not None):
+                if previous.get("worker") not in (None, record.get("worker")):
+                    # Same rule as the private merge. Only the reporting worker's
+                    # heartbeat advances when a different worker made the measurement.
+                    if previous["worker"] in candidate["retired_workers"]:
+                        record = _withheld_record(section, previous, now)
+                    else:
+                        record = deepcopy(previous)
+                        if _untrusted_clock(record.get("last_report_at"), now):
+                            record.pop("last_report_at", None)
+                else:
+                    record = _carry_measurement(previous, record)
+                candidate[section][name] = record
+                carried = True
+            _inherit_history(record, previous, history_keys, now)
     return carried
 
 
 def _retally(candidate: dict) -> None:
     """Totals and overall follow the sources after quarantine or carry, as aggregation derives them."""
     derived = _status_counts(candidate.get("sources") or {})
-    for key in ("ok", "warn", "error"):
-        if key in candidate.get("counts", {}):
-            candidate["counts"][key] = derived[key]
-    if candidate.get("overall") is not None:
-        candidate["overall"] = _overall(derived)
+    candidate["counts"] = derived
+    candidate["overall"] = _overall(derived)
 
 
 def _snapshot_is_superseded(candidate: dict, current: dict, now: dt.datetime | None = None) -> bool:
@@ -250,8 +309,9 @@ def _snapshot_is_superseded(candidate: dict, current: dict, now: dt.datetime | N
                  worker.get("last_report_at") or worker.get("checked_at")):
             return True
     for name, retired in (current.get('retired_workers') or {}).items():
-        incoming = (candidate.get('retired_workers') or {}).get(name) or {}
-        if not incoming or name in (candidate.get('workers') or {}) or older(incoming.get('retired_at'), retired.get('retired_at')):
+        incoming = (candidate.get('retired_workers') or {}).get(name)
+        if (not isinstance(incoming, dict) or name in (candidate.get('workers') or {})
+                or older(incoming.get('retired_at'), retired.get('retired_at'))):
             return True
     for name, source in (current.get("sources") or {}).items():
         incoming = (candidate.get("sources") or {}).get(name)
@@ -271,18 +331,13 @@ def _snapshot_is_superseded(candidate: dict, current: dict, now: dt.datetime | N
                 incoming.get("last_report_at") or incoming.get("checked_at"), source_seen):
             return True
     for name, tombstone in (current.get("retired_sources") or {}).items():
-        retired_at = tombstone.get("retired_at") if isinstance(tombstone, dict) else None
+        tombstone = tombstone if isinstance(tombstone, dict) else {}
+        retired_at = tombstone.get("retired_at")
         incoming = (candidate.get("sources") or {}).get(name)
         incoming_tombstone = (candidate.get("retired_sources") or {}).get(name)
         if incoming is not None:
-            # Reinstatement needs evidence after the retirement: the provider
-            # check when the record carries one, as in aggregation (Q01).
-            # A deferral without a check made no request: no evidence (V03).
-            incoming_at = (incoming.get("checked_at") if _parse_time(incoming.get("checked_at"))
-                           else None if incoming.get("deferred") else incoming.get("last_report_at"))
-            if _plausible_time(retired_at, now) is not None and (
-                _parse_time(incoming_at) is None or _parse_time(incoming_at) <= _parse_time(retired_at)
-            ):
+            if not can_reinstate_source(incoming, tombstone, incoming.get("last_report_at"),
+                                        current.get("generated_at"), now):
                 return True
         elif not isinstance(incoming_tombstone, dict) or older(
             incoming_tombstone.get("retired_at"), retired_at
@@ -305,8 +360,8 @@ def publish_public_snapshot(
 
     With ``watchdog_stream`` set, the provider-run watchdog checks the private
     aggregate's worker report times first and logs overdue workers to it.
-    Records whose stored clocks are unreadable or in the future keep their last
-    published version; they are logged to ``log_stream`` (default: the
+    Records with unreliable clocks keep a trustworthy publication when one
+    exists. Otherwise their observations are withheld. Affected IDs are logged to ``log_stream`` (default: the
     watchdog stream, else standard error) and listed in the summary.
     """
     # Before any read or write: the destination must never be the private input.
@@ -351,12 +406,17 @@ def publish_public_snapshot(
                 exists, version = destination.download_versioned(destination_object, current_path)
                 current = strict_json.loads(current_path.read_text(encoding="utf-8")) if exists else {}
                 public = deepcopy(sanitized)
-                _quarantine(public, current, untrusted, now)
-                if _carry_published_measurements(public, current, now) or quarantined:
+                if quarantined:
+                    _quarantine(public, current, untrusted, now)
+                if _recover_published_evidence(public, current, now) or quarantined:
                     _retally(public)
+                # Recovery may read an older destination schema. Apply today's
+                # field allowlist to every record that will actually be stored.
+                public = sanitize_public_render_state(public)
+                validate_public_state(public)
                 validate_snapshot_structure(public)
                 validate_ordering_clocks(public, now)
-                if _snapshot_is_superseded(public, current):
+                if _snapshot_is_superseded(public, current, now):
                     public = current
                     break
                 public["public_published_at"] = dt.datetime.now(dt.timezone.utc).isoformat()

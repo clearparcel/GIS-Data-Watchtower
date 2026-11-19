@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime as dt
 import math
 
+from clearparcel.datawatch.watch import _EXECUTION_PROFILES as _PUBLIC_WORKERS
 from clearparcel.datawatch.direct_gac_schema import observed_standard_field_names
 from clearparcel.datawatch.public_values import safe_public_url, sanitize_item_metadata, sanitize_source_metadata, _metadata_text, _display_text
 
@@ -60,10 +61,6 @@ def _project(record: object, schema: dict) -> dict:
             if (value := validate(record.get(key))) is not None}
 
 
-# Execution profiles a worker can report as; tests keep this equal to watch._EXECUTION_PROFILES.
-_PUBLIC_WORKERS = frozenset({'cloud', 'local'})
-
-
 def _worker_name(value: object) -> str | None:
     """Only known execution profiles reach the public state; other names may be hostnames."""
     return value if isinstance(value, str) and value in _PUBLIC_WORKERS else None
@@ -98,6 +95,8 @@ _SOURCE_SCHEMA = {
        for key in ('catalog_retained', 'catalog_time_inferred')},
     # Private deferral details (reason, timing, host) reduce to a flag publicly.
     'deferred': lambda value: True if value else None,
+    'check_withheld': lambda value: True if value is True else None,
+    'worker_unverified': lambda value: True if value is True else None,
 }
 _WORKER_SCHEMA = {**{key: _public_date for key in ('checked_at', 'last_success_at', 'last_report_at')},
                   'overall': _public_status, 'source_count': _public_count}
@@ -298,6 +297,10 @@ def sanitize_public_render_state(state: dict) -> dict:
         if not _metadata_text(source_id) or not isinstance(source, dict):
             continue
         summary = _project(source, _SOURCE_SCHEMA)
+        if source.get("worker") is not None and "worker" not in summary:
+            summary["worker_unverified"] = True
+        if source.get("checked_at") is not None and "checked_at" not in summary:
+            summary["check_withheld"] = True
         summary['id'] = summary.get('id') or source_id
         summary['status'] = summary.get('status') or 'unknown'
         changes = source.get('changes')
