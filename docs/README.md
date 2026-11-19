@@ -40,7 +40,8 @@ Choose the path that matches what you want to do. For the live dashboard and a c
 | [Provider-run alerting](provider-run-alerting-proposal.md) | Activated November 3, 2026 with v0.3.10: alert on Watchtower failures and missed runs separately from source errors |
 | [Public dashboard hosting](public-dashboard-hosting.md) | Anonymous sanitized service, access boundaries, publication, and freshness |
 | [Release policy](release-policy.md) | Versioning, evidence, and rollback expectations |
-| [Current v0.5.8 fourth review fixes release](release-v0.5.8.md) | Retirement ordering, future-time refusal, completeness settings, canonical parcel counties, worker assignment errors |
+| [Current v0.5.9 fifth review fixes release](release-v0.5.9.md) | Per-record clock quarantine, worker retirement and deferral fixes, participation and grouped-total checks, completeness settings validation, digest date handling |
+| [v0.5.8 fourth review fixes release](release-v0.5.8.md) | Retirement ordering, future-time refusal, completeness settings, canonical parcel counties, worker assignment errors |
 | [v0.5.7 third review fixes release](release-v0.5.7.md) | Observation ordering, publisher clock guard, boolean request options, full county catalog, watchdog workers |
 | [v0.5.6 follow-up review fixes release](release-v0.5.6.md) | Fail-closed provider controls, change baselines, overdue freshness, publisher count checks, editor connection fix |
 | [v0.5.5 November 18 review fixes release](release-v0.5.5.md) | Dashboard filters, monitoring accuracy, provider controls, publisher checks, run lock, low cleanup |
