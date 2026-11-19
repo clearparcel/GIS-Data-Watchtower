@@ -869,6 +869,20 @@ def _arcgis_url(url: str) -> str:
     query["f"] = ["json"]
     return urllib.parse.urlunparse(parsed._replace(query=urllib.parse.urlencode(query, doseq=True)))
 
+def _arcgis_child_url(url: str, child: str, params: dict | None = None) -> str:
+    """A child operation or sublayer URL built from the parsed layer URL (fifth review V10).
+
+    Appending to the raw string would put ``/query`` inside an existing query
+    string. Compatible existing parameters are kept; operation parameters
+    override them.
+    """
+    parsed = urllib.parse.urlparse(url)
+    query = dict(urllib.parse.parse_qsl(parsed.query, keep_blank_values=True))
+    query.update(params or {})
+    return urllib.parse.urlunparse(parsed._replace(path=parsed.path.rstrip("/") + "/" + child,
+                                                   query=urllib.parse.urlencode(query)))
+
+
 def _spatial_wkid(data: dict) -> int | None:
     candidates = [
         data.get("sourceSpatialReference"),
@@ -923,7 +937,7 @@ def _sql_identifier(field: str) -> str:
 
 
 def _arcgis_count_query(url: str, where: str, timeout: int, *, prefer_curl: bool = False) -> int:
-    query_url = url.rstrip("/") + "/query?" + urllib.parse.urlencode({
+    query_url = _arcgis_child_url(url, "query", {
         "where": where, "returnCountOnly": "true", "f": "json",
     })
     data, _ = _json_request(query_url, timeout, prefer_curl=prefer_curl)
@@ -940,7 +954,7 @@ def _response_features(data: object, label: str) -> list:
 
 def _arcgis_duplicate_id_summary(url: str, field: str, timeout: int, *, prefer_curl: bool = False) -> dict:
     field = _sql_identifier(field)
-    query_url = url.rstrip("/") + "/query?" + urllib.parse.urlencode({
+    query_url = _arcgis_child_url(url, "query", {
         "where": f"{field} IS NOT NULL",
         "outFields": field,
         "groupByFieldsForStatistics": field,
@@ -980,17 +994,32 @@ def _field_candidate(field_names: list[str], exact: list[str], contains: list[st
     return None
 
 
+def _valid_bounds(extent: object) -> bool:
+    """Finite numeric bounds with each minimum not above its maximum."""
+    keys = ("xmin", "ymin", "xmax", "ymax")
+    if not isinstance(extent, dict) or not all(
+            type(extent.get(k)) in (int, float) and math.isfinite(extent[k]) for k in keys):
+        return False
+    return extent["xmin"] <= extent["xmax"] and extent["ymin"] <= extent["ymax"]
+
+
 def _extent_basis(data: dict) -> dict | None:
     extent = data.get("extent") or {}
     keys = ("xmin", "ymin", "xmax", "ymax")
-    if not all(isinstance(extent.get(k), (int, float)) for k in keys):
+    # Impossible bounds are not a measurement: they would become the next
+    # comparison baseline (fifth review V11). Unmeasured keeps the last bounds.
+    if not _valid_bounds(extent):
         return None
     return {k: extent[k] for k in keys} | {"wkid": _spatial_wkid(data)}
 
 
 def _extent_change(previous: dict | None, current: dict | None) -> dict | None:
-    if not previous or not current:
+    if not _valid_bounds(previous) or not _valid_bounds(current):
         return None
+    if previous.get("wkid") != current.get("wkid"):
+        # Coordinates in different reference systems (or units) cannot be
+        # subtracted; the extents are incomparable, not shifted (V11).
+        return {"incomparable": True, "previous_wkid": previous.get("wkid"), "current_wkid": current.get("wkid")}
     deltas = {k: current[k] - previous[k] for k in ("xmin","ymin","xmax","ymax")}
     old_w = max(abs(previous["xmax"] - previous["xmin"]), 1e-12)
     old_h = max(abs(previous["ymax"] - previous["ymin"]), 1e-12)
@@ -1163,6 +1192,9 @@ def _arcgis_gac_completeness(
     county_denominators: dict[str, tuple[str | None, int]] | None = None
     query_count = 0
     excluded_county_names: set[str] = set()
+    # Rows in null-county and non-Minnesota groups: provider evidence for the
+    # whole-layer reconciliation even though no county represents them (V08).
+    other_group_records: int | None = None
     for offset in range(0, len(scanned_specs), batch_size):
         batch = scanned_specs[offset:offset + batch_size]
         stats = [{
@@ -1196,12 +1228,13 @@ def _arcgis_gac_completeness(
             "orderByFields": county_field,
             "f": "json",
         }
-        query_url = url.rstrip("/") + "/query?" + urllib.parse.urlencode(params)
+        query_url = _arcgis_child_url(url, "query", params)
         data, _ = _json_request(query_url, timeout, prefer_curl=prefer_curl)
         query_count += 1
         if data.get("exceededTransferLimit") is True:
             raise RuntimeError("GAC statistics response exceeded the provider transfer limit")
         batch_denominators: dict[str, tuple[str | None, int]] = {}
+        batch_other_records = 0
         for feature in _response_features(data, "GAC statistics"):
             attrs = feature.get("attributes") or {}
             # A group without its grouping attributes is malformed, never an
@@ -1219,6 +1252,8 @@ def _arcgis_gac_completeness(
             if not county_name:
                 if raw_county_name:
                     excluded_county_names.add(raw_county_name)
+                batch_other_records += _validated_provider_count(
+                    attrs.get("record_count"), label=f"{standard_key} GAC unrepresented group row count")
                 continue
             record_count = _validated_provider_count(
                 attrs.get("record_count"),
@@ -1252,6 +1287,8 @@ def _arcgis_gac_completeness(
                     "record_count": record_count,
                     "percent": pct,
                 }
+        if other_group_records is None:
+            other_group_records = batch_other_records
         if county_denominators is None:
             county_denominators = batch_denominators
         elif batch_denominators != county_denominators:
@@ -1385,6 +1422,7 @@ def _arcgis_gac_completeness(
         "statistics_queries": query_count,
         "excluded_county_groups": len(excluded_county_names),
         "excluded_county_names": sorted(excluded_county_names),
+        "unrepresented_group_record_count": other_group_records or 0,
         "field_population_percent": overall_population,
         "mandatory_population_percent": (
             None if not total_records or not mandatory_fields else round(
@@ -1478,7 +1516,7 @@ def _arcgis_gac_metadata(
         "orderByFields": "county_name",
         "f": "json",
     }
-    query_url = url.rstrip("/") + "/query?" + urllib.parse.urlencode(params)
+    query_url = _arcgis_child_url(url, "query", params)
     data, _ = _json_request(query_url, timeout, prefer_curl=prefer_curl)
     if data.get("exceededTransferLimit") is True:
         raise RuntimeError("GAC participation metadata response exceeded the provider transfer limit")
@@ -1488,15 +1526,28 @@ def _arcgis_gac_metadata(
         if not isinstance(attrs, dict):
             raise RuntimeError("GAC participation metadata row has no attributes object")
         raw_county_name = str(attrs.get("county_name") or attrs.get("agency_county") or "").strip()
+        if not raw_county_name:
+            # A row without a county identifier may be any county: skipping it
+            # would silently drop that county's participation (fifth review V07).
+            raise RuntimeError("GAC participation metadata row has no county identifier")
         county_name = canonical_minnesota_county(raw_county_name)
         if not county_name:
+            # A named non-county row (outside Minnesota's 87) is excluded.
             continue
+        flags = {}
+        for flag in ("gac_open", "ng911_upload"):
+            value = attrs.get(flag)
+            flags[flag] = _gac_bool(value)
+            if flags[flag] is None and value is not None and not (isinstance(value, str) and not value.strip()):
+                # A null flag is a genuine unknown; an unreadable one is malformed
+                # and must not replace the county's last usable answer (V07).
+                raise RuntimeError(f"GAC participation metadata has an unreadable {flag} value for {county_name}")
         row = {
             "county_name": county_name,
             "county_code": str(attrs.get("county_code") or "").strip() or None,
             "county_fips": str(attrs.get("county_fips") or "").strip() or None,
-            "gac_open": _gac_bool(attrs.get("gac_open")),
-            "ng911_upload": _gac_bool(attrs.get("ng911_upload")),
+            "gac_open": flags["gac_open"],
+            "ng911_upload": flags["ng911_upload"],
             "submitted_at": _gac_datetime(attrs.get(submission_field)) if submission_field else None,
         }
         if county_name in counties and counties[county_name] != row:
@@ -1511,7 +1562,7 @@ def _arcgis_gac_metadata(
 
 def _arcgis_geometry_sample(url: str, timeout: int, *, sample_size: int = 250, prefer_curl: bool = False) -> dict:
     """Retrieve a bounded geometry sample and calculate lightweight geometry signals."""
-    query_url = url.rstrip("/") + "/query?" + urllib.parse.urlencode({
+    query_url = _arcgis_child_url(url, "query", {
         "where": "1=1",
         "outFields": "",
         "returnGeometry": "true",
@@ -1661,10 +1712,13 @@ def _arcgis_layer(source: dict, timeout: int) -> dict:
                 )
             if isinstance(result.get("feature_count"), int):
                 grouped = int(completeness.get("record_count") or 0)
-                if grouped > result["feature_count"]:
+                returned = grouped + int(completeness.get("unrepresented_group_record_count") or 0)
+                if returned > result["feature_count"]:
                     # Two requests disagree (a changing dataset or an inconsistent
-                    # response): the denominators are incompatible (fourth review Q08).
-                    raise RuntimeError(f"GAC grouped statistics count {grouped} exceeds the layer count "
+                    # response): the denominators are incompatible (fourth review
+                    # Q08). Every returned group counts, including null-county and
+                    # non-Minnesota groups that no county represents (V08).
+                    raise RuntimeError(f"GAC grouped statistics count {returned} exceeds the layer count "
                                        f"{result['feature_count']}")
                 completeness["source_feature_count"] = result["feature_count"]
                 completeness["ungrouped_record_count"] = result["feature_count"] - grouped
@@ -1809,7 +1863,7 @@ def _arcgis_service(source: dict, timeout: int) -> dict:
                 return result
         chosen = candidates[0]
         layer_source = dict(source)
-        layer_source["url"] = source["url"].rstrip("/") + "/" + str(chosen["id"])
+        layer_source["url"] = _arcgis_child_url(source["url"], str(chosen["id"]))
         layer_source["count"] = True
         layer_source["parcel_quality"] = bool(source.get("parcel_quality"))
         layer_source.pop("discover_parcel_layer", None)
@@ -2028,7 +2082,7 @@ def _arcgis_county_catalog(source: dict, timeout: int) -> dict:
         "returnGeometry": "false",
         "f": "json",
     }
-    url = source["url"].rstrip("/") + "/query?" + urllib.parse.urlencode(params)
+    url = _arcgis_child_url(source["url"], "query", params)
     data, meta = _json_request(url, timeout, prefer_curl=bool(source.get("prefer_curl")))
     if data.get("exceededTransferLimit") is True:
         # One page of a larger result is not the catalog. Fail this source
@@ -2390,6 +2444,7 @@ _BASELINE_KEYS = ("schema_hash", "parcel_schema_hash", "parcel_layer_id", "featu
 _CHANGE_BASELINE_KEY = {"schema": "schema_hash", "parcel_schema": "parcel_schema_hash",
                         "parcel_layer": "parcel_layer_id", "feature_count": "feature_count",
                         "tracked_value": "tracked_values", "spatial_extent": "spatial_extent",
+                        "spatial_reference": "spatial_extent",
                         "observation": "observation_fingerprint"}
 
 
@@ -2550,7 +2605,16 @@ def _compare(previous: dict | None, current: dict, source: dict | None = None) -
     extent_delta = _extent_change(previous.get("spatial_extent"), current.get("spatial_extent"))
     extent_limit = thresholds.get("extent_shift_percent")
     extent_limit = 0.5 if extent_limit is None else float(extent_limit)
-    if extent_delta and extent_delta["max_extent_shift_percent"] > extent_limit:
+    if extent_delta and extent_delta.get("incomparable"):
+        changes.append({
+            "severity": "info",
+            "type": "spatial_reference",
+            "message": (f"published extent spatial reference changed {extent_delta['previous_wkid']} -> "
+                        f"{extent_delta['current_wkid']}; extents not compared"),
+            "previous": extent_delta["previous_wkid"],
+            "current": extent_delta["current_wkid"],
+        })
+    elif extent_delta and extent_delta["max_extent_shift_percent"] > extent_limit:
         changes.append({
             "severity": thresholds.get("extent_change_severity", "info"),
             "type": "spatial_extent",
@@ -3191,6 +3255,8 @@ def validate_source_registry(sources: object) -> None:
             if source.get(key) is not None and type(source[key]) is not bool and not isinstance(source[key], dict):
                 raise InvalidSourceRegistryError(
                     f"source {source_id!r} {key} must be true, false or a settings object")
+            if isinstance(source.get(key), dict):
+                _validate_gac_settings(source[key], key, f"source {source_id!r} {key}")
         if "execution_profiles" in source:
             profiles = source["execution_profiles"]
             # A string would match profiles by substring; require exact names.
@@ -3233,6 +3299,43 @@ def validate_source_registry(sources: object) -> None:
         if "expected_update_days" in source and not _valid_expected_days(source["expected_update_days"]):
             raise InvalidSourceRegistryError(
                 f"source {source_id!r} expected_update_days must be a whole number of days from 1 to 3650")
+
+
+def _validate_gac_settings(settings: dict, key: str, label: str) -> None:
+    """Recognized completeness settings must be usable before any request (fifth review V09).
+
+    Otherwise an unknown standard or a null timeout fails the whole source
+    after its metadata request, and a text batch size reads as unsupported.
+    """
+    modern = key == "gac_completeness"
+    standard = "parcel"
+    if modern and settings.get("standard") is not None:
+        try:
+            if not isinstance(settings["standard"], str):
+                raise ValueError
+            standard = normalize_standard_key(settings["standard"])
+        except ValueError:
+            raise InvalidSourceRegistryError(f"{label} has an unsupported standard: {settings['standard']!r}") from None
+    for name in ("timeout_seconds", "batch_size"):
+        if name not in settings:
+            continue
+        value = settings[name]
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) \
+                or value < 1 or value != int(value):
+            raise InvalidSourceRegistryError(f"{label} {name} must be a whole number of at least 1: {value!r}")
+    for name in ("metadata_url", "county_name_field", "county_code_field"):
+        if settings.get(name) is not None and not isinstance(settings[name], str):
+            raise InvalidSourceRegistryError(f"{label} {name} must be text")
+    if not modern:
+        return
+    choices = {"population_scope": {"all"} if standard == "parcel" else {"mandatory", "all"},
+               "text_population_mode": {"non_null", "nonblank"}}
+    for name, allowed in choices.items():
+        value = settings.get(name)
+        if value in (None, ""):
+            continue
+        if not isinstance(value, str) or value.strip().lower() not in allowed:
+            raise InvalidSourceRegistryError(f"{label} {name} must be one of {', '.join(sorted(allowed))}")
 
 
 _CHANGE_SEVERITIES = frozenset({"info", "warn", "error"})

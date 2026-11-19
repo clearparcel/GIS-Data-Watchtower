@@ -1,5 +1,44 @@
 # Project status
 
+## Fifth review fixes — not deployed
+
+Fixes from the fifth review of `395e3cf` (v0.5.8), regression tests in
+`tests/test_fifth_review.py`. Not deployed; a release needs the owner's
+approval.
+
+Publication integrity: a single source or worker record already in private
+storage with an unreadable or future time no longer stalls the whole fleet. The
+publisher keeps that record's last published version, publishes the rest,
+reports it under `clock_quarantine` and logs a
+`watchtower_publisher_clock_quarantine` line; a future fleet `generated_at` is
+still refused (V01). A stored future heartbeat no longer blocks retiring an
+inactive worker in private storage (V02). A zero-attempt deferral no longer
+reinstates a retired source, privately or publicly (V03). A present but
+unreadable source `checked_at` is refused at the private write and quarantined
+by the publisher, and a rebuilt aggregate's zero-attempt deferral keeps the
+published measurement (V04). Last success and availability times no longer
+depend on the order in which workers' reports arrive (V05). A worker name with
+surrounding whitespace is refused by aggregation, publication and the digest,
+and the watchdog does not report it as a missing worker (V06).
+
+Provider checks: a participation row without a county identifier, or with an
+unreadable participation flag, fails the quality check and keeps the last valid
+measurement (V07). The grouped-total check counts null-county and excluded
+groups too (V08). Recognized fields inside a completeness settings object are
+validated before any request (V09). Layer URLs with a query string build
+count, statistics, metadata and sublayer requests from the parsed path (V10).
+Extents in different spatial references are recorded as an informational
+`spatial_reference` change instead of a shift, and inverted or non-finite
+bounds are unmeasured (V11).
+
+Operations: the weekly digest reads ISO acquisition dates in the county catalog
+as the county views do (V12) and refuses an aggregate whose `generated_at` is
+more than five minutes in the future (V13).
+
+Pre-deploy checks for the next release: no `gac_completeness` or
+`mngac_completeness` object in the private registry has an invalid recognized
+field, and no stored source `worker` carries surrounding whitespace.
+
 ## v0.5.8 fourth review fixes — deployed, 2026-11-18
 
 Deployed November 18, 2026 from `f923be9` (PRs #279 and #280); see the

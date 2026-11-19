@@ -59,7 +59,10 @@ def overdue_workers(aggregate: dict, *, now: dt.datetime, stale_minutes: int = D
         # not hide every other worker's alert (fourth review Q10).
         assigned = {source.get("worker") for source in (sources.values() if isinstance(sources, dict) else ())
                     if isinstance(source, dict) and isinstance(source.get("worker"), str)}
-        assigned = {name for name in assigned if isinstance(name, str) and name.strip() and name not in retired}
+        # A padded name is refused by publication and the digest; it is not a
+        # second, missing worker here either (fifth review V06).
+        assigned = {name for name in assigned
+                    if isinstance(name, str) and name.strip() and name == name.strip() and name not in retired}
         names = sorted(set(workers) | assigned)
     else:
         names = sorted(expected)

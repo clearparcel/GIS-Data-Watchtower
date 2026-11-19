@@ -279,7 +279,11 @@ for backward compatibility.
 
 Each setting must be `true` (default settings), `false`, or a settings object;
 other types (for example the string `"false"`) are refused before any request.
-An empty object is off.
+An empty object is off. Recognized fields inside the object are checked before
+any request too: `standard` must be a supported standard (`gac_completeness`
+only), `timeout_seconds` and `batch_size` whole numbers of at least 1,
+`metadata_url`, `county_name_field` and `county_code_field` text, and
+`population_scope` / `text_population_mode` one of their documented values.
 
 Parcel retains `CO_NAME` / `CO_CODE`. Address defaults to canonicalized
 `CO_NAME` grouping, while Road defaults to canonicalized `CO_NAME_L` so
@@ -503,7 +507,9 @@ changed its data recently, and is always shown separately.
 
 - **Publisher time.** Taken from what a check already observes: ArcGIS
   `editingInfo.lastEditDate`, then an HTTP `Last-Modified` header, then (for
-  the MnGeo county catalog) the newest county acquisition date. Each run's
+  the MnGeo county catalog) the newest county acquisition date, read in either
+  accepted encoding: ArcGIS epoch milliseconds, or ISO date text taken as UTC
+  midnight of its UTC calendar date, as the county views read it. Each run's
   history records it per source as `data_updated_at`. When the latest check
   observed no time (for example, because it failed), the newest time in the
   source's history is used.
