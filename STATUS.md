@@ -1,5 +1,12 @@
 # Project status
 
+## v0.6.1 deployed November 19, 2026
+
+The dashboards, county editor, cloud worker, public publisher and weekly digest
+use v0.6.1 from `908b80f`. The worker now retains a provider's HTTP 429
+backoff when curl is interrupted after receiving the response headers. See the
+[release record](docs/release-v0.6.1.md) and [PR #288](https://github.com/clearparcel/GIS-Data-Watchtower/pull/288).
+
 ## v0.6.0 sixth-review fixes deployed November 19, 2026
 
 The public dashboard, internal dashboard, county editor, regular cloud worker,
