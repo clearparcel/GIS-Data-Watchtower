@@ -22,7 +22,9 @@ Start from `config/example_sources.json`. The public example is deliberately pro
 The supported history size key is `history_max_mb`. Older experimental keys such as `history_max_lines` and `history_max_bytes` are not supported.
 
 Automatic whole-source retries stop after HTTP 401, 403, 404, or 410, as well as
-the separate HTTP 429 stop/backoff signal. Changing transport does not turn these
+the separate HTTP 429 stop/backoff signal. If a curl transfer is interrupted
+after the provider returns 429 headers, Watchtower still honors the host-wide
+stop and the provider's `Retry-After`. Changing transport does not turn these
 responses into retryable failures. Transient failures, including timeouts and
 HTTP 5xx, retain the configured bounded retry behavior. This does not change the
 normal daily schedule or authorize another provider request.

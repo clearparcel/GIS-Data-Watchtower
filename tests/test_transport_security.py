@@ -449,6 +449,7 @@ class CurlReviewRegressionTests(unittest.TestCase):
                 invoke()
                 command = run.call_args.args[0]
                 self.assertEqual(command[1], '--disable')
+                self.assertIn('--suppress-connect-headers', command)
                 self.assertNotIn('--noproxy', command)
                 self.assertNotIn('--location', command)
                 self.assertNotIn('--insecure', command)
@@ -526,3 +527,20 @@ class CurlReviewRegressionTests(unittest.TestCase):
             with self.assertRaises(watch.ProviderRateLimitError) as failure:
                 watch._curl_request_once('https://provider.example/', 1, transport='curl')
         self.assertIsNone(failure.exception.retry_after)
+
+    def test_header_only_stop_requires_a_final_429(self):
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as td:
+            headers = Path(td) / 'headers.txt'
+            for response, marker, expected_status in (
+                ('HTTP/1.1 103 Early Hints\nRetry-After: 60\n\n', None, None),
+                ('HTTP/1.1 429 Busy\n\nHTTP/2 200\n\n', None, None),
+                ('HTTP/1.1 4290 Invalid\n\n', None, None),
+                ('HTTP/1.1 429 Busy\n\n', '__CP_HTTP__200\n', 200),
+                ('HTTP/1.1 429 Busy\n\n', '__CP_HTTP__103\n', 429),
+            ):
+                with self.subTest(response=response, marker=marker):
+                    headers.write_text(response, encoding='ascii')
+                    status, _, _ = watch._curl_response_metadata(marker, headers)
+                    self.assertEqual(status, expected_status)
