@@ -586,6 +586,7 @@ def _curl_request_once(
         command = [
             curl_exe,
             "--disable",
+            "--globoff",
             "--connect-timeout", str(min(timeout, 15)),
             "--max-time", str(timeout),
             "--max-filesize", str(limit),
