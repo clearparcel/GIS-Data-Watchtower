@@ -1080,6 +1080,15 @@ def _median(values: list[float]) -> float | None:
 
 
 
+def _gac_enabled(settings: object) -> bool:
+    """Whether a completeness setting asks for statistics: ``true`` or a non-empty object.
+
+    The registry refuses other types (fourth review Q05); a stray string or
+    number is never read as on here either.
+    """
+    return settings is True or (isinstance(settings, dict) and bool(settings))
+
+
 def _arcgis_gac_completeness(
     url: str,
     field_names: list[str],
@@ -1199,12 +1208,14 @@ def _arcgis_gac_completeness(
             # empty county; a present null county is a genuine null group.
             if county_field not in attrs:
                 raise RuntimeError(f"GAC statistics group is missing its {county_field} attribute")
-            raw_county_name = str(attrs.get(county_field) or "").strip()
-            county_name = (
-                raw_county_name
-                if standard_key == "parcel"
-                else canonical_minnesota_county(raw_county_name)
-            )
+            raw_value = attrs.get(county_field)
+            if raw_value is not None and not isinstance(raw_value, str):
+                # A county name is text; a number or object is a malformed group.
+                raise RuntimeError(f"GAC statistics group has a non-text {county_field} value")
+            raw_county_name = (raw_value or "").strip()
+            # Every standard, parcel included, joins on the canonical Minnesota
+            # county: an alias or typo is never a separate county (fourth review Q06).
+            county_name = canonical_minnesota_county(raw_county_name)
             if not county_name:
                 if raw_county_name:
                     excluded_county_names.add(raw_county_name)
@@ -1473,12 +1484,14 @@ def _arcgis_gac_metadata(
         raise RuntimeError("GAC participation metadata response exceeded the provider transfer limit")
     counties = {}
     for feature in _response_features(data, "GAC participation metadata"):
-        attrs = feature.get("attributes") or {}
+        attrs = feature.get("attributes") if isinstance(feature, dict) else None
+        if not isinstance(attrs, dict):
+            raise RuntimeError("GAC participation metadata row has no attributes object")
         raw_county_name = str(attrs.get("county_name") or attrs.get("agency_county") or "").strip()
         county_name = canonical_minnesota_county(raw_county_name)
         if not county_name:
             continue
-        counties[county_name] = {
+        row = {
             "county_name": county_name,
             "county_code": str(attrs.get("county_code") or "").strip() or None,
             "county_fips": str(attrs.get("county_fips") or "").strip() or None,
@@ -1486,6 +1499,13 @@ def _arcgis_gac_metadata(
             "ng911_upload": _gac_bool(attrs.get("ng911_upload")),
             "submitted_at": _gac_datetime(attrs.get(submission_field)) if submission_field else None,
         }
+        if county_name in counties and counties[county_name] != row:
+            # Conflicting rows for one county must not silently replace each
+            # other; the last valid metadata is kept instead (fourth review Q07).
+            raise RuntimeError(f"GAC participation metadata has conflicting rows for {county_name}")
+        counties[county_name] = row
+    if not counties:
+        raise RuntimeError("GAC participation metadata returned no usable county rows")
     return counties
 
 
@@ -1596,8 +1616,8 @@ def _arcgis_layer(source: dict, timeout: int) -> dict:
         result["feature_count"] = _arcgis_count_query(source["url"], "1=1", timeout, prefer_curl=bool(source.get("prefer_curl")))
     gac_settings = source.get("gac_completeness")
     legacy_mngac = source.get("mngac_completeness")
-    if gac_settings or legacy_mngac:
-        modern = bool(gac_settings)
+    if _gac_enabled(gac_settings) or _gac_enabled(legacy_mngac):
+        modern = _gac_enabled(gac_settings)
         settings = gac_settings if modern else legacy_mngac
         if not isinstance(settings, dict):
             settings = {}
@@ -1640,10 +1660,14 @@ def _arcgis_layer(source: dict, timeout: int) -> dict:
                     prefer_curl=bool(source.get("prefer_curl")),
                 )
             if isinstance(result.get("feature_count"), int):
+                grouped = int(completeness.get("record_count") or 0)
+                if grouped > result["feature_count"]:
+                    # Two requests disagree (a changing dataset or an inconsistent
+                    # response): the denominators are incompatible (fourth review Q08).
+                    raise RuntimeError(f"GAC grouped statistics count {grouped} exceeds the layer count "
+                                       f"{result['feature_count']}")
                 completeness["source_feature_count"] = result["feature_count"]
-                completeness["ungrouped_record_count"] = max(
-                    0, result["feature_count"] - int(completeness.get("record_count") or 0)
-                )
+                completeness["ungrouped_record_count"] = result["feature_count"] - grouped
             metadata = completeness.get("county_metadata") or {}
             represented = set(completeness.get("counties") or {})
             if isinstance(metadata, dict) and metadata:
@@ -2376,6 +2400,15 @@ def _is_observation(record: object) -> bool:
             and any(key in record for key in _BASELINE_KEYS))
 
 
+# Baseline fields whose explicit null means "not measured": a layer response
+# without a usable extent must not discard the last valid bounds (fourth review Q09).
+_NULL_IS_UNMEASURED = frozenset({"spatial_extent"})
+
+
+def _measured(record: dict, key: str) -> bool:
+    return key in record and not (key in _NULL_IS_UNMEASURED and record[key] is None)
+
+
 def _comparison_baseline(previous: object) -> dict | None:
     """The last usable value of each compared field behind ``previous``.
 
@@ -2397,7 +2430,7 @@ def _comparison_baseline(previous: object) -> dict | None:
             times[key] = baseline.get("observed_at")
     carried_tracked = baseline.get("tracked_values") if isinstance(baseline.get("tracked_values"), dict) else {}
     for key in _BASELINE_KEYS:
-        if key in previous:
+        if _measured(previous, key):
             baseline[key] = previous[key]
             times[key] = previous.get("checked_at")
     previous_tracked = previous.get("tracked_values")
@@ -2419,7 +2452,7 @@ def _carried_baseline(baseline: dict | None, details: dict) -> dict | None:
     if not baseline:
         return None
     times = baseline.get("field_observed_at") or {}
-    kept = {key: baseline[key] for key in _BASELINE_KEYS if key in baseline and key not in details}
+    kept = {key: baseline[key] for key in _BASELINE_KEYS if key in baseline and not _measured(details, key)}
     tracked_times = {}
     if isinstance(baseline.get("tracked_values"), dict) and isinstance(details.get("tracked_values"), dict):
         unmeasured = {name: value for name, value in baseline["tracked_values"].items()
@@ -2882,8 +2915,8 @@ def _check_sources_unlocked(
             baseline = _comparison_baseline(previous_sources.get(source["id"]))
             if baseline is not None:
                 records[source["id"]]["comparison_baseline"] = baseline
-            quality_key = "gac_completeness" if source.get("gac_completeness") else (
-                "mngac_completeness" if source.get("mngac_completeness") else None
+            quality_key = "gac_completeness" if _gac_enabled(source.get("gac_completeness")) else (
+                "mngac_completeness" if _gac_enabled(source.get("mngac_completeness")) else None
             )
             if source["id"] == "mn-parcel-county-catalog":
                 previous_catalog = previous_sources.get(source["id"], {})
@@ -3153,6 +3186,11 @@ def validate_source_registry(sources: object) -> None:
             # Truthiness would read "false" as on and add provider requests.
             if source.get(key) is not None and type(source[key]) is not bool:
                 raise InvalidSourceRegistryError(f"source {source_id!r} {key} must be true or false")
+        for key in _GAC_SETTING_OPTIONS:
+            # Each adds grouped-statistics requests when on (fourth review Q05).
+            if source.get(key) is not None and type(source[key]) is not bool and not isinstance(source[key], dict):
+                raise InvalidSourceRegistryError(
+                    f"source {source_id!r} {key} must be true, false or a settings object")
         if "execution_profiles" in source:
             profiles = source["execution_profiles"]
             # A string would match profiles by substring; require exact names.
@@ -3202,6 +3240,8 @@ _THRESHOLD_OPTIONS = {"feature_count_change_percent": float, "extent_shift_perce
 # Source options that add provider requests when on.
 _REQUEST_FLAG_OPTIONS = ("count", "discover_parcel_layer", "parcel_quality", "geometry_sample", "item_metadata",
                          "prefer_curl")
+# Completeness settings: true (defaults), false, or a settings object.
+_GAC_SETTING_OPTIONS = ("gac_completeness", "mngac_completeness")
 _LAYER_NAME_ADAPTERS = frozenset({"arcgis_layer", "arcgis_service"})
 _MAX_RETRY_DELAY_SECONDS = 3600
 _DISPATCH_INT_OPTIONS = ("timeout_seconds", "retries")

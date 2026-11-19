@@ -150,6 +150,25 @@ def emit_digest(digest: dict, stream) -> None:
     stream.flush()
 
 
+def validate_digest_clock(state: dict) -> None:
+    """Refuse an aggregate whose declared schema or generation time is invalid.
+
+    The publisher applies the same contract. A legacy fleet without a
+    generation time is accepted only with explicit ok/warn/error tallies, so
+    bare empty maps never yield a routine notice (fourth review Q11).
+    """
+    from clearparcel.datawatch.aggregate import _parse_time
+    if "schema_version" in state:
+        version = state["schema_version"]
+        if type(version) is not int or version < 1:
+            raise ValueError("aggregate schema_version is invalid")
+    if "generated_at" in state:
+        if not isinstance(state["generated_at"], str) or _parse_time(state["generated_at"]) is None:
+            raise ValueError("aggregate generated_at is invalid")
+    elif not all(key in (state.get("counts") or {}) for key in ("ok", "warn", "error")):
+        raise ValueError("aggregate has no generated_at and no explicit ok/warn/error tallies")
+
+
 def run_weekly_digest(config: dict, storage, stream, *, aggregate_object: str = "aggregate-state.json",
                       now: dt.datetime | None = None) -> dict:
     """Read the aggregate and history from storage, build the digest and log it."""
@@ -169,6 +188,7 @@ def run_weekly_digest(config: dict, storage, stream, *, aggregate_object: str = 
         # error, never a routine "0 stale" notice (follow-up review F10).
         from clearparcel.datawatch.public_publish import validate_private_aggregate
         validate_private_aggregate(state)
+        validate_digest_clock(state)
         _, histories = load_history_index(history_config, (state.get("sources") or {}).keys(),
                                           limit=HISTORY_LIMIT)
     digest = build_digest(state, config, histories, now=now, terms=_terms_snapshot())

@@ -57,6 +57,15 @@ all features.
 
 ## County grouping
 
+Parcels group by `CO_NAME` and `CO_CODE`, with the name normalized to the
+canonical Minnesota county: an alias such as `Saint Louis` joins `St. Louis`
+(two groups for one county are refused as duplicates), an unrecognized name is
+an excluded group, and a non-text name is a malformed response. If grouped
+records ever exceed the layer's independently counted total, the quality check
+fails and the last valid measurement is kept. Participation metadata with
+conflicting rows for one county, a malformed row, or no usable county rows
+fails the check the same way.
+
 Address points group by `CO_NAME`, normalized to the canonical 87 Minnesota
 county names. The county-code field remains schema-checked but is not part of
 the denominator grouping because code anomalies can split one named county

@@ -12,8 +12,8 @@ from clearparcel.datawatch import strict_json
 from clearparcel.datawatch.public_projection import (InvalidSnapshotError, validate_snapshot_structure,
                                                      validate_snapshot_totals)
 from clearparcel.datawatch.storage import GCSStorage, StorageBackend, StorageConflictError, gcs_object_identity
-from clearparcel.datawatch.aggregate import (CLOCK_SKEW_TOLERANCE_SECONDS, _parse_time, _plausible_time,
-                                             observation_rolls_back)
+from clearparcel.datawatch.aggregate import (CLOCK_SKEW_TOLERANCE_SECONDS, _latest_time, _parse_time,
+                                             _plausible_time, observation_rolls_back)
 from clearparcel.datawatch.provider_watchdog import run_provider_watchdog
 
 
@@ -109,6 +109,11 @@ def validate_private_aggregate(raw: object) -> None:
     for source_id, record in raw["sources"].items():
         if "status" in record and record["status"] not in _PRIVATE_SOURCE_STATUSES:
             raise InvalidSnapshotError(f"private aggregate source {str(source_id)[:80]!r} has an invalid status")
+        # Aggregation writes a worker name; any other assignment is unreadable
+        # input, never a silent watchdog or digest failure (fourth review Q10).
+        if record.get("worker") is not None and (not isinstance(record["worker"], str)
+                                                 or not record["worker"].strip()):
+            raise InvalidSnapshotError(f"private aggregate source {str(source_id)[:80]!r} has an invalid worker")
     validate_snapshot_totals(raw)
 
 
@@ -161,7 +166,8 @@ def _snapshot_is_superseded(candidate: dict, current: dict, now: dt.datetime | N
         incoming = (candidate.get("workers") or {}).get(name) or {}
         if not incoming:
             tombstone = (candidate.get('retired_workers') or {}).get(name) or {}
-            seen = _parse_time(worker.get('last_report_at') or worker.get('checked_at'))
+            # An implausibly future stored heartbeat is not evidence (fourth review Q03).
+            seen = _plausible_time(worker.get('last_report_at') or worker.get('checked_at'), now)
             retired = _parse_time(tombstone.get('retired_at'))
             if retired is None or (seen is not None and retired <= seen):
                 return True
@@ -180,7 +186,11 @@ def _snapshot_is_superseded(candidate: dict, current: dict, now: dt.datetime | N
         source_seen = source.get("last_report_at") or source.get("checked_at")
         if incoming is None:
             tombstone = (candidate.get("retired_sources") or {}).get(name)
-            if not isinstance(tombstone, dict) or older(tombstone.get("retired_at"), source_seen):
+            # A retirement must follow the newest retained time, including a
+            # provider check made after the retiring report started (Q01).
+            latest = _latest_time(source, now)
+            if not isinstance(tombstone, dict) or older(tombstone.get("retired_at"),
+                                                        latest.isoformat() if latest else None):
                 return True
         elif _plausible_time(source.get("checked_at"), now) is not None and observation_rolls_back(incoming, source):
             # Ordered by provider observation, not worker report time (T01).
@@ -193,7 +203,10 @@ def _snapshot_is_superseded(candidate: dict, current: dict, now: dt.datetime | N
         incoming = (candidate.get("sources") or {}).get(name)
         incoming_tombstone = (candidate.get("retired_sources") or {}).get(name)
         if incoming is not None:
-            incoming_at = incoming.get("last_report_at") or incoming.get("checked_at")
+            # Reinstatement needs evidence after the retirement: the provider
+            # check when the record carries one, as in aggregation (Q01).
+            incoming_at = (incoming.get("checked_at") if _parse_time(incoming.get("checked_at"))
+                           else incoming.get("last_report_at"))
             if _plausible_time(retired_at, now) is not None and (
                 _parse_time(incoming_at) is None or _parse_time(incoming_at) <= _parse_time(retired_at)
             ):
@@ -232,10 +245,12 @@ def publish_public_snapshot(
             raise FileNotFoundError(f"source aggregate not found: {source_object}")
 
         raw = strict_json.loads(raw_path.read_text(encoding="utf-8"))
+        # The watchdog never raises and runs first, so overdue workers still
+        # alert when the aggregate itself is refused below (fourth review Q10).
+        watchdog = run_provider_watchdog(raw, watchdog_stream) if watchdog_stream is not None else None
         # Before projection: projecting creates empty containers, so a malformed
         # private aggregate would otherwise publish as a healthy empty fleet.
         validate_private_aggregate(raw)
-        watchdog = run_provider_watchdog(raw, watchdog_stream) if watchdog_stream is not None else None
         public = sanitize_public_render_state(raw)
         validate_public_state(public)
         # The same contract the public reader applies: a snapshot it would
