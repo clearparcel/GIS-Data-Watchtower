@@ -1,9 +1,15 @@
 # Project status
 
-## Fourth review fixes — merged, not deployed
+## v0.5.8 fourth review fixes — deployed, 2026-11-18
 
-Fixes from the fourth review of `754859e` (v0.5.7). Production still runs
-v0.5.7; these apply at the next release.
+Deployed November 18, 2026 from `f923be9` (PRs #279 and #280); see the
+[release notes](docs/release-v0.5.8.md). The private registry and stored
+aggregate passed the added checks before rollout (completeness settings are
+booleans or objects, source `worker` values are plain names, no future check
+times), with no registry change needed. The weekly digest job runs the release
+image too.
+
+Fixes from the fourth review of `754859e` (v0.5.7).
 
 Publication integrity: a complete report no longer retires a source whose
 provider check is newer than the report, and a retired source returns only
