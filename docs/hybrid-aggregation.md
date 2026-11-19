@@ -4,6 +4,12 @@ Hybrid deployments may run different source sets from cloud and local workers. E
 
 A complete `scope.type=fleet` report retires omitted sources owned by that worker, provided neither their last report nor their provider check (`checked_at`) is newer than the report. A retired source returns only when a later report carries a provider check after the retirement (or, for a legacy record without a check time, a report after it); a deferred record carrying an older measurement, or a zero-attempt deferral with no check at all, does not reinstate it. The public publisher applies the same ordering. A same-worker deferred first check without a local record (for example a worker rebuilding its state) keeps the aggregate's last measurement and `checked_at`, with the new backoff status. Filtered `scope.type=source` and legacy reports without scope remain additive. A filtered check does not establish a complete inventory; retirement occurs on the next complete report. Other workers' observations remain intact. An older observation that arrives after a newer one never replaces it, but its success or availability still advances `last_success_at` and `last_available_at`, so those times do not depend on arrival order.
 
+If a stored source retirement has lost its timestamp, the latest accepted
+aggregate that still showed the source as retired supplies an ordering boundary.
+Reinstatement then requires a new provider check after that boundary. Deferrals,
+replayed measurements and report-only rows preserve the retirement while other
+sources continue to publish.
+
 Guards against accidental inventory loss and clock errors:
 
 - **Empty runs are refused.** A run that checks no sources (for example a mistyped profile, or a registry with nothing assigned to that profile) reports `scope.type=empty` and `overall=error` (exit code 2). It saves no state, uploads nothing, and is never merged into the aggregate.

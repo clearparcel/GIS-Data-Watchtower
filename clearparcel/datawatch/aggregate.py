@@ -118,14 +118,8 @@ def merge_states(base: dict | None, partial: dict, worker: str, *, now: dt.datet
             shrink_refused = len(retirable)
     for source_id, record in partial_sources.items():
         previous = merged_sources.get(source_id) or {}
-        tombstone = retired_sources.get(source_id) or {}
-        retired_at = _parse_time(tombstone.get("retired_at"))
-        # Reinstatement needs evidence after the retirement: the provider check
-        # when the record carries one (a deferred record carries an older
-        # measurement), otherwise the report time (fourth review Q01). A
-        # deferral without a check made no request: it is no evidence (V03).
-        if retired_at is not None and (unmeasured_deferral(record) or (
-                _parse_time(record.get("checked_at")) or incoming_time) <= retired_at):
+        if source_id in retired_sources and not can_reinstate_source(
+                record, retired_sources[source_id] or {}, generated, base.get("generated_at"), now):
             continue
         if _source_update_is_stale(record, previous, incoming_time, worker, now):
             # An older observation is not the current state, but its success
@@ -284,6 +278,24 @@ def _plausible_time(value, now: dt.datetime):
 def unmeasured_deferral(record: dict) -> bool:
     """A rate-limit deferral that carries no provider check: zero attempts, no evidence."""
     return bool(record.get("deferred")) and _parse_time(record.get("checked_at")) is None
+
+
+def can_reinstate_source(record: dict, retirement: dict, report_at: str | None,
+                         last_snapshot_at: str | None, now: dt.datetime) -> bool:
+    """Does this observation prove the source returned after its recorded retirement?"""
+    if record.get("check_withheld"):
+        return False
+    checked = _plausible_time(record.get("checked_at"), now)
+    retired = _plausible_time(retirement.get("retired_at"), now)
+    if retired is None:
+        # The last aggregate showing the retirement is a conservative boundary.
+        # Only a fresh provider check can clear a marker whose own clock was lost.
+        boundary = _plausible_time(last_snapshot_at, now)
+        return (not record.get("deferred") and checked is not None
+                and boundary is not None and checked > boundary)
+    if checked is None and record.get("checked_at") is None and not record.get("deferred"):
+        checked = _plausible_time(report_at, now)  # legacy observation without a check timestamp
+    return checked is not None and checked > retired
 
 
 def _history_times(record: dict, generated: str) -> tuple[str | None, str | None]:

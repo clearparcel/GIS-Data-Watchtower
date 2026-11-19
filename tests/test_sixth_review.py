@@ -12,6 +12,7 @@ from clearparcel.datawatch.aggregate import merge_states, retire_worker, with_fr
 from clearparcel.datawatch.county_profiles import FreshnessPolicy, _health
 from clearparcel.datawatch.data_freshness import data_freshness
 from clearparcel.datawatch.public_projection import InvalidSnapshotError, sanitize_public_render_state
+from clearparcel.datawatch.public_publish import _snapshot_is_superseded
 from clearparcel.datawatch.storage import LocalStorage
 from tests.test_fifth_review import (META, NOW, TEN_DAYS, Publisher, _group, _metadata_row,
                                      at, deferred, fleet, measured)
@@ -64,6 +65,37 @@ class PublicationRecoveryTests(unittest.TestCase):
         self.assertEqual(public["retired_workers"], {"local": {}})
         self.assertEqual(public["retired_sources"], {"removed": {}})
         self.publish(state)
+
+    def test_reinstatement_with_an_unusable_retirement_time_needs_a_new_check(self):
+        self.publish(self.baseline())
+        for retired_at in (None, "unreadable", at(TEN_DAYS)):
+            with self.subTest(retired_at=retired_at):
+                state = self.baseline()
+                marker = {"retired_at": retired_at} if retired_at is not None else {}
+                state["retired_sources"]["removed"] = marker
+                # Model an upgrade where both stores already know the retirement.
+                self.seed_destination(sanitize_public_render_state(state))
+                for index, row in enumerate((deferred(), deferred(checked_at=at(-35)),
+                                             {"status": "ok"}, measured(-50, 9))):
+                    start = -30 + index * 4
+                    partial = fleet(start, {"s1": measured(start + 1, index), "removed": row})
+                    private = merge_states(state, partial, "cloud", now=NOW)
+                    self.assertNotIn("removed", private["sources"])
+                    self.assertIn("removed", private["retired_sources"])
+                    # A rebuilt private state has no local copy of the tombstone.
+                    rebuilt = merge_states(None, partial, "cloud", now=NOW)
+                    self.assertTrue(_snapshot_is_superseded(rebuilt, self.publisher.destination(), NOW))
+                    public = self.publish(rebuilt)
+                    self.assertNotIn("removed", public["sources"])
+                    self.assertIn("removed", public["retired_sources"])
+                    self.assertEqual(public["sources"]["s1"]["feature_count"], index)
+                    state = private
+                omitted = merge_states(None, fleet(-10, {"s1": measured(-9, 12)}), "cloud", now=NOW)
+                self.assertIn("removed", self.publish(omitted)["retired_sources"])
+                fresh = fleet(-5, {"s1": measured(-4, 20), "removed": measured(-4, 30)})
+                private = merge_states(state, fresh, "cloud", now=NOW)
+                self.assertNotIn("removed", private["retired_sources"])
+                self.assertEqual(self.publish(private)["sources"]["removed"]["feature_count"], 30)
 
     def test_migration_during_quarantine_honors_retirement(self):
         state = self.baseline("local")

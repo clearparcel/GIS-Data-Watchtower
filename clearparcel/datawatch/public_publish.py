@@ -15,7 +15,7 @@ from clearparcel.datawatch.public_projection import (InvalidSnapshotError, _over
 from clearparcel.datawatch.storage import GCSStorage, StorageBackend, StorageConflictError, gcs_object_identity
 from clearparcel.datawatch.aggregate import (CLOCK_SKEW_TOLERANCE_SECONDS, _carry_measurement, _inherit_history, _latest_time,
                                              _parse_time, _plausible_time, observation_rolls_back,
-                                             unmeasured_deferral)
+                                             can_reinstate_source, unmeasured_deferral)
 from clearparcel.datawatch.provider_watchdog import _emit, run_provider_watchdog
 
 QUARANTINE_LOG_KEY = "watchtower_publisher_clock_quarantine"
@@ -235,6 +235,19 @@ def _withheld_record(section: str, previous: dict, now: dt.datetime, *, keep_ord
 def _recover_published_evidence(candidate: dict, current: dict, now: dt.datetime) -> bool:
     """Preserve measurements and known good history through rebuilds and clock corrections."""
     carried = False
+    # A rebuilt writer may have lost a retirement that the destination witnessed.
+    # Keep an undated marker until an actual later check can reinstate its source.
+    for name, marker in (current.get("retired_sources") or {}).items():
+        marker = marker if isinstance(marker, dict) else {}
+        if name in candidate["retired_sources"] or _plausible_time(marker.get("retired_at"), now) is not None:
+            continue
+        incoming = candidate["sources"].get(name)
+        if incoming is None or not can_reinstate_source(
+                incoming, marker, incoming.get("last_report_at"), current.get("generated_at"), now):
+            candidate["sources"].pop(name, None)
+            worker = _worker_name(marker.get("worker"))
+            candidate["retired_sources"][name] = {"worker": worker} if worker else {}
+            carried = True
     for section, history_keys in (("sources", ("last_success_at", "last_available_at")),
                                   ("workers", ("last_success_at",))):
         for name, record in candidate[section].items():
@@ -318,18 +331,13 @@ def _snapshot_is_superseded(candidate: dict, current: dict, now: dt.datetime | N
                 incoming.get("last_report_at") or incoming.get("checked_at"), source_seen):
             return True
     for name, tombstone in (current.get("retired_sources") or {}).items():
-        retired_at = tombstone.get("retired_at") if isinstance(tombstone, dict) else None
+        tombstone = tombstone if isinstance(tombstone, dict) else {}
+        retired_at = tombstone.get("retired_at")
         incoming = (candidate.get("sources") or {}).get(name)
         incoming_tombstone = (candidate.get("retired_sources") or {}).get(name)
         if incoming is not None:
-            # Reinstatement needs evidence after the retirement: the provider
-            # check when the record carries one, as in aggregation (Q01).
-            # A deferral without a check made no request: no evidence (V03).
-            incoming_at = (incoming.get("checked_at") if _parse_time(incoming.get("checked_at"))
-                           else None if incoming.get("deferred") else incoming.get("last_report_at"))
-            if _plausible_time(retired_at, now) is not None and (
-                _parse_time(incoming_at) is None or _parse_time(incoming_at) <= _parse_time(retired_at)
-            ):
+            if not can_reinstate_source(incoming, tombstone, incoming.get("last_report_at"),
+                                        current.get("generated_at"), now):
                 return True
         elif not isinstance(incoming_tombstone, dict) or older(
             incoming_tombstone.get("retired_at"), retired_at
