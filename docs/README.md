@@ -40,7 +40,8 @@ Choose the path that matches what you want to do. For the live dashboard and a c
 | [Provider-run alerting](provider-run-alerting-proposal.md) | Activated November 3, 2026 with v0.3.10: alert on Watchtower failures and missed runs separately from source errors |
 | [Public dashboard hosting](public-dashboard-hosting.md) | Anonymous sanitized service, access boundaries, publication, and freshness |
 | [Release policy](release-policy.md) | Versioning, evidence, and rollback expectations |
-| [Current v0.6.1 release](release-v0.6.1.md) | Host-wide provider backoff after interrupted curl transfers |
+| [Current v0.6.2 release](release-v0.6.2.md) | Literal provider URLs for curl checks |
+| [v0.6.1 release](release-v0.6.1.md) | Host-wide provider backoff after interrupted curl transfers |
 | [v0.6.0 sixth-review release](release-v0.6.0.md) | Publication recovery, retirement ordering, worker provenance, GAC observations, extent comparisons and data freshness |
 | [v0.5.9 fifth review fixes release](release-v0.5.9.md) | Per-record clock quarantine, worker retirement and deferral fixes, participation and grouped-total checks, completeness settings validation, digest date handling |
 | [v0.5.8 fourth review fixes release](release-v0.5.8.md) | Retirement ordering, future-time refusal, completeness settings, canonical parcel counties, worker assignment errors |
