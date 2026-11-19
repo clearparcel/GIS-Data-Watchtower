@@ -1,9 +1,14 @@
 # Project status
 
-## Third review fixes — merged to main, not deployed
+## v0.5.7 third review fixes — deployed, 2026-11-18
 
-Fixes from the third review of `2310764` (v0.5.6). They are on `main` only;
-production still runs v0.5.6.
+Deployed November 18, 2026 from `206c4be` (PRs #274 to #277); see the
+[release notes](docs/release-v0.5.7.md). The private registry and stored county
+catalog passed the added checks below before rollout, with no registry change
+needed. The weekly digest job now uses the release image too, so the v0.5.6
+digest fix (#268) and the watchdog default below are live.
+
+Fixes from the third review of `2310764` (v0.5.6).
 
 Publication integrity: a source's measured values are ordered by its provider
 check time, so overlapping workers can no longer republish an older
@@ -23,9 +28,7 @@ canonical name (T05). A statistics group without its county attribute, or a
 duplicate-ID group smaller than two, is malformed rather than zero (T06). A
 check that did not read the parcel layer reports no parcel-schema change, and
 tracked values keep a per-key baseline (T07). An explicit `null`
-`extent_shift_percent` is refused before any request (T08). Before deploying,
-check the private registry for non-boolean request options and a null extent
-threshold.
+`extent_shift_percent` is refused before any request (T08).
 
 Operations and test reliability: the publisher watchdog's default now also
 expects every non-retired worker a source is assigned to, so a missing
